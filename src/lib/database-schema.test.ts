@@ -1,0 +1,82 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const schema = readFileSync(join(process.cwd(), "supabase", "schema.sql"), "utf8");
+const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080613_tenant_integrity.sql"), "utf8");
+const reminderAuditMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080614_reminder_settings_audit.sql"), "utf8");
+const accessAuditMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080615_access_audit.sql"), "utf8");
+const reminderRecipientsMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080616_reminder_delivery_recipients.sql"), "utf8");
+const partialPaymentsMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080618_partial_payments.sql"), "utf8");
+const databaseSources = [schema, migration];
+
+describe("database tenant integrity", () => {
+  it("keeps every invoice-owned relation inside one organization", () => {
+    const constraints = [
+      "invoices_policy_same_org_fkey",
+      "invoice_events_invoice_same_org_fkey",
+      "invoice_uploads_invoice_same_org_fkey",
+      "reminder_log_invoice_same_org_fkey",
+      "bank_payments_invoice_same_org_fkey",
+    ];
+    for (const source of databaseSources) {
+      for (const constraint of constraints) expect(source).toContain(constraint);
+      expect(source.match(/foreign key \(organization_id, invoice_id\)/g)).toHaveLength(4);
+    }
+  });
+
+  it("makes paid, closed and sent states unambiguous", () => {
+    for (const source of databaseSources) {
+      expect(source).toContain("invoices_paid_state_check");
+      expect(source).toContain("invoices_closed_schedule_check");
+      expect(source).toContain("reminder_log_sent_state_check");
+      expect(source).toContain("reminder_log_provider_state_check");
+    }
+  });
+
+  it("records reminder settings atomically with the authenticated actor", () => {
+    for (const source of [schema, reminderAuditMigration]) {
+      expect(source).toContain("create table reminder_settings_events");
+      expect(source).toContain("actor_user uuid");
+      expect(source).toContain("insert into reminder_settings_events");
+      expect(source).toContain("role in ('accounting', 'admin')");
+      expect(source).toContain("invalid_templates");
+    }
+    expect(reminderAuditMigration).toContain("drop function save_default_reminder_settings(uuid, integer[], jsonb, boolean)");
+  });
+
+  it("records every membership mutation in the same database transaction", () => {
+    for (const source of [schema, accessAuditMigration]) {
+      expect(source).toContain("create table organization_member_events");
+      expect(source).toContain("create or replace function add_organization_member");
+      expect(source.match(/insert into organization_member_events/g)).toHaveLength(3);
+      expect(source).toContain("cannot_remove_self");
+      expect(source).toContain("last_admin");
+      expect(source).toContain("actor_email_value");
+    }
+  });
+
+  it("validates and audits reply-to and copy recipients with reminder templates", () => {
+    for (const source of [schema, reminderRecipientsMigration]) {
+      expect(source).toContain("normalized_templates");
+      expect(source).toContain("invalid_reply_to");
+      expect(source).toContain("invalid_cc");
+      expect(source).toContain("cardinality(cc_values) > 5");
+      expect(source).toContain("reply_to = excluded.reply_to");
+      expect(source).toContain("cc = excluded.cc");
+      expect(source).toContain("new_days, normalized_templates");
+    }
+  });
+
+  it("supports multiple partial bank payments without overstating receivables", () => {
+    for (const source of [schema, partialPaymentsMigration]) {
+      expect(source).toContain("paid_amount numeric(14,2)");
+      expect(source).toContain("invoices_payment_balance_state_check");
+      expect(source).toContain("create or replace function unassign_bank_payment");
+      expect(source.replace(/\s/g, "")).toContain("amount-paid_amount");
+      expect(source).toContain("'settlement'");
+      expect(source).toContain("'partial'");
+    }
+    expect(partialPaymentsMigration).toContain("drop index if exists bank_payments_one_match_per_invoice");
+  });
+});
