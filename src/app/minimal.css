@@ -278,6 +278,8 @@ tr:hover td { background: #fafbf9; }
 .invoice-pagination > span { color: var(--muted); font-size: 11px; }
 
 /* Formuláře a import */
+.manual-invoice-page { width: min(100%, 960px); margin-inline: auto; }
+.manual-invoice-page .standalone-form { width: 100%; }
 .standalone-form { width: min(100%, 960px); }
 .form-section { margin-bottom: 12px; padding: 22px; }
 .form-section-title > span { border-radius: 50%; background: var(--green-soft); }
