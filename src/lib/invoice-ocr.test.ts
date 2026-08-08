@@ -17,7 +17,9 @@ const validPayload = {
   counterparty_dic: "CZ12345678",
   counterparty_email: "FAKTURACE@EXAMPLE.CZ",
   variable_symbol: "202607",
-  amount: 1250.456,
+  amount_without_vat: 1000,
+  vat_rate: 21,
+  amount: 1210,
   currency: "czk",
   issue_date: "2026-08-01",
   due_date: "2026-08-15",
@@ -33,12 +35,19 @@ describe("invoice OCR", () => {
       invoice_number: "FV-2026-7",
       counterparty_name: "Odběratel s.r.o.",
       counterparty_email: "fakturace@example.cz",
-      amount: 1250.46,
+      amount_without_vat: 1000,
+      vat_rate: 21,
+      amount: 1210,
       currency: "CZK",
       source: "ocr",
       file_url: "org/file.pdf",
     });
     expect(result?.response_id).toBe("resp_123");
+  });
+
+  it("calculates a missing net amount from the extracted gross total and VAT rate", () => {
+    const result = parseInvoiceOcrResponse(response({ ...validPayload, amount_without_vat: null }), "org/file.pdf", "model");
+    expect(result?.invoice).toMatchObject({ amount_without_vat: 1000, vat_rate: 21, amount: 1210 });
   });
 
   it("drops invalid dates and adds high-risk document warnings", () => {

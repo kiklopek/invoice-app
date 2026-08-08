@@ -403,6 +403,8 @@ export default function InvoiceDetailPage() {
     counterparty_dic: invoice.counterparty_dic ?? "",
     counterparty_email: invoice.counterparty_email,
     variable_symbol: invoice.variable_symbol ?? "",
+    amount_without_vat: Number(invoice.amount_without_vat),
+    vat_rate: Number(invoice.vat_rate),
     amount: Number(invoice.amount),
     currency: invoice.currency,
     issue_date: invoice.issue_date,
@@ -555,7 +557,7 @@ export default function InvoiceDetailPage() {
         <>
           <section className={`invoice-hero ${invoice.status}`}>
             <div>
-              <span>Částka faktury</span>
+              <span>Částka faktury s DPH</span>
               <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
               <small>
                 {paidAmount > 0 && invoice.status !== "cancelled"
@@ -593,6 +595,18 @@ export default function InvoiceDetailPage() {
                   <div>
                     <span>Datum úplného zaplacení</span>
                     <strong>{date(invoice.paid_at)}</strong>
+                  </div>
+                  <div>
+                    <span>Částka bez DPH</span>
+                    <strong>{money(Number(invoice.amount_without_vat), invoice.currency)}</strong>
+                  </div>
+                  <div>
+                    <span>Sazba DPH</span>
+                    <strong>{Number(invoice.vat_rate).toLocaleString("cs-CZ", { maximumFractionDigits: 2 })} %</strong>
+                  </div>
+                  <div>
+                    <span>Částka s DPH</span>
+                    <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
                   </div>
                   <div>
                     <span>Uhrazená částka</span>

@@ -92,6 +92,8 @@ create table invoices (
   counterparty_dic text,
   counterparty_email text not null,
   variable_symbol text,
+  amount_without_vat numeric(14,2) not null check (amount_without_vat > 0),
+  vat_rate numeric(5,2) not null default 0 check (vat_rate >= 0 and vat_rate <= 100),
   amount numeric(14,2) not null check (amount > 0),
   paid_amount numeric(14,2) not null default 0 check (paid_amount >= 0 and paid_amount <= amount),
   currency char(3) not null default 'CZK',
@@ -112,7 +114,8 @@ create table invoices (
   updated_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (organization_id, invoice_number)
+  unique (organization_id, invoice_number),
+  constraint invoices_vat_amounts_consistent check (abs(amount - round(amount_without_vat * (100 + vat_rate) / 100, 2)) <= 0.01)
 );
 
 create unique index invoices_one_document on invoices (file_url) where file_url is not null;
@@ -1266,7 +1269,7 @@ begin
   if status_filter is not null and status_filter not in ('pending', 'overdue', 'paid', 'cancelled') then raise exception 'invalid_status'; end if;
 
   with filtered as materialized (
-    select i.invoice_number, i.counterparty_name, i.amount, i.paid_amount, i.amount - i.paid_amount as remaining_amount,
+    select i.invoice_number, i.counterparty_name, i.amount_without_vat, i.vat_rate, i.amount, i.paid_amount, i.amount - i.paid_amount as remaining_amount,
       i.currency, i.issue_date, i.due_date, i.paid_at, i.status, i.reminders_sent, i.id
     from invoices i where i.organization_id = target_org and i.currency = currency_filter
       and (status_filter is null or i.status = status_filter)

@@ -54,6 +54,8 @@ export async function POST(request: Request) {
     counterparty_dic: "CZ12345678",
     counterparty_email: recipient,
     variable_symbol: "2026001",
+    amount_without_vat: 10330.58,
+    vat_rate: 21,
     amount: 12500,
     paid_amount: 0,
     currency: "CZK",

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { InvoiceInput } from "@/types/invoice";
 import { todayInTimeZone } from "@/lib/reminders";
+import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 
 export const createEmptyInvoice = (): InvoiceInput => ({
   invoice_number: "",
@@ -11,6 +12,8 @@ export const createEmptyInvoice = (): InvoiceInput => ({
   counterparty_dic: "",
   counterparty_email: "",
   variable_symbol: "",
+  amount_without_vat: 0,
+  vat_rate: DEFAULT_VAT_RATE,
   amount: 0,
   currency: "CZK",
   issue_date: "",
@@ -32,6 +35,21 @@ export function InvoiceForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const field = (key: keyof InvoiceInput, value: string | number) => setForm(current => ({ ...current, [key]: value }));
+  const setNetAmount = (value: number) => setForm(current => ({
+    ...current,
+    amount_without_vat: value,
+    amount: grossFromNet(value, current.vat_rate),
+  }));
+  const setGrossAmount = (value: number) => setForm(current => ({
+    ...current,
+    amount: value,
+    amount_without_vat: netFromGross(value, current.vat_rate),
+  }));
+  const setVatRate = (value: number) => setForm(current => ({
+    ...current,
+    vat_rate: value,
+    amount: grossFromNet(current.amount_without_vat, value),
+  }));
 
   useEffect(() => {
     setForm(current => current.issue_date ? current : { ...current, issue_date: todayInTimeZone() });
@@ -59,7 +77,9 @@ export function InvoiceForm({
       <label className="wide"><span>E-mail pro upomínky *</span><input type="email" required value={form.counterparty_email} onChange={e => field("counterparty_email", e.target.value)} placeholder="fakturace@odberatel.cz"/><small>Na tuto adresu budou chodit automatické upomínky.</small></label>
     </div></section>
     <section className="form-section"><div className="form-section-title"><span>3</span><div><h2>Částka a poznámka</h2><p>Hodnota pohledávky a interní informace.</p></div></div><div className="form-grid">
-      <label><span>Částka včetně DPH *</span><input type="number" required min="0.01" step="0.01" value={form.amount || ""} onChange={e => field("amount", Number(e.target.value))} placeholder="0,00"/></label>
+      <label><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/></label>
+      <label><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small></label>
+      <label><span>Částka s DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>Po změně se automaticky dopočítá částka bez DPH.</small></label>
       <label><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option>CZK</option><option>EUR</option><option>USD</option></select></label>
       <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} placeholder="Volitelná poznámka pro účetní oddělení"/></label>
     </div></section>

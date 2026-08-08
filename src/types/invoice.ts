@@ -12,6 +12,8 @@ export interface Invoice {
   counterparty_dic: string | null;
   counterparty_email: string;
   variable_symbol: string | null;
+  amount_without_vat: number;
+  vat_rate: number;
   amount: number;
   paid_amount: number;
   currency: string;
@@ -40,6 +42,8 @@ export interface InvoiceInput {
   counterparty_dic?: string;
   counterparty_email: string;
   variable_symbol?: string;
+  amount_without_vat: number;
+  vat_rate: number;
   amount: number;
   currency: string;
   issue_date: string;

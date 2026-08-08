@@ -10,12 +10,12 @@ import type { Invoice, InvoiceStatus } from "@/types/invoice";
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
 const statusLabels: Record<InvoiceStatus, string> = { pending: "Čeká", overdue: "Po splatnosti", paid: "Zaplaceno", cancelled: "Storno" };
-type ReportRow = Pick<Invoice, "invoice_number" | "counterparty_name" | "amount" | "paid_amount" | "currency" | "issue_date" | "due_date" | "paid_at" | "status" | "reminders_sent"> & { remaining_amount?: number };
+type ReportRow = Pick<Invoice, "invoice_number" | "counterparty_name" | "amount_without_vat" | "vat_rate" | "amount" | "paid_amount" | "currency" | "issue_date" | "due_date" | "paid_at" | "status" | "reminders_sent"> & { remaining_amount?: number };
 type ReportRowsPage = { rows: (ReportRow & { id: string })[]; total: number };
 
 function reportCsv(rows: ReportRow[]) {
-  return createCsv([["Faktura", "Odběratel", "Částka", "Uhrazená částka", "Zbývá", "Měna", "Vystavení", "Splatnost", "Datum úplné úhrady", "Stav", "Upomínky"],
-    ...rows.map(invoice => [invoice.invoice_number, invoice.counterparty_name, invoice.amount, invoice.paid_amount, invoice.remaining_amount ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency, invoice.issue_date, invoice.due_date, invoice.paid_at?.slice(0, 10) ?? "", statusLabels[invoice.status], invoice.reminders_sent])]);
+  return createCsv([["Faktura", "Odběratel", "Částka bez DPH", "Sazba DPH", "Částka s DPH", "Uhrazená částka", "Zbývá", "Měna", "Vystavení", "Splatnost", "Datum úplné úhrady", "Stav", "Upomínky"],
+    ...rows.map(invoice => [invoice.invoice_number, invoice.counterparty_name, invoice.amount_without_vat, invoice.vat_rate, invoice.amount, invoice.paid_amount, invoice.remaining_amount ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency, invoice.issue_date, invoice.due_date, invoice.paid_at?.slice(0, 10) ?? "", statusLabels[invoice.status], invoice.reminders_sent])]);
 }
 
 function csvResponse(rows: ReportRow[]) {

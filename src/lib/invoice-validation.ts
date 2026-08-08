@@ -1,4 +1,5 @@
 import type { InvoiceInput } from "@/types/invoice";
+import { MAX_VAT_RATE, grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
 
 const MAX_AMOUNT = 999_999_999_999.99;
 
@@ -24,12 +25,19 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
   const dueDate = text(body, "due_date", 10);
   const currency = (text(body, "currency", 3) || "CZK").toUpperCase();
   const amount = Number(body.amount);
+  const hasNetAmount = body.amount_without_vat !== undefined && body.amount_without_vat !== null && body.amount_without_vat !== "";
+  const hasVatRate = body.vat_rate !== undefined && body.vat_rate !== null && body.vat_rate !== "";
+  const vatRate = hasVatRate ? Number(body.vat_rate) : 0;
+  const amountWithoutVat = hasNetAmount ? Number(body.amount_without_vat) : netFromGross(amount, vatRate);
 
   if (
     !invoiceNumber || invoiceNumber.length > 100 ||
     !counterpartyName || counterpartyName.length > 200 ||
     !email || email.length > 254 || !/^\S+@\S+\.\S+$/.test(email) ||
     !Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT ||
+    !Number.isFinite(amountWithoutVat) || amountWithoutVat <= 0 || amountWithoutVat > MAX_AMOUNT ||
+    !Number.isFinite(vatRate) || vatRate < 0 || vatRate > MAX_VAT_RATE ||
+    !vatAmountsMatch(amountWithoutVat, vatRate, amount) ||
     !/^[A-Z]{3}$/.test(currency) ||
     !isIsoDate(issueDate) || !isIsoDate(dueDate) || dueDate < issueDate
   ) return null;
@@ -59,7 +67,9 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     counterparty_dic: dic,
     counterparty_email: email,
     variable_symbol: variableSymbol,
-    amount: Math.round(amount * 100) / 100,
+    amount_without_vat: roundMoney(amountWithoutVat),
+    vat_rate: roundMoney(vatRate),
+    amount: grossFromNet(amountWithoutVat, vatRate),
     currency,
     issue_date: issueDate,
     due_date: dueDate,
@@ -68,4 +78,3 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     file_url: fileUrl,
   };
 }
-

@@ -11,6 +11,7 @@ const partialPaymentsMigration = readFileSync(join(process.cwd(), "supabase", "m
 const invoiceDeleteMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080620_safe_invoice_delete.sql"), "utf8");
 const invoicePriorityMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080621_prioritize_open_invoices.sql"), "utf8");
 const invoiceArchiveMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080622_invoice_archive.sql"), "utf8");
+const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808182712_add_invoice_vat_amounts.sql"), "utf8");
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {
@@ -81,6 +82,15 @@ describe("database tenant integrity", () => {
       expect(source).toContain("'partial'");
     }
     expect(partialPaymentsMigration).toContain("drop index if exists bank_payments_one_match_per_invoice");
+  });
+
+  it("stores net, VAT rate and gross invoice amounts consistently", () => {
+    for (const source of [schema, invoiceVatMigration]) {
+      expect(source).toContain("amount_without_vat numeric(14,2)");
+      expect(source).toContain("vat_rate numeric(5,2)");
+      expect(source).toContain("invoices_vat_amounts_consistent");
+      expect(source).toContain("amount_without_vat, i.vat_rate, i.amount");
+    }
   });
 
   it("deletes invoices atomically while preserving unmatched bank payments", () => {

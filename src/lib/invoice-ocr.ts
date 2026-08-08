@@ -1,5 +1,6 @@
 import type { InvoiceInput } from "../types/invoice";
 import { isIsoDate } from "./invoice-validation";
+import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
 
 export type OcrDocumentKind = "issued_invoice" | "proforma" | "credit_note" | "other";
 
@@ -18,7 +19,7 @@ const nullableString = { anyOf: [{ type: "string" }, { type: "null" }] } as cons
 export const invoiceOcrSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["document_kind", "issuer_matches_organization", "invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount", "currency", "issue_date", "due_date", "notes", "confidence", "warnings"],
+  required: ["document_kind", "issuer_matches_organization", "invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date", "notes", "confidence", "warnings"],
   properties: {
     document_kind: { type: "string", enum: ["issued_invoice", "proforma", "credit_note", "other"] },
     issuer_matches_organization: { anyOf: [{ type: "boolean" }, { type: "null" }] },
@@ -28,6 +29,8 @@ export const invoiceOcrSchema = {
     counterparty_dic: nullableString,
     counterparty_email: nullableString,
     variable_symbol: nullableString,
+    amount_without_vat: { anyOf: [{ type: "number" }, { type: "null" }] },
+    vat_rate: { anyOf: [{ type: "number" }, { type: "null" }] },
     amount: { anyOf: [{ type: "number" }, { type: "null" }] },
     currency: nullableString,
     issue_date: nullableString,
@@ -84,10 +87,28 @@ export function parseInvoiceOcrResponse(value: unknown, fileUrl: string, model: 
   if (issueDate && !validIssueDate) warnings.push("Datum vystavení nebylo rozpoznáno spolehlivě.");
   if (dueDate && !validDueDate) warnings.push("Datum splatnosti nebylo rozpoznáno spolehlivě.");
 
-  const rawAmount = Number(raw.amount);
-  const amount = Number.isFinite(rawAmount) && rawAmount > 0 && rawAmount <= 999_999_999_999.99
-    ? Math.round(rawAmount * 100) / 100
+  const numeric = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
+  const extractedNet = numeric(raw.amount_without_vat);
+  const extractedVatRate = numeric(raw.vat_rate);
+  const extractedGross = numeric(raw.amount);
+  const derivedVatRate = extractedNet !== null && extractedNet > 0 && extractedGross !== null && extractedGross >= extractedNet
+    ? roundMoney((extractedGross / extractedNet - 1) * 100)
     : 0;
+  const vatRate = extractedVatRate !== null && extractedVatRate >= 0 && extractedVatRate <= 100
+    ? roundMoney(extractedVatRate)
+    : derivedVatRate >= 0 && derivedVatRate <= 100 ? derivedVatRate : 0;
+  let amount = extractedGross !== null && extractedGross > 0 ? roundMoney(extractedGross) : 0;
+  let amountWithoutVat = extractedNet !== null && extractedNet > 0 ? roundMoney(extractedNet) : 0;
+  if (!amount && amountWithoutVat) amount = grossFromNet(amountWithoutVat, vatRate);
+  if (!amountWithoutVat && amount) amountWithoutVat = netFromGross(amount, vatRate);
+  if (amount && amountWithoutVat && !vatAmountsMatch(amountWithoutVat, vatRate, amount)) {
+    warnings.push("Částky bez DPH a s DPH neodpovídají rozpoznané sazbě. Před uložením je zkontrolujte.");
+    amountWithoutVat = netFromGross(amount, vatRate);
+  }
+  if (amount > 999_999_999_999.99 || amountWithoutVat > 999_999_999_999.99) {
+    amount = 0;
+    amountWithoutVat = 0;
+  }
   const currencyCandidate = boundedText(raw.currency, 3).toUpperCase();
   const currency = /^[A-Z]{3}$/.test(currencyCandidate) ? currencyCandidate : "CZK";
   const match = typeof raw.issuer_matches_organization === "boolean" ? raw.issuer_matches_organization : null;
@@ -105,6 +126,8 @@ export function parseInvoiceOcrResponse(value: unknown, fileUrl: string, model: 
       counterparty_dic: boundedText(raw.counterparty_dic, 24),
       counterparty_email: boundedText(raw.counterparty_email, 254).toLowerCase(),
       variable_symbol: boundedText(raw.variable_symbol, 20),
+      amount_without_vat: amountWithoutVat,
+      vat_rate: vatRate,
       amount,
       currency,
       issue_date: validIssueDate,
@@ -148,7 +171,7 @@ export function buildInvoiceOcrRequest({ bytes, mime, filename, organization, mo
         document,
         {
           type: "input_text",
-          text: `Vytěž údaje z dokumentu. Evidujeme pouze vydané faktury firmy ${organizationIdentity}. Odběratel/counterparty je subjekt, který má této firmě zaplatit, nikoli vystavitel. Částka je konečná celková částka k úhradě včetně DPH. E-mail použij jen tehdy, pokud zjevně patří odběrateli a je vhodný pro fakturaci/upomínky. Datum vrať jako YYYY-MM-DD, měnu jako třípísmenný ISO kód. Do warnings česky uveď každou nejasnost, rozpor nebo chybějící důležitý údaj.`,
+          text: `Vytěž údaje z dokumentu. Evidujeme pouze vydané faktury firmy ${organizationIdentity}. Odběratel/counterparty je subjekt, který má této firmě zaplatit, nikoli vystavitel. amount_without_vat je základ bez DPH, vat_rate je sazba DPH v procentech a amount je konečná celková částka k úhradě včetně DPH. U faktury s více sazbami použij celkový základ bez DPH a efektivní sazbu, jen pokud je na dokumentu jednoznačně uvedena; jinak vrať sazbu null a přidej varování. E-mail použij jen tehdy, pokud zjevně patří odběrateli a je vhodný pro fakturaci/upomínky. Datum vrať jako YYYY-MM-DD, měnu jako třípísmenný ISO kód. Do warnings česky uveď každou nejasnost, rozpor nebo chybějící důležitý údaj.`,
         },
       ],
     }],

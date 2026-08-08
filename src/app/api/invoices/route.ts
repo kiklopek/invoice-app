@@ -56,8 +56,8 @@ function demoInvoicePage(query: NonNullable<ReturnType<typeof parseInvoiceListQu
 }
 
 function invoiceCsv(invoices: Invoice[]) {
-  return createCsv([["Číslo faktury", "Odběratel", "IČO", "E-mail", "Částka", "Uhrazeno", "Zbývá", "Měna", "Vystavení", "Splatnost", "Stav", "Upomínky"],
-    ...invoices.map(invoice => [invoice.invoice_number, invoice.counterparty_name, invoice.counterparty_ico, invoice.counterparty_email, invoice.amount, invoice.paid_amount, Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency, invoice.issue_date, invoice.due_date, invoiceStatusLabels[invoice.status], invoice.reminders_sent])]);
+  return createCsv([["Číslo faktury", "Odběratel", "IČO", "E-mail", "Částka bez DPH", "Sazba DPH", "Částka s DPH", "Uhrazeno", "Zbývá", "Měna", "Vystavení", "Splatnost", "Stav", "Upomínky"],
+    ...invoices.map(invoice => [invoice.invoice_number, invoice.counterparty_name, invoice.counterparty_ico, invoice.counterparty_email, invoice.amount_without_vat, invoice.vat_rate, invoice.amount, invoice.paid_amount, Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency, invoice.issue_date, invoice.due_date, invoiceStatusLabels[invoice.status], invoice.reminders_sent])]);
 }
 
 export async function GET(request: Request) {

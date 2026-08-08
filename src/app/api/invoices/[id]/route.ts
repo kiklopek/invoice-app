@@ -11,7 +11,7 @@ import type { Invoice, InvoiceStatus } from "@/types/invoice";
 
 type Context = { params: Promise<{ id: string }> };
 const allowedStatus: InvoiceStatus[] = ["pending", "paid", "overdue", "cancelled"];
-const editableFields = ["invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount", "currency", "issue_date", "due_date", "notes"] as const;
+const editableFields = ["invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date", "notes"] as const;
 
 function demoInvoice(id: string) {
   return demoInvoices.find((invoice) => invoice.id === id) ?? null;
