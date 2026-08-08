@@ -845,3 +845,145 @@ input, select, textarea,
   .content { width: 100%; margin: 0; padding: 12mm; }
   body, .page-panel, .panel { background: #fff; }
 }
+
+/* Finální typografická vrstva: česká diakritika a čitelné minimální velikosti. */
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { font-size: 15px; }
+.sidebar a,
+.btn,
+input,
+select,
+textarea { font-size: 13px; }
+
+:is(
+  .brand small,
+  .user-card small,
+  .topbar p,
+  .section-header p,
+  .panel-head p,
+  .notice p,
+  .metrics small,
+  .timeline section small,
+  .timeline section p,
+  .timeline section em,
+  .list-summary span,
+  .list-summary small,
+  .report-metrics span,
+  .report-metrics small,
+  .reminder-operations span,
+  .reminder-operations small,
+  .form-grid label small,
+  .days-field small,
+  .automation-switch small,
+  .invoice-reminder-control small,
+  .reminder-history span,
+  .reminder-history small,
+  .activity-history span,
+  .activity-history small,
+  .monitor-row small,
+  .process-line small,
+  .stop-rule span,
+  .friendly-tabs span,
+  .analytics-card header p,
+  .settings-status small,
+  .role-list strong,
+  .role-list small,
+  .members-list small,
+  .member-state,
+  .assignment-help,
+  .settings-audit,
+  .login-security,
+  .variables span,
+  .variables code,
+  .attached-document small,
+  .attached-document > span,
+  .dropzone p,
+  .dropzone > button,
+  .scan-privacy span,
+  .inline-error,
+  .report-title span,
+  .customer-ranking small,
+  .empty-report,
+  .monthly-chart > div > span,
+  .chart-legend span,
+  .donut > span,
+  .donut-legend > div,
+  .aging-report > div > div,
+  .bank-payment-list span,
+  .bank-payment-list small,
+  .payment-match,
+  .status,
+  .detail-link,
+  .full-link,
+  .back-link,
+  .sidebar-logout-error
+) {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:is(
+  .filter-row label > span,
+  .report-filters label > span,
+  .settings-form label > span,
+  .form-grid span,
+  .member-add label span,
+  .friendly-template label > span,
+  .payment-entry label > span,
+  .days-field span,
+  .template-editor label > span,
+  .auth-form label > span,
+  .login-card form label > span,
+  .rule-main > strong,
+  .monitor-row strong,
+  .process-line strong,
+  .friendly-tabs strong,
+  .settings-status strong,
+  .members-list strong,
+  .access-history-list strong,
+  .timeline section strong,
+  td,
+  td strong
+) {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+th,
+.status.large,
+.panel-head > a,
+.panel-head > button,
+.period-presets button,
+.auth-field-link a,
+.auth-switch,
+.auth-switch a,
+.auth-inline-link,
+.auth-text-button,
+.auth-card .login-security { font-size: 12px; }
+
+.login-intro > span { font-size: 12px; }
+.login-intro p,
+.login-sent p { font-size: 13px; line-height: 1.55; }
+.login-card input,
+.auth-form input { font-size: 14px; }
+
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .sidebar nav a { font-size: 10px; }
+  .dashboard-invoice-table td::before,
+  .invoice-list-table td::before,
+  .payment-history-table td::before { font-size: 11px; }
+}
+
+@media (max-width: 360px) {
+  .sidebar nav a { font-size: 9px; }
+}
