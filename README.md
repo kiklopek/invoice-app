@@ -106,7 +106,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 RESEND_API_KEY=...
 REMINDER_EMAIL_FROM=R. Hlavica <upominky@hlavica.cz>
+AUTH_EMAIL_FROM=Splatno.cz <prihlaseni@splatno.cz>
 RESEND_WEBHOOK_SECRET=...
+EMAIL_MFA_SECRET=nahodny-tajny-retezec-alespon-32-znaku
+# Pouze dočasné testování; před ostrým provozem musí zůstat prázdné.
+EMAIL_MFA_BYPASS_EMAILS=
 APP_BASE_URL=https://VAŠE-DOMÉNA
 # Volitelné; jinak se použije /brand/drevohlavica.png z APP_BASE_URL.
 REMINDER_LOGO_URL=
@@ -122,15 +126,15 @@ OPENAI_OCR_MODEL=gpt-5.6-sol
 - v Auth URL Configuration nastavte produkční `Site URL`,
 - přidejte `https://VAŠE-DOMÉNA/auth/callback` mezi povolené redirect URL,
 - zapněte potvrzení e-mailu pro nové registrace a nakonfigurujte firemní SMTP šablony pro potvrzení účtu a obnovu hesla,
-- uživatel se může přihlásit heslem nebo jednorázovým e-mailovým odkazem; registrace je funkční pouze pro e-mail předem pozvaný v `organization_members`,
-- TOTP MFA je v aplikaci povinné pro každého uživatele; první přihlášení zobrazí QR kód pro autentizační aplikaci,
+- uživatel se přihlašuje heslem a následně šestimístným kódem zaslaným na firemní e-mail; registrace je funkční pouze pro e-mail předem pozvaný v `organization_members`,
+- e-mailový kód platí 10 minut, lze jej použít pouze jednou a po pěti chybných pokusech se zablokuje,
 - povoleny jsou pouze adresy `@hlavica.cz`, které zároveň existují v `organization_members`,
 - nevytvářejte veřejnou registraci bez odpovídající pozvánky v `organization_members`,
 
 V režimech `development` a `test` aplikace kvůli lokálnímu testování přijme i platný e-mail mimo `@hlavica.cz`. Produkční sestavení omezení vždy znovu vynutí; uživatel však i při vývoji musí mít odpovídající záznam v `organization_members`.
 
 Pokud při lokálním vývoji není Supabase nakonfigurovaný, aplikace se automaticky spustí v demo režimu: autentizaci přeskočí a API používají ukázková data. Tato větev je podmíněná `NODE_ENV !== "production"`, takže v produkčním sestavení není dostupná.
-- administrátorům doporučujeme zaregistrovat druhý záložní TOTP faktor na jiném zařízení.
+- `EMAIL_MFA_BYPASS_EMAILS` je pouze dočasná testovací výjimka a před ostrým provozem musí být prázdná.
 
 ### 6. Cron a nasazení
 
@@ -170,6 +174,6 @@ Před přepnutím DNS a zahájením ostrého provozu:
 2. ověřte, že v `organization_members` nejsou adresy mimo `@hlavica.cz`,
 3. nastavte produkční URL v Supabase Auth a povolený callback,
 4. nastavte všechny tajné proměnné prostředí ve Vercelu,
-5. proveďte přihlášení magic linkem, registraci TOTP a druhé přihlášení s 2FA,
+5. proveďte přihlášení heslem, doručení e-mailového kódu a druhé přihlášení s novým jednorázovým kódem,
 6. ověřte cron, Resend webhook, OCR, import plateb a obnovu databáze ze zálohy,
 7. spusťte `npm run typecheck`, `npm test` a `npm run build` v čistém CI prostředí.

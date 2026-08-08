@@ -10,13 +10,19 @@ describe("authentication flow", () => {
     expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false })");
   });
 
-  it("does not let magic-link login silently create users", () => {
-    expect(source("src/app/login/page.tsx")).toContain("shouldCreateUser: false");
+  it("sends password logins through the email verification step", () => {
+    expect(source("src/app/login/page.tsx")).toContain('window.location.assign("/mfa")');
+    expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
+    expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
   });
 
   it("only accepts the password reset destination in the auth callback", () => {
     const callback = source("src/app/auth/callback/route.ts");
     expect(callback).toContain('requestedNext === "/reset-password"');
     expect(callback).toContain('const next =');
+  });
+
+  it("clears the email MFA session during logout", () => {
+    expect(source("src/app/api/auth/logout/route.ts")).toContain("clearEmailMfaCookie");
   });
 });

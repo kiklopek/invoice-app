@@ -12,10 +12,8 @@ export default function LoginPage() {
   const localDemoMode = !corporateEmailRequired && !hasSupabaseBrowserConfig();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [magicSent, setMagicSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [sendingLink, setSendingLink] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
   useEffect(() => {
@@ -68,28 +66,6 @@ export default function LoginPage() {
     window.location.assign("/mfa");
   }
 
-  async function sendMagicLink() {
-    setError(null);
-    const normalizedEmail = validEmail();
-    if (!normalizedEmail) return;
-    if (!hasSupabaseBrowserConfig()) {
-      setError("Přihlášení není nakonfigurované. Doplňte Supabase proměnné prostředí.");
-      return;
-    }
-    setSendingLink(true);
-    const supabase = createClient();
-    const { error: linkError } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/mfa`, shouldCreateUser: false },
-    });
-    setSendingLink(false);
-    if (linkError) setError("Přihlašovací odkaz se nepodařilo odeslat. Zkuste to znovu.");
-    else {
-      setEmail(normalizedEmail);
-      setMagicSent(true);
-    }
-  }
-
   return (
     <main className="login-page auth-page">
       <section className="login-card auth-card">
@@ -101,8 +77,6 @@ export default function LoginPage() {
         <div className="login-body">
           {localDemoMode ? (
             <div className="login-sent"><Icon name="check"/><div><strong>Lokální demo režim</strong><p>Supabase není nastavený. Pokračujte přímo do aplikace s testovacími daty.</p><button type="button" className="btn primary" onClick={() => window.location.assign("/dashboard")}>Otevřít aplikaci</button></div></div>
-          ) : magicSent ? (
-            <div className="login-sent"><Icon name="check"/><div><strong>Odkaz je na cestě</strong><p>Poslali jsme jej na <b>{email}</b>. Po otevření budete pokračovat přes zabezpečení 2FA.</p><button type="button" className="auth-text-button" onClick={() => setMagicSent(false)}>Zpět na přihlášení</button></div></div>
           ) : (
             <>
               {passwordUpdated && <p className="form-success">Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
@@ -110,16 +84,14 @@ export default function LoginPage() {
                 <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
                 <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
                 <div className="auth-field-link"><Link href="/forgot-password">Zapomenuté heslo?</Link></div>
-                <button type="submit" className="btn primary" disabled={submitting || sendingLink}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
+                <button type="submit" className="btn primary" disabled={submitting}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
                 {error && <p className="form-error">{error}</p>}
               </form>
-              <div className="auth-divider"><span>nebo</span></div>
-              <button type="button" className="btn secondary auth-wide-button" disabled={submitting || sendingLink} onClick={sendMagicLink}><Icon name="mail"/>{sendingLink ? "Odesílám…" : "Poslat přihlašovací odkaz"}</button>
               <p className="auth-switch">Nemáte ještě účet? <Link href="/register">Vytvořit účet</Link></p>
             </>
           )}
         </div>
-        <small className="login-security">Přístup je určen pozvaným uživatelům a chráněn povinným dvoufázovým ověřením.</small>
+        <small className="login-security">Přihlášení je chráněno heslem a jednorázovým kódem zaslaným na firemní e-mail.</small>
       </section>
     </main>
   );

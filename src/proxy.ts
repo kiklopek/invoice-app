@@ -1,6 +1,12 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedCorporateEmail } from "@/lib/auth-policy";
+import {
+  EMAIL_MFA_COOKIE,
+  isEmailMfaBypassed,
+  sessionIdFromAccessToken,
+  verifyEmailMfaToken,
+} from "@/lib/email-mfa-core";
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -94,6 +100,21 @@ export async function proxy(request: NextRequest) {
     },
   } = await supabase.auth.getUser();
 
+  const { data: sessionData } = user
+    ? await supabase.auth.getSession()
+    : { data: { session: null } };
+  const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
+  const email = user?.email || "";
+  const hasMfa = Boolean(user && sessionId && (
+    isEmailMfaBypassed(email) ||
+    verifyEmailMfaToken({
+      token: request.cookies.get(EMAIL_MFA_COOKIE)?.value,
+      userId: user.id,
+      sessionId,
+      secret: process.env.EMAIL_MFA_SECRET,
+    })
+  ));
+
 
   // Veřejné stránky necháme být
   if (isPublicRoute) {
@@ -103,13 +124,6 @@ export async function proxy(request: NextRequest) {
     }
 
     // Přihlášený uživatel už nemá chodit zpět na login
-    const { data: assurance } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-    const hasMfa =
-      assurance?.currentLevel === "aal2";
-
-
     if (pathname === "/login") {
       return NextResponse.redirect(
         new URL(
@@ -163,14 +177,6 @@ export async function proxy(request: NextRequest) {
       )
     );
   }
-
-
-  const { data: assurance } =
-    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-
-  const hasMfa =
-    assurance?.currentLevel === "aal2";
 
 
   // MFA není hotové

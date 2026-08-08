@@ -69,7 +69,7 @@ export default function RegisterPage() {
         </header>
         <div className="login-body">
           {sent ? (
-            <div className="login-sent"><Icon name="mail"/><div><strong>Potvrďte svůj e-mail</strong><p>Na adresu <b>{email}</b> jsme poslali ověřovací odkaz. Po potvrzení nastavíte zabezpečení 2FA.</p><Link href="/login" className="auth-inline-link">Zpět na přihlášení</Link></div></div>
+            <div className="login-sent"><Icon name="mail"/><div><strong>Potvrďte svůj e-mail</strong><p>Na adresu <b>{email}</b> jsme poslali ověřovací odkaz. Po potvrzení se přihlásíte heslem a jednorázovým e-mailovým kódem.</p><Link href="/login" className="auth-inline-link">Zpět na přihlášení</Link></div></div>
           ) : (
             <form onSubmit={register} className="auth-form">
               <label><span>Jméno a příjmení</span><input autoComplete="name" required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>

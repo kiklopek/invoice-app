@@ -1,6 +1,7 @@
 import { createUserServerClient } from "@/lib/supabase-server";
 import { getRequestIdentity } from "@/lib/auth";
 import { isAllowedCorporateEmail } from "@/lib/auth-policy";
+import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -28,9 +29,13 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL(next, url.origin));
       }
 
-      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const verified = await hasVerifiedEmailMfa({
+        email: identity.membership.email,
+        userId: identity.user.id,
+        sessionId: identity.sessionId,
+      });
       return NextResponse.redirect(
-        new URL(assurance?.currentLevel === "aal2" ? "/dashboard" : "/mfa", url.origin)
+        new URL(verified ? "/dashboard" : "/mfa", url.origin)
       );
     }
   }

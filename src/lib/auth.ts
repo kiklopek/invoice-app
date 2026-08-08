@@ -1,6 +1,8 @@
 import "server-only";
 
 import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
+import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
+import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
 
 type IdentityOptions = { requireMfa?: boolean };
@@ -14,10 +16,17 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   const email = normalizeEmail(data.user.email);
   if (!isAllowedCorporateEmail(email)) return null;
 
+  const { data: sessionData } = await auth.auth.getSession();
+  const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
+  if (!sessionId) return null;
+
   if (requireMfa) {
-    const { data: assurance, error: assuranceError } =
-      await auth.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (assuranceError || assurance.currentLevel !== "aal2") return null;
+    const verified = await hasVerifiedEmailMfa({
+      email,
+      userId: data.user.id,
+      sessionId,
+    });
+    if (!verified) return null;
   }
 
   const service = createServiceClient();
@@ -52,7 +61,7 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   }
 
   if (!membership) return null;
-  return { user: data.user, membership, service };
+  return { user: data.user, membership, service, sessionId };
 }
 
 export function canManageInvoices(role: string) {
