@@ -21,17 +21,24 @@ export async function GET() {
     identity.service.from("invoices").select("id, invoice_number, counterparty_name, next_reminder_at, amount, currency")
       .eq("organization_id", organizationId).in("status", ["pending", "overdue"]).not("next_reminder_at", "is", null)
       .order("next_reminder_at", { ascending: true }).limit(20),
-    identity.service.from("reminder_log").select("id, invoice_id, stage, scheduled_for, sent_to, attempt_count, error_message, updated_at, invoices!inner(invoice_number, counterparty_name)")
+    identity.service.from("reminder_log").select("id, invoice_id, stage, scheduled_for, sent_to, attempt_count, error_message, updated_at, invoices:invoices!reminder_log_invoice_id_fkey(invoice_number, counterparty_name)")
       .eq("organization_id", organizationId).eq("status", "failed").order("updated_at", { ascending: false }).limit(20),
-    identity.service.from("reminder_log").select("id, invoice_id, stage, scheduled_for, sent_to, attempt_count, delivery_status, delivery_error, delivery_event_at, updated_at, invoices!inner(invoice_number, counterparty_name)")
+    identity.service.from("reminder_log").select("id, invoice_id, stage, scheduled_for, sent_to, attempt_count, delivery_status, delivery_error, delivery_event_at, updated_at, invoices:invoices!reminder_log_invoice_id_fkey(invoice_number, counterparty_name)")
       .eq("organization_id", organizationId).in("delivery_status", ["delayed", "bounced", "complained", "failed"])
       .order("delivery_event_at", { ascending: false }).limit(20),
-    identity.service.from("reminder_log").select("id, invoice_id, stage, sent_at, sent_to, attempt_count, delivery_status, invoices!inner(invoice_number, counterparty_name)")
+    identity.service.from("reminder_log").select("id, invoice_id, stage, sent_at, sent_to, attempt_count, delivery_status, invoices:invoices!reminder_log_invoice_id_fkey(invoice_number, counterparty_name)")
       .eq("organization_id", organizationId).eq("status", "sent").order("sent_at", { ascending: false }).limit(20),
     identity.service.from("reminder_automation_runs").select("id, status, trigger_source, triggered_by_email, started_at, finished_at, checked, sent, failed, skipped, disabled, paused, suppressed, exhausted, error_message")
       .eq("organization_id", organizationId).order("started_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (upcomingResult.error || failedResult.error || deliveryIssueResult.error || recentResult.error || automationRunResult.error) {
+    console.error("[api/reminders] overview query failed", {
+      upcoming: upcomingResult.error?.message,
+      failed: failedResult.error?.message,
+      deliveryIssues: deliveryIssueResult.error?.message,
+      recent: recentResult.error?.message,
+      automationRun: automationRunResult.error?.message,
+    });
     return NextResponse.json({ error: "Přehled upomínek se nepodařilo načíst." }, { status: 500 });
   }
   const deliveryLabels: Record<string, string> = {
