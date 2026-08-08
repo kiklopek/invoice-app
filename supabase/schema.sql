@@ -3,6 +3,12 @@
 
 create extension if not exists pgcrypto;
 
+-- RLS helper functions live outside the exposed API schema. Authenticated
+-- users can execute them from policies, but PostgREST cannot expose them as RPCs.
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated, service_role;
+
 create table organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -1420,59 +1426,63 @@ revoke all on provider_webhook_events from anon, authenticated;
 revoke insert, update, delete on email_suppressions from anon, authenticated;
 revoke insert, update, delete on bank_payments from anon, authenticated;
 
-create or replace function is_org_member(target_org uuid)
+create or replace function private.is_org_member(target_org uuid)
 returns boolean language sql stable security definer set search_path = public
 as $$
   select exists (
     select 1 from organization_members m
     where m.organization_id = target_org
-      and (m.user_id = auth.uid() or lower(m.email) = lower(auth.jwt() ->> 'email'))
+      and (m.user_id = (select auth.uid()) or lower(m.email) = lower((select auth.jwt()) ->> 'email'))
   );
 $$;
 
-
-create or replace function has_org_role(target_org uuid, allowed_roles text[])
+create or replace function private.has_org_role(target_org uuid, allowed_roles text[])
 returns boolean language sql stable security definer set search_path = public
 as $$
   select exists (
     select 1 from organization_members m
     where m.organization_id = target_org
       and m.role = any(allowed_roles)
-      and (m.user_id = auth.uid() or (m.user_id is null and lower(m.email) = lower(auth.jwt() ->> 'email')))
+      and (m.user_id = (select auth.uid()) or (m.user_id is null and lower(m.email) = lower((select auth.jwt()) ->> 'email')))
   );
 $$;
 
-create policy "members can view organization" on organizations for select
-  using (is_org_member(id));
-create policy "members can view memberships" on organization_members for select
-  using (is_org_member(organization_id));
-create policy "members can view organization member events" on organization_member_events for select
-  using (is_org_member(organization_id));
-create policy "members can view policies" on reminder_policies for select
-  using (is_org_member(organization_id));
-create policy "members can view templates" on email_templates for select
-  using (is_org_member(organization_id));
-create policy "members can view invoices" on invoices for select
-  using (is_org_member(organization_id));
-create policy "members can view invoice events" on invoice_events for select
-  using (is_org_member(organization_id));
-create policy "members can view invoice uploads" on invoice_uploads for select
-  using (is_org_member(organization_id));
-create policy "accounting can create invoices" on invoices for insert
-  with check (has_org_role(organization_id, array['accounting', 'admin']) and created_by = auth.uid());
-create policy "accounting can update invoices" on invoices for update
-  using (has_org_role(organization_id, array['accounting', 'admin']))
-  with check (has_org_role(organization_id, array['accounting', 'admin']));
-create policy "members can view reminder log" on reminder_log for select
-  using (is_org_member(organization_id));
-create policy "members can view reminder automation runs" on reminder_automation_runs for select
-  using (is_org_member(organization_id));
-create policy "members can view reminder settings events" on reminder_settings_events for select
-  using (is_org_member(organization_id));
-create policy "members can view email suppressions" on email_suppressions for select
-  using (is_org_member(organization_id));
-create policy "members can view bank payments" on bank_payments for select
-  using (is_org_member(organization_id));
+revoke all on function private.is_org_member(uuid) from public, anon, authenticated;
+revoke all on function private.has_org_role(uuid, text[]) from public, anon, authenticated;
+grant execute on function private.is_org_member(uuid) to authenticated, service_role;
+grant execute on function private.has_org_role(uuid, text[]) to authenticated, service_role;
+
+create policy "members can view organization" on organizations for select to authenticated
+  using (private.is_org_member(id));
+create policy "members can view memberships" on organization_members for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view organization member events" on organization_member_events for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view policies" on reminder_policies for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view templates" on email_templates for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view invoices" on invoices for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view invoice events" on invoice_events for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view invoice uploads" on invoice_uploads for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "accounting can create invoices" on invoices for insert to authenticated
+  with check (private.has_org_role(organization_id, array['accounting', 'admin']) and created_by = (select auth.uid()));
+create policy "accounting can update invoices" on invoices for update to authenticated
+  using (private.has_org_role(organization_id, array['accounting', 'admin']))
+  with check (private.has_org_role(organization_id, array['accounting', 'admin']));
+create policy "members can view reminder log" on reminder_log for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view reminder automation runs" on reminder_automation_runs for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view reminder settings events" on reminder_settings_events for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view email suppressions" on email_suppressions for select to authenticated
+  using (private.is_org_member(organization_id));
+create policy "members can view bank payments" on bank_payments for select to authenticated
+  using (private.is_org_member(organization_id));
 
 -- Prvotni zalozeni firmy proved service-role skript nebo Supabase SQL editor:
 -- insert into organizations (name, ico) values ('Hlavica Drevo', 'DOPLNIT_ICO') returning id;

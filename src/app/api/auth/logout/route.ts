@@ -6,8 +6,8 @@ export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   if (!isDemoMode()) {
     const supabase = await createUserServerClient();
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) return NextResponse.json({ error: "Odhlášení se nepodařilo." }, { status: 500 });
   }
   return NextResponse.json({ signed_out: true });
 }
-

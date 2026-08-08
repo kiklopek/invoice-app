@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import { Icon } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
+import { signOutCurrentSession } from "@/lib/sign-out";
 
 type Factor = { id: string; status: string; friendly_name?: string };
 
@@ -16,6 +17,7 @@ export default function MfaPage() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,9 +89,15 @@ export default function MfaPage() {
   }
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.replace("/login");
+    setSigningOut(true);
+    setError(null);
+    try {
+      await signOutCurrentSession();
+      window.location.replace("/login");
+    } catch (signOutError) {
+      setError(signOutError instanceof Error ? signOutError.message : "Odhlášení se nepodařilo.");
+      setSigningOut(false);
+    }
   }
 
   return (
@@ -105,7 +113,7 @@ export default function MfaPage() {
               <button type="submit" className="btn primary" disabled={submitting || !factor}><Icon name="check"/>{submitting ? "Ověřuji…" : "Ověřit a pokračovat"}</button>
               {error && <p className="form-error">{error}</p>}
             </form>
-            <button type="button" className="btn" onClick={signOut} style={{ marginTop: 12 }}>Odhlásit se</button>
+            <button type="button" className="btn" onClick={signOut} disabled={signingOut} style={{ marginTop: 12 }}>{signingOut ? "Odhlašuji…" : "Odhlásit se"}</button>
           </>
         )}
       </section>

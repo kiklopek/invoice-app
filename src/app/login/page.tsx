@@ -93,28 +93,32 @@ export default function LoginPage() {
   return (
     <main className="login-page auth-page">
       <section className="login-card auth-card">
-        <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
-        <div className="login-intro"><span>FIREMNÍ APLIKACE</span><h1>Přihlášení</h1><p>Správa faktur a pohledávek R. Hlavica.</p></div>
+        <header className="login-header">
+          <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
+          <div className="login-intro"><span>FIREMNÍ APLIKACE</span><h1>Přihlášení</h1><p>Správa faktur a pohledávek R. Hlavica.</p></div>
+        </header>
 
-        {localDemoMode ? (
-          <div className="login-sent"><Icon name="check"/><div><strong>Lokální demo režim</strong><p>Supabase není nastavený. Pokračujte přímo do aplikace s testovacími daty.</p><button type="button" className="btn primary" onClick={() => window.location.assign("/dashboard")}>Otevřít aplikaci</button></div></div>
-        ) : magicSent ? (
-          <div className="login-sent"><Icon name="check"/><div><strong>Odkaz je na cestě</strong><p>Poslali jsme jej na <b>{email}</b>. Po otevření budete pokračovat přes zabezpečení 2FA.</p><button type="button" className="auth-text-button" onClick={() => setMagicSent(false)}>Zpět na přihlášení</button></div></div>
-        ) : (
-          <>
-            {passwordUpdated && <p className="form-success">Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
-            <form onSubmit={signIn} className="auth-form">
-              <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
-              <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
-              <div className="auth-field-link"><Link href="/forgot-password">Zapomenuté heslo?</Link></div>
-              <button type="submit" className="btn primary" disabled={submitting || sendingLink}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
-              {error && <p className="form-error">{error}</p>}
-            </form>
-            <div className="auth-divider"><span>nebo</span></div>
-            <button type="button" className="btn secondary auth-wide-button" disabled={submitting || sendingLink} onClick={sendMagicLink}><Icon name="mail"/>{sendingLink ? "Odesílám…" : "Poslat přihlašovací odkaz"}</button>
-            <p className="auth-switch">Nemáte ještě účet? <Link href="/register">Vytvořit účet</Link></p>
-          </>
-        )}
+        <div className="login-body">
+          {localDemoMode ? (
+            <div className="login-sent"><Icon name="check"/><div><strong>Lokální demo režim</strong><p>Supabase není nastavený. Pokračujte přímo do aplikace s testovacími daty.</p><button type="button" className="btn primary" onClick={() => window.location.assign("/dashboard")}>Otevřít aplikaci</button></div></div>
+          ) : magicSent ? (
+            <div className="login-sent"><Icon name="check"/><div><strong>Odkaz je na cestě</strong><p>Poslali jsme jej na <b>{email}</b>. Po otevření budete pokračovat přes zabezpečení 2FA.</p><button type="button" className="auth-text-button" onClick={() => setMagicSent(false)}>Zpět na přihlášení</button></div></div>
+          ) : (
+            <>
+              {passwordUpdated && <p className="form-success">Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
+              <form onSubmit={signIn} className="auth-form">
+                <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
+                <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
+                <div className="auth-field-link"><Link href="/forgot-password">Zapomenuté heslo?</Link></div>
+                <button type="submit" className="btn primary" disabled={submitting || sendingLink}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
+                {error && <p className="form-error">{error}</p>}
+              </form>
+              <div className="auth-divider"><span>nebo</span></div>
+              <button type="button" className="btn secondary auth-wide-button" disabled={submitting || sendingLink} onClick={sendMagicLink}><Icon name="mail"/>{sendingLink ? "Odesílám…" : "Poslat přihlašovací odkaz"}</button>
+              <p className="auth-switch">Nemáte ještě účet? <Link href="/register">Vytvořit účet</Link></p>
+            </>
+          )}
+        </div>
         <small className="login-security">Přístup je určen pozvaným uživatelům a chráněn povinným dvoufázovým ověřením.</small>
       </section>
     </main>

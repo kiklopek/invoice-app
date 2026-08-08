@@ -60,6 +60,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   overflow: hidden;
 }
 .sidebar .brand {
+  position: relative;
+  top: 20px;
   flex: none;
   width: 100%;
   height: auto;
@@ -604,12 +606,17 @@ input, select, textarea,
 }
 
 /* Přihlášení */
-.login-page { background: var(--canvas); }
+.login-page { width: 100%; grid-template-columns: minmax(0, 1fr); background: var(--canvas); }
 .login-card { border-radius: 12px; padding: 32px; }
+.login-header { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 24px; }
+.login-header .login-brand { flex: none; }
+.login-header .login-intro { min-width: 0; margin: 0; }
+.login-header .login-intro h1 { margin-top: 7px; }
+.login-body { margin-top: 28px; padding-top: 2px; }
 .login-brand .brand-mark { border-color: #70927d; }
 .login-card input { background: #fff; border: 1px solid var(--line-strong); border-radius: 7px; }
 .login-sent { background: var(--green-soft); border: 1px solid #d3e1d7; border-radius: 8px; }
-.auth-card { width: min(470px, 100%); }
+.auth-card { width: min(470px, calc(100vw - 48px)); min-width: 0; justify-self: center; }
 .auth-form { display: grid; gap: 15px; }
 .auth-form label { display: block; }
 .auth-form label > span,
@@ -635,6 +642,8 @@ input, select, textarea,
 .auth-text-button { margin-top: 10px; padding: 0; border: 0; background: transparent; white-space: normal; }
 .login-sent .auth-inline-link { display: inline-block; margin-top: 10px; }
 .auth-card .login-security { font-size: 10px; line-height: 1.5; }
+.sidebar-logout-error { margin: 0 8px 8px; color: #ffd8d2; font-size: 10px; line-height: 1.35; }
+.user-card > button:disabled { cursor: wait; opacity: .55; }
 
 @media (max-width: 1180px) {
   .sidebar { width: 208px; }
@@ -792,6 +801,8 @@ input, select, textarea,
   .access-history-list small { grid-column: 2; text-align: left; }
   .invoice-hero { align-items: flex-start; flex-direction: column; gap: 12px; }
   .login-card { padding: 25px 20px; }
+  .login-header { gap: 18px; }
+  .login-body { margin-top: 24px; }
   .modal-backdrop { padding: 10px; }
   .modal > header { padding: 20px 18px 15px; }
   .modal header h2 { font-size: 21px; }
@@ -824,6 +835,9 @@ input, select, textarea,
   .invoice-hero > div > strong { font-size: 21px; }
   .dashboard-invoice-table tr, .invoice-list-table tr { padding: 14px; }
   .login-card { padding-inline: 17px; }
+  .login-header { gap: 14px; }
+  .login-header .login-company-logo { width: 72px; }
+  .login-header .login-intro h1 { font-size: 25px; }
 }
 
 @media print {
