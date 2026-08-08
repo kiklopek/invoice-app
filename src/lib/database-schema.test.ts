@@ -12,6 +12,7 @@ const invoiceDeleteMigration = readFileSync(join(process.cwd(), "supabase", "mig
 const invoicePriorityMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080621_prioritize_open_invoices.sql"), "utf8");
 const invoiceArchiveMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080622_invoice_archive.sql"), "utf8");
 const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808182712_add_invoice_vat_amounts.sql"), "utf8");
+const reportLabelEncodingMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808194119_fix_report_label_encoding.sql"), "utf8");
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {
@@ -91,6 +92,13 @@ describe("database tenant integrity", () => {
       expect(source).toContain("invoices_vat_amounts_consistent");
       expect(source).toContain("amount_without_vat, i.vat_rate, i.amount");
     }
+  });
+
+  it("keeps Czech aging labels safe across SQL client encodings", () => {
+    expect(reportLabelEncodingMigration).toContain("U&'P\\0159ed splatnost\\00ED'");
+    expect(reportLabelEncodingMigration).toContain("U&'1\\20137 dn\\00ED'");
+    expect(reportLabelEncodingMigration).toContain("U&'V\\00EDce ne\\017E 30 dn\\00ED'");
+    expect(reportLabelEncodingMigration).not.toMatch(/PĹ|dnĂ|â€“|VĂ/);
   });
 
   it("deletes invoices atomically while preserving unmatched bank payments", () => {

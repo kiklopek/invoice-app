@@ -989,3 +989,66 @@ th,
 @media (max-width: 360px) {
   .sidebar nav a { font-size: 9px; }
 }
+
+/* Mobilní reporty a ovládání automatu. */
+@media (max-width: 780px) {
+  .analytics-grid { grid-template-columns: minmax(0, 1fr); }
+  .analytics-card,
+  .analytics-card.wide,
+  .analytics-card.full { min-width: 0; grid-column: 1; }
+  .donut-wrap {
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 18px;
+    padding-inline: 0;
+  }
+  .donut {
+    width: min(150px, 48vw);
+    height: min(150px, 48vw);
+    flex: none;
+  }
+  .donut-legend { width: 100%; min-width: 0; }
+  .donut-legend > div { gap: 9px; }
+  .donut-legend span { min-width: 0; overflow-wrap: anywhere; }
+  .aging-report > div > div { align-items: flex-start; gap: 12px; }
+  .aging-report > div > div strong { min-width: 0; overflow-wrap: anywhere; }
+  .aging-report > div > div span { flex: none; white-space: nowrap; text-align: right; }
+  .invoice-list-table .status { width: fit-content; max-width: 100%; white-space: normal; text-align: center; }
+
+  .automation-switch {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 15px;
+    padding: 16px;
+  }
+  .automation-switch > div {
+    width: 100%;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 11px;
+  }
+  .automation-switch i {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+  }
+  .automation-switch > div > span { flex: 1; overflow-wrap: anywhere; }
+  .automation-switch > button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: space-between;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .automation-switch > button span { display: inline; font-size: 12px; }
+  .automation-switch > button b { flex: 0 0 38px; }
+}
+
+@media (max-width: 420px) {
+  .analytics-card { padding-inline: 16px; }
+  .analytics-card > header { margin-inline: -16px; padding-inline: 16px; }
+  .aging-report > div > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+}
