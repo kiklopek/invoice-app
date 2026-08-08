@@ -2,8 +2,24 @@ import "server-only";
 
 import { Resend } from "resend";
 import type { Invoice, ReminderStage } from "@/types/invoice";
-import { interpolateReminderTemplate } from "@/lib/reminder-template";
+import { interpolateReminderTemplate, reminderTemplateValues } from "@/lib/reminder-template";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
+import { renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
+import { createServiceClient } from "@/lib/supabase-server";
+
+function reminderLogoUrl() {
+  const explicit = process.env.REMINDER_LOGO_URL?.trim();
+  if (explicit) return explicit;
+  const configuredBase = process.env.APP_BASE_URL?.trim();
+  const vercelBase = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  const base = configuredBase || (vercelBase ? `https://${vercelBase}` : "");
+  if (!base) return null;
+  try {
+    return new URL("/brand/drevohlavica.png", base).toString();
+  } catch {
+    return null;
+  }
+}
 
 export async function sendReminderEmail(params: {
   to: string;
@@ -16,23 +32,34 @@ export async function sendReminderEmail(params: {
   const from = process.env.REMINDER_EMAIL_FROM;
   if (!key || !from) throw new Error("E-mailová služba není nakonfigurovaná.");
 
-  const fallbackBody = `Dobrý den,
+  const service = createServiceClient();
+  const { data: company, error: companyError } = await service.from("organizations")
+    .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
+    .eq("id", params.invoice.organization_id).single();
+  if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
 
-evidujeme neuhrazenou fakturu {{invoice_number}} ve výši {{amount}} {{currency}},
-se splatností {{due_date}} a variabilním symbolem {{variable_symbol}}.
-
-Prosíme o kontrolu a úhradu. Pokud jste již platbu odeslali, považujte tuto zprávu za bezpředmětnou.
-
-Děkujeme
-Hlavica Dřevo`;
+  const template = params.template ?? defaultReminderTemplates[params.stage];
+  const subject = interpolateReminderTemplate(template.subject, params.invoice);
+  const message = interpolateReminderTemplate(template.body, params.invoice);
+  const replyTo = params.template?.reply_to ?? company.email ?? undefined;
+  const rendered = renderReminderEmail({
+    company: company as ReminderEmailCompany,
+    stage: params.stage,
+    subject,
+    message,
+    values: reminderTemplateValues(params.invoice),
+    logoUrl: reminderLogoUrl(),
+    replyTo,
+  });
 
   const resend = new Resend(key);
   return resend.emails.send({
     from,
     to: params.to,
     cc: params.template?.cc?.length ? params.template.cc : undefined,
-    replyTo: params.template?.reply_to ?? undefined,
-    subject: interpolateReminderTemplate(params.template?.subject ?? defaultReminderTemplates[params.stage].subject, params.invoice),
-    text: interpolateReminderTemplate(params.template?.body ?? fallbackBody, params.invoice),
+    replyTo,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
   }, { idempotencyKey: params.idempotencyKey });
 }

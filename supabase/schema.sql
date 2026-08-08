@@ -22,7 +22,7 @@ create table organization_members (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references organizations(id) on delete cascade,
   user_id uuid references auth.users(id) on delete cascade,
-  email text not null check (email = lower(email)),
+  email text not null check (email = lower(email)) check (email ~ '^[^@[:space:]]+@hlavica\.cz$'),
   role text not null default 'accounting' check (role in ('viewer', 'accounting', 'admin')),
   created_at timestamptz not null default now(),
   unique (organization_id, email)
@@ -1131,14 +1131,14 @@ begin
     where organization_id = target_org and user_id = actor_user
   ) then raise exception 'insufficient_permission'; end if;
   if page_number < 1 or page_size < 1 or page_size > 500 then raise exception 'invalid_pagination'; end if;
-  if status_filter is not null and status_filter not in ('pending', 'overdue', 'paid', 'cancelled') then raise exception 'invalid_status'; end if;
+  if status_filter is not null and status_filter not in ('pending', 'overdue', 'paid', 'cancelled', 'closed') then raise exception 'invalid_status'; end if;
   if currency_filter is not null and currency_filter !~ '^[A-Z]{3}$' then raise exception 'invalid_currency'; end if;
   if issue_from is not null and issue_to is not null and issue_from > issue_to then raise exception 'invalid_period'; end if;
 
   with filtered as materialized (
     select i.* from invoices i
     where i.organization_id = target_org
-      and (status_filter is null or i.status = status_filter)
+      and (status_filter is null or i.status = status_filter or (status_filter = 'closed' and i.status in ('paid', 'cancelled')))
       and (currency_filter is null or i.currency = currency_filter)
       and (issue_from is null or i.issue_date >= issue_from)
       and (issue_to is null or i.issue_date <= issue_to)
@@ -1151,7 +1151,12 @@ begin
       )
   ), paged as (
     select * from filtered
-    order by due_date asc, id asc
+    order by
+      case status when 'overdue' then 0 when 'pending' then 1 when 'paid' then 2 else 3 end,
+      case when status in ('overdue', 'pending') then due_date end asc nulls last,
+      case when status = 'paid' then paid_at end desc nulls last,
+      updated_at desc,
+      id asc
     offset (page_number - 1) * page_size limit page_size
   ), totals as (
     select currency, sum(amount - paid_amount) as amount from filtered
@@ -1160,7 +1165,13 @@ begin
     select distinct currency from invoices where organization_id = target_org
   )
   select jsonb_build_object(
-    'invoices', coalesce((select jsonb_agg(to_jsonb(p) order by p.due_date, p.id) from paged p), '[]'::jsonb),
+    'invoices', coalesce((select jsonb_agg(to_jsonb(p) order by
+      case p.status when 'overdue' then 0 when 'pending' then 1 when 'paid' then 2 else 3 end,
+      case when p.status in ('overdue', 'pending') then p.due_date end asc nulls last,
+      case when p.status = 'paid' then p.paid_at end desc nulls last,
+      p.updated_at desc,
+      p.id asc
+    ) from paged p), '[]'::jsonb),
     'total', (select count(*) from filtered),
     'open_totals', coalesce((select jsonb_object_agg(currency, amount) from totals), '{}'::jsonb),
     'currencies', coalesce((select jsonb_agg(currency order by currency) from available_currencies), '[]'::jsonb),
@@ -1313,6 +1324,61 @@ $$;
 
 revoke all on function dashboard_summary(uuid, uuid) from public, anon, authenticated;
 grant execute on function dashboard_summary(uuid, uuid) to service_role;
+
+create or replace function delete_invoice_safely(
+  target_org uuid,
+  target_invoice uuid,
+  actor_user uuid
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  selected_invoice invoices%rowtype;
+  detached_payments integer := 0;
+begin
+  if not exists (
+    select 1 from organization_members
+    where organization_id = target_org
+      and user_id = actor_user
+      and role in ('accounting', 'admin')
+  ) then
+    raise exception 'insufficient_permission';
+  end if;
+
+  select * into selected_invoice
+  from invoices
+  where id = target_invoice and organization_id = target_org
+  for update;
+
+  if selected_invoice.id is null then
+    raise exception 'invoice_not_found';
+  end if;
+
+  update bank_payments
+  set invoice_id = null,
+      match_status = 'unmatched',
+      matched_at = null,
+      unmatched_at = now(),
+      unmatched_by = actor_user
+  where organization_id = target_org
+    and invoice_id = target_invoice;
+  get diagnostics detached_payments = row_count;
+
+  delete from invoices
+  where id = target_invoice and organization_id = target_org;
+
+  return jsonb_build_object(
+    'invoice_id', target_invoice,
+    'file_url', selected_invoice.file_url,
+    'detached_payments', detached_payments
+  );
+end;
+$$;
+
+revoke all on function delete_invoice_safely(uuid, uuid, uuid) from public, anon, authenticated;
+grant execute on function delete_invoice_safely(uuid, uuid, uuid) to service_role;
 
 -- Soukromy bucket; dokumenty se ctou a zapisuji pouze pres autorizovane serverove routy.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

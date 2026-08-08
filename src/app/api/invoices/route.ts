@@ -27,13 +27,24 @@ type InvoicePageResult = {
 function demoInvoicePage(query: NonNullable<ReturnType<typeof parseInvoiceListQuery>>, pageSize: number): InvoicePageResult {
   const needle = query.query.toLocaleLowerCase("cs");
   const filtered = demoInvoices.filter(invoice =>
-    (!query.status || invoice.status === query.status)
+    (!query.status || (query.status === "closed" ? invoice.status === "paid" || invoice.status === "cancelled" : invoice.status === query.status))
     && (!query.currency || invoice.currency === query.currency)
     && (!query.from || invoice.issue_date >= query.from)
     && (!query.to || invoice.issue_date <= query.to)
     && (!needle || [invoice.invoice_number, invoice.counterparty_name, invoice.counterparty_email, invoice.variable_symbol]
       .some(value => value?.toLocaleLowerCase("cs").includes(needle)))
-  ).sort((a, b) => a.due_date.localeCompare(b.due_date) || a.id.localeCompare(b.id));
+  ).sort((a, b) => {
+    const priority: Record<Invoice["status"], number> = { overdue: 0, pending: 1, paid: 2, cancelled: 3 };
+    const rank = priority[a.status] - priority[b.status];
+    if (rank) return rank;
+    if (a.status === "overdue" || a.status === "pending") {
+      return a.due_date.localeCompare(b.due_date) || a.id.localeCompare(b.id);
+    }
+    if (a.status === "paid" && b.status === "paid") {
+      return (b.paid_at ?? b.updated_at).localeCompare(a.paid_at ?? a.updated_at) || a.id.localeCompare(b.id);
+    }
+    return b.updated_at.localeCompare(a.updated_at) || a.id.localeCompare(b.id);
+  });
   const openTotals: Record<string, number> = {};
   for (const invoice of filtered) if (invoice.status === "pending" || invoice.status === "overdue") openTotals[invoice.currency] = (openTotals[invoice.currency] ?? 0) + Number(invoice.amount) - Number(invoice.paid_amount);
   const offset = (query.page - 1) * pageSize;
@@ -57,7 +68,7 @@ export async function GET(request: Request) {
     if (isDemoMode()) {
       const result = demoInvoicePage(wantsCsv ? { ...query, page: 1 } : query, wantsCsv ? MAX_EXPORT_ROWS : LIST_PAGE_SIZE);
       if (wantsCsv) return new Response(invoiceCsv(result.invoices), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=faktury.csv" } });
-      return NextResponse.json({ ...result, page: query.page, page_size: LIST_PAGE_SIZE, total_pages: Math.max(1, Math.ceil(result.total / LIST_PAGE_SIZE)) });
+      return NextResponse.json({ ...result, can_manage: true, page: query.page, page_size: LIST_PAGE_SIZE, total_pages: Math.max(1, Math.ceil(result.total / LIST_PAGE_SIZE)) });
     }
 
     const identity = await getRequestIdentity();
@@ -85,7 +96,7 @@ export async function GET(request: Request) {
     }
     const result = await loadPage(query.page, LIST_PAGE_SIZE);
     if (result.error || !result.data) return NextResponse.json({ error: "Faktury se nepodařilo načíst. Zkontrolujte databázovou migraci." }, { status: 500 });
-    return NextResponse.json({ ...result.data, page: query.page, page_size: LIST_PAGE_SIZE, total_pages: Math.max(1, Math.ceil(result.data.total / LIST_PAGE_SIZE)) }, { headers: { "cache-control": "private, no-store" } });
+    return NextResponse.json({ ...result.data, can_manage: canManageInvoices(identity.membership.role), page: query.page, page_size: LIST_PAGE_SIZE, total_pages: Math.max(1, Math.ceil(result.data.total / LIST_PAGE_SIZE)) }, { headers: { "cache-control": "private, no-store" } });
 }
 
 export async function POST(request: Request) {

@@ -19,7 +19,11 @@ export function unsupportedTemplateVariables(template: string) {
 }
 
 export function interpolateReminderTemplate(template: string, invoice: Invoice) {
-  const values: ReminderTemplateValues = {
+  return interpolateReminderTemplateValues(template, reminderTemplateValues(invoice));
+}
+
+export function reminderTemplateValues(invoice: Invoice): ReminderTemplateValues {
+  return {
     invoice_number: invoice.invoice_number,
     variable_symbol: invoice.variable_symbol ?? "",
     counterparty_name: invoice.counterparty_name,
@@ -27,7 +31,6 @@ export function interpolateReminderTemplate(template: string, invoice: Invoice) 
     currency: invoice.currency,
     due_date: new Intl.DateTimeFormat("cs-CZ", { timeZone: "UTC" }).format(new Date(`${invoice.due_date}T00:00:00.000Z`)),
   };
-  return interpolateReminderTemplateValues(template, values);
 }
 
 export function interpolateReminderTemplateValues(template: string, values: ReminderTemplateValues) {

@@ -6,6 +6,7 @@ describe("invoice list query", () => {
     expect(parseInvoiceListQuery(new URLSearchParams("q= FV-12 &status=overdue&currency=CZK&from=2026-01-01&to=2026-12-31&page=3"))).toEqual({
       query: "FV-12", status: "overdue", currency: "CZK", from: "2026-01-01", to: "2026-12-31", page: 3,
     });
+    expect(parseInvoiceListQuery(new URLSearchParams("status=closed"))?.status).toBe("closed");
   });
 
   it("rejects invalid periods, enums and unbounded input", () => {

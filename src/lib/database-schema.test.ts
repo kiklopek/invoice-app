@@ -8,6 +8,9 @@ const reminderAuditMigration = readFileSync(join(process.cwd(), "supabase", "mig
 const accessAuditMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080615_access_audit.sql"), "utf8");
 const reminderRecipientsMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080616_reminder_delivery_recipients.sql"), "utf8");
 const partialPaymentsMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080618_partial_payments.sql"), "utf8");
+const invoiceDeleteMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080620_safe_invoice_delete.sql"), "utf8");
+const invoicePriorityMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080621_prioritize_open_invoices.sql"), "utf8");
+const invoiceArchiveMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080622_invoice_archive.sql"), "utf8");
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {
@@ -78,5 +81,29 @@ describe("database tenant integrity", () => {
       expect(source).toContain("'partial'");
     }
     expect(partialPaymentsMigration).toContain("drop index if exists bank_payments_one_match_per_invoice");
+  });
+
+  it("deletes invoices atomically while preserving unmatched bank payments", () => {
+    for (const source of [schema, invoiceDeleteMigration]) {
+      expect(source).toContain("function delete_invoice_safely");
+      expect(source).toContain("match_status = 'unmatched'");
+      expect(source).toContain("delete from invoices");
+      expect(source).toContain("role in ('accounting', 'admin')");
+    }
+  });
+
+  it("keeps invoices requiring action ahead of the closed archive", () => {
+    for (const source of [schema, invoicePriorityMigration]) {
+      expect(source).toContain("when 'overdue' then 0 when 'pending' then 1 when 'paid' then 2 else 3");
+      expect(source).toContain("case when status in ('overdue', 'pending') then due_date end asc nulls last");
+      expect(source).toContain("case when status = 'paid' then paid_at end desc nulls last");
+    }
+  });
+
+  it("provides a server-side archive across paid and cancelled invoices", () => {
+    for (const source of [schema, invoiceArchiveMigration]) {
+      expect(source).toContain("'paid', 'cancelled', 'closed'");
+      expect(source).toContain("status_filter = 'closed' and i.status in ('paid', 'cancelled')");
+    }
   });
 });

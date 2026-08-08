@@ -20,13 +20,6 @@ const statusNames: Record<InvoiceStatus, string> = {
   paid: "Zaplaceno",
   cancelled: "Storno",
 };
-const monthLabel = (key: string) =>
-  new Intl.DateTimeFormat("cs-CZ", {
-    month: "short",
-    year: "2-digit",
-    timeZone: "UTC",
-  }).format(new Date(`${key}-01T12:00:00.000Z`));
-
 export default function ReportsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -123,10 +116,6 @@ export default function ReportsPage() {
 
   const currencies = report?.currencies ?? [];
   const customers = report?.customers ?? [];
-  const maxMonth = Math.max(
-    1,
-    ...(report?.monthly.map((month) => Number(month.issued)) ?? []),
-  );
   const maxAge = Math.max(
     1,
     ...(report?.aging.map((bucket) => Number(bucket.amount)) ?? []),
@@ -263,49 +252,6 @@ export default function ReportsPage() {
             </article>
           </section>
           <div className="analytics-grid">
-            <section className="page-panel analytics-card wide">
-              <header>
-                <div>
-                  <h2>Vývoj fakturace</h2>
-                  <p>Vystavená a již uhrazená hodnota po měsících</p>
-                </div>
-              </header>
-              <div className="monthly-chart">
-                {report.monthly.length ? (
-                  report.monthly.map((month) => (
-                    <div key={month.key}>
-                      <div className="month-bars">
-                        <i
-                          className="issued"
-                          style={{
-                            height: `${Math.max(5, (Number(month.issued) / maxMonth) * 100)}%`,
-                          }}
-                        />
-                        <i
-                          className="paid-bar"
-                          style={{
-                            height: `${Math.max(Number(month.paid) ? 4 : 0, (Number(month.paid) / maxMonth) * 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <span>{monthLabel(month.key)}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="empty-box">Pro zvolené období nejsou data.</p>
-                )}
-              </div>
-              <div className="chart-legend">
-                <span>
-                  <i className="legend-issued" />
-                  Vystaveno
-                </span>
-                <span>
-                  <i className="legend-paid" />
-                  Uhrazeno
-                </span>
-              </div>
-            </section>
             <section className="page-panel analytics-card">
               <header>
                 <div>

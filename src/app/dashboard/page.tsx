@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
@@ -37,6 +38,7 @@ const formatTotals = (totals: Record<string, number>) => {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [summary, setSummary] = useState<DashboardData>(emptyDashboardData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,6 +69,13 @@ export default function DashboardPage() {
           </div>
           <div className="top-actions dashboard-actions">
             <Link
+              className="btn secondary dashboard-document-upload"
+              href="/invoices/import"
+            >
+              <Icon name="upload" />
+              Nahrát dokument
+            </Link>
+            <Link
               className="btn primary dashboard-add-invoice"
               href="/invoices/new"
             >
@@ -75,25 +84,6 @@ export default function DashboardPage() {
             </Link>
           </div>
         </header>
-        <section className="dashboard-ocr-callout">
-          <div className="dashboard-ocr-icon">
-            <Icon name="document" />
-          </div>
-          <div>
-            <strong>Načíst fakturu pomocí OCR</strong>
-            <p>
-              Nahrajte PDF nebo fotografii. Údaje z dokumentu před uložením vždy
-              zkontrolujete.
-            </p>
-          </div>
-          <Link
-            className="btn secondary dashboard-ocr-button"
-            href="/invoices/import"
-          >
-            <Icon name="upload" />
-            Spustit OCR import
-          </Link>
-        </section>
         <section className="metrics">
           <article>
             <div className="metric-icon green">
@@ -166,7 +156,15 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {recent.map((invoice) => (
-                      <tr key={invoice.id} className="invoice-row">
+                      <tr
+                        key={invoice.id}
+                        className="invoice-row"
+                        onClick={(event) => {
+                          const target = event.target;
+                          if (target instanceof HTMLElement && target.closest("a, button, input, select, textarea")) return;
+                          router.push(`/invoices/${invoice.id}`);
+                        }}
+                      >
                         <td data-label="Faktura">
                           <Link href={`/invoices/${invoice.id}`}>
                             <strong>{invoice.invoice_number}</strong>

@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
+import { CompanyLogo } from "@/components/company-logo";
 
 const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
   { href: "/invoices", label: "Faktury", icon: "invoice" },
-  { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/reports", label: "Reporty", icon: "chart" },
+  { href: "/invoices/archive", label: "Archiv", icon: "document" },
+  { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/settings", label: "Nastavení", icon: "settings" },
 ];
 
@@ -21,13 +23,16 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
   return (
     <aside className="sidebar">
       <Link href="/dashboard" className="brand">
-        <div className="brand-mark"><span>R</span></div>
-        <div><strong>R. Hlavica</strong><small>dřevo & les</small></div>
+        <CompanyLogo className="sidebar-company-logo" />
       </Link>
       <nav className="sidebar-nav" aria-label="Hlavní navigace">
         <span className="nav-heading">Hlavní nabídka</span>
         {items.map(item => {
-          const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
+          const active = pathname === item.href || (
+            item.href === "/invoices"
+              ? pathname.startsWith("/invoices/") && !pathname.startsWith("/invoices/archive")
+              : item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)
+          );
           return <Link key={item.href} href={item.href} className={active ? "active" : ""}><span className="nav-symbol"><Icon name={item.icon}/></span><span>{item.label}</span>{item.href === "/invoices" && invoiceCount ? <em>{invoiceCount}</em> : null}</Link>;
         })}
       </nav>

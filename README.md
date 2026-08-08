@@ -19,7 +19,8 @@ Interní webová aplikace pro evidenci pouze těch vydaných faktur, které maj�
 - databázově filtrovaný a stránkovaný seznam faktur s přesnými souhrny bez načítání celé historie do prohlížeče,
 - lidské nastavení termínů upomínek a čtyř e-mailových šablon,
 - nepovinná adresa pro odpověď a až pět interních kopií samostatně pro každý typ upomínky,
-- živý náhled šablony s dosazenými údaji a bezpečné testovací odeslání pouze na e-mail přihlášeného pracovníka,
+- profesionální responzivní HTML e-maily s firemním logem, údaji k platbě, textovou zálohou a skutečným živým náhledem šablony,
+- bezpečné testovací odeslání pouze na e-mail přihlášeného pracovníka,
 - globální přepínač pro bezpečné pozastavení a opětovné spuštění automatických upomínek,
 - pozastavení upomínek pro jedinou fakturu a bezpečné ruční opakování neúspěšného e-mailu,
 - automatický denní cron, historie pokusů, ochrana proti souběžnému a duplicitnímu odeslání,
@@ -36,11 +37,11 @@ Interní webová aplikace pro evidenci pouze těch vydaných faktur, které maj�
 - responzivní plochý minimalistický design v zelené, bílé a krémové paletě s vlastní sadou SVG ikon,
 - Row Level Security, soukromé dokumenty, krátkodobé podepsané odkazy, role na API i databázové vrstvě a bezpečnostní HTTP hlavičky.
 
-OCR je implementované a v demo režimu používá bezpečná ukázková data. V produkci se aktivuje serverovým `OPENAI_API_KEY`; bez klíče zůstává dokument uložený a účetní může údaje doplnit ručně.
+OCR se v produkci aktivuje serverovým `OPENAI_API_KEY`; bez klíče zůstává dokument uložený a účetní může údaje doplnit ručně. Produkční běh neobsahuje ani nevrací ukázková data.
 
-## Lokální ukázka
+## Lokální spuštění
 
-Soubor `.env.local` je nastavený do demo režimu, takže aplikaci lze spustit bez externích účtů:
+Lokální aplikace vyžaduje nakonfigurovaný Supabase projekt a platný firemní účet:
 
 ```powershell
 npm install
@@ -103,11 +104,12 @@ Zkopírujte `.env.example` do `.env.local` a vyplňte:
 NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
-NEXT_PUBLIC_DEMO_MODE=false
-
 RESEND_API_KEY=...
 REMINDER_EMAIL_FROM=R. Hlavica <upominky@hlavica.cz>
 RESEND_WEBHOOK_SECRET=...
+APP_BASE_URL=https://VAŠE-DOMÉNA
+# Volitelné; jinak se použije /brand/drevohlavica.png z APP_BASE_URL.
+REMINDER_LOGO_URL=
 CRON_SECRET=dlouhy-nahodny-tajny-retezec
 OPENAI_API_KEY=...
 OPENAI_OCR_MODEL=gpt-5.6-sol
@@ -119,8 +121,16 @@ OPENAI_OCR_MODEL=gpt-5.6-sol
 
 - v Auth URL Configuration nastavte produkční `Site URL`,
 - přidejte `https://VAŠE-DOMÉNA/auth/callback` mezi povolené redirect URL,
-- podle firemní politiky zapněte MFA pro účetní a administrátory,
-- nevytvářejte veřejnou registraci bez odpovídající pozvánky v `organization_members`.
+- zapněte potvrzení e-mailu pro nové registrace a nakonfigurujte firemní SMTP šablony pro potvrzení účtu a obnovu hesla,
+- uživatel se může přihlásit heslem nebo jednorázovým e-mailovým odkazem; registrace je funkční pouze pro e-mail předem pozvaný v `organization_members`,
+- TOTP MFA je v aplikaci povinné pro každého uživatele; první přihlášení zobrazí QR kód pro autentizační aplikaci,
+- povoleny jsou pouze adresy `@hlavica.cz`, které zároveň existují v `organization_members`,
+- nevytvářejte veřejnou registraci bez odpovídající pozvánky v `organization_members`,
+
+V režimech `development` a `test` aplikace kvůli lokálnímu testování přijme i platný e-mail mimo `@hlavica.cz`. Produkční sestavení omezení vždy znovu vynutí; uživatel však i při vývoji musí mít odpovídající záznam v `organization_members`.
+
+Pokud při lokálním vývoji není Supabase nakonfigurovaný, aplikace se automaticky spustí v demo režimu: autentizaci přeskočí a API používají ukázková data. Tato větev je podmíněná `NODE_ENV !== "production"`, takže v produkčním sestavení není dostupná.
+- administrátorům doporučujeme zaregistrovat druhý záložní TOTP faktor na jiném zařízení.
 
 ### 6. Cron a nasazení
 
@@ -150,3 +160,16 @@ Poté v testovací organizaci proveďte celý scénář: přihlášení, OCR z P
 - Databázové RPC určené pro cron lze spustit pouze rolí `service_role`.
 - Viewer může data číst, ale databázová RLS mu nedovolí faktury měnit ani přímým dotazem.
 - Produkční databázi zálohujte a zapněte obnovu do bodu v čase podle možností zvoleného tarifu.
+
+
+## Ostré spuštění
+
+Před přepnutím DNS a zahájením ostrého provozu:
+
+1. spusťte všechny migrace včetně `2026080619_corporate_email_domain.sql`,
+2. ověřte, že v `organization_members` nejsou adresy mimo `@hlavica.cz`,
+3. nastavte produkční URL v Supabase Auth a povolený callback,
+4. nastavte všechny tajné proměnné prostředí ve Vercelu,
+5. proveďte přihlášení magic linkem, registraci TOTP a druhé přihlášení s 2FA,
+6. ověřte cron, Resend webhook, OCR, import plateb a obnovu databáze ze zálohy,
+7. spusťte `npm run typecheck`, `npm test` a `npm run build` v čistém CI prostředí.

@@ -167,3 +167,42 @@ export async function PATCH(request: Request, { params }: Context) {
   }
   return NextResponse.json({ invoice: data });
 }
+
+export async function DELETE(request: Request, { params }: Context) {
+  if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
+  const { id } = await params;
+  if (isDemoMode()) return NextResponse.json({ deleted: true });
+
+  const identity = await getRequestIdentity();
+  if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění fakturu smazat." }, { status: 403 });
+
+  const organizationId = identity.membership.organization_id;
+  const { data: existing, error: lookupError } = await identity.service.from("invoices")
+    .select("id, file_url").eq("id", id).eq("organization_id", organizationId).maybeSingle();
+  if (lookupError) return NextResponse.json({ error: "Fakturu se nepodařilo ověřit." }, { status: 500 });
+  if (!existing) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
+
+  const { data: deleted, error: deleteError } = await identity.service.rpc("delete_invoice_safely", {
+    target_org: organizationId,
+    target_invoice: id,
+    actor_user: identity.user.id,
+  });
+  if (deleteError) {
+    if (deleteError.message.includes("invoice_not_found")) return NextResponse.json({ error: "Faktura již neexistuje." }, { status: 404 });
+    if (deleteError.message.includes("insufficient_permission")) return NextResponse.json({ error: "Nemáte oprávnění fakturu smazat." }, { status: 403 });
+    return NextResponse.json({ error: "Fakturu se nepodařilo bezpečně smazat. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+  }
+
+  let documentCleanupPending = false;
+  if (existing.file_url) {
+    const { error: storageError } = await identity.service.storage.from("invoice-documents").remove([existing.file_url]);
+    documentCleanupPending = Boolean(storageError);
+    if (!storageError) {
+      await identity.service.from("invoice_uploads").delete()
+        .eq("organization_id", organizationId).eq("path", existing.file_url).is("invoice_id", null);
+    }
+  }
+
+  return NextResponse.json({ deleted: true, document_cleanup_pending: documentCleanupPending, result: deleted });
+}

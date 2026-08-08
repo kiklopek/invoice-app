@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
+import { todayInTimeZone } from "@/lib/reminders";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 
 const PAGE_SIZE = 25;
@@ -23,11 +25,17 @@ const labels: Record<InvoiceStatus, string> = {
 };
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [canManage, setCanManage] = useState(false);
+  const [paymentCandidate, setPaymentCandidate] = useState<Invoice | null>(null);
+  const [paymentDate, setPaymentDate] = useState(todayInTimeZone());
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | InvoiceStatus>("all");
   const [currency, setCurrency] = useState("all");
@@ -88,6 +96,7 @@ export default function InvoicesPage() {
             setCurrencies(data.currencies ?? []);
             setOpenTotals(data.open_totals ?? {});
             setActiveCount(Number(data.active_count) || 0);
+            setCanManage(Boolean(data.can_manage));
           })
           .catch((cause) => {
             if (cause instanceof Error && cause.name !== "AbortError")
@@ -138,6 +147,53 @@ export default function InvoicesPage() {
     }
   }
 
+  async function confirmPayment() {
+    if (!paymentCandidate) return;
+    setConfirmingPayment(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/invoices/${paymentCandidate.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: "paid", paid_on: paymentDate }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
+
+      const remaining = Math.max(
+        0,
+        Number(paymentCandidate.amount) - Number(paymentCandidate.paid_amount),
+      );
+      setInvoices((current) =>
+        status === "pending" || status === "overdue"
+          ? current.filter((item) => item.id !== paymentCandidate.id)
+          : current.map((item) => item.id === paymentCandidate.id ? data.invoice : item),
+      );
+      setOpenTotals((current) => {
+        const next = { ...current };
+        next[paymentCandidate.currency] = Math.max(
+          0,
+          Number(next[paymentCandidate.currency] || 0) - remaining,
+        );
+        if (!next[paymentCandidate.currency]) delete next[paymentCandidate.currency];
+        return next;
+      });
+      setActiveCount((current) => Math.max(0, current - 1));
+      if (status === "pending" || status === "overdue") {
+        const nextTotal = Math.max(0, total - 1);
+        setTotal(nextTotal);
+        setTotalPages(Math.max(1, Math.ceil(nextTotal / PAGE_SIZE)));
+      }
+      setNotice(`Úhrada faktury ${paymentCandidate.invoice_number} byla potvrzena.`);
+      setPaymentCandidate(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Úhradu se nepodařilo potvrdit.");
+    } finally {
+      setConfirmingPayment(false);
+    }
+  }
+
   const firstShown = total ? (page - 1) * PAGE_SIZE + 1 : 0;
   const lastShown = Math.min(total, page * PAGE_SIZE);
   const outstanding = Object.entries(openTotals).sort(([a], [b]) =>
@@ -154,10 +210,10 @@ export default function InvoicesPage() {
             Všechny vydané faktury, které čekají nebo čekaly na zaplacení.
           </span>
         </div>
-        <div className="section-actions">
-          <Link href="/invoices/payments" className="btn secondary">
-            <Icon name="check" />
-            Načíst úhrady
+        <div className="section-actions invoice-list-actions">
+          <Link href="/invoices/archive" className="btn secondary">
+            <Icon name="document" />
+            Archiv
           </Link>
           <Link href="/invoices/import" className="btn secondary">
             <Icon name="upload" />
@@ -169,6 +225,7 @@ export default function InvoicesPage() {
           </Link>
         </div>
       </header>
+      {notice && <p className="form-success">{notice}</p>}
       <section className="list-summary">
         <div>
           <span>Výsledek filtru</span>
@@ -279,7 +336,15 @@ export default function InvoicesPage() {
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
-                  <tr key={invoice.id}>
+                  <tr
+                    key={invoice.id}
+                    className="invoice-row"
+                    onClick={(event) => {
+                      const target = event.target;
+                      if (target instanceof HTMLElement && target.closest("a, button, input, select, textarea")) return;
+                      router.push(`/invoices/${invoice.id}`);
+                    }}
+                  >
                     <td data-label="Faktura">
                       <Link href={`/invoices/${invoice.id}`}>
                         <strong>{invoice.invoice_number}</strong>
@@ -315,12 +380,18 @@ export default function InvoicesPage() {
                       </span>
                     </td>
                     <td className="invoice-card-action">
-                      <Link
-                        href={`/invoices/${invoice.id}`}
-                        className="detail-link"
-                      >
-                        Detail →
-                      </Link>
+                      {canManage && (invoice.status === "pending" || invoice.status === "overdue") ? (
+                        <button
+                          type="button"
+                          className="btn primary quick-payment-button"
+                          onClick={() => {
+                            setPaymentDate(todayInTimeZone());
+                            setPaymentCandidate(invoice);
+                          }}
+                        >
+                          Potvrdit úhradu
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -349,6 +420,75 @@ export default function InvoicesPage() {
             Další →
           </button>
         </nav>
+      )}
+      {paymentCandidate && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !confirmingPayment) setPaymentCandidate(null);
+          }}
+        >
+          <section
+            className="modal payment-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="list-payment-confirm-title"
+          >
+            <header>
+              <div>
+                <small>MANUÁLNÍ ÚHRADA</small>
+                <h2 id="list-payment-confirm-title">
+                  Opravdu potvrdit úhradu faktury {paymentCandidate.invoice_number}?
+                </h2>
+                <p>Faktura bude označena jako zaplacená zvoleným dnem a automatické upomínky se zastaví.</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Zavřít potvrzení úhrady"
+                disabled={confirmingPayment}
+                onClick={() => setPaymentCandidate(null)}
+              >
+                ×
+              </button>
+            </header>
+            <div className="payment-confirm-content">
+              <div className="quick-payment-summary">
+                <span>Odběratel</span>
+                <strong>{paymentCandidate.counterparty_name}</strong>
+                <span>Částka</span>
+                <strong>{money(Number(paymentCandidate.amount), paymentCandidate.currency)}</strong>
+              </div>
+              <label className="quick-payment-date">
+                <span>Datum úhrady</span>
+                <input
+                  type="date"
+                  value={paymentDate}
+                  max={todayInTimeZone()}
+                  onChange={(event) => setPaymentDate(event.target.value)}
+                />
+                <small>Zadejte skutečný den, kdy byla částka připsána.</small>
+              </label>
+            </div>
+            <footer className="payment-confirm-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={confirmingPayment || !paymentDate}
+                onClick={() => setPaymentCandidate(null)}
+              >
+                Zrušit
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={confirmingPayment}
+                onClick={confirmPayment}
+              >
+                {confirmingPayment ? "Ukládám…" : "Ano, potvrdit úhradu"}
+              </button>
+            </footer>
+          </section>
+        </div>
       )}
     </AppFrame>
   );
