@@ -87,6 +87,28 @@ function amountFromLine(line: string): ParsedAmount | null {
   return null;
 }
 
+function firstAmountFromLine(line: string): ParsedAmount | null {
+  const match = line.match(new RegExp(`(${AMOUNT_SOURCE})\\s*(${CURRENCY_SOURCE})?`, "iu"));
+  if (!match) return null;
+  const value = parseMoney(match[1]);
+  return value !== null && Math.abs(value) <= 999_999_999_999.99
+    ? { value, currency: currencyCode(match[2]) }
+    : null;
+}
+
+function findFirstLabeledAmount(lines: string[], labels: RegExp[]) {
+  for (const label of labels) {
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!label.test(lines[index])) continue;
+      const sameLine = firstAmountFromLine(lines[index].replace(label, ""));
+      if (sameLine) return sameLine;
+      const nextLine = lines[index + 1] ? firstAmountFromLine(lines[index + 1]) : null;
+      if (nextLine) return nextLine;
+    }
+  }
+  return null;
+}
+
 function findLabeledAmount(lines: string[], labels: RegExp[]) {
   for (const label of labels) {
     for (let index = 0; index < lines.length; index += 1) {
@@ -140,7 +162,10 @@ function findSection(lines: string[], heading: RegExp) {
   if (start < 0) return [];
   const stop = /^(dodavatel|vystavitel|supplier|platební údaje|bankovní spojení|položky|popis|rekapitulace|celkem)\b/i;
   const result: string[] = [];
-  for (const line of lines.slice(start + 1, start + 9)) {
+  const headingMatch = lines[start].match(heading);
+  const headingTail = headingMatch?.index === undefined ? "" : lines[start].slice(headingMatch.index + headingMatch[0].length).replace(/^[\s:.-]+/, "");
+  if (headingTail) result.push(headingTail);
+  for (const line of lines.slice(start + 1, start + 10)) {
     if (stop.test(line)) break;
     result.push(line);
   }
@@ -152,18 +177,21 @@ function uniqueMatches(text: string, pattern: RegExp, normalize: (value: string)
 }
 
 function findCounterparty(lines: string[], text: string, organization: InvoiceOcrOrganization) {
-  const section = findSection(lines, /^(odběratel|zákazník|customer|bill to)\b/i);
+  const detailStart = lines.findIndex(line => /^ODBĚRATEL DETAIL$/i.test(line));
+  const detailLines = detailStart >= 0 ? lines.slice(detailStart + 1) : [];
+  const detailSection = detailLines.length ? findSection(detailLines, /(odb[ěé]ratel|zákazník|customer|bill to)\b/i) : [];
+  const section = detailSection.length ? detailSection : findSection(lines, /(odb[ěé]ratel|zákazník|customer|bill to)\b/i);
   const sectionText = section.join("\n");
   const organizationIco = digits(organization.ico);
   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
 
-  const icoCandidates = uniqueMatches(`${sectionText}\n${text}`, /(?:IČO|ICO|ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu, digits)
+  const icoCandidates = uniqueMatches(`${sectionText}\n${text}`, /(?:IČO|ICO|I[0O]{2}|1[0O]{2}|ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu, digits)
     .filter(value => value.length === 8 && value !== organizationIco);
   const dicCandidates = uniqueMatches(`${sectionText}\n${text}`, /(?:DIČ|DIC|VAT(?:[ \t]+ID)?)\s*[:.]?\s*([A-Z]{2}[ \t]*[A-Z0-9][A-Z0-9 \t-]{5,18})/giu, value => value.replace(/[\s-]/g, "").toUpperCase())
     .filter(value => value !== organizationDic);
   const emailCandidates = uniqueMatches(sectionText || text, /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/giu, value => value.toLowerCase());
 
-  const ignoredName = /^(odběratel|zákazník|customer|bill to|ičo|ico|dič|dic|ulice|adresa|tel|telefon|e-mail|email)\b/i;
+  const ignoredName = /^(?:(?:odb[ěé]ratel|zákazník|customer|bill to)\s*:?[\s.-]*$|(?:ičo|ico|dič|dic|ulice|adresa|tel|telefon|e-mail|email)(?=\s|:|$))/i;
   const name = section.find(line => {
     const normalized = normalizeComparable(line);
     return line.length >= 3 && !ignoredName.test(line) && !/@/.test(line) && !/^\d/.test(line) && normalized !== normalizeComparable(organization.name);
@@ -208,7 +236,12 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const issuerMatch = issuerMatches(text, organization);
 
   const invoiceNumber = findValue(lines,
-    [/číslo\s+(?:faktury|dokladu)/i, /faktura\s*(?:č(?:íslo)?[.:]?|no[.:]?|number)/i, /invoice\s*(?:no|number)/i],
+    [
+      /číslo\s+(?:faktury|dokladu)/i,
+      /faktura\s*[-–—]?\s*(?:daňový\s+doklad\s*)?(?:č(?:íslo)?\.?|no\.?|number)\s*[:#.-]?/i,
+      /faktura\s*[-–—]?\s*(?:danovy\s+doklad\s*)?(?:c\.?|cislo|no\.?|number)\s*[:#.-]?/i,
+      /invoice\s*(?:no|number)/i,
+    ],
     /([A-Z0-9][A-Z0-9./_-]{2,})/i);
   const variableSymbol = findValue(lines, [/variabilní\s+symbol/i, /var\.?\s*symbol/i, /^VS\b/i], /(\d{3,20})/);
   const issueDate = findLabeledDate(lines, [/datum\s+vystavení/i, /vystaven[oa]/i, /issue\s+date/i]);
@@ -218,9 +251,13 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     dueDate = "";
   }
 
-  const gross = findLabeledAmount(lines, [/celkem\s+k\s+úhradě/i, /částka\s+k\s+úhradě/i, /k\s+úhradě/i, /celkem\s+s\s+dph/i, /grand\s+total/i, /total\s+due/i]);
-  const net = findLabeledAmount(lines, [/celkem\s+bez\s+dph/i, /částka\s+bez\s+dph/i, /základ\s+daně/i, /základ\s+dph/i, /tax\s+base/i, /subtotal/i]);
-  const vatRates = uniqueMatches(text, /(?:sazba\s+dph|dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%/giu, value => String(parseMoney(value) ?? ""))
+  const gross = findLabeledAmount(lines, [/celkem\s+k\s+[úu]hrad[ěe]/i, /částka\s+k\s+[úu]hrad[ěe]/i, /k\s+[úu]hrad[ěe]/i, /celkem\s+s\s+dph/i, /grand\s+total/i, /total\s+due/i]);
+  const net = findLabeledAmount(lines, [/celkem\s+bez\s+dph/i, /částka\s+bez\s+dph/i, /základ\s+daně/i, /základ\s+dph/i, /tax\s+base/i, /subtotal/i])
+    ?? findFirstLabeledAmount(lines, [/součet\s+položek/i, /souhrn\s+položek/i]);
+  const explicitVatRates = uniqueMatches(text, /(?:sazba\s+dph|dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%/giu, value => String(parseMoney(value) ?? ""));
+  const vatRecap = text.split(/rekapitulace\s+dph/i)[1] ?? "";
+  const recapVatRates = uniqueMatches(vatRecap, /\b(\d{1,2}(?:[,.]\d{1,2})?)\s*%/gu, value => String(parseMoney(value) ?? ""));
+  const vatRates = (explicitVatRates.length ? explicitVatRates : recapVatRates)
     .map(Number).filter(value => value >= 0 && value <= 100);
   const distinctVatRates = [...new Set(vatRates)];
 
@@ -251,7 +288,9 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   }
 
   const counterparty = findCounterparty(lines, text, organization);
-  const currency = gross?.currency ?? net?.currency ?? currencyCode(text.match(/\b(CZK|Kč|EUR|USD|GBP|PLN|CHF)\b/i)?.[1]) ?? "CZK";
+  const currency = gross?.currency ?? net?.currency
+    ?? currencyCode(text.match(/(?:^|[\s(])(CZK|Kč|EUR|USD|GBP|PLN|CHF)(?=$|[\s):])/m)?.[1])
+    ?? "CZK";
 
   if (kind !== "issued_invoice") warnings.unshift("Dokument nemusí být běžná vydaná faktura. Před uložením ověřte jeho typ.");
   if (issuerMatch === false) warnings.unshift("Vystavitel dokumentu neodpovídá nastavené firmě. Ověřte, že jde o vydanou fakturu vaší organizace.");

@@ -70,6 +70,44 @@ describe("local invoice OCR parser", () => {
     expect(result.invoice).toMatchObject({ amount_without_vat: 10000, vat_rate: 0, amount: 10000 });
   });
 
+  it("parses a Czech invoice title, unaccented payment label and focused customer block", () => {
+    const result = parseInvoiceText({
+      text: `
+FAKTURA - DAŇOVÝ DOKLAD č. 2600253
+Variabilní symbol: 2600253
+Datum vystavení: 12.03.2026
+Datum splatnosti: 26.03.2026
+Součet položek 2 654 722,60 547 591,75 3 202 314,35
+CELKEM K UHRADE Kč 3 202 315,00
+ODBĚRATEL DETAIL
+Odběratel: IČO: 87654321
+DIČ: CZ87654321
+Odběratel a.s.
+Jozef Příjemce
+Ulice 22
+543 21 Obec
+mail: odberatel@email.com
+`,
+      fileUrl: "org/mobile.png",
+      organization: { name: "Firma s.r.o.", ico: "12345678", dic: "CZ12345678" },
+      ocrConfidence: 80,
+    });
+
+    expect(result.invoice).toMatchObject({
+      invoice_number: "2600253",
+      counterparty_name: "Odběratel a.s.",
+      counterparty_ico: "87654321",
+      counterparty_dic: "CZ87654321",
+      counterparty_email: "odberatel@email.com",
+      variable_symbol: "2600253",
+      amount_without_vat: 2654722.6,
+      amount: 3202315,
+      currency: "CZK",
+      issue_date: "2026-03-12",
+      due_date: "2026-03-26",
+    });
+  });
+
   it("does not invent missing fields and reports them for manual review", () => {
     const result = parseInvoiceText({ text: "Nečitelný dokument\nCelkem k úhradě 500 EUR", fileUrl: "org/photo.jpg", organization });
     expect(result.invoice.invoice_number).toBe("");

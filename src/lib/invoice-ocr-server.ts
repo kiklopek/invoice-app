@@ -50,12 +50,26 @@ async function withDeadline<T>(promise: Promise<T>, deadline: number): Promise<T
 }
 
 async function preprocessImage(bytes: Uint8Array) {
+  const input = sharp(bytes, { failOn: "error", limitInputPixels: 20_000_000 });
+  const metadata = await input.metadata();
+  const sourceWidth = metadata.width ?? 1800;
+  const enlargement = Math.max(1, Math.min(3, 1800 / sourceWidth));
+  const targetWidth = Math.min(2200, Math.round(sourceWidth * enlargement));
+
   return new Uint8Array(await sharp(bytes, { failOn: "error", limitInputPixels: 20_000_000 })
     .rotate()
-    .resize({ width: 2200, height: 3000, fit: "inside", withoutEnlargement: true })
+    .flatten({ background: "#ffffff" })
+    .resize({
+      width: targetWidth,
+      height: 3000,
+      fit: "inside",
+      withoutEnlargement: false,
+      kernel: sharp.kernel.lanczos3,
+    })
     .grayscale()
     .normalize()
-    .sharpen()
+    .sharpen({ sigma: 1 })
+    .extend({ top: 18, bottom: 18, left: 18, right: 18, background: "#ffffff" })
     .png({ compressionLevel: 6 })
     .toBuffer());
 }
@@ -93,7 +107,7 @@ async function createLocalWorker() {
   }
 }
 
-async function recognizeImages(images: Uint8Array[], deadline: number) {
+async function recognizeImages(images: Uint8Array[], deadline: number, includeCounterpartyDetail = false) {
   let worker: Worker | null = null;
   let languageDirectory: string | null = null;
   const texts: string[] = [];
@@ -109,6 +123,23 @@ async function recognizeImages(images: Uint8Array[], deadline: number) {
       const result = await withDeadline(worker.recognize(Buffer.from(normalized), { rotateAuto: true }), deadline);
       texts.push(result.data.text);
       if (Number.isFinite(result.data.confidence)) confidences.push(result.data.confidence);
+
+      if (includeCounterpartyDetail && images.length === 1) {
+        const metadata = await withDeadline(sharp(normalized).metadata(), deadline);
+        const width = metadata.width ?? 0;
+        const height = metadata.height ?? 0;
+        if (width >= 600 && height >= 600) {
+          const left = Math.floor(width * 0.42);
+          const detail = await withDeadline(sharp(normalized)
+            .extract({ left, top: 0, width: width - left, height: Math.floor(height * 0.62) })
+            .extend({ top: 24, bottom: 24, left: 24, right: 24, background: "#ffffff" })
+            .png({ compressionLevel: 6 })
+            .toBuffer(), deadline);
+          const detailResult = await withDeadline(worker.recognize(detail, { rotateAuto: false }), deadline);
+          texts.push(`ODBĚRATEL DETAIL\n${detailResult.data.text}`);
+          if (Number.isFinite(detailResult.data.confidence)) confidences.push(detailResult.data.confidence);
+        }
+      }
     }
   } catch (cause) {
     if (cause instanceof LocalOcrError) throw cause;
@@ -187,7 +218,7 @@ export async function extractInvoiceDocumentText({ bytes, mime, timeoutMs = OCR_
   const deadline = Date.now() + timeoutMs;
   if (mime === "application/pdf") return extractPdf(bytes, deadline);
   try {
-    const recognized = await recognizeImages([bytes], deadline);
+    const recognized = await recognizeImages([bytes], deadline, true);
     return { text: recognized.text, ocrUsed: true, totalPages: 1, pagesProcessed: 1, averageConfidence: recognized.confidence, warnings: [] };
   } catch (cause) {
     if (cause instanceof LocalOcrError) throw cause;
