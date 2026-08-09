@@ -1269,11 +1269,42 @@ th,
   .monitor-row { min-width: 0; }
   .monitor-row > span { min-width: 0; }
   .monitor-row > span:last-child { flex: none; max-width: 46%; }
-  .human-rules article { grid-template-columns: 32px minmax(0, 1fr) 34px; }
-  .rule-controls { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: center; }
-  .rule-controls > span { grid-column: 1 / -1; }
-  .rule-controls input { width: 70px; }
-  .rule-controls select { min-width: 0; width: 100%; }
+  .human-rules article {
+    grid-template-columns: 32px minmax(0, 1fr) 44px;
+    align-items: center;
+  }
+  .human-rules .rule-order { grid-column: 1; grid-row: 1; }
+  .human-rules .remove-rule { grid-column: 3; grid-row: 1; justify-self: end; }
+  .human-rules .rule-main {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+  }
+  .rule-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+  }
+  .rule-controls > span,
+  .rule-controls input,
+  .rule-controls select {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .rule-controls select {
+    display: block;
+    min-height: 48px;
+    padding-right: 36px;
+    font-size: 16px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
   .remove-rule { width: 44px; height: 44px; }
   .reminder-process-disclosure { margin-top: 12px; }
   .reminder-process-disclosure .process-preview { margin-top: 0; }
@@ -1299,15 +1330,31 @@ th,
   .settings-grid { grid-template-columns: minmax(0, 1fr); }
   .members-list article {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
-    align-items: start;
+    align-items: stretch;
     padding: 16px;
   }
   .members-list article > .member-state { grid-column: 1 / -1; width: fit-content; }
   .members-list article > div { min-width: 0; }
-  .members-list article > select { grid-column: 1; width: 100%; }
-  .members-list article > button { grid-column: 2; min-height: 44px; padding: 0 8px; }
+  .members-list article > select,
+  .members-list article > button {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .members-list article > select,
+  .member-add select {
+    display: block;
+    min-height: 48px;
+    padding-right: 36px;
+    font-size: 16px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .members-list article > button { min-height: 44px; padding: 0 8px; }
   .member-add { grid-template-columns: 1fr; padding: 16px; }
   .member-add .btn { width: 100%; }
 
@@ -1358,48 +1405,6 @@ th,
   .filter-row label, .filter-row label.grow, .filter-row .export-button,
   .period-presets, .customer-filter { grid-column: 1; }
   .period-presets { display: grid; grid-template-columns: 1fr; }
-  .members-list article {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
-  }
-  .members-list article > div,
-  .members-list article > select,
-  .members-list article > button {
-    grid-column: 1;
-    width: 100%;
-    min-width: 0;
-  }
-  .members-list article > select,
-  .member-add select {
-    display: block;
-    min-height: 48px;
-    font-size: 16px;
-  }
-  .members-list article > button { min-height: 44px; }
-
-  .human-rules article {
-    grid-template-columns: 32px minmax(0, 1fr) 44px;
-    align-items: center;
-  }
-  .human-rules .rule-order { grid-column: 1; grid-row: 1; }
-  .human-rules .remove-rule { grid-column: 3; grid-row: 1; justify-self: end; }
-  .human-rules .rule-main {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
-  }
-  .rule-controls {
-    grid-template-columns: minmax(78px, .45fr) minmax(0, 1fr);
-    width: 100%;
-  }
-  .rule-controls input { width: 100%; min-width: 0; }
-  .rule-controls select {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    min-height: 48px;
-    font-size: 16px;
-  }
   .list-summary { grid-template-columns: 1fr; }
   .info-grid { grid-template-columns: 1fr; }
   .detail-page-header .section-actions { grid-template-columns: 1fr; }

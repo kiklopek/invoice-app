@@ -5,6 +5,8 @@ import { basename, join } from "node:path";
 
 const baseUrl = process.env.MOBILE_CHECK_BASE_URL || "http://localhost:3000";
 const outputDir = process.env.MOBILE_CHECK_OUTPUT || join(tmpdir(), "invoice-mobile-check");
+const settleDelay = Number(process.env.MOBILE_CHECK_SETTLE_MS || 1200);
+const fullPageScreenshots = process.env.MOBILE_CHECK_FULL_PAGE === "1";
 const routes = (process.env.MOBILE_CHECK_ROUTES || "/login,/register,/forgot-password,/reset-password")
   .split(",")
   .map((route) => route.trim())
@@ -141,7 +143,7 @@ try {
       const loaded = client.event("Page.loadEventFired");
       await client.send("Page.navigate", { url: new URL(route, baseUrl).href });
       await loaded;
-      await delay(1200);
+      await delay(settleDelay);
       const evaluation = await client.send("Runtime.evaluate", {
         returnByValue: true,
         expression: `(() => {
@@ -178,7 +180,10 @@ try {
       });
       const result = evaluation.result.value;
       const safeRoute = basename(route) || "home";
-      const screenshot = await client.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      const screenshot = await client.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: fullPageScreenshots,
+      });
       writeFileSync(join(outputDir, `${safeRoute}-${viewport.name}.png`), screenshot.data, "base64");
       const overflow = result.scrollWidth > result.width + 1 || result.offenders.length > 0;
       if (overflow) failed = true;
