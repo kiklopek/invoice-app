@@ -13,7 +13,7 @@ export async function GET() {
     delivery: pending("Doručení e-mailů", "Připojte podepsaný Resend webhook"),
     cron: pending("Denní automat", "Nastavte produkční CRON_SECRET"),
     payments: pending("Párování bankovních plateb", "Demo režim · produkční historie se neukládá"),
-    ocr: pending("OCR dokumentů", "Demo režim · v produkci připojte OpenAI API"),
+    ocr: pending("OCR dokumentů", "Demo režim · v produkci běží lokální OCR"),
   } });
 
   const identity = await getRequestIdentity();
@@ -34,7 +34,7 @@ export async function GET() {
   ]);
   const emailReady = Boolean(process.env.RESEND_API_KEY && process.env.REMINDER_EMAIL_FROM);
   const deliveryReady = Boolean(process.env.RESEND_WEBHOOK_SECRET && !deliverySchemaError);
-  const ocrReady = Boolean(process.env.OPENAI_API_KEY && !ocrSchemaError);
+  const ocrReady = !ocrSchemaError;
   const cronReady = Boolean(process.env.CRON_SECRET && process.env.CRON_SECRET.length >= 16 && !automationSchemaError);
   return NextResponse.json({ mode: "production", services: {
     database: { label: "Databáze a přihlášení", ready: !auditSchemaError && !accessAuditSchemaError && !paymentSchemaError && !ocrSchemaError && !deliverySchemaError && !automationSchemaError && !settingsAuditSchemaError && !invoiceListSchemaError && !reportSchemaError && !dashboardSchemaError, detail: auditSchemaError || accessAuditSchemaError || paymentSchemaError || ocrSchemaError || deliverySchemaError || automationSchemaError || settingsAuditSchemaError || invoiceListSchemaError || reportSchemaError || dashboardSchemaError ? "Supabase je připojený, ale chybí poslední databázová migrace" : "Supabase, členství, audit přístupů, platby, OCR, doručení, monitoring, historie nastavení, stránkování, reporty i dashboard jsou připravené" },
@@ -43,6 +43,6 @@ export async function GET() {
     delivery: { label: "Doručení e-mailů", ready: deliveryReady, detail: deliveryReady ? "Podepsané události doručení jsou připravené" : "Chybí Resend webhook secret nebo databázová migrace" },
     cron: { label: "Denní automat", ready: cronReady, detail: cronReady ? "Tajný klíč a evidence běhů jsou připravené" : "Chybí bezpečný CRON_SECRET nebo migrace evidence běhů" },
     payments: { label: "Párování bankovních plateb", ready: !paymentSchemaError, detail: paymentSchemaError ? "Chybí migrace bankovních plateb" : "Bezpečný import a přesné párování je připravené" },
-    ocr: { label: "OCR dokumentů", ready: ocrReady, detail: ocrReady ? `OpenAI OCR je připravené (${process.env.OPENAI_OCR_MODEL?.trim() || "gpt-5.6-sol"})` : "Chybí OPENAI_API_KEY nebo OCR databázová migrace" },
+    ocr: { label: "OCR dokumentů", ready: ocrReady, detail: ocrReady ? "Lokální OCR dokumentů je připravené (local-tesseract-v1)" : "Chybí OCR databázová migrace" },
   } });
 }

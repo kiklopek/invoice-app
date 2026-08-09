@@ -13,6 +13,17 @@ import { Icon } from "@/components/icons";
 import type { InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 
+type DocumentStage = "idle" | "uploading" | "verifying" | "reading" | "recognizing" | "prefilling";
+
+const documentStageLabel: Record<DocumentStage, string> = {
+  idle: "",
+  uploading: "Nahrávám dokument…",
+  verifying: "Ověřuji dokument…",
+  reading: "Čtu PDF nebo obrázek…",
+  recognizing: "Rozpoznávám text lokálním OCR…",
+  prefilling: "Předvyplňuji fakturu…",
+};
+
 function splitRow(row: string, delimiter: string) {
   const values: string[] = []; let value = ""; let quoted = false;
   for (let i = 0; i < row.length; i++) { const char = row[i]; if (char === '"') { if (quoted && row[i + 1] === '"') { value += '"'; i++; } else quoted = !quoted; } else if (char === delimiter && !quoted) { values.push(value.trim()); value = ""; } else value += char; }
@@ -56,6 +67,7 @@ export default function ImportInvoicesPage() {
   const [ocrInfo, setOcrInfo] = useState<Pick<InvoiceOcrResult, "confidence" | "warnings" | "document_kind" | "issuer_matches_organization"> | null>(null);
   const [rows, setRows] = useState<InvoiceInput[]>([]);
   const [working, setWorking] = useState(false);
+  const [documentStage, setDocumentStage] = useState<DocumentStage>("idle");
   const [message, setMessage] = useState("");
 
   async function requestExtraction(path: string) {
@@ -64,9 +76,20 @@ export default function ImportInvoicesPage() {
     if (!response.ok) throw new Error(data.error || "Údaje z dokumentu se nepodařilo načíst.");
     return data.extraction as InvoiceOcrResult;
   }
+  async function requestDocumentExtraction(path: string) {
+    setDocumentStage("reading");
+    const recognitionTimer = window.setTimeout(() => setDocumentStage("recognizing"), 900);
+    try {
+      const extraction = await requestExtraction(path);
+      setDocumentStage("prefilling");
+      return extraction;
+    } finally {
+      window.clearTimeout(recognitionTimer);
+    }
+  }
   async function upload() {
     if (!file) return;
-    setWorking(true); setMessage(""); setOcrInfo(null);
+    setWorking(true); setDocumentStage("uploading"); setMessage(""); setOcrInfo(null);
     try {
       const metadataError = validateDocumentMetadata(file.type, file.size); if (metadataError) throw new Error(metadataError);
       const signature = new Uint8Array(await file.slice(0, 16).arrayBuffer());
@@ -77,11 +100,12 @@ export default function ImportInvoicesPage() {
         const { error } = await createClient().storage.from("invoice-documents").uploadToSignedUrl(data.path, data.token, file, { contentType: file.type });
         if (error) throw new Error("Dokument se nepodařilo přenést do bezpečného úložiště.");
       }
+      setDocumentStage("verifying");
       const verification = await fetch("/api/invoices/upload/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: data.path }) });
       const verified = await verification.json(); if (!verification.ok) throw new Error(verified.error);
       setUploaded({ ...createEmptyInvoice(), source: "manual", file_url: data.path });
       try {
-        const extraction = await requestExtraction(data.path);
+        const extraction = await requestDocumentExtraction(data.path);
         setUploaded(extraction.invoice);
         setOcrInfo(extraction);
       } catch (cause) {
@@ -89,25 +113,34 @@ export default function ImportInvoicesPage() {
       }
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Dokument se nepodařilo nahrát.");
-    } finally { setWorking(false); }
+    } finally { setWorking(false); setDocumentStage("idle"); }
   }
   async function retryOcr() {
     if (!uploaded?.file_url) return;
-    setWorking(true); setMessage("");
+    setWorking(true); setDocumentStage("reading"); setMessage("");
     try {
-      const extraction = await requestExtraction(uploaded.file_url);
+      const extraction = await requestDocumentExtraction(uploaded.file_url);
       setUploaded(extraction.invoice); setOcrInfo(extraction);
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : "OCR se nepodařilo zopakovat."); }
-    finally { setWorking(false); }
+    finally { setWorking(false); setDocumentStage("idle"); }
   }
   async function create(input: InvoiceInput) { const response = await fetch("/api/invoices", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); router.push(`/invoices/${data.invoice.id}`); }
   async function loadCsv(selected: File | null) { if (!selected) return; setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
   async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); router.push("/invoices"); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
   function downloadTemplate() { const csv = createCsv([["Číslo faktury", "Odběratel", "IČO", "E-mail", "Částka bez DPH", "Sazba DPH", "Částka s DPH", "Měna", "Vystavení", "Splatnost", "Variabilní symbol"], ["FV-2026-001", "Ukázkový odběratel s.r.o.", "12345678", "fakturace@example.cz", 10000, 21, 12100, "CZK", "2026-08-01", "2026-08-15", "2026001"]]); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); const link = document.createElement("a"); link.href = url; link.download = "vzor-importu-faktur.csv"; link.click(); URL.revokeObjectURL(url); }
 
-  return <AppFrame><header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
+  return <AppFrame>
+    <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
     <div className="page-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
-    {mode === "document" ? uploaded ? <><div className={`import-step-note ${ocrInfo ? "ocr-complete" : "ocr-manual"}`}><div><strong>{ocrInfo ? "Údaje byly předvyplněny z dokumentu" : "Dokument je bezpečně uložený"}</strong><span>{ocrInfo ? `Spolehlivost rozpoznání přibližně ${Math.round(ocrInfo.confidence * 100)} %. Každý údaj před uložením zkontrolujte.` : "Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>{!ocrInfo && <button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? "Načítám…" : "Zkusit OCR znovu"}</button>}</div>{ocrInfo?.warnings.length ? <div className="ocr-warnings"><strong>Co je potřeba ověřit</strong><ul>{ocrInfo.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div> : null}<InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></> : <section className="page-panel import-panel"><div className="import-drop"><span className="large-import-icon"><Icon name="document"/></span><h2>Vyberte dokument faktury</h2><p>Podporujeme PDF, JPG, PNG a WEBP do velikosti 10 MB. Po nahrání se údaje automaticky předvyplní.</p><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => setFile(event.target.files?.[0] ?? null)}/>{file && <strong>{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</strong>}<button className="btn primary" disabled={!file || working} onClick={upload}>{working ? "Nahrávám a načítám údaje…" : <><Icon name="upload"/>Nahrát a načíst údaje</>}</button></div></section>
+    {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong></div>}
+    {mode === "document" ? uploaded ? <>
+      <div className={`import-step-note ${ocrInfo ? "ocr-complete" : "ocr-manual"}`}>
+        <div><strong>{ocrInfo ? "Údaje byly předvyplněny z dokumentu" : "Dokument je bezpečně uložený"}</strong><span>{ocrInfo ? `Spolehlivost rozpoznání přibližně ${Math.round(ocrInfo.confidence * 100)} %. Každý údaj před uložením zkontrolujte.` : "Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>
+        {!ocrInfo && <div className="ocr-manual-actions"><button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button><a className="btn secondary compact" href="#manual-invoice-form">Vyplnit ručně</a></div>}
+      </div>
+      {ocrInfo?.warnings.length ? <div className="ocr-warnings"><strong>Co je potřeba ověřit</strong><ul>{ocrInfo.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div> : null}
+      <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
+    </> : <section className="page-panel import-panel"><div className="import-drop"><span className="large-import-icon"><Icon name="document"/></span><h2>Vyberte dokument faktury</h2><p>Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB. Údaje rozpozná lokální OCR bez odesílání do externí AI služby.</p><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => setFile(event.target.files?.[0] ?? null)}/>{file && <strong>{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</strong>}<button className="btn primary" disabled={!file || working} onClick={upload}>{working ? documentStageLabel[documentStage] : <><Icon name="upload"/>Nahrát a načíst údaje</>}</button></div></section>
     : <section className="page-panel import-panel"><div className="csv-help"><h2>Hromadný import faktur</h2><p>CSV musí obsahovat sloupce: Číslo faktury, Odběratel, E-mail, Částka bez DPH, Sazba DPH, Částka s DPH, Měna, Vystavení a Splatnost. Starší soubor s jediným sloupcem Částka zůstává podporovaný jako konečná částka s DPH. Data používejte ve formátu RRRR-MM-DD. Jeden import může obsahovat nejvýše 250 faktur a uloží se vždy celý, nebo vůbec.</p><div className="csv-actions"><input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/><button type="button" className="btn secondary" onClick={downloadTemplate}><Icon name="download"/>Stáhnout vzor CSV</button></div></div>{rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><button className="btn primary import-confirm" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></>}</section>}
     {message && <p className="form-error">{message}</p>}
   </AppFrame>;

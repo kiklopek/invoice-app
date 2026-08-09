@@ -8,7 +8,7 @@ Interní webová aplikace pro evidenci pouze těch vydaných faktur, které maj�
 - samostatný přehled, seznam faktur, detail faktury, import, upomínky, reporty a nastavení,
 - ruční založení a úprava faktury, zápis skutečného data úhrady, vrácení mezi neuhrazené a storno,
 - soukromý přímý upload PDF, JPG, PNG a WEBP do 10 MB přes jednorázový podepsaný token, následovaný serverovou kontrolou skutečného typu a velikosti,
-- multimodální OCR přes OpenAI Responses API, které z PDF nebo fotografie předvyplní údaje faktury ve striktním schématu a vždy vyžaduje lidskou kontrolu,
+- lokální česko-anglické OCR, které z textového nebo naskenovaného PDF a fotografie předvyplní údaje faktury a vždy vyžaduje lidskou kontrolu,
 - ochrana OCR proti dvojímu spuštění, maximálně tři pokusy na dokument, časový limit a bezpečný ruční fallback,
 - hromadný CSV import až 250 faktur jako jeden databázový zápis a vzorové CSV,
 - atomický import až 500 příchozích bankovních plateb, ochrana před duplicitami a automatické párování pouze při přesné shodě VS, měny a částky,
@@ -37,7 +37,7 @@ Interní webová aplikace pro evidenci pouze těch vydaných faktur, které maj�
 - responzivní plochý minimalistický design v zelené, bílé a krémové paletě s vlastní sadou SVG ikon,
 - Row Level Security, soukromé dokumenty, krátkodobé podepsané odkazy, role na API i databázové vrstvě a bezpečnostní HTTP hlavičky.
 
-OCR se v produkci aktivuje serverovým `OPENAI_API_KEY`; bez klíče zůstává dokument uložený a účetní může údaje doplnit ručně. Produkční běh neobsahuje ani nevrací ukázková data.
+OCR běží lokálně v serverové funkci pomocí Tesseract.js. Textová PDF se čtou přímo, skenovaná PDF a obrázky se zpracují lokálním česko-anglickým modelem. Dokument ani jeho obsah se neposílá do externí AI služby a OCR nevyžaduje žádný API klíč. Když rozpoznání selže, dokument zůstane bezpečně uložený a účetní může údaje doplnit ručně.
 
 ## Lokální spuštění
 
@@ -89,11 +89,11 @@ E-mail v `organization_members` ukládejte malými písmeny. Při prvním přihl
 4. V Resend vytvořte webhook na `https://VAŠE-DOMÉNA/api/webhooks/resend` pro události `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained` a `email.failed`.
 5. Signing secret webhooku vložte do `RESEND_WEBHOOK_SECRET`.
 
-### 3. OpenAI OCR
+### 3. Lokální OCR
 
-1. V OpenAI API projektu vytvořte serverový API klíč s omezeným rozpočtem.
-2. Nastavte `OPENAI_API_KEY`; volitelně lze přepsat `OPENAI_OCR_MODEL`.
-3. Dokument se do OpenAI posílá pouze po ověření přihlášeného člena, organizace, role, typu a velikosti souboru.
+1. Nainstalujte závislosti pomocí `pnpm install`; český a anglický OCR model je součástí balíčků projektu.
+2. Pro OCR se nenastavuje žádná proměnná prostředí ani externí API klíč.
+3. Textové PDF může mít nejvýše 30 stran a skenované PDF nejvýše 8 stran bez textové vrstvy. Maximální velikost dokumentu je 10 MB.
 4. OCR je pomocné předvyplnění: žádná faktura se neuloží bez kontroly a potvrzení účetním.
 
 ### 4. Proměnné prostředí
@@ -115,11 +115,9 @@ APP_BASE_URL=https://VAŠE-DOMÉNA
 # Volitelné; jinak se použije /brand/drevohlavica.png z APP_BASE_URL.
 REMINDER_LOGO_URL=
 CRON_SECRET=dlouhy-nahodny-tajny-retezec
-OPENAI_API_KEY=...
-OPENAI_OCR_MODEL=gpt-5.6-sol
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `OPENAI_API_KEY` ani `CRON_SECRET` nikdy nevkládejte do proměnné začínající `NEXT_PUBLIC_` a necommitujte `.env.local`.
+`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` ani `CRON_SECRET` nikdy nevkládejte do proměnné začínající `NEXT_PUBLIC_` a necommitujte `.env.local`.
 
 ### 5. Supabase Auth
 
@@ -140,7 +138,7 @@ Pokud při lokálním vývoji není Supabase nakonfigurovaný, aplikace se autom
 
 `vercel.json` volá každé ráno v 06:00 UTC trasu `/api/cron/check-due`. Vercel odešle `CRON_SECRET` jako Bearer token. Před ostrým provozem ověřte, že zvolený tarif podporuje požadovanou četnost a délku běhu.
 
-Prvotní upload dokumentu nejde přes Vercel Function: prohlížeč jej přenese podepsaným jednorázovým tokenem přímo do soukromého Supabase Storage a API následně ověří jeho skutečný obsah. Až chráněná OCR route ověřený dokument serverově načte a odešle do OpenAI.
+Prvotní upload dokumentu nejde přes Vercel Function: prohlížeč jej přenese podepsaným jednorázovým tokenem přímo do soukromého Supabase Storage a API následně ověří jeho skutečný obsah. Chráněná OCR route ověřený dokument serverově načte a zpracuje lokálně pomocí PDF.js a Tesseract.js.
 
 ## Ověření před nasazením
 

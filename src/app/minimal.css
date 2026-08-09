@@ -302,6 +302,23 @@ tr:hover td { background: #fafbf9; }
 .import-step-note > div { min-width: 0; }
 .import-step-note span { display: block; }
 .import-step-note.ocr-manual { background: var(--amber-soft); border-color: #ead8b6; color: var(--amber); }
+.ocr-manual-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.import-progress {
+  width: min(100%, 960px);
+  min-height: 48px;
+  margin-bottom: 12px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--green);
+}
+.import-progress strong { font-size: 12px; }
+.import-progress-spinner { width: 18px; height: 18px; flex: none; border: 2px solid #cbd9cf; border-top-color: var(--green); border-radius: 50%; animation: import-spin .8s linear infinite; }
+@keyframes import-spin { to { transform: rotate(360deg); } }
 .ocr-warnings {
   width: min(100%, 960px);
   margin-bottom: 12px;
@@ -824,6 +841,7 @@ input, select, textarea,
   .invoice-pagination > span { grid-column: 1 / -1; grid-row: 1; text-align: center; }
   .invoice-pagination .btn { width: 100%; }
   .import-step-note { align-items: stretch; flex-direction: column; }
+  .ocr-manual-actions { align-items: stretch; flex-direction: column; }
   .import-step-note .btn { width: 100%; }
 }
 
@@ -841,6 +859,10 @@ input, select, textarea,
   .login-header { gap: 14px; }
   .login-header .login-company-logo { width: 72px; }
   .login-header .login-intro h1 { font-size: 25px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .import-progress-spinner { animation: none; border-top-color: #cbd9cf; background: var(--green-soft); }
 }
 
 @media print {

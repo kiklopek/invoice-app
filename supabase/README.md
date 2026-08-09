@@ -137,6 +137,6 @@ Poté v aplikaci otevřete Nastavení → Stav služeb. Kontrola databáze musí
 - Zapněte zálohy a obnovu do bodu v čase podle zvoleného tarifu Supabase.
 - Změny schématu provádějte novou migrací; neupravujte již použitou migraci.
 - Pravidelně kontrolujte neúspěšné záznamy v `reminder_log` a poslední stav v `reminder_automation_runs`.
-- Sledujte neúspěšné OCR stavy v `invoice_uploads`, čerpání OpenAI projektu a adresy v `email_suppressions`.
+- Sledujte neúspěšné OCR stavy v `invoice_uploads`, dobu zpracování serverových funkcí a adresy v `email_suppressions`.
 - Po každém importu banky zkontrolujte počet nespárovaných a nejednoznačných položek.
 - Nikdy nezapisujte API klíče, tokeny nebo obsah dokumentů do `invoice_events.details`.

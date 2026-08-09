@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
-import { buildInvoiceOcrRequest, parseInvoiceOcrResponse } from "@/lib/invoice-ocr";
+import { LOCAL_OCR_MODEL, parseInvoiceText } from "@/lib/invoice-ocr";
+import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-const OPENAI_ENDPOINT = "https://api.openai.com/v1/responses";
-const OCR_TIMEOUT_MS = 50_000;
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
@@ -28,6 +25,8 @@ export async function POST(request: Request) {
           counterparty_dic: "CZ12345678",
           counterparty_email: "fakturace@stavbynovak.cz",
           variable_symbol: "2026084",
+          amount_without_vat: 40289.26,
+          vat_rate: 21,
           amount: 48750,
           currency: "CZK",
           issue_date: "2026-08-01",
@@ -45,9 +44,6 @@ export async function POST(request: Request) {
       },
     });
   }
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "OCR není nakonfigurované. Doplňte serverový OPENAI_API_KEY." }, { status: 503 });
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
@@ -98,38 +94,31 @@ export async function POST(request: Request) {
     .select("name, ico, dic").eq("id", organizationId).single();
   if (organizationError || !organization) return fail("Firemní údaje se nepodařilo načíst.", 500, "organization_load_failed");
 
-  const configuredModel = process.env.OPENAI_OCR_MODEL?.trim() || "";
-  const model = /^[a-zA-Z0-9._-]{1,100}$/.test(configuredModel) ? configuredModel : "gpt-5.6-sol";
-  const controller = new AbortController();
-  const safetyIdentifier = createHash("sha256").update(identity.user.id).digest("hex");
-  const timeout = setTimeout(() => controller.abort(), OCR_TIMEOUT_MS);
-  let providerResponse: Response;
+  let extraction;
   try {
-    providerResponse = await fetch(OPENAI_ENDPOINT, {
-      method: "POST",
-      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify(buildInvoiceOcrRequest({ bytes, mime: upload.expected_mime, filename: upload.original_name, organization, model, safetyIdentifier })),
-      signal: controller.signal,
-      cache: "no-store",
+    const documentText = await extractInvoiceDocumentText({ bytes, mime: upload.expected_mime });
+    if (!documentText.text.trim()) {
+      return fail("V dokumentu se nepodařilo najít žádný čitelný text. Zkuste kvalitnější sken nebo údaje doplňte ručně.", 422, "empty_ocr_text");
+    }
+    extraction = parseInvoiceText({
+      text: documentText.text,
+      fileUrl: path,
+      organization,
+      ocrConfidence: documentText.averageConfidence,
+      extraWarnings: documentText.warnings,
     });
   } catch (cause) {
-    clearTimeout(timeout);
-    return fail(cause instanceof Error && cause.name === "AbortError" ? "OCR trvalo příliš dlouho. Zkuste dokument znovu." : "OCR služba je dočasně nedostupná.", 502, cause instanceof Error && cause.name === "AbortError" ? "provider_timeout" : "provider_network_error");
+    if (cause instanceof LocalOcrError) {
+      const status = cause.code === "pdf_too_long" || cause.code === "scan_too_long" ? 422 : cause.code === "timeout" ? 504 : 422;
+      return fail(cause.message, status, `local_${cause.code}`);
+    }
+    return fail("Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, "local_ocr_failed");
   }
-  clearTimeout(timeout);
-
-  const providerBody = await providerResponse.json().catch(() => null);
-  if (!providerResponse.ok) {
-    const retryable = providerResponse.status === 429 || providerResponse.status >= 500;
-    return fail(retryable ? "OCR služba je dočasně vytížená. Zkuste to znovu později." : "OCR služba požadavek odmítla. Zkontrolujte její konfiguraci.", retryable ? 503 : 502, `provider_http_${providerResponse.status}`);
-  }
-  const extraction = parseInvoiceOcrResponse(providerBody, path, model);
-  if (!extraction) return fail("OCR nevrátilo použitelná strukturovaná data.", 502, "invalid_structured_output");
 
   const { error: completionError } = await identity.service.from("invoice_uploads").update({
     ocr_status: "succeeded",
-    ocr_model: model,
-    ocr_provider_response_id: extraction.response_id,
+    ocr_model: LOCAL_OCR_MODEL,
+    ocr_provider_response_id: null,
     ocr_error: null,
     ocr_completed_at: new Date().toISOString(),
   }).eq("id", upload.id).eq("ocr_status", "processing");

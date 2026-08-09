@@ -1,88 +1,85 @@
 import { describe, expect, it } from "vitest";
-import { buildInvoiceOcrRequest, parseInvoiceOcrResponse } from "./invoice-ocr";
+import { LOCAL_OCR_MODEL, normalizeOcrText, parseInvoiceText } from "./invoice-ocr";
 
-function response(payload: Record<string, unknown>) {
-  return {
-    id: "resp_123",
-    output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(payload) }] }],
-  };
-}
+const organization = { name: "R. Hlavica s.r.o.", ico: "05829309", dic: "CZ05829309" };
 
-const validPayload = {
-  document_kind: "issued_invoice",
-  issuer_matches_organization: true,
-  invoice_number: " FV-2026-7 ",
-  counterparty_name: " Odběratel s.r.o. ",
-  counterparty_ico: "12345678",
-  counterparty_dic: "CZ12345678",
-  counterparty_email: "FAKTURACE@EXAMPLE.CZ",
-  variable_symbol: "202607",
-  amount_without_vat: 1000,
-  vat_rate: 21,
-  amount: 1210,
-  currency: "czk",
-  issue_date: "2026-08-01",
-  due_date: "2026-08-15",
-  notes: null,
-  confidence: 0.94,
-  warnings: [],
-};
+const issuedInvoice = `
+FAKTURA – DAŇOVÝ DOKLAD
+Dodavatel
+R. Hlavica s.r.o.
+IČO: 05829309
+DIČ: CZ05829309
 
-describe("invoice OCR", () => {
-  it("normalizes a structured provider response into editable invoice data", () => {
-    const result = parseInvoiceOcrResponse(response(validPayload), "org/file.pdf", "gpt-5.6-sol");
-    expect(result?.invoice).toMatchObject({
-      invoice_number: "FV-2026-7",
-      counterparty_name: "Odběratel s.r.o.",
-      counterparty_email: "fakturace@example.cz",
-      amount_without_vat: 1000,
+Odběratel
+Stavby Novák s.r.o.
+IČO: 12345678
+DIČ: CZ12345678
+E-mail: FAKTURACE@STAVBYNOVAK.CZ
+
+Číslo faktury: FV-2026-007
+Variabilní symbol: 2026007
+Datum vystavení: 1. 8. 2026
+Datum splatnosti: 15. 8. 2026
+Celkem bez DPH 10 000,00 Kč
+DPH: 21 %
+Celkem k úhradě 12 100,00 Kč
+`;
+
+describe("local invoice OCR parser", () => {
+  it("extracts Czech invoice fields and selects the customer instead of the issuer", () => {
+    const result = parseInvoiceText({ text: issuedInvoice, fileUrl: "org/file.pdf", organization, ocrConfidence: 92 });
+    expect(result.invoice).toMatchObject({
+      invoice_number: "FV-2026-007",
+      counterparty_name: "Stavby Novák s.r.o.",
+      counterparty_ico: "12345678",
+      counterparty_dic: "CZ12345678",
+      counterparty_email: "fakturace@stavbynovak.cz",
+      variable_symbol: "2026007",
+      amount_without_vat: 10000,
       vat_rate: 21,
-      amount: 1210,
+      amount: 12100,
       currency: "CZK",
+      issue_date: "2026-08-01",
+      due_date: "2026-08-15",
       source: "ocr",
       file_url: "org/file.pdf",
     });
-    expect(result?.response_id).toBe("resp_123");
+    expect(result.issuer_matches_organization).toBe(true);
+    expect(result.model).toBe(LOCAL_OCR_MODEL);
+    expect(result.response_id).toBeNull();
   });
 
-  it("calculates a missing net amount from the extracted gross total and VAT rate", () => {
-    const result = parseInvoiceOcrResponse(response({ ...validPayload, amount_without_vat: null }), "org/file.pdf", "model");
-    expect(result?.invoice).toMatchObject({ amount_without_vat: 1000, vat_rate: 21, amount: 1210 });
-  });
-
-  it("drops invalid dates and adds high-risk document warnings", () => {
-    const result = parseInvoiceOcrResponse(response({
-      ...validPayload,
-      document_kind: "other",
-      issuer_matches_organization: false,
-      issue_date: "01.08.2026",
-      due_date: "2026-07-01",
-      warnings: ["Nejasná částka"],
-    }), "org/file.pdf", "model");
-    expect(result?.invoice.issue_date).toBe("");
-    expect(result?.invoice.due_date).toBe("2026-07-01");
-    expect(result?.warnings.join(" ")).toContain("Vystavitel");
-    expect(result?.warnings.join(" ")).toContain("nemusí být běžná vydaná faktura");
-  });
-
-  it("rejects malformed or non-structured output", () => {
-    expect(parseInvoiceOcrResponse({ output: [] }, "x", "model")).toBeNull();
-    expect(parseInvoiceOcrResponse({ output: [{ content: [{ type: "output_text", text: "not json" }] }] }, "x", "model")).toBeNull();
-  });
-
-  it("builds private base64 image input with strict schema and injection boundary", () => {
-    const request = buildInvoiceOcrRequest({
-      bytes: new Uint8Array([1, 2, 3]),
-      mime: "image/png",
-      filename: "faktura.png",
-      organization: { name: "R. Hlavica s.r.o.", ico: "05829309", dic: "CZ05829309" },
-      model: "gpt-5.6-sol",
-      safetyIdentifier: "hashed-user",
+  it("uses an effective VAT rate when an invoice contains multiple VAT rates", () => {
+    const result = parseInvoiceText({
+      text: `${issuedInvoice.replace("DPH: 21 %", "DPH 12 %\nDPH 21 %").replace("10 000,00", "1 000,00").replace("12 100,00", "1 180,00")}`,
+      fileUrl: "org/mixed.pdf",
+      organization,
     });
-    expect(request.store).toBe(false);
-    expect(request.safety_identifier).toBe("hashed-user");
-    expect(request.instructions).toContain("nedůvěryhodný zdroj dat");
-    expect(request.text.format.strict).toBe(true);
-    expect(JSON.stringify(request.input)).toContain("data:image/png;base64,AQID");
+    expect(result.invoice.amount_without_vat).toBe(1000);
+    expect(result.invoice.amount).toBe(1180);
+    expect(result.invoice.vat_rate).toBe(18);
+    expect(result.warnings.join(" ")).toContain("více sazeb DPH");
+  });
+
+  it("supports invoices without VAT", () => {
+    const result = parseInvoiceText({
+      text: issuedInvoice.replace("DPH: 21 %", "Dodavatel není plátce DPH").replace("12 100,00", "10 000,00"),
+      fileUrl: "org/no-vat.pdf",
+      organization,
+    });
+    expect(result.invoice).toMatchObject({ amount_without_vat: 10000, vat_rate: 0, amount: 10000 });
+  });
+
+  it("does not invent missing fields and reports them for manual review", () => {
+    const result = parseInvoiceText({ text: "Nečitelný dokument\nCelkem k úhradě 500 EUR", fileUrl: "org/photo.jpg", organization });
+    expect(result.invoice.invoice_number).toBe("");
+    expect(result.invoice.counterparty_name).toBe("");
+    expect(result.invoice.currency).toBe("EUR");
+    expect(result.warnings.join(" ")).toContain("Číslo faktury nebylo rozpoznáno");
+    expect(result.warnings.join(" ")).toContain("E-mail odběratele nebyl rozpoznán");
+  });
+
+  it("normalizes Unicode, whitespace and Czech punctuation without losing diacritics", () => {
+    expect(normalizeOcrText("  Částka\u00a0–\u00a010 000 Kč  \n\n\n Splatnost ")).toBe("Částka - 10 000 Kč\n\nSplatnost");
   });
 });
