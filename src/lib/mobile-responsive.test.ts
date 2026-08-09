@@ -33,6 +33,9 @@ describe("mobile application layout", () => {
     expect(css).toContain("min-height: 44px");
     expect(css).toContain("font-size: 16px");
     expect(css).toContain("overflow-x: clip");
+    const layout = source("src/app/layout.tsx");
+    expect(layout).toContain('width: "device-width"');
+    expect(layout).toContain('viewportFit: "cover"');
   });
 
   it("provides an accessible reusable mobile disclosure", () => {
@@ -48,6 +51,9 @@ describe("mobile application layout", () => {
     expect(css).toContain(".human-rules .rule-main");
     expect(css).toContain(".rule-controls select");
     expect(css).toContain("min-height: 48px");
+    expect(css).toContain("height: 48px !important");
+    expect(css).toContain("-webkit-appearance: none");
+    expect(css).toContain("padding: 0 42px 0 12px !important");
   });
 
   it("turns operational wide tables into labeled mobile cards", () => {

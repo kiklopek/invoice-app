@@ -1272,20 +1272,28 @@ th,
   .human-rules article {
     grid-template-columns: 32px minmax(0, 1fr) 44px;
     align-items: center;
+    gap: 8px 10px;
+    padding-block: 13px;
   }
   .human-rules .rule-order { grid-column: 1; grid-row: 1; }
   .human-rules .remove-rule { grid-column: 3; grid-row: 1; justify-self: end; }
   .human-rules .rule-main {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
+    display: contents;
+  }
+  .human-rules .rule-main > strong {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
     min-width: 0;
   }
   .rule-controls {
     display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
     grid-template-columns: minmax(0, 1fr);
     width: 100%;
     min-width: 0;
+    margin-top: 2px;
     align-items: stretch;
   }
   .rule-controls > span,
@@ -1299,12 +1307,22 @@ th,
   }
   .rule-controls select {
     display: block;
+    height: 48px !important;
     min-height: 48px;
-    padding-right: 36px;
+    padding: 0 42px 0 12px !important;
     font-size: 16px;
+    line-height: normal;
     white-space: nowrap;
     text-overflow: ellipsis;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23213b2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 14px 8px;
   }
+  .rule-controls input { height: 48px !important; padding-block: 0 !important; line-height: normal; }
   .remove-rule { width: 44px; height: 44px; }
   .reminder-process-disclosure { margin-top: 12px; }
   .reminder-process-disclosure .process-preview { margin-top: 0; }
@@ -1331,9 +1349,9 @@ th,
   .members-list article {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    gap: 8px;
     align-items: stretch;
-    padding: 16px;
+    padding: 14px 16px;
   }
   .members-list article > .member-state { grid-column: 1 / -1; width: fit-content; }
   .members-list article > div { min-width: 0; }
@@ -1348,13 +1366,27 @@ th,
   .members-list article > select,
   .member-add select {
     display: block;
+    height: 48px !important;
     min-height: 48px;
-    padding-right: 36px;
+    padding: 0 42px 0 12px !important;
     font-size: 16px;
+    line-height: normal;
     white-space: nowrap;
     text-overflow: ellipsis;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23213b2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 14px 8px;
   }
-  .members-list article > button { min-height: 44px; padding: 0 8px; }
+  .members-list article > button {
+    width: auto;
+    min-height: 44px;
+    padding: 0 4px;
+    justify-self: start;
+  }
   .member-add { grid-template-columns: 1fr; padding: 16px; }
   .member-add .btn { width: 100%; }
 
