@@ -18,14 +18,11 @@ const csp = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: path.join(__dirname),
-  serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist", "sharp", "tesseract.js", "tesseract.js-core"],
+  serverExternalPackages: ["@napi-rs/canvas", "sharp", "tesseract.js"],
   outputFileTracingIncludes: {
     "/api/invoices/extract": [
-      "./node_modules/@tesseract.js-data/ces/**/*",
-      "./node_modules/@tesseract.js-data/eng/**/*",
-      "./node_modules/tesseract.js/**/*",
-      "./node_modules/tesseract.js-core/**/*",
-      "./node_modules/pdfjs-dist/**/*",
+      "./node_modules/@tesseract.js-data/ces/4.0.0/ces.traineddata.gz",
+      "./node_modules/@tesseract.js-data/eng/4.0.0/eng.traineddata.gz",
     ],
   },
   async headers() {
