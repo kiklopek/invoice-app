@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
+import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { todayInTimeZone } from "@/lib/reminders";
 import type { InvoiceReport, ReportDateBasis } from "@/lib/report-query";
 import type { InvoiceStatus } from "@/types/invoice";
@@ -146,6 +147,7 @@ export default function ReportsPage() {
           </button>
         </div>
       </header>
+      <MobileDisclosure label="Období a filtry reportu" className="mobile-filter-disclosure">
       <section className="page-panel report-filters">
         <div className="period-presets">
           <button onClick={() => preset("month")}>Tento měsíc</button>
@@ -221,6 +223,7 @@ export default function ReportsPage() {
           </select>
         </label>
       </section>
+      </MobileDisclosure>
       {error ? (
         <p className="page-state error-state">{error}</p>
       ) : loading || !report ? (
@@ -332,15 +335,15 @@ export default function ReportsPage() {
                   <tbody>
                     {report.debtors.map((row) => (
                       <tr key={row.name}>
-                        <td>
+                        <td data-label="Odběratel">
                           <strong>{row.name}</strong>
                         </td>
-                        <td>{row.count}</td>
-                        <td>{money(Number(row.open), currency)}</td>
-                        <td className={Number(row.overdue) ? "red-text" : ""}>
+                        <td data-label="Otevřené faktury">{row.count}</td>
+                        <td data-label="Celkem otevřeno">{money(Number(row.open), currency)}</td>
+                        <td data-label="Po splatnosti" className={Number(row.overdue) ? "red-text" : ""}>
                           {money(Number(row.overdue), currency)}
                         </td>
-                        <td>{row.reminders}</td>
+                        <td data-label="Odeslané upomínky">{row.reminders}</td>
                       </tr>
                     ))}
                   </tbody>

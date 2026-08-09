@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
+import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { todayInTimeZone } from "@/lib/reminders";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 
@@ -246,6 +247,7 @@ export default function InvoicesPage() {
           <small>každá měna je počítána samostatně</small>
         </div>
       </section>
+      <MobileDisclosure label="Filtry a export" className="mobile-filter-disclosure">
       <section className="page-panel filter-panel">
         <div className="filter-row">
           <label className="grow">
@@ -312,6 +314,7 @@ export default function InvoicesPage() {
           </button>
         </div>
       </section>
+      </MobileDisclosure>
       <section className="page-panel data-panel">
         {error ? (
           <p className="page-state error-state">{error}</p>

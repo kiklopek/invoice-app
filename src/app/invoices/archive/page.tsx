@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
+import { MobileDisclosure } from "@/components/mobile-disclosure";
 import type { Invoice } from "@/types/invoice";
 
 const money = (value: number, currency: string) => new Intl.NumberFormat("cs-CZ", {
@@ -117,6 +118,7 @@ export default function InvoiceArchivePage() {
         </div>
       </header>
 
+      <MobileDisclosure label="Filtry archivu" className="mobile-filter-disclosure">
       <section className="page-panel filter-panel">
         <div className="filter-row archive-filter-row">
           <label className="grow">
@@ -148,6 +150,7 @@ export default function InvoiceArchivePage() {
           </label>
         </div>
       </section>
+      </MobileDisclosure>
 
       <section className="page-panel data-panel">
         {error ? <p className="page-state error-state">{error}</p>

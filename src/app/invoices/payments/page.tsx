@@ -339,7 +339,7 @@ export default function PaymentImportPage() {
           <>
             <div className="import-preview">
               <strong>Před uložením zkontrolujte {rows.length} plateb</strong>
-              <div className="large-table">
+              <div className="large-table payment-preview-table">
                 <table>
                   <thead>
                     <tr>
@@ -353,11 +353,11 @@ export default function PaymentImportPage() {
                   <tbody>
                     {rows.slice(0, 12).map((row) => (
                       <tr key={row.external_id}>
-                        <td>{row.external_id}</td>
-                        <td>{row.booked_on}</td>
-                        <td>{row.counterparty_name || "—"}</td>
-                        <td>{row.variable_symbol || "—"}</td>
-                        <td>
+                        <td data-label="ID transakce">{row.external_id}</td>
+                        <td data-label="Datum">{row.booked_on}</td>
+                        <td data-label="Protistrana">{row.counterparty_name || "—"}</td>
+                        <td data-label="Variabilní symbol">{row.variable_symbol || "—"}</td>
+                        <td data-label="Částka">
                           <strong>{money(row.amount, row.currency)}</strong>
                         </td>
                       </tr>
@@ -418,7 +418,7 @@ export default function PaymentImportPage() {
               <p>Nejasné platby nikdy automaticky nemění fakturu.</p>
             </div>
           </header>
-          <div className="large-table">
+          <div className="large-table payment-result-table">
             <table>
               <thead>
                 <tr>
@@ -430,8 +430,8 @@ export default function PaymentImportPage() {
               <tbody>
                 {summary.results.map((item) => (
                   <tr key={item.external_id}>
-                    <td>{item.external_id}</td>
-                    <td>
+                    <td data-label="ID transakce">{item.external_id}</td>
+                    <td data-label="Výsledek">
                       <span className={`payment-match ${item.status}`}>
                         {item.status === "matched" &&
                         item.settlement === "partial"
@@ -443,7 +443,7 @@ export default function PaymentImportPage() {
                         <small>Zbývá {money(item.remaining, "CZK")}</small>
                       ) : null}
                     </td>
-                    <td>
+                    <td data-label="Faktura">
                       {item.invoice_id ? (
                         <Link href={`/invoices/${item.invoice_id}`}>
                           {item.invoice_number} →

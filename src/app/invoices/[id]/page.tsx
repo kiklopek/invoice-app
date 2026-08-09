@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-sidebar";
+import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { InvoiceForm } from "@/components/invoice-form";
 import { todayInTimeZone } from "@/lib/reminders";
 import type {
@@ -713,6 +714,7 @@ export default function InvoiceDetailPage() {
                   <p className="detail-notes">{invoice.notes}</p>
                 </section>
               )}
+              <MobileDisclosure label="Historie změn faktury" className="invoice-history-disclosure">
               <section className="page-panel info-section">
                 <header>
                   <h2>Historie změn</h2>
@@ -775,6 +777,7 @@ export default function InvoiceDetailPage() {
                   )}
                 </div>
               </section>
+              </MobileDisclosure>
             </div>
             <aside>
               <section className="page-panel info-section">
@@ -868,6 +871,7 @@ export default function InvoiceDetailPage() {
                   )}
                 </div>
               </section>
+              <MobileDisclosure label="Přiložený dokument" className="invoice-document-disclosure">
               <section className="page-panel info-section">
                 <header>
                   <h2>Dokument</h2>
@@ -893,6 +897,7 @@ export default function InvoiceDetailPage() {
                   </p>
                 )}
               </section>
+              </MobileDisclosure>
               {canManage && (
                 <button
                   type="button"

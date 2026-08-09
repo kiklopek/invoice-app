@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
+import { MobileDisclosure } from "@/components/mobile-disclosure";
 import {
   emptyDashboardData,
   type DashboardData,
@@ -208,6 +209,7 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          <MobileDisclosure label="Nadcházející upomínky" className="dashboard-upcoming-disclosure">
           <aside className="panel activity-panel">
             <div className="panel-head">
               <div>
@@ -245,6 +247,7 @@ export default function DashboardPage() {
               Spravovat pravidla upomínek →
             </Link>
           </aside>
+          </MobileDisclosure>
         </section>
       </main>
     </div>

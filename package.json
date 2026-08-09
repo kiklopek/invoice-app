@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src"
+    "test": "vitest run src",
+    "check:mobile": "node scripts/mobile-viewport-check.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
