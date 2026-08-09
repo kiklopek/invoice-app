@@ -42,6 +42,14 @@ describe("mobile application layout", () => {
     expect(css).toContain(".mobile-disclosure.is-open .mobile-disclosure-content");
   });
 
+  it("gives role and reminder selects a full-width mobile layout", () => {
+    expect(css).toContain(".members-list article > select,");
+    expect(css).toContain(".member-add select");
+    expect(css).toContain(".human-rules .rule-main");
+    expect(css).toContain(".rule-controls select");
+    expect(css).toContain("min-height: 48px");
+  });
+
   it("turns operational wide tables into labeled mobile cards", () => {
     for (const path of [
       "src/app/invoices/import/page.tsx",
