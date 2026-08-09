@@ -23,6 +23,9 @@ const nextConfig = {
     "/api/invoices/extract": [
       "./node_modules/@tesseract.js-data/ces/4.0.0/ces.traineddata.gz",
       "./node_modules/@tesseract.js-data/eng/4.0.0/eng.traineddata.gz",
+      "./node_modules/tesseract.js/src/**/*",
+      "./node_modules/.pnpm/tesseract.js-core@7.0.0/node_modules/tesseract.js-core/**/*",
+      "./node_modules/.pnpm/wasm-feature-detect@1.8.0/node_modules/wasm-feature-detect/**/*",
     ],
   },
   async headers() {

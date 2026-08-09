@@ -72,9 +72,18 @@ export default function ImportInvoicesPage() {
 
   async function requestExtraction(path: string) {
     const response = await fetch("/api/invoices/extract", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path }) });
-    const data = await response.json();
+    const body = await response.text();
+    let data: { error?: string; extraction?: InvoiceOcrResult };
+    try {
+      data = JSON.parse(body) as { error?: string; extraction?: InvoiceOcrResult };
+    } catch {
+      throw new Error(response.status === 504
+        ? "OCR trvalo příliš dlouho. Zkuste dokument znovu nebo použijte kvalitnější sken."
+        : "OCR služba dokument nedokončila. Zkuste jej znovu nebo údaje vyplňte ručně.");
+    }
     if (!response.ok) throw new Error(data.error || "Údaje z dokumentu se nepodařilo načíst.");
-    return data.extraction as InvoiceOcrResult;
+    if (!data.extraction) throw new Error("OCR nevrátilo údaje z dokumentu.");
+    return data.extraction;
   }
   async function requestDocumentExtraction(path: string) {
     setDocumentStage("reading");
