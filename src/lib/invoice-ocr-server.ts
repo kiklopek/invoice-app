@@ -1,9 +1,8 @@
 import "server-only";
 
 import { copyFile, mkdtemp, rm } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import sharp from "sharp";
 import { createWorker, OEM, PSM, type Worker } from "tesseract.js";
 import { definePDFJSModule, extractText, getDocumentProxy, renderPageAsImage } from "unpdf";
@@ -29,8 +28,6 @@ export type ExtractedDocumentText = {
   averageConfidence: number | null;
   warnings: string[];
 };
-
-const require = createRequire(import.meta.url);
 
 function assertDeadline(deadline: number) {
   if (Date.now() >= deadline) throw new LocalOcrError("timeout", "OCR trvalo příliš dlouho. Zkuste dokument znovu nebo údaje doplňte ručně.");
@@ -66,17 +63,16 @@ async function preprocessImage(bytes: Uint8Array) {
 async function createLocalWorker() {
   const languageDirectory = await mkdtemp(join(tmpdir(), "invoice-ocr-"));
   try {
-    const czechPackageDirectory = dirname(require.resolve("@tesseract.js-data/ces"));
-    const englishPackageDirectory = dirname(require.resolve("@tesseract.js-data/eng"));
+    const nodeModulesDirectory = join(process.cwd(), "node_modules");
     await Promise.all([
-      copyFile(join(czechPackageDirectory, "4.0.0", "ces.traineddata.gz"), join(languageDirectory, "ces.traineddata.gz")),
-      copyFile(join(englishPackageDirectory, "4.0.0", "eng.traineddata.gz"), join(languageDirectory, "eng.traineddata.gz")),
+      copyFile(join(nodeModulesDirectory, "@tesseract.js-data", "ces", "4.0.0", "ces.traineddata.gz"), join(languageDirectory, "ces.traineddata.gz")),
+      copyFile(join(nodeModulesDirectory, "@tesseract.js-data", "eng", "4.0.0", "eng.traineddata.gz"), join(languageDirectory, "eng.traineddata.gz")),
     ]);
     const worker = await createWorker(["ces", "eng"], OEM.LSTM_ONLY, {
       cacheMethod: "none",
       gzip: true,
       langPath: languageDirectory,
-      workerPath: require.resolve("tesseract.js/src/worker-script/node/index.js"),
+      workerPath: join(nodeModulesDirectory, "tesseract.js", "src", "worker-script", "node", "index.js"),
     });
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.AUTO,

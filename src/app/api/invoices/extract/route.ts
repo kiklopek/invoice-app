@@ -108,6 +108,12 @@ export async function POST(request: Request) {
       extraWarnings: documentText.warnings,
     });
   } catch (cause) {
+    console.error("[invoice-ocr] extraction failed", {
+      uploadId: upload.id,
+      mime: upload.expected_mime,
+      code: cause instanceof LocalOcrError ? cause.code : "unexpected",
+      message: cause instanceof Error ? cause.message : String(cause),
+    });
     if (cause instanceof LocalOcrError) {
       const status = cause.code === "pdf_too_long" || cause.code === "scan_too_long" ? 422 : cause.code === "timeout" ? 504 : 422;
       return fail(cause.message, status, `local_${cause.code}`);
