@@ -119,7 +119,14 @@ async function recognizeImages(images: Uint8Array[], deadline: number) {
 
 async function extractPdf(bytes: Uint8Array, deadline: number): Promise<ExtractedDocumentText> {
   try {
-    await withDeadline(definePDFJSModule(() => import("pdfjs-dist/legacy/build/pdf.mjs")), deadline);
+    await withDeadline(definePDFJSModule(async () => {
+      const [pdfjs, pdfjsWorker] = await Promise.all([
+        import("pdfjs-dist/legacy/build/pdf.mjs"),
+        import("pdfjs-dist/legacy/build/pdf.worker.mjs"),
+      ]);
+      Object.assign(globalThis, { pdfjsWorker });
+      return pdfjs;
+    }), deadline);
     const pdf = await withDeadline(getDocumentProxy(bytes), deadline);
     try {
       if (pdf.numPages > MAX_TEXT_PDF_PAGES) {
