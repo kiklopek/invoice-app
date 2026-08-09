@@ -23,9 +23,18 @@ importers:
       '@tesseract.js-data/eng':
         specifier: 1.0.0
         version: 1.0.0
+      bmp-js:
+        specifier: 0.1.0
+        version: 0.1.0
+      is-url:
+        specifier: 1.2.4
+        version: 1.2.4
       next:
         specifier: ^16.3.0
         version: 16.3.0(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      node-fetch:
+        specifier: 2.7.0
+        version: 2.7.0
       pdfjs-dist:
         specifier: 6.2.108
         version: 6.2.108
@@ -35,6 +44,9 @@ importers:
       react-dom:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
+      regenerator-runtime:
+        specifier: 0.13.11
+        version: 0.13.11
       resend:
         specifier: ^6.18.1
         version: 6.18.1

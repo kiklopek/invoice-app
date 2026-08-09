@@ -15,18 +15,21 @@ const csp = `
   ${isDev ? "" : "upgrade-insecure-requests;"}
 `;
 
+const ocrRuntimeFiles = [
+  "./node_modules/@tesseract.js-data/ces/4.0.0/ces.traineddata.gz",
+  "./node_modules/@tesseract.js-data/eng/4.0.0/eng.traineddata.gz",
+  "./node_modules/tesseract.js/src/**/*",
+  "./node_modules/tesseract.js-core/**/*",
+  "./node_modules/wasm-feature-detect/**/*",
+  "./node_modules/bmp-js/**/*",
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@napi-rs/canvas", "sharp", "tesseract.js"],
   outputFileTracingIncludes: {
-    "/api/invoices/extract": [
-      "./node_modules/@tesseract.js-data/ces/4.0.0/ces.traineddata.gz",
-      "./node_modules/@tesseract.js-data/eng/4.0.0/eng.traineddata.gz",
-      "./node_modules/tesseract.js/src/**/*",
-      "./node_modules/tesseract.js-core/**/*",
-      "./node_modules/wasm-feature-detect/**/*",
-    ],
+    "/api/invoices/extract": ocrRuntimeFiles,
   },
   async headers() {
     return [{

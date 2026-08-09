@@ -1,6 +1,6 @@
 import "server-only";
 
-import { copyFile, mkdtemp, rm } from "node:fs/promises";
+import { access, copyFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -64,6 +64,13 @@ async function createLocalWorker() {
   const languageDirectory = await mkdtemp(join(tmpdir(), "invoice-ocr-"));
   try {
     const nodeModulesDirectory = join(process.cwd(), "node_modules");
+    await Promise.all([
+      access(join(nodeModulesDirectory, "bmp-js", "index.js")),
+      access(join(nodeModulesDirectory, "is-url", "index.js")),
+      access(join(nodeModulesDirectory, "regenerator-runtime", "runtime.js")),
+      access(join(nodeModulesDirectory, "tesseract.js-core", "package.json")),
+      access(join(nodeModulesDirectory, "wasm-feature-detect", "dist", "cjs", "index.cjs")),
+    ]);
     await Promise.all([
       copyFile(join(nodeModulesDirectory, "@tesseract.js-data", "ces", "4.0.0", "ces.traineddata.gz"), join(languageDirectory, "ces.traineddata.gz")),
       copyFile(join(nodeModulesDirectory, "@tesseract.js-data", "eng", "4.0.0", "eng.traineddata.gz"), join(languageDirectory, "eng.traineddata.gz")),
