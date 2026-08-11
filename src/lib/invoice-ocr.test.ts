@@ -108,6 +108,54 @@ mail: odberatel@email.com
     });
   });
 
+  it("extracts the primary R. Hlavica invoice layout with changing values", () => {
+    const result = parseInvoiceText({
+      text: `
+R. HLAVICA s.r.o. DIČ : CZ26296039
+Palackého třída 192/60 IČ : 26296039
+Daňový doklad F A K T U R A
+Číslo faktury : 2600178 Odběratel : MADREV s.r.o.
+HLÍNA 18
+664 91 IVANČICE
+CZ - Česká republika
+DIČ : CZ46992782
+IČ : 46992782
+Datum vystavení : 06.08.2026
+Forma úhrady : Převodním příkazem
+Datum splatnosti: 20.08.2026
+Datum UZP : 28.07.2026
+Text Množství DPH Cena Celkem
+Fakturujeme Vám dopravu:
+- doprava 28.7.2026, WR 1897 36,260 m3 21 % 240,00 8 702,40
+Sazba DPH : Není předmětem Reverse Charge - Snížená Základní (21%) Celkem
+Daň : 0,00 1 827,50 1 827,50
+Základ daně : 0,00 0,00 0,00 8 702,40 8 702,40
+Celkem : 0,00 0,00 0,00 10 529,90 10 529,90
+K úhradě : 10 529,90 Kč
+Email : kostihova@hlavica.cz, web : www.hlavica.cz
+`,
+      fileUrl: "org/faktura-2600178.pdf",
+      organization: { name: "R. HLAVICA s.r.o.", ico: "26296039", dic: "CZ26296039" },
+    });
+
+    expect(result.invoice).toMatchObject({
+      invoice_number: "2600178",
+      counterparty_name: "MADREV s.r.o.",
+      counterparty_ico: "46992782",
+      counterparty_dic: "CZ46992782",
+      counterparty_email: "",
+      variable_symbol: "",
+      amount_without_vat: 8702.4,
+      vat_rate: 21,
+      amount: 10529.9,
+      currency: "CZK",
+      issue_date: "2026-08-06",
+      due_date: "2026-08-20",
+    });
+    expect(result.document_kind).toBe("issued_invoice");
+    expect(result.issuer_matches_organization).toBe(true);
+  });
+
   it("does not invent missing fields and reports them for manual review", () => {
     const result = parseInvoiceText({ text: "Nečitelný dokument\nCelkem k úhradě 500 EUR", fileUrl: "org/photo.jpg", organization });
     expect(result.invoice.invoice_number).toBe("");

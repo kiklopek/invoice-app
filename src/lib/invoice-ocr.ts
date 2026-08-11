@@ -2,7 +2,7 @@ import type { InvoiceInput } from "../types/invoice";
 import { isIsoDate } from "./invoice-validation";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
 
-export const LOCAL_OCR_MODEL = "local-tesseract-v1";
+export const LOCAL_OCR_MODEL = "local-tesseract-v2";
 
 export type OcrDocumentKind = "issued_invoice" | "proforma" | "credit_note" | "other";
 
@@ -96,6 +96,45 @@ function firstAmountFromLine(line: string): ParsedAmount | null {
     : null;
 }
 
+function amountsFromLine(line: string) {
+  return [...line.matchAll(new RegExp(`(${AMOUNT_SOURCE})\\s*(${CURRENCY_SOURCE})?`, "giu"))]
+    .map(match => {
+      const value = parseMoney(match[1]);
+      return value !== null && Math.abs(value) <= 999_999_999_999.99
+        ? { value, currency: currencyCode(match[2]) }
+        : null;
+    })
+    .filter((amount): amount is ParsedAmount => amount !== null);
+}
+
+function findVatSummary(lines: string[]) {
+  const rows = lines.flatMap(line => {
+    const match = line.match(/^(?:dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%\s*(.*)$/i);
+    if (!match) return [];
+    const amounts = amountsFromLine(match[2]);
+    if (amounts.length < 3) return [];
+    return [{
+      rate: parseMoney(match[1]),
+      net: amounts[0],
+      vat: amounts[amounts.length - 2],
+      gross: amounts[amounts.length - 1],
+    }];
+  }).filter(row => row.rate !== null && vatAmountsMatch(row.net.value, row.rate, row.gross.value));
+
+  if (!rows.length) return null;
+  return {
+    net: {
+      value: roundMoney(rows.reduce((sum, row) => sum + row.net.value, 0)),
+      currency: rows.find(row => row.net.currency)?.net.currency ?? rows.find(row => row.gross.currency)?.gross.currency ?? null,
+    },
+    gross: {
+      value: roundMoney(rows.reduce((sum, row) => sum + row.gross.value, 0)),
+      currency: rows.find(row => row.gross.currency)?.gross.currency ?? rows.find(row => row.net.currency)?.net.currency ?? null,
+    },
+    rates: rows.map(row => row.rate as number),
+  };
+}
+
 function findFirstLabeledAmount(lines: string[], labels: RegExp[]) {
   for (const label of labels) {
     for (let index = 0; index < lines.length; index += 1) {
@@ -160,7 +199,7 @@ function findValue(lines: string[], labels: RegExp[], valuePattern: RegExp) {
 function findSection(lines: string[], heading: RegExp) {
   const start = lines.findIndex(line => heading.test(line));
   if (start < 0) return [];
-  const stop = /^(dodavatel|vystavitel|supplier|platební údaje|bankovní spojení|položky|popis|rekapitulace|celkem)\b/i;
+  const stop = /^(dodavatel|vystavitel|supplier|platební údaje|bankovní spojení|platba|doprava|datum|produkt|položky|popis|rekapitulace|celkem)\b/i;
   const result: string[] = [];
   const headingMatch = lines[start].match(heading);
   const headingTail = headingMatch?.index === undefined ? "" : lines[start].slice(headingMatch.index + headingMatch[0].length).replace(/^[\s:.-]+/, "");
@@ -185,7 +224,7 @@ function findCounterparty(lines: string[], text: string, organization: InvoiceOc
   const organizationIco = digits(organization.ico);
   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
 
-  const icoCandidates = uniqueMatches(`${sectionText}\n${text}`, /(?:IČO|ICO|I[0O]{2}|1[0O]{2}|ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu, digits)
+  const icoCandidates = uniqueMatches(`${sectionText}\n${text}`, /(?:IČO?|ICO|I[0O]{2}|1[0O]{2}|ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu, digits)
     .filter(value => value.length === 8 && value !== organizationIco);
   const dicCandidates = uniqueMatches(`${sectionText}\n${text}`, /(?:DIČ|DIC|VAT(?:[ \t]+ID)?)\s*[:.]?\s*([A-Z]{2}[ \t]*[A-Z0-9][A-Z0-9 \t-]{5,18})/giu, value => value.replace(/[\s-]/g, "").toUpperCase())
     .filter(value => value !== organizationDic);
@@ -208,7 +247,7 @@ function findCounterparty(lines: string[], text: string, organization: InvoiceOc
 function documentKind(text: string): OcrDocumentKind {
   if (/dobropis|opravný\s+daňový\s+doklad/i.test(text)) return "credit_note";
   if (/proforma|zálohov[áý]\s+faktura/i.test(text)) return "proforma";
-  if (/faktura|daňový\s+doklad/i.test(text)) return "issued_invoice";
+  if (/faktura|f\s+a\s+k\s+t\s+u\s+r\s+a|daňový\s+doklad/i.test(text)) return "issued_invoice";
   return "other";
 }
 
@@ -238,6 +277,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const invoiceNumber = findValue(lines,
     [
       /číslo\s+(?:faktury|dokladu)/i,
+      /^faktura\s*[:#.-]+\s*(?=[A-Z0-9./_-]*\d)/i,
       /faktura\s*[-–—]?\s*(?:daňový\s+doklad\s*)?(?:č(?:íslo)?\.?|no\.?|number)\s*[:#.-]?/i,
       /faktura\s*[-–—]?\s*(?:danovy\s+doklad\s*)?(?:c\.?|cislo|no\.?|number)\s*[:#.-]?/i,
       /invoice\s*(?:no|number)/i,
@@ -251,13 +291,17 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     dueDate = "";
   }
 
-  const gross = findLabeledAmount(lines, [/celkem\s+k\s+[úu]hrad[ěe]/i, /částka\s+k\s+[úu]hrad[ěe]/i, /k\s+[úu]hrad[ěe]/i, /celkem\s+s\s+dph/i, /grand\s+total/i, /total\s+due/i]);
-  const net = findLabeledAmount(lines, [/celkem\s+bez\s+dph/i, /částka\s+bez\s+dph/i, /základ\s+daně/i, /základ\s+dph/i, /tax\s+base/i, /subtotal/i])
-    ?? findFirstLabeledAmount(lines, [/součet\s+položek/i, /souhrn\s+položek/i]);
+  const vatSummary = findVatSummary(lines);
+  const gross = findLabeledAmount(lines, [/celkem\s+k\s+[úu]hrad[ěe]/i, /částka\s+k\s+[úu]hrad[ěe]/i, /k\s+[úu]hrad[ěe]/i, /celkem\s+s\s+dph/i, /grand\s+total/i, /total\s+due/i])
+    ?? vatSummary?.gross ?? null;
+  const net = vatSummary?.net
+    ?? findLabeledAmount(lines, [/celkem\s+bez\s+dph/i, /částka\s+bez\s+dph/i, /základ\s+daně/i, /základ\s+dph/i, /tax\s+base/i, /subtotal/i])
+    ?? findFirstLabeledAmount(lines, [/součet\s+položek/i, /souhrn\s+položek/i])
+    ?? null;
   const explicitVatRates = uniqueMatches(text, /(?:sazba\s+dph|dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%/giu, value => String(parseMoney(value) ?? ""));
   const vatRecap = text.split(/rekapitulace\s+dph/i)[1] ?? "";
   const recapVatRates = uniqueMatches(vatRecap, /\b(\d{1,2}(?:[,.]\d{1,2})?)\s*%/gu, value => String(parseMoney(value) ?? ""));
-  const vatRates = (explicitVatRates.length ? explicitVatRates : recapVatRates)
+  const vatRates = (explicitVatRates.length ? explicitVatRates : recapVatRates.length ? recapVatRates : vatSummary?.rates.map(String) ?? [])
     .map(Number).filter(value => value >= 0 && value <= 100);
   const distinctVatRates = [...new Set(vatRates)];
 

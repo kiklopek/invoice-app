@@ -5,13 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { createWorker, OEM, PSM, type Worker } from "tesseract.js";
-import { definePDFJSModule, extractText, getDocumentProxy, renderPageAsImage } from "unpdf";
+import { definePDFJSModule, getDocumentProxy, renderPageAsImage } from "unpdf";
 import { normalizeOcrText } from "./invoice-ocr";
 
 export const MAX_TEXT_PDF_PAGES = 30;
 export const MAX_SCANNED_PDF_PAGES = 8;
 export const OCR_TIMEOUT_MS = 50_000;
 const MIN_TEXT_LAYER_CHARACTERS = 40;
+const MAX_INPUT_PIXELS = 50_000_000;
+const MIN_ENHANCED_PASS_TIME_MS = 12_000;
 
 export class LocalOcrError extends Error {
   constructor(public readonly code: "timeout" | "pdf_too_long" | "scan_too_long" | "invalid_document" | "recognition_failed", message: string) {
@@ -50,28 +52,105 @@ async function withDeadline<T>(promise: Promise<T>, deadline: number): Promise<T
 }
 
 async function preprocessImage(bytes: Uint8Array) {
-  const input = sharp(bytes, { failOn: "error", limitInputPixels: 20_000_000 });
+  const input = sharp(bytes, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS });
   const metadata = await input.metadata();
   const sourceWidth = metadata.width ?? 1800;
-  const enlargement = Math.max(1, Math.min(3, 1800 / sourceWidth));
-  const targetWidth = Math.min(2200, Math.round(sourceWidth * enlargement));
+  const enlargement = Math.max(1, Math.min(3, 2200 / sourceWidth));
+  const targetWidth = Math.min(2600, Math.round(sourceWidth * enlargement));
 
-  return new Uint8Array(await sharp(bytes, { failOn: "error", limitInputPixels: 20_000_000 })
+  const normalized = await sharp(bytes, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
     .rotate()
     .flatten({ background: "#ffffff" })
     .resize({
       width: targetWidth,
-      height: 3000,
+      height: 3600,
       fit: "inside",
       withoutEnlargement: false,
       kernel: sharp.kernel.lanczos3,
     })
+    .png({ compressionLevel: 3 })
+    .toBuffer();
+
+  const standard = await sharp(normalized, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
     .grayscale()
     .normalize()
     .sharpen({ sigma: 1 })
     .extend({ top: 18, bottom: 18, left: 18, right: 18, background: "#ffffff" })
     .png({ compressionLevel: 6 })
-    .toBuffer());
+    .toBuffer();
+
+  return {
+    standard: new Uint8Array(standard),
+    enhanced: async () => new Uint8Array(await sharp(normalized, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
+      .grayscale()
+      .clahe({ width: 4, height: 4, maxSlope: 3 })
+      .sharpen({ sigma: 1.2 })
+      .threshold(180)
+      .extend({ top: 24, bottom: 24, left: 24, right: 24, background: "#ffffff" })
+      .png({ compressionLevel: 6 })
+      .toBuffer()),
+  };
+}
+
+function textQuality(text: string, confidence: number) {
+  const normalized = normalizeOcrText(text);
+  const characterScore = Math.min(20, normalized.replace(/\s/g, "").length / 25);
+  const anchors = [
+    /faktura|invoice/i,
+    /dodavatel|supplier/i,
+    /odb[ěe]ratel|customer|bill\s+to/i,
+    /datum|date/i,
+    /celkem|total/i,
+    /dph|vat/i,
+    /(?:i[čc]o|ico|vat\s+id)\s*[:.]?/i,
+  ].filter(pattern => pattern.test(normalized)).length;
+  return Math.max(0, Math.min(100, confidence * 0.65 + characterScore + anchors * 3));
+}
+
+function needsEnhancedPass(text: string, confidence: number) {
+  const compactLength = normalizeOcrText(text).replace(/\s/g, "").length;
+  const anchorCount = [/faktura|invoice/i, /datum|date/i, /celkem|total/i, /dph|vat/i]
+    .filter(pattern => pattern.test(text)).length;
+  return confidence < 80 || compactLength < 180 || anchorCount < 3;
+}
+
+type PdfTextItem = { str: string; transform: number[]; width?: number };
+
+export function layoutPdfTextItems(items: PdfTextItem[]) {
+  const positioned = items
+    .filter(item => item.str.trim() && item.transform.length >= 6)
+    .map(item => ({ text: item.str.trim(), x: item.transform[4], y: item.transform[5] }))
+    .sort((left, right) => Math.abs(right.y - left.y) <= 4 ? left.x - right.x : right.y - left.y);
+  const lines: Array<{ y: number; items: Array<{ text: string; x: number }> }> = [];
+
+  for (const item of positioned) {
+    const line = lines.find(candidate => Math.abs(candidate.y - item.y) <= 4);
+    if (line) {
+      line.items.push({ text: item.text, x: item.x });
+      line.y = (line.y * (line.items.length - 1) + item.y) / line.items.length;
+    } else {
+      lines.push({ y: item.y, items: [{ text: item.text, x: item.x }] });
+    }
+  }
+
+  return normalizeOcrText(lines
+    .sort((left, right) => right.y - left.y)
+    .map(line => line.items.sort((left, right) => left.x - right.x).map(item => item.text).join(" "))
+    .join("\n"));
+}
+
+async function extractPdfPagesWithLayout(pdf: Awaited<ReturnType<typeof getDocumentProxy>>, deadline: number) {
+  const pages: string[] = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    assertDeadline(deadline);
+    const page = await withDeadline(pdf.getPage(pageNumber), deadline);
+    const content = await withDeadline(page.getTextContent(), deadline);
+    const items: PdfTextItem[] = content.items.flatMap(item => "str" in item && "transform" in item
+      ? [{ str: item.str, transform: Array.from(item.transform), width: item.width }]
+      : []);
+    pages.push(layoutPdfTextItems(items));
+  }
+  return pages;
 }
 
 async function createLocalWorker() {
@@ -112,6 +191,7 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
   let languageDirectory: string | null = null;
   const texts: string[] = [];
   const confidences: number[] = [];
+  let enhancedPasses = 0;
   try {
     const localWorker = await createLocalWorker();
     worker = localWorker.worker;
@@ -119,18 +199,33 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
     assertDeadline(deadline);
     for (const image of images) {
       assertDeadline(deadline);
-      const normalized = await withDeadline(preprocessImage(image), deadline);
-      const result = await withDeadline(worker.recognize(Buffer.from(normalized), { rotateAuto: true }), deadline);
+      const preprocessed = await withDeadline(preprocessImage(image), deadline);
+      let result = await withDeadline(worker.recognize(Buffer.from(preprocessed.standard), { rotateAuto: true }), deadline);
+      let confidence = Number.isFinite(result.data.confidence) ? result.data.confidence : 0;
+
+      if (needsEnhancedPass(result.data.text, confidence) && deadline - Date.now() >= MIN_ENHANCED_PASS_TIME_MS) {
+        const enhanced = await withDeadline(preprocessed.enhanced(), deadline);
+        await withDeadline(worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT }), deadline);
+        const enhancedResult = await withDeadline(worker.recognize(Buffer.from(enhanced), { rotateAuto: true }), deadline);
+        await withDeadline(worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO }), deadline);
+        const enhancedConfidence = Number.isFinite(enhancedResult.data.confidence) ? enhancedResult.data.confidence : 0;
+        if (textQuality(enhancedResult.data.text, enhancedConfidence) > textQuality(result.data.text, confidence)) {
+          result = enhancedResult;
+          confidence = enhancedConfidence;
+          enhancedPasses += 1;
+        }
+      }
+
       texts.push(result.data.text);
-      if (Number.isFinite(result.data.confidence)) confidences.push(result.data.confidence);
+      if (Number.isFinite(confidence)) confidences.push(confidence);
 
       if (includeCounterpartyDetail && images.length === 1) {
-        const metadata = await withDeadline(sharp(normalized).metadata(), deadline);
+        const metadata = await withDeadline(sharp(preprocessed.standard).metadata(), deadline);
         const width = metadata.width ?? 0;
         const height = metadata.height ?? 0;
-        if (width >= 600 && height >= 600) {
+        if (width >= 600 && height >= 600 && deadline - Date.now() >= MIN_ENHANCED_PASS_TIME_MS) {
           const left = Math.floor(width * 0.42);
-          const detail = await withDeadline(sharp(normalized)
+          const detail = await withDeadline(sharp(preprocessed.standard)
             .extract({ left, top: 0, width: width - left, height: Math.floor(height * 0.62) })
             .extend({ top: 24, bottom: 24, left: 24, right: 24, background: "#ffffff" })
             .png({ compressionLevel: 6 })
@@ -152,6 +247,7 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
     text: normalizeOcrText(texts.join("\n\n")),
     pages: texts.map(normalizeOcrText),
     confidence: confidences.length ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length : null,
+    enhancedPasses,
   };
 }
 
@@ -170,8 +266,7 @@ async function extractPdf(bytes: Uint8Array, deadline: number): Promise<Extracte
       if (pdf.numPages > MAX_TEXT_PDF_PAGES) {
         throw new LocalOcrError("pdf_too_long", `PDF má ${pdf.numPages} stran. Podporováno je nejvýše ${MAX_TEXT_PDF_PAGES} stran.`);
       }
-      const extracted = await withDeadline(extractText(pdf, { mergePages: false }), deadline);
-      const pages = extracted.text.map(page => normalizeOcrText(page));
+      const pages = await extractPdfPagesWithLayout(pdf, deadline);
       const pagesForOcr = pages.map((text, index) => ({ text, page: index + 1 })).filter(item => item.text.replace(/\s/g, "").length < MIN_TEXT_LAYER_CHARACTERS);
       if (!pagesForOcr.length) {
         return { text: pages.join("\n\n"), ocrUsed: false, totalPages: pdf.numPages, pagesProcessed: pdf.numPages, averageConfidence: null, warnings: [] };
@@ -197,7 +292,10 @@ async function extractPdf(bytes: Uint8Array, deadline: number): Promise<Extracte
         totalPages: pdf.numPages,
         pagesProcessed: pagesForOcr.length,
         averageConfidence: recognized.confidence,
-        warnings: pagesForOcr.length < pdf.numPages ? ["Část PDF byla přečtena z textové vrstvy a část pomocí OCR."] : [],
+        warnings: [
+          ...(pagesForOcr.length < pdf.numPages ? ["Část PDF byla přečtena z textové vrstvy a část pomocí OCR."] : []),
+          ...(recognized.enhancedPasses ? ["U hůře čitelné části dokumentu bylo použito zesílené OCR."] : []),
+        ],
       };
     } finally {
       const disposable = pdf as unknown as { destroy?: () => Promise<void>; cleanup?: () => Promise<void> | void };
@@ -219,7 +317,14 @@ export async function extractInvoiceDocumentText({ bytes, mime, timeoutMs = OCR_
   if (mime === "application/pdf") return extractPdf(bytes, deadline);
   try {
     const recognized = await recognizeImages([bytes], deadline, true);
-    return { text: recognized.text, ocrUsed: true, totalPages: 1, pagesProcessed: 1, averageConfidence: recognized.confidence, warnings: [] };
+    return {
+      text: recognized.text,
+      ocrUsed: true,
+      totalPages: 1,
+      pagesProcessed: 1,
+      averageConfidence: recognized.confidence,
+      warnings: recognized.enhancedPasses ? ["Fotografie vyžadovala zesílené OCR. Zkontrolujte předvyplněné údaje."] : [],
+    };
   } catch (cause) {
     if (cause instanceof LocalOcrError) throw cause;
     throw new LocalOcrError("invalid_document", "Obrázek se nepodařilo otevřít nebo rozpoznat.");

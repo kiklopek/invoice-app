@@ -3,7 +3,7 @@ import sharp from "sharp";
 
 vi.mock("server-only", () => ({}));
 
-import { extractInvoiceDocumentText } from "./invoice-ocr-server";
+import { extractInvoiceDocumentText, layoutPdfTextItems } from "./invoice-ocr-server";
 
 function createTextPdf(text: string) {
   const escaped = text.replace(/([\\()])/g, "\\$1");
@@ -54,6 +54,19 @@ function createScannedPdf(jpeg: Buffer, width: number, height: number) {
 }
 
 describe("local OCR document reader", () => {
+  it("reconstructs visual PDF rows from separately stored text columns", () => {
+    const text = layoutPdfTextItems([
+      { str: "MADREV s.r.o.", transform: [1, 0, 0, 1, 326, 687] },
+      { str: "2600178", transform: [1, 0, 0, 1, 127, 685] },
+      { str: "Odběratel :", transform: [1, 0, 0, 1, 275, 688] },
+      { str: "Číslo faktury :", transform: [1, 0, 0, 1, 49, 685] },
+      { str: "06.08.2026", transform: [1, 0, 0, 1, 431, 575] },
+      { str: "Datum vystavení :", transform: [1, 0, 0, 1, 275, 575] },
+    ]);
+
+    expect(text).toBe("Číslo faktury : 2600178 Odběratel : MADREV s.r.o.\nDatum vystavení : 06.08.2026");
+  });
+
   it("reads a text-native PDF without running image OCR", async () => {
     const result = await extractInvoiceDocumentText({
       bytes: createTextPdf("FAKTURA FV-2026-007 ODBERATEL STAVBY NOVAK CELKEM 12100 CZK DATUM VYSTAVENI 2026-08-01 SPLATNOST 2026-08-15"),
@@ -72,6 +85,36 @@ describe("local OCR document reader", () => {
     expect(result.pagesProcessed).toBe(1);
     expect(result.text).toContain("FV-2026-007");
   }, 25_000);
+
+  it("auto-rotates and recognizes a mobile JPEG with shadows and small invoice text", async () => {
+    const upright = await sharp(Buffer.from(`<svg width="1500" height="2200" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="shadow" x1="0" x2="1"><stop offset="0" stop-color="#f7f7f3"/><stop offset="1" stop-color="#b9b9b2"/></linearGradient></defs>
+      <rect width="100%" height="100%" fill="url(#shadow)"/>
+      <g font-family="Arial" fill="#252525" font-size="48">
+        <text x="90" y="150" font-size="72" font-weight="bold">FAKTURA FV-2026-091</text>
+        <text x="90" y="270">Dodavatel: Test Firma s.r.o.</text>
+        <text x="90" y="350">ICO: 12345678</text>
+        <text x="780" y="270">Odberatel: Zakaznik s.r.o.</text>
+        <text x="780" y="350">ICO: 87654321</text>
+        <text x="90" y="520">Datum vystaveni: 11.08.2026</text>
+        <text x="90" y="600">Datum splatnosti: 25.08.2026</text>
+        <text x="90" y="760">Popis polozky</text>
+        <text x="900" y="760">Cena bez DPH</text>
+        <text x="90" y="850">Sluzby</text>
+        <text x="980" y="850">10 000,00 CZK</text>
+        <text x="90" y="1850">DPH 21 %</text>
+        <text x="980" y="1850">2 100,00 CZK</text>
+        <text x="90" y="1960" font-weight="bold">CELKEM K UHRADE</text>
+        <text x="980" y="1960" font-weight="bold">12 100,00 CZK</text>
+      </g>
+    </svg>`)).png().toBuffer();
+    const mobilePhoto = await sharp(upright).rotate(270, { background: "white" }).jpeg({ quality: 82 }).withMetadata({ orientation: 6 }).toBuffer();
+    const result = await extractInvoiceDocumentText({ bytes: new Uint8Array(mobilePhoto), mime: "image/jpeg", timeoutMs: 35_000 });
+    expect(result.ocrUsed).toBe(true);
+    expect(result.text).toMatch(/FV-2026-091/);
+    expect(result.text).toMatch(/12\s*100[,.]00\s*CZK/i);
+    expect(result.text).toMatch(/25[.]08[.]2026/);
+  }, 40_000);
 
   it("renders and recognizes a scanned PDF through the bundled PDF worker", async () => {
     const jpeg = await sharp(Buffer.from('<svg width="1200" height="320" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><text x="50" y="120" font-size="62" font-family="Arial" fill="black">FAKTURA FV-2026-008</text><text x="50" y="220" font-size="52" font-family="Arial" fill="black">Celkem 24 200 CZK</text></svg>')).jpeg({ quality: 95 }).toBuffer();
