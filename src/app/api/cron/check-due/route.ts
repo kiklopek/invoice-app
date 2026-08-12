@@ -21,6 +21,12 @@ import {
   todayInTimeZone,
   type ExistingReminderLog,
 } from "@/lib/reminders";
+import {
+  INVOICE_REMINDER_POLICY_SELECT,
+  INVOICE_REMINDER_POLICY_STATE_SELECT,
+  reminderDatabaseError,
+  type InvoiceReminderPolicy,
+} from "@/lib/reminder-automation-query";
 import type { Invoice } from "@/types/invoice";
 
 const DEFAULT_THRESHOLDS = [-3, 0, 7, 14];
@@ -37,6 +43,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   if (organizationsError) return NextResponse.json({ error: "Organizace se nepodařilo načíst." }, { status: 500 });
 
   const organizationCounters = new Map<string, AutomationRunCounters>();
+  const organizationErrors = new Map<string, string[]>();
   const incrementOrganization = (organizationId: string, field: keyof AutomationRunCounters, amount = 1) => {
     const counters = organizationCounters.get(organizationId);
     if (counters) counters[field] += amount;
@@ -56,7 +63,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       .update({
         ...counters,
         status: forcedStatus ?? completedAutomationRunStatus(counters),
-        error_message: errorMessage?.slice(0, 1000) ?? null,
+        error_message: (errorMessage ?? organizationErrors.get(organizationId)?.join(" | "))?.slice(0, 1000) ?? null,
         finished_at: finishedAt,
       })
       .eq("organization_id", organizationId)
@@ -127,20 +134,22 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       }
     }
   }
-  const invoices: (Invoice & { reminder_policies?: { days_from_due: number[]; is_active: boolean } | null })[] = [];
+  const invoices: (Invoice & InvoiceReminderPolicy)[] = [];
   const pageSize = 500;
   for (let offset = 0; ; offset += pageSize) {
     let invoiceQuery = db
       .from("invoices")
-      .select("*, reminder_policies(days_from_due, is_active)")
+      .select(INVOICE_REMINDER_POLICY_SELECT)
       .in("status", ["pending", "overdue"]);
     invoiceQuery = invoiceQuery.in("organization_id", startedOrganizationIds);
     const { data, error } = await invoiceQuery
       .order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
     if (error) {
-      await finishRuns("failed", "Faktury se nepodařilo načíst.");
-      return NextResponse.json({ error: "Faktury se nepodařilo načíst." }, { status: 500 });
+      const failure = reminderDatabaseError("Načtení faktur pro automat", error);
+      console.error("[reminder-automation] invoice query failed", failure);
+      await finishRuns("failed", failure);
+      return NextResponse.json({ error: "Faktury se nepodařilo načíst.", code: "REMINDER_INVOICE_QUERY_FAILED" }, { status: 500 });
     }
     invoices.push(...((data ?? []) as typeof invoices));
     if (!data || data.length < pageSize) break;
@@ -168,9 +177,14 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   let paused = 0;
   let suppressed = 0;
   let exhausted = 0;
-  const recordFailure = (organizationId: string) => {
+  const recordFailure = (organizationId: string, detail?: string) => {
     failed++;
     incrementOrganization(organizationId, "failed");
+    if (detail) {
+      const errors = organizationErrors.get(organizationId) ?? [];
+      if (errors.length < 3) errors.push(detail);
+      organizationErrors.set(organizationId, errors);
+    }
   };
 
   for (const invoice of invoices) {
@@ -187,21 +201,21 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       incrementOrganization(invoice.organization_id, "suppressed");
       continue;
     }
-    if (invoice.reminder_policies?.is_active === false) {
+    if (invoice.reminder_policy?.is_active === false) {
       await db.from("invoices").update({ next_reminder_at: null }).eq("id", invoice.id);
       disabled++;
       incrementOrganization(invoice.organization_id, "disabled");
       continue;
     }
 
-    const thresholds = invoice.reminder_policies?.days_from_due ?? DEFAULT_THRESHOLDS;
+    const thresholds = invoice.reminder_policy?.days_from_due ?? DEFAULT_THRESHOLDS;
     const schedule = buildReminderSchedule(invoice.due_date, thresholds);
     const { data: rawLogs, error: logsError } = await db
       .from("reminder_log")
       .select("id, scheduled_for, status, attempt_count, updated_at")
       .eq("invoice_id", invoice.id);
     if (logsError) {
-      recordFailure(invoice.organization_id);
+      recordFailure(invoice.organization_id, reminderDatabaseError(`Načtení historie faktury ${invoice.invoice_number}`, logsError));
       continue;
     }
     const logs = (rawLogs ?? []) as (ExistingReminderLog & { attempt_count: number })[];
@@ -210,17 +224,19 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
 
     if (invoice.due_date < today && invoice.status === "pending") {
       const { error: overdueError } = await db.from("invoices").update({ status: "overdue", updated_by: null, updated_at: new Date().toISOString() }).eq("id", invoice.id);
-      if (overdueError) recordFailure(invoice.organization_id);
+      if (overdueError) recordFailure(invoice.organization_id, reminderDatabaseError(`Označení faktury ${invoice.invoice_number} po splatnosti`, overdueError));
     }
 
     // Starší zmeškané fáze se auditně označí jako přeskočené. Jeden běh tak
     // nikdy nepošle klientovi několik historických zpráv současně.
     for (const obsolete of decision.obsolete) {
       const existing = logs.find(log => log.scheduled_for === obsolete.scheduledFor);
+      let obsoleteError = null;
       if (existing) {
-        await db.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() }).eq("id", existing.id);
+        const result = await db.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() }).eq("id", existing.id);
+        obsoleteError = result.error;
       } else {
-        await db.from("reminder_log").insert({
+        const result = await db.from("reminder_log").insert({
           organization_id: invoice.organization_id,
           invoice_id: invoice.id,
           stage: obsolete.stage,
@@ -228,26 +244,33 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
           sent_to: invoice.counterparty_email,
           status: "skipped",
         });
+        obsoleteError = result.error;
       }
-      skipped++;
-      incrementOrganization(invoice.organization_id, "skipped");
+      if (obsoleteError) {
+        recordFailure(invoice.organization_id, reminderDatabaseError(`Audit přeskočené fáze faktury ${invoice.invoice_number}`, obsoleteError));
+      } else {
+        skipped++;
+        incrementOrganization(invoice.organization_id, "skipped");
+      }
     }
 
     const candidate = decision.candidate;
     if (!candidate) {
-      await db.from("invoices").update({
+      const { error: scheduleUpdateError } = await db.from("invoices").update({
         next_reminder_at: decision.nextFuture ? atCronTime(decision.nextFuture.scheduledFor) : null,
         updated_at: new Date().toISOString(),
       }).eq("id", invoice.id);
+      if (scheduleUpdateError) recordFailure(invoice.organization_id, reminderDatabaseError(`Aktualizace plánu faktury ${invoice.invoice_number}`, scheduleUpdateError));
       continue;
     }
 
     const existing = logs.find(log => log.scheduled_for === candidate.scheduledFor);
     if (existing?.status === "failed" && !hasReminderAttemptBudget(existing, MAX_AUTOMATIC_REMINDER_ATTEMPTS)) {
-      await db.from("invoices").update({
+      const { error: exhaustedUpdateError } = await db.from("invoices").update({
         next_reminder_at: decision.nextFuture ? atCronTime(decision.nextFuture.scheduledFor) : null,
         updated_at: new Date().toISOString(),
       }).eq("id", invoice.id);
+      if (exhaustedUpdateError) recordFailure(invoice.organization_id, reminderDatabaseError(`Uložení vyčerpaných pokusů faktury ${invoice.invoice_number}`, exhaustedUpdateError));
       exhausted++;
       incrementOrganization(invoice.organization_id, "exhausted");
       continue;
@@ -260,7 +283,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       .eq("stage", candidate.stage)
       .maybeSingle();
     if (templateError) {
-      recordFailure(invoice.organization_id);
+      recordFailure(invoice.organization_id, reminderDatabaseError(`Načtení šablony pro fakturu ${invoice.invoice_number}`, templateError));
       continue;
     }
 
@@ -278,7 +301,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
         : claim.eq("status", "queued").lte("updated_at", new Date(now.getTime() - REMINDER_LEASE_MINUTES * 60_000).toISOString());
       const { data: claimed, error: queueError } = await claim.select("id").maybeSingle();
       if (queueError) {
-        recordFailure(invoice.organization_id);
+        recordFailure(invoice.organization_id, reminderDatabaseError(`Zařazení upomínky faktury ${invoice.invoice_number}`, queueError));
         continue;
       }
       if (!claimed) continue;
@@ -295,7 +318,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       }).select("id").single();
       if (insertError) {
         if (insertError.code !== "23505") {
-          recordFailure(invoice.organization_id);
+          recordFailure(invoice.organization_id, reminderDatabaseError(`Založení upomínky faktury ${invoice.invoice_number}`, insertError));
         }
         continue; // Souběžný cron mohl získat unikátní zámek.
       }
@@ -304,13 +327,13 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
     }
     if (!logId) continue;
 
-    const { data: currentInvoice, error: currentInvoiceError } = await db.from("invoices").select("*, reminder_policies(is_active)").eq("id", invoice.id).maybeSingle();
+    const { data: currentInvoice, error: currentInvoiceError } = await db.from("invoices").select(INVOICE_REMINDER_POLICY_STATE_SELECT).eq("id", invoice.id).maybeSingle();
     if (currentInvoiceError) {
       await db.from("reminder_log").update({ status: "failed", error_message: "Fakturu se nepodařilo znovu ověřit.", updated_at: new Date().toISOString() }).eq("id", logId).eq("status", "queued");
-      recordFailure(invoice.organization_id);
+      recordFailure(invoice.organization_id, reminderDatabaseError(`Opětovné ověření faktury ${invoice.invoice_number}`, currentInvoiceError));
       continue;
     }
-    if (!currentInvoice || !["pending", "overdue"].includes(currentInvoice.status) || currentInvoice.due_date !== invoice.due_date || currentInvoice.reminders_paused || currentInvoice.reminder_policies?.is_active === false) {
+    if (!currentInvoice || !["pending", "overdue"].includes(currentInvoice.status) || currentInvoice.due_date !== invoice.due_date || currentInvoice.reminders_paused || currentInvoice.reminder_policy?.is_active === false) {
       await db.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() })
         .eq("id", logId).eq("status", "queued");
       skipped++;
@@ -321,7 +344,9 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       .eq("id", logId).eq("status", "queued").select("id").maybeSingle();
     if (recipientUpdateError || !recipientUpdated) {
       await db.from("reminder_log").update({ status: "failed", error_message: "Příjemce upomínky se nepodařil potvrdit.", updated_at: new Date().toISOString() }).eq("id", logId).eq("status", "queued");
-      if (recipientUpdateError) recordFailure(invoice.organization_id);
+      recordFailure(invoice.organization_id, recipientUpdateError
+        ? reminderDatabaseError(`Potvrzení příjemce faktury ${invoice.invoice_number}`, recipientUpdateError)
+        : `Potvrzení příjemce faktury ${invoice.invoice_number}: záznam už nebyl ve stavu queued.`);
       continue;
     }
 
@@ -351,7 +376,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
         error_message: cause instanceof Error ? cause.message.slice(0, 1000) : "Neznámá chyba",
         updated_at: failedAt,
       }).eq("id", logId).eq("status", "queued").select("id").maybeSingle();
-      recordFailure(invoice.organization_id);
+      recordFailure(invoice.organization_id, cause instanceof Error ? `Odeslání faktury ${invoice.invoice_number}: ${cause.message}` : `Odeslání faktury ${invoice.invoice_number}: Neznámá chyba`);
       if (markedFailed) {
         await db.from("invoices").update({ next_reminder_at: atCronTime(today), updated_at: failedAt }).eq("id", invoice.id);
       }

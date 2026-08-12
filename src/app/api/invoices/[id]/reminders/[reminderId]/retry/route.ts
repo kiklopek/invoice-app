@@ -4,6 +4,7 @@ import { sendReminderEmail } from "@/lib/email";
 import { buildReminderSchedule, compareDate, hasReminderAttemptBudget, isLatestEligibleReminder, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
+import { INVOICE_REMINDER_POLICY_STATE_SELECT, reminderDatabaseError } from "@/lib/reminder-automation-query";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
 const DEFAULT_THRESHOLDS = [-3, 0, 7, 14];
@@ -92,14 +93,21 @@ export async function POST(request: Request, { params }: Context) {
   if (claimError) return NextResponse.json({ error: "Nový pokus se nepodařilo bezpečně zařadit." }, { status: 500 });
   if (!claimed) return NextResponse.json({ error: "Upomínku už zpracovává jiný požadavek." }, { status: 409 });
 
-  const { data: currentInvoice } = await identity.service.from("invoices").select("*, reminder_policies(is_active)")
+  const { data: currentInvoice, error: currentInvoiceError } = await identity.service.from("invoices").select(INVOICE_REMINDER_POLICY_STATE_SELECT)
     .eq("id", id).eq("organization_id", organizationId).maybeSingle();
+  if (currentInvoiceError) {
+    const failure = reminderDatabaseError(`Opětovné ověření faktury ${invoice.invoice_number}`, currentInvoiceError);
+    console.error("[reminder-retry] invoice recheck failed", failure);
+    await identity.service.from("reminder_log").update({ status: "failed", error_message: failure, updated_at: new Date().toISOString() })
+      .eq("id", reminderId).eq("status", "queued");
+    return NextResponse.json({ error: "Fakturu se nepodařilo znovu ověřit. Pokus zůstal připravený k opakování.", code: "REMINDER_INVOICE_RECHECK_FAILED" }, { status: 500 });
+  }
   if (!currentInvoice || !["pending", "overdue"].includes(currentInvoice.status) || currentInvoice.due_date !== invoice.due_date) {
     await identity.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() })
       .eq("id", reminderId).eq("status", "queued");
     return NextResponse.json({ error: "Faktura se mezitím změnila; upomínka nebyla odeslána." }, { status: 409 });
   }
-  if (currentInvoice.reminders_paused || currentInvoice.reminder_policies?.is_active === false) {
+  if (currentInvoice.reminders_paused || currentInvoice.reminder_policy?.is_active === false) {
     await identity.service.from("reminder_log").update({ status: "failed", error_message: log.error_message, updated_at: new Date().toISOString() })
       .eq("id", reminderId).eq("status", "queued");
     return NextResponse.json({ error: "Upomínky byly mezitím pozastavené; e-mail nebyl odeslán." }, { status: 409 });

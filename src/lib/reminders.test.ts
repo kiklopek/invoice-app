@@ -52,6 +52,20 @@ describe("decideReminderAction", () => {
     expect(result.candidate?.stage).toBe("overdue");
   });
 
+  it("v den splatnosti vybere právě dnešní fázi a po odeslání ji neopakuje", () => {
+    const todaySchedule = buildReminderSchedule("2026-08-12", [-3, 0, 7, 14]);
+    const firstRun = decideReminderAction(todaySchedule, "2026-08-12", []);
+    expect(firstRun.candidate).toEqual({ threshold: 0, scheduledFor: "2026-08-12", stage: "on_due" });
+
+    const secondRun = decideReminderAction(todaySchedule, "2026-08-12", [{
+      id: "today",
+      scheduled_for: "2026-08-12",
+      status: "sent",
+    }]);
+    expect(secondRun.candidate).toBeNull();
+    expect(secondRun.nextFuture?.scheduledFor).toBe("2026-08-19");
+  });
+
   it("neodešle znovu již odeslanou ani právě zpracovávanou upomínku", () => {
     for (const status of ["sent", "queued"] as const) {
       const result = decideReminderAction(schedule, "2026-08-17", [

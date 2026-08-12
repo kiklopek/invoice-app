@@ -42,4 +42,16 @@ describe("manual reminder automation security", () => {
     expect(route).toContain('trigger_source: manualTrigger ? "manual" : "scheduled"');
     expect(route).toContain("triggered_by: manualTrigger?.userId");
   });
+
+  it("uses an explicit organization-scoped reminder policy relationship", () => {
+    expect(route).toContain("INVOICE_REMINDER_POLICY_SELECT");
+    expect(route).toContain("INVOICE_REMINDER_POLICY_STATE_SELECT");
+    expect(route).not.toContain('select("*, reminder_policies(');
+  });
+
+  it("preserves actionable database errors in the automation run", () => {
+    expect(route).toContain("organizationErrors");
+    expect(route).toContain("reminderDatabaseError");
+    expect(route).toContain('code: "REMINDER_INVOICE_QUERY_FAILED"');
+  });
 });
