@@ -3,7 +3,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
-import { signOutCurrentSession } from "@/lib/sign-out";
 
 export default function MfaPage() {
   const requested = useRef(false);
@@ -12,7 +11,6 @@ export default function MfaPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,18 +84,6 @@ export default function MfaPage() {
     }
   }
 
-  async function signOut() {
-    setSigningOut(true);
-    setError(null);
-    try {
-      await signOutCurrentSession();
-      window.location.replace("/login");
-    } catch (signOutError) {
-      setError(signOutError instanceof Error ? signOutError.message : "Odhlášení se nepodařilo.");
-      setSigningOut(false);
-    }
-  }
-
   return (
     <main className="login-page">
       <section className="login-card">
@@ -143,9 +129,6 @@ export default function MfaPage() {
             {resending ? "Odesílám…" : cooldown > 0 ? `Poslat nový kód za ${cooldown} s` : "Poslat nový kód"}
           </button>
         )}
-        <button type="button" className="btn" onClick={signOut} disabled={signingOut} style={{ marginTop: 12 }}>
-          {signingOut ? "Odhlašuji…" : "Odhlásit se"}
-        </button>
         <small className="login-security">Kód platí 10 minut, lze jej použít pouze jednou a po pěti chybných pokusech se zablokuje.</small>
       </section>
     </main>

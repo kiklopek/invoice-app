@@ -91,9 +91,9 @@ function paragraphs(value: string) {
 }
 
 function detailRow(label: string, value: string, last = false) {
-  return `<tr>
-    <td style="padding:10px 0;${last ? "" : "border-bottom:1px solid #e4e9e5;"}color:#6d776f;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;">${escapeHtml(label)}</td>
-    <td align="right" style="padding:10px 0;${last ? "" : "border-bottom:1px solid #e4e9e5;"}color:#17221c;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:700;line-height:1.4;">${escapeHtml(value)}</td>
+  return `<tr class="detail-row">
+    <td class="detail-label" width="38%" style="width:38%;padding:13px 12px 13px 0;${last ? "" : "border-bottom:1px solid #e4e9e5;"}color:#6d776f;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(label)}</td>
+    <td class="detail-value" width="62%" align="right" style="width:62%;padding:13px 0 13px 12px;${last ? "" : "border-bottom:1px solid #e4e9e5;"}color:#17221c;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(value)}</td>
   </tr>`;
 }
 
@@ -147,13 +147,27 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   <meta name="x-apple-disable-message-reformatting">
   <title>${escapeHtml(params.subject)}</title>
   <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
-  <style>@media only screen and (max-width:620px){.email-shell{width:100%!important}.mobile-pad{padding-left:22px!important;padding-right:22px!important}.email-title{font-size:25px!important}.detail-box{padding:16px!important}}</style>
+  <style>
+    @media only screen and (max-width:660px){
+      .email-shell{width:100%!important;max-width:100%!important}
+      .mobile-pad{padding-left:22px!important;padding-right:22px!important}
+      .email-title{font-size:25px!important}
+      .detail-box-pad{padding:18px!important}
+    }
+    @media only screen and (max-width:480px){
+      .detail-table{table-layout:auto!important}
+      .detail-row{display:block!important;width:100%!important}
+      .detail-label,.detail-value{display:block!important;width:100%!important;max-width:100%!important;text-align:left!important;box-sizing:border-box!important}
+      .detail-label{padding:12px 0 2px!important;border-bottom:0!important}
+      .detail-value{padding:0 0 12px!important}
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background:#f2f4f1;word-spacing:normal;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(presentation.preheader)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f2f4f1">
     <tr><td align="center" style="padding:28px 12px;">
-      <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #dfe5e0;border-radius:12px;overflow:hidden;">
+      <table role="presentation" class="email-shell" width="640" cellspacing="0" cellpadding="0" border="0" style="width:640px;max-width:640px;background:#ffffff;border:1px solid #dfe5e0;border-radius:12px;overflow:hidden;">
         <tr><td class="mobile-pad" bgcolor="#17462f" style="padding:18px 34px;background:#17462f;">${logo}</td></tr>
         <tr><td class="mobile-pad" style="padding:38px 42px 8px;">
           <div style="margin-bottom:10px;color:${presentation.accent};font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.3px;">${presentation.eyebrow}</div>
@@ -161,9 +175,13 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
           ${paragraphs(params.message)}
         </td></tr>
         <tr><td class="mobile-pad" style="padding:0 42px;">
-          <table role="presentation" class="detail-box" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;padding:20px 22px;background:${presentation.soft};border:1px solid ${presentation.accent}33;border-radius:8px;">
-            <tr><td colspan="2" style="padding:0 0 8px;color:${presentation.accent};font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.8px;">ÚDAJE K PLATBĚ</td></tr>
-            ${detailRows}
+          <table role="presentation" class="detail-box" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${presentation.soft}" style="width:100%;max-width:100%;background:${presentation.soft};border:1px solid ${presentation.accent}33;border-radius:8px;border-collapse:separate;">
+            <tr><td class="detail-box-pad" style="padding:24px 26px;">
+              <table role="presentation" class="detail-table" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:100%;table-layout:fixed;">
+                <tr><td colspan="2" style="padding:0 0 9px;color:${presentation.accent};font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.8px;">ÚDAJE K PLATBĚ</td></tr>
+                ${detailRows}
+              </table>
+            </td></tr>
           </table>
         </td></tr>
         <tr><td class="mobile-pad" style="padding:26px 42px 34px;">

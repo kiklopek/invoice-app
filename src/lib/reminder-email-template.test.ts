@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderReminderEmail, type ReminderEmailCompany } from "./reminder-email-template";
 import type { ReminderTemplateValues } from "./reminder-template";
+import type { ReminderStage } from "@/types/invoice";
 
 const company: ReminderEmailCompany = {
   name: "R. Hlavica s.r.o.",
@@ -33,7 +34,7 @@ describe("branded reminder email", () => {
       replyTo: "ucetni@hlavica.cz",
     });
 
-    expect(result.html).toContain("width=\"600\"");
+    expect(result.html).toContain("width=\"640\"");
     expect(result.html).toContain("drevohlavica.png");
     expect(result.html).toContain("FV-2026-073");
     expect(result.html).toContain("247 300,00 CZK");
@@ -68,4 +69,31 @@ describe("branded reminder email", () => {
     expect(result.html).toContain("94-2613370257/0100");
     expect(result.html).not.toContain("Kontaktovat účetní oddělení");
   });
+
+  it.each<ReminderStage>(["before_due", "on_due", "overdue", "escalation"])(
+    "keeps the payment box responsive for the %s stage",
+    stage => {
+      const result = renderReminderEmail({
+        company: { ...company, bank_account_czk: "CZ6508000000192000145399/0800" },
+        stage,
+        subject: "Test responzivní šablony",
+        message: "Dobrý den.",
+        values: {
+          ...values,
+          invoice_number: "TEST-2026-001-EXTRA-LONG-INVOICE-NUMBER",
+          variable_symbol: "20260010000000000001",
+        },
+      });
+
+      expect(result.html).toContain('class="email-shell" width="640"');
+      expect(result.html).toContain("@media only screen and (max-width:480px)");
+      expect(result.html).toContain(".detail-row{display:block!important;width:100%!important}");
+      expect(result.html).toContain('class="detail-box-pad" style="padding:24px 26px;"');
+      expect(result.html).toContain('class="detail-table"');
+      expect(result.html).toContain("table-layout:auto!important");
+      expect(result.html).toContain("overflow-wrap:anywhere;word-break:break-word;");
+      expect(result.html).toContain("CZ6508000000192000145399/0800");
+      expect(result.html).not.toMatch(/class="detail-box"[^>]*padding:/);
+    },
+  );
 });
