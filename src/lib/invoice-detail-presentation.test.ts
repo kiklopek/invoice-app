@@ -16,5 +16,6 @@ describe("invoice detail amount summary", () => {
     expect(page).toContain("Částka s DPH:");
     expect(page).toContain("money(Number(invoice.amount), invoice.currency)");
     expect(css).toContain(".invoice-hero-gross");
+    expect(css).toContain("color:#000");
   });
 });
