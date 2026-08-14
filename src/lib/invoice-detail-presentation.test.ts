@@ -13,6 +13,7 @@ describe("invoice detail amount summary", () => {
     expect(page).toContain("Částka faktury bez DPH");
     expect(page).toContain("money(Number(invoice.amount_without_vat), invoice.currency)");
     expect(page).toContain('className="invoice-hero-gross"');
+    expect(page).toContain("Částka s DPH:");
     expect(page).toContain("money(Number(invoice.amount), invoice.currency)");
     expect(css).toContain(".invoice-hero-gross");
   });

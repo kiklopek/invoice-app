@@ -560,10 +560,9 @@ export default function InvoiceDetailPage() {
             <div>
               <span>Částka faktury bez DPH</span>
               <strong>{money(Number(invoice.amount_without_vat), invoice.currency)}</strong>
-              <div className="invoice-hero-gross">
-                <span>S DPH</span>
-                <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
-              </div>
+              <p className="invoice-hero-gross">
+                Částka s DPH: {money(Number(invoice.amount), invoice.currency)}
+              </p>
               <small>
                 {paidAmount > 0 && invoice.status !== "cancelled"
                   ? `Uhrazeno ${money(paidAmount, invoice.currency)} · zbývá ${money(remainingAmount, invoice.currency)}`
