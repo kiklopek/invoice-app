@@ -24,6 +24,7 @@ export async function GET() {
   });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  if (identity.membership.role === "viewer") return NextResponse.json({ error: "Čtenář nemá přístup k nastavení upomínek." }, { status: 403 });
 
   const org = identity.membership.organization_id;
   const [policyResult, templatesResult, changeResult] = await Promise.all([

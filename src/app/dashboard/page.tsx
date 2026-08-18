@@ -10,6 +10,8 @@ import {
   emptyDashboardData,
   type DashboardData,
 } from "@/lib/dashboard-summary";
+import { canManageInvoices } from "@/lib/role-access";
+import { useAccessRole } from "@/lib/use-access-role";
 
 const money = (value: number, currency = "CZK") =>
   new Intl.NumberFormat("cs-CZ", {
@@ -40,6 +42,8 @@ const formatTotals = (totals: Record<string, number>) => {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const role = useAccessRole();
+  const canManage = canManageInvoices(role);
   const [summary, setSummary] = useState<DashboardData>(emptyDashboardData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,7 +72,7 @@ export default function DashboardPage() {
             <p>R. Hlavica s.r.o. · účetní oddělení</p>
             <h1>Přehled pohledávek</h1>
           </div>
-          <div className="top-actions dashboard-actions">
+          {canManage ? <div className="top-actions dashboard-actions">
             <Link
               className="btn secondary dashboard-document-upload"
               href="/invoices/import"
@@ -83,7 +87,7 @@ export default function DashboardPage() {
               <Icon name="plus" />
               Přidat fakturu
             </Link>
-          </div>
+          </div> : null}
         </header>
         <section className="metrics">
           <article>
@@ -243,9 +247,9 @@ export default function DashboardPage() {
                 <p className="empty-box">Žádné nadcházející upomínky.</p>
               )}
             </div>
-            <Link className="full-link" href="/reminders">
+            {canManage ? <Link className="full-link" href="/reminders">
               Spravovat pravidla upomínek →
-            </Link>
+            </Link> : null}
           </aside>
           </MobileDisclosure>
         </section>

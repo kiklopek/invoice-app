@@ -31,6 +31,7 @@ export async function GET() {
   if (isDemoMode()) return NextResponse.json({ members: demoMembers, access_events: demoAccessEvents, current_role: "admin" });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  if (identity.membership.role === "viewer") return NextResponse.json({ error: "Čtenář nemá přístup k nastavení uživatelů." }, { status: 403 });
   const [membersResult, eventsResult] = await Promise.all([
     identity.service.from("organization_members").select("id, email, role, user_id, created_at")
       .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: true }),
@@ -89,8 +90,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Roli se nepodařilo změnit." }, { status: 500 });
   }
   const mutation = data as MemberMutation | null;
-  if (!mutation?.member) return NextResponse.json({ error: "Uživatel nebyl nalezen." }, { status: 404 });
-  return NextResponse.json({ member: { ...mutation.member, active: Boolean(mutation.member.user_id), current: id === identity.membership.id }, access_event: mutation.event });
+  const { data: confirmedMember, error: confirmationError } = await identity.service
+    .from("organization_members")
+    .select("id, email, role, user_id, created_at")
+    .eq("organization_id", identity.membership.organization_id)
+    .eq("id", id)
+    .maybeSingle();
+  if (confirmationError) {
+    console.error("Member role confirmation failed", confirmationError);
+    return NextResponse.json({ error: "Roli se nepodařilo bezpečně potvrdit." }, { status: 500 });
+  }
+  if (!confirmedMember) return NextResponse.json({ error: "Uživatel nebyl nalezen." }, { status: 404 });
+  return NextResponse.json({ member: { ...confirmedMember, active: Boolean(confirmedMember.user_id), current: id === identity.membership.id }, access_event: mutation?.event ?? null });
 }
 
 export async function DELETE(request: Request) {
@@ -118,5 +129,16 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Přístup se nepodařilo odebrat." }, { status: 500 });
   }
   const mutation = data as MemberMutation | null;
+  const { data: remainingMember, error: confirmationError } = await identity.service
+    .from("organization_members")
+    .select("id")
+    .eq("organization_id", identity.membership.organization_id)
+    .eq("id", id)
+    .maybeSingle();
+  if (confirmationError) {
+    console.error("Member removal confirmation failed", confirmationError);
+    return NextResponse.json({ error: "Odebrání přístupu se nepodařilo bezpečně potvrdit." }, { status: 500 });
+  }
+  if (remainingMember) return NextResponse.json({ error: "Přístup zůstal aktivní. Zkuste odebrání znovu." }, { status: 500 });
   return NextResponse.json({ removed: true, access_event: mutation?.event ?? null });
 }

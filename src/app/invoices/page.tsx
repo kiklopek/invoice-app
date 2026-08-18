@@ -216,14 +216,14 @@ export default function InvoicesPage() {
             <Icon name="document" />
             Archiv
           </Link>
-          <Link href="/invoices/import" className="btn secondary">
+          {canManage ? <Link href="/invoices/import" className="btn secondary">
             <Icon name="upload" />
             Importovat
-          </Link>
-          <Link href="/invoices/new" className="btn primary">
+          </Link> : null}
+          {canManage ? <Link href="/invoices/new" className="btn primary">
             <Icon name="plus" />
             Nová faktura
-          </Link>
+          </Link> : null}
         </div>
       </header>
       {notice && <p className="form-success">{notice}</p>}

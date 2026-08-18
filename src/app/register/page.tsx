@@ -30,6 +30,23 @@ export default function RegisterPage() {
     if (!hasSupabaseBrowserConfig()) return setError("Registrace není nakonfigurovaná. Doplňte Supabase proměnné prostředí.");
 
     setSubmitting(true);
+    const accessResponse = await fetch("/api/auth/registration-access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: normalizedEmail }),
+    });
+    if (!accessResponse.ok) {
+      setError("Ověření firemního přístupu se nepodařilo. Zkuste to prosím znovu.");
+      setSubmitting(false);
+      return;
+    }
+    const access = (await accessResponse.json()) as { allowed?: boolean };
+    if (!access.allowed) {
+      setError("Pro tento e-mail zatím nelze vytvořit účet, protože nebyl administrátorem firmy přidán do systému. Kontaktujte prosím jednatele firmy.");
+      setSubmitting(false);
+      return;
+    }
+
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: normalizedEmail,

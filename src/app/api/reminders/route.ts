@@ -16,6 +16,7 @@ export async function GET() {
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  if (identity.membership.role === "viewer") return NextResponse.json({ error: "Čtenář nemá přístup k upomínkám." }, { status: 403 });
   const organizationId = identity.membership.organization_id;
   const [upcomingResult, failedResult, deliveryIssueResult, recentResult, automationRunResult] = await Promise.all([
     identity.service.from("invoices").select("id, invoice_number, counterparty_name, next_reminder_at, amount, currency")

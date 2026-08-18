@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
 import { signOutCurrentSession } from "@/lib/sign-out";
+import { canAccessPage } from "@/lib/role-access";
+import { useAccessRole } from "@/lib/use-access-role";
 
 const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
@@ -15,11 +17,18 @@ const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/settings", label: "Nastavení", icon: "settings" },
 ];
+const viewerItems = items.filter(item => ["/dashboard", "/reports", "/invoices/archive"].includes(item.href));
 
 export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const role = useAccessRole();
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role === "viewer" && !canAccessPage(role, pathname)) router.replace("/dashboard");
+  }, [pathname, role, router]);
 
   async function signOut() {
     if (signingOut) return;
@@ -40,7 +49,7 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
       </Link>
       <nav className="sidebar-nav" aria-label="Hlavní navigace">
         <span className="nav-heading">Hlavní nabídka</span>
-        {items.map(item => {
+        {(role === "accounting" || role === "admin" ? items : viewerItems).map(item => {
           const active = pathname === item.href || (
             item.href === "/invoices"
               ? pathname.startsWith("/invoices/") && !pathname.startsWith("/invoices/archive")
