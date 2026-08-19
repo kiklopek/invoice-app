@@ -13,6 +13,7 @@ const invoicePriorityMigration = readFileSync(join(process.cwd(), "supabase", "m
 const invoiceArchiveMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080622_invoice_archive.sql"), "utf8");
 const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808182712_add_invoice_vat_amounts.sql"), "utf8");
 const reportLabelEncodingMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808194119_fix_report_label_encoding.sql"), "utf8");
+const memberRoleAuditFixMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260819203652_fix_member_role_audit_variable.sql"), "utf8");
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {
@@ -58,6 +59,14 @@ describe("database tenant integrity", () => {
       expect(source).toContain("cannot_remove_self");
       expect(source).toContain("last_admin");
       expect(source).toContain("actor_email_value");
+    }
+  });
+
+  it("does not confuse a member's previous role with PostgreSQL CURRENT_ROLE", () => {
+    for (const source of [schema, memberRoleAuditFixMigration]) {
+      expect(source).toContain("previous_role_value text");
+      expect(source).toContain("'previous_role', previous_role_value");
+      expect(source).not.toMatch(/declare\s+current_role\s+text/i);
     }
   });
 
