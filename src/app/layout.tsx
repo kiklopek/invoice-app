@@ -1,6 +1,6 @@
 import "./globals.css";
 import "./minimal.css";
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 export const viewport: Viewport = {
@@ -10,9 +10,17 @@ export const viewport: Viewport = {
   themeColor: "#f6f7f3",
 };
 
-export const metadata = {
-  title: "Fakturační přehled",
-  description: "Interní aplikace pro hlídání splatnosti faktur",
+export const metadata: Metadata = {
+  applicationName: "Splatno",
+  title: "Splatno | Faktury a upomínky pod kontrolou",
+  description: "Přehled faktur, hlídání splatnosti a automatické upomínky.",
+  openGraph: {
+    siteName: "Splatno",
+    title: "Splatno | Faktury a upomínky pod kontrolou",
+    description: "Přehled faktur, hlídání splatnosti a automatické upomínky.",
+    locale: "cs_CZ",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
