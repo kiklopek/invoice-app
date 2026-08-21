@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
 import { isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
-import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
 export default function ForgotPasswordPage() {
   const corporateEmailRequired = isCorporateEmailRequired();
@@ -14,22 +13,36 @@ export default function ForgotPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get("error");
+    if (reason === "expired") setError("Odkaz je neplatný, vypršel nebo už byl použit. Pošlete si nový.");
+    else if (reason === "technical") setError("Obnovu se nepodařilo dokončit kvůli technické chybě. Pošlete si nový odkaz.");
+  }, []);
+
   async function requestReset(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     const normalizedEmail = normalizeEmail(email);
     if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? "Použijte firemní e-mail @hlavica.cz." : "Zadejte platnou e-mailovou adresu.");
-    if (!hasSupabaseBrowserConfig()) return setError("Obnova hesla není nakonfigurovaná. Doplňte Supabase proměnné prostředí.");
     setSubmitting(true);
-    const supabase = createClient();
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-    });
-    setSubmitting(false);
-    if (resetError) setError("Odkaz se nepodařilo odeslat. Zkuste to prosím znovu.");
-    else {
-      setEmail(normalizedEmail);
-      setSent(true);
+    try {
+      const response = await fetch("/api/auth/password-recovery", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      if (!response.ok) {
+        setError(response.status === 429
+          ? "Nový odkaz lze poslat nejdříve za jednu minutu."
+          : "Odkaz se nepodařilo odeslat kvůli technické chybě. Zkuste to prosím znovu.");
+      } else {
+        setEmail(normalizedEmail);
+        setSent(true);
+      }
+    } catch {
+      setError("Odkaz se nepodařilo odeslat kvůli technické chybě. Zkuste to prosím znovu.");
+    } finally {
+      setSubmitting(false);
     }
   }
 

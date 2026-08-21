@@ -59,6 +59,44 @@ describe("authentication flow", () => {
     expect(callback).toContain('const next =');
   });
 
+  it("uses one neutral login error with a working password recovery link", () => {
+    const login = source("src/app/login/page.tsx");
+    expect(login).toContain("E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na");
+    expect(login).toContain('<Link href="/forgot-password">„Obnovit heslo“</Link>');
+    expect(login).toContain('<Link href="/forgot-password">Obnovit heslo</Link>');
+    expect(login).not.toContain("Případně si nastavte nové heslo");
+  });
+
+  it("sends password recovery through the protected server endpoint", () => {
+    const forgotPassword = source("src/app/forgot-password/page.tsx");
+    const recoveryRoute = source("src/app/api/auth/password-recovery/route.ts");
+    const tokenRoute = source("src/app/auth/recovery/route.ts");
+    const recoveryEmail = source("src/lib/password-recovery-server.ts");
+
+    expect(forgotPassword).toContain('fetch("/api/auth/password-recovery"');
+    expect(forgotPassword).not.toContain("resetPasswordForEmail");
+    expect(forgotPassword).toContain('reason === "expired"');
+    expect(forgotPassword).toContain('reason === "technical"');
+    expect(recoveryRoute).toContain("isSameOriginMutation(request)");
+    expect(recoveryRoute).toContain('.from("organization_members")');
+    expect(recoveryRoute).toContain("service.auth.admin.generateLink");
+    expect(recoveryRoute).toContain("if (!membership?.user_id) return neutralResponse()");
+    expect(recoveryEmail).toContain('process.env.RESEND_API_KEY');
+    expect(recoveryEmail).toContain('Splatno <prihlaseni@splatno.cz>');
+    expect(tokenRoute).toContain('type: "recovery"');
+    expect(tokenRoute).toContain("supabase.auth.verifyOtp");
+    expect(tokenRoute).toContain('.eq("user_id", data.user.id)');
+    expect(tokenRoute).toContain('new URL("/reset-password", requestUrl.origin)');
+  });
+
+  it("keeps recovery logs free of e-mail addresses and recovery tokens", () => {
+    const recoveryRoute = source("src/app/api/auth/password-recovery/route.ts");
+    const recoveryEmail = source("src/lib/password-recovery-server.ts");
+    expect(recoveryRoute).not.toContain("console.error");
+    expect(recoveryEmail).toContain("logPasswordRecoveryError");
+    expect(recoveryEmail).not.toContain("console.error(operation, error)");
+  });
+
   it("clears the email MFA session during logout", () => {
     expect(source("src/app/api/auth/logout/route.ts")).toContain("clearEmailMfaCookie");
   });

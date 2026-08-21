@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loginFailure, setLoginFailure] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
@@ -44,6 +45,7 @@ export default function LoginPage() {
   async function signIn(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    setLoginFailure(false);
     const normalizedEmail = validEmail();
     if (!normalizedEmail) return;
     if (!hasSupabaseBrowserConfig()) {
@@ -54,7 +56,7 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     if (signInError) {
-      setError("E-mail nebo heslo není správné. Případně si nastavte nové heslo.");
+      setLoginFailure(true);
       setSubmitting(false);
       return;
     }
@@ -83,8 +85,9 @@ export default function LoginPage() {
               <form onSubmit={signIn} className="auth-form">
                 <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
                 <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
-                <div className="auth-field-link"><Link href="/forgot-password">Zapomenuté heslo?</Link></div>
+                <div className="auth-field-link"><Link href="/forgot-password">Obnovit heslo</Link></div>
                 <button type="submit" className="btn primary" disabled={submitting}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
+                {loginFailure && <p className="form-error">E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href="/forgot-password">„Obnovit heslo“</Link>.</p>}
                 {error && <p className="form-error">{error}</p>}
               </form>
               <p className="auth-switch">Nemáte ještě účet? <Link href="/register">Vytvořit účet</Link></p>
