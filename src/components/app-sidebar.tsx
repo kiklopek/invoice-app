@@ -18,7 +18,7 @@ const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/settings", label: "Nastavení", icon: "settings" },
 ];
-const viewerItems = items.filter(item => item.href === "/invoices");
+const viewerItems = items.filter(item => ["/dashboard", "/invoices", "/reports"].includes(item.href));
 
 export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
   const pathname = usePathname();

@@ -6,7 +6,7 @@ import { buildInvoiceReport, invoiceDateForReport, parseReportQuery, type Invoic
 import { todayInTimeZone } from "@/lib/reminders";
 import { isDemoMode } from "@/lib/supabase-server";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
-import { canAccessOperations } from "@/lib/role-access";
+import { canViewFinancialInsights } from "@/lib/role-access";
 
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-  if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Čtenář nemá přístup k reportům." }, { status: 403 });
+  if (!canViewFinancialInsights(identity.membership.role)) return NextResponse.json({ error: "K reportům nemáte přístup." }, { status: 403 });
   const common = {
     target_org: identity.membership.organization_id, actor_user: identity.user.id,
     report_from: query.from, report_to: query.to, date_basis: query.dateBasis,

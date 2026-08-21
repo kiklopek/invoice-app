@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("role authorization", () => {
-  it("shows readers only the invoice navigation and redirects forbidden pages", () => {
+  it("shows readers dashboard, invoices and reports and redirects forbidden pages", () => {
     const sidebar = source("src/components/app-sidebar.tsx");
-    expect(sidebar).toContain('item.href === "/invoices"');
+    expect(sidebar).toContain('["/dashboard", "/invoices", "/reports"].includes(item.href)');
     expect(sidebar).toContain("router.replace(landingPageForRole(role))");
     expect(sidebar).toContain('role === "viewer" ? viewerItems');
   });
@@ -21,10 +21,15 @@ describe("role authorization", () => {
     expect(invoices).toContain("{canManage ? <Link href=\"/invoices/new\"");
   });
 
-  it("enforces reader restrictions on operational server endpoints", () => {
+  it("allows read-only insights but enforces reader restrictions on operational endpoints", () => {
     for (const path of [
       "src/app/api/dashboard/route.ts",
       "src/app/api/reports/route.ts",
+    ]) {
+      expect(source(path), path).toContain("canViewFinancialInsights(identity.membership.role)");
+      expect(source(path), path).not.toContain("canAccessOperations(identity.membership.role)");
+    }
+    for (const path of [
       "src/app/api/payments/route.ts",
       "src/app/api/reminders/route.ts",
       "src/app/api/settings/reminders/route.ts",
@@ -43,6 +48,7 @@ describe("role authorization", () => {
     expect(settings).toContain('currentRole === "admin" ? ["/api/settings/company", "/api/settings/members"] : ["/api/settings/company"]');
     expect(settings).toContain("<fieldset disabled={!canAdminister}>");
     expect(settings).toContain("{canAdminister && <><section");
+    expect(settings).toContain("Přehled, reporty a faktury pouze pro čtení");
     expect(companyRoute).toContain("canViewCompanySettings(identity.membership.role)");
     expect(companyRoute).toContain("canEditCompanySettings(identity.membership.role)");
     expect(membersRoute).toContain("canManageMembers(identity.membership.role)");

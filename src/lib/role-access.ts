@@ -8,6 +8,10 @@ export function canAccessOperations(role: AccessRole | null) {
   return canManageInvoices(role);
 }
 
+export function canViewFinancialInsights(role: AccessRole | null) {
+  return role === "viewer" || role === "accounting" || role === "admin";
+}
+
 export function canViewCompanySettings(role: AccessRole | null) {
   return role === "accounting" || role === "admin";
 }
@@ -25,11 +29,11 @@ export function canAccessPage(role: AccessRole | null, pathname: string) {
   if (role !== "viewer") return false;
   const isInvoiceDetail = /^\/invoices\/[0-9a-f-]{36}$/i.test(pathname);
   if (isInvoiceDetail) return true;
-  return pathname === "/invoices";
+  return pathname === "/dashboard" || pathname === "/invoices" || pathname === "/reports";
 }
 
 export function landingPageForRole(role: AccessRole | null) {
-  return role === "viewer" ? "/invoices" : "/dashboard";
+  return role ? "/dashboard" : "/login";
 }
 
 export function isAccessRole(value: unknown): value is AccessRole {
