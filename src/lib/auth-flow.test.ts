@@ -19,6 +19,20 @@ describe("authentication flow", () => {
     expect(accessRoute).toContain("isSameOriginMutation(request)");
   });
 
+  it("guides previously removed users back to their existing login", () => {
+    const register = source("src/app/register/page.tsx");
+    const settings = source("src/app/settings/page.tsx");
+    const auth = source("src/lib/auth.ts");
+
+    expect(register).toContain("Pokud jste tento účet používali už dříve");
+    expect(register).toContain('href="/forgot-password"');
+    expect(register).toContain("Účet nevytvářejte znovu");
+    expect(settings).toContain("Existující uživatel se přihlásí původním heslem");
+    expect(settings).toContain("přihlašovací účet zůstane zachovaný");
+    expect(auth).toContain('.is("user_id", null)');
+    expect(auth).toContain(".update({ user_id: data.user.id, email })");
+  });
+
   it("keeps password login behind organization membership verification", () => {
     expect(source("src/app/login/page.tsx")).toContain('fetch("/api/auth/access", { method: "POST" })');
     expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false })");
