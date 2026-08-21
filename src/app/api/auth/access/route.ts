@@ -9,17 +9,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   }
   if (isDemoMode()) {
-    return NextResponse.json({ allowed: true, role: "admin", name: "Demo administrátor", email: "kostihova@hlavica.cz" });
+    return NextResponse.json({ allowed: true, role: "admin", name: "Demo administrátor", email: "kostihova@hlavica.cz", companyName: "R. Hlavica s.r.o." });
   }
   const identity = await getRequestIdentity({ requireMfa: false });
   if (!identity) {
     return NextResponse.json({ error: "Tento účet nemá aktivní přístup do firemní aplikace." }, { status: 403 });
   }
   const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
+  const { data: organization } = await identity.service
+    .from("organizations")
+    .select("name")
+    .eq("id", identity.membership.organization_id)
+    .single();
   return NextResponse.json({
     allowed: true,
     role: identity.membership.role,
     name: displayName(identity.user.user_metadata.full_name, email),
     email,
+    companyName: organization?.name?.trim() || "Firma",
   });
 }

@@ -7,6 +7,7 @@ export type AccessProfile = {
   role: AccessRole;
   name: string;
   email: string;
+  companyName: string;
 };
 
 let cachedProfile: AccessProfile | null = null;
@@ -17,9 +18,9 @@ function loadProfile() {
     pendingProfile = fetch("/api/auth/access", { method: "POST" })
       .then(async response => {
         if (!response.ok) return null;
-        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown };
-        if (!isAccessRole(data.role) || typeof data.name !== "string" || typeof data.email !== "string") return null;
-        return { role: data.role, name: data.name, email: data.email };
+        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown; companyName?: unknown };
+        if (!isAccessRole(data.role) || typeof data.name !== "string" || typeof data.email !== "string" || typeof data.companyName !== "string") return null;
+        return { role: data.role, name: data.name, email: data.email, companyName: data.companyName };
       })
       .catch(() => null)
       .then(profile => {

@@ -48,13 +48,15 @@ describe("role authorization", () => {
     expect(membersRoute).toContain("canManageMembers(identity.membership.role)");
   });
 
-  it("shows the signed-in user's name, email and initials", () => {
+  it("shows the signed-in user's name, company and initials", () => {
     const accessRoute = source("src/app/api/auth/access/route.ts");
     const sidebar = source("src/components/app-sidebar.tsx");
     expect(accessRoute).toContain("displayName(identity.user.user_metadata.full_name, email)");
     expect(accessRoute).toContain("email,");
+    expect(accessRoute).toContain('companyName: organization?.name?.trim() || "Firma"');
     expect(sidebar).toContain("profileInitials(profile.name, profile.email)");
     expect(sidebar).toContain("profile?.name");
-    expect(sidebar).toContain("profile?.email");
+    expect(sidebar).toContain("profile?.companyName");
+    expect(sidebar).not.toContain("<small>{profile?.email");
   });
 });
