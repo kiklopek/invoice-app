@@ -1493,3 +1493,326 @@ th,
   .sidebar nav a { height: 48px; min-height: 48px; }
   .form-submit { bottom: calc(68px + env(safe-area-inset-bottom)); }
 }
+
+/* Profesionální vícestránkový tisk finančního reportu. */
+.report-print-running-header,
+.report-print-footer,
+.report-print-cover,
+.report-print-table-spacer,
+.report-print-table-footer { display: none; }
+
+@page {
+  size: A4 portrait;
+  margin: 18mm 12mm 16mm;
+}
+
+@media print {
+  html,
+  body {
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #17251d !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .sidebar,
+  .report-screen-header,
+  .mobile-filter-disclosure,
+  .section-actions,
+  .report-filters { display: none !important; }
+
+  .app-shell,
+  .content,
+  .section-page {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .report-print-running-header {
+    position: fixed;
+    z-index: 20;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 7mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8mm;
+    border-bottom: .25mm solid #cbd6cf;
+    color: #46564c;
+    font-size: 7.5pt;
+    padding: 0 1mm;
+    background: #fff !important;
+  }
+
+  .report-print-running-header strong {
+    color: #1f5b3e;
+    font-size: 8pt;
+  }
+
+  .report-print-footer {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 6mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: .25mm solid #dce3de;
+    color: #6d7971;
+    font-size: 7pt;
+    padding: 0 1mm;
+    background: #fff !important;
+  }
+
+  .report-print-cover {
+    display: grid;
+    grid-template-columns: 24mm minmax(0, 1fr);
+    column-gap: 7mm;
+    margin: 0 0 6mm;
+    padding: 10mm 0 6mm;
+    border-bottom: .45mm solid #236044;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-print-logo {
+    grid-row: 1 / span 2;
+    width: 22mm;
+    height: auto;
+    padding: 2mm;
+    border-radius: 2mm;
+    background: #123d29 !important;
+    object-fit: contain;
+  }
+
+  .report-print-title { align-self: center; }
+  .report-print-title > span {
+    display: block;
+    margin-bottom: 1.5mm;
+    color: #236044;
+    font-size: 7.5pt;
+    font-weight: 750;
+    letter-spacing: 1.2pt;
+  }
+  .report-print-title h1 {
+    margin: 0;
+    color: #17251d;
+    font-size: 22pt;
+    line-height: 1.08;
+    letter-spacing: -.5pt;
+  }
+  .report-print-title p {
+    margin: 1.5mm 0 0;
+    color: #56655c;
+    font-size: 9pt;
+  }
+
+  .report-print-meta {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2mm 5mm;
+    margin: 5mm 0 0;
+  }
+  .report-print-meta div { min-width: 0; }
+  .report-print-meta .wide { grid-column: span 2; }
+  .report-print-meta dt {
+    color: #708078;
+    font-size: 6.8pt;
+    font-weight: 650;
+    letter-spacing: .3pt;
+    text-transform: uppercase;
+  }
+  .report-print-meta dd {
+    margin: .7mm 0 0;
+    overflow-wrap: anywhere;
+    color: #17251d;
+    font-size: 8.5pt;
+    font-weight: 650;
+  }
+
+  .report-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+    margin: 0 0 5mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .report-metrics article {
+    min-height: 0 !important;
+    padding: 4mm !important;
+    border: .25mm solid #d4ddd7 !important;
+    border-radius: 2mm !important;
+    background: #f7f9f7 !important;
+    box-shadow: none !important;
+  }
+  .report-metrics span,
+  .report-metrics small { font-size: 7.5pt !important; }
+  .report-metrics strong {
+    margin: 1.2mm 0 !important;
+    font-size: 15pt !important;
+    line-height: 1.1 !important;
+  }
+
+  .analytics-grid {
+    display: block !important;
+    width: auto !important;
+  }
+  .analytics-card {
+    width: auto !important;
+    margin: 0 0 5mm !important;
+    padding: 0 5mm 5mm !important;
+    overflow: visible !important;
+    border: .25mm solid #d4ddd7 !important;
+    border-radius: 2mm !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  .analytics-card:not(.full) {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .report-aging-card { padding-top: 9mm !important; }
+  .analytics-card.full {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+  .analytics-card > header {
+    margin: 0 -5mm 4mm !important;
+    padding: 4mm 5mm !important;
+    border-bottom: .25mm solid #dce3de !important;
+    background: #f7f9f7 !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .analytics-card.full > header {
+    margin: 0 0 3mm !important;
+    padding: 0 0 3mm !important;
+    background: #fff !important;
+  }
+  .analytics-card h2 { font-size: 12pt !important; }
+  .analytics-card header p { font-size: 7.5pt !important; }
+
+  .donut-wrap {
+    min-height: 45mm;
+    padding: 1mm !important;
+    flex-direction: row !important;
+    break-inside: avoid;
+  }
+  .donut {
+    width: 38mm !important;
+    height: 38mm !important;
+  }
+  .donut::after {
+    width: 23mm !important;
+    height: 23mm !important;
+    background: #fff !important;
+  }
+  .donut strong { font-size: 15pt !important; }
+  .donut-legend { min-width: 34mm !important; }
+  .donut-legend > div { font-size: 7.5pt !important; }
+
+  .aging-report { break-inside: avoid; }
+  .aging-report > div { margin: 3.5mm 0 !important; }
+  .aging-report > div > div { font-size: 7.5pt !important; }
+  .aging-report i { height: 2mm !important; }
+
+  .debtor-table {
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+  .debtor-table table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .debtor-table thead {
+    display: table-header-group !important;
+  }
+  .debtor-table .report-print-table-spacer {
+    display: table-row !important;
+    height: 9mm;
+  }
+  .debtor-table .report-print-table-spacer th {
+    height: 9mm;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+  }
+  .debtor-table tbody { display: table-row-group !important; }
+  .debtor-table .report-print-table-footer {
+    display: table-footer-group !important;
+  }
+  .debtor-table .report-print-table-footer tr,
+  .debtor-table .report-print-table-footer td {
+    height: 8mm;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+  }
+  .debtor-table tr {
+    display: table-row !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .debtor-table th,
+  .debtor-table td {
+    display: table-cell !important;
+    width: auto !important;
+    padding: 2.6mm 2mm !important;
+    border-bottom: .2mm solid #dce3de !important;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    font-size: 7.2pt !important;
+    line-height: 1.25 !important;
+    text-align: right;
+  }
+  .debtor-table th {
+    background: #e9f0eb !important;
+    color: #30483a !important;
+    font-size: 6.7pt !important;
+    font-weight: 750;
+  }
+  .debtor-table th:first-child,
+  .debtor-table td:first-child { width: 29% !important; text-align: left; }
+  .debtor-table th:nth-child(2),
+  .debtor-table td:nth-child(2) { width: 13% !important; }
+  .debtor-table th:nth-child(3),
+  .debtor-table td:nth-child(3) { width: 20% !important; }
+  .debtor-table th:nth-child(4),
+  .debtor-table td:nth-child(4) { width: 22% !important; }
+  .debtor-table th:nth-child(5),
+  .debtor-table td:nth-child(5) { width: 16% !important; }
+  .debtor-table td::before { display: none !important; content: none !important; }
+  .debtor-table td strong { font-size: inherit !important; }
+
+  .empty-box {
+    border: .25mm solid #dce3de;
+    background: #f7f9f7 !important;
+    font-size: 8pt !important;
+  }
+
+  .red-text { color: #9f352d !important; }
+}

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-sidebar";
+import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { todayInTimeZone } from "@/lib/reminders";
 import type { InvoiceReport, ReportDateBasis } from "@/lib/report-query";
+import { useAccessProfile } from "@/lib/use-access-role";
 import type { InvoiceStatus } from "@/types/invoice";
 
 const iso = (date: Date) => date.toISOString().slice(0, 10);
@@ -21,7 +23,23 @@ const statusNames: Record<InvoiceStatus, string> = {
   paid: "Zaplaceno",
   cancelled: "Storno",
 };
+const dateBasisNames: Record<ReportDateBasis, string> = {
+  issue_date: "Datum vystavení",
+  due_date: "Datum splatnosti",
+  paid_at: "Datum úhrady",
+};
+const displayDate = (value: string) =>
+  value
+    ? new Intl.DateTimeFormat("cs-CZ").format(new Date(`${value}T12:00:00`))
+    : "-";
+const displayDateTime = (value: Date) =>
+  new Intl.DateTimeFormat("cs-CZ", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(value);
+
 export default function ReportsPage() {
+  const profile = useAccessProfile();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [currency, setCurrency] = useState("CZK");
@@ -32,6 +50,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
+  const [generatedAt, setGeneratedAt] = useState(() => new Date());
 
   function requestParams(format?: "csv") {
     const params = new URLSearchParams({
@@ -64,7 +83,10 @@ export default function ReportsPage() {
         if (!response.ok) throw new Error(data.error);
         return data;
       })
-      .then((data) => setReport(data))
+      .then((data) => {
+        setReport(data);
+        setGeneratedAt(new Date());
+      })
       .catch((cause) => {
         if (cause instanceof Error && cause.name !== "AbortError")
           setError(cause.message);
@@ -121,10 +143,14 @@ export default function ReportsPage() {
     1,
     ...(report?.aging.map((bucket) => Number(bucket.amount)) ?? []),
   );
+  const companyName = profile?.companyName || "R. Hlavica s.r.o.";
+  const selectedStatus = status === "all" ? "Všechny stavy" : statusNames[status];
+  const selectedCustomer = customer === "all" ? "Všichni odběratelé" : customer;
+  const printPeriod = `${displayDate(from)} - ${displayDate(to)}`;
 
   return (
     <AppFrame>
-      <header className="section-header">
+      <header className="section-header report-screen-header">
         <div>
           <p>ANALYTIKA</p>
           <h1>Reporty</h1>
@@ -133,7 +159,7 @@ export default function ReportsPage() {
           </span>
         </div>
         <div className="section-actions">
-          <button className="btn secondary" onClick={() => window.print()}>
+          <button className="btn secondary" disabled={loading || !report} onClick={() => window.print()}>
             <Icon name="print" />
             Vytisknout
           </button>
@@ -230,6 +256,30 @@ export default function ReportsPage() {
         <p className="page-state">Připravuji report…</p>
       ) : (
         <>
+          <div className="report-print-running-header" aria-hidden="true">
+            <strong>{companyName}</strong>
+            <span>Report pohledávek · {printPeriod}</span>
+          </div>
+          <div className="report-print-footer" aria-hidden="true">
+            <span>Splatno · {companyName}</span>
+            <span>Vytvořeno {displayDateTime(generatedAt)}</span>
+          </div>
+          <section className="report-print-cover" aria-hidden="true">
+            <CompanyLogo className="report-print-logo" />
+            <div className="report-print-title">
+              <span>FINANČNÍ REPORT</span>
+              <h1>Report pohledávek</h1>
+              <p>{companyName}</p>
+            </div>
+            <dl className="report-print-meta">
+              <div><dt>Období</dt><dd>{printPeriod}</dd></div>
+              <div><dt>Období podle</dt><dd>{dateBasisNames[dateBasis]}</dd></div>
+              <div><dt>Měna</dt><dd>{currency}</dd></div>
+              <div><dt>Stav</dt><dd>{selectedStatus}</dd></div>
+              <div className="wide"><dt>Odběratel</dt><dd>{selectedCustomer}</dd></div>
+              <div><dt>Vytvořeno</dt><dd>{displayDateTime(generatedAt)}</dd></div>
+            </dl>
+          </section>
           <section className="report-metrics">
             <article>
               <span>Vystaveno</span>
@@ -286,7 +336,7 @@ export default function ReportsPage() {
                 </div>
               </div>
             </section>
-            <section className="page-panel analytics-card">
+            <section className="page-panel analytics-card report-aging-card">
               <header>
                 <div>
                   <h2>Stáří pohledávek</h2>
@@ -324,6 +374,7 @@ export default function ReportsPage() {
               <div className="debtor-table">
                 <table>
                   <thead>
+                    <tr className="report-print-table-spacer" aria-hidden="true"><th colSpan={5} /></tr>
                     <tr>
                       <th>Odběratel</th>
                       <th>Otevřené faktury</th>
@@ -347,6 +398,9 @@ export default function ReportsPage() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="report-print-table-footer" aria-hidden="true">
+                    <tr><td colSpan={5} /></tr>
+                  </tfoot>
                 </table>
                 {!report.debtors.length && (
                   <p className="empty-box">
