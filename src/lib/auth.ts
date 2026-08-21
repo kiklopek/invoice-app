@@ -4,6 +4,7 @@ import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
 import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
+export { canManageInvoices } from "@/lib/role-access";
 
 type IdentityOptions = { requireMfa?: boolean };
 
@@ -62,8 +63,4 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
 
   if (!membership) return null;
   return { user: data.user, membership, service, sessionId };
-}
-
-export function canManageInvoices(role: string) {
-  return role === "accounting" || role === "admin";
 }

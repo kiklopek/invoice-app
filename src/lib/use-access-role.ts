@@ -3,37 +3,48 @@
 import { useEffect, useState } from "react";
 import { isAccessRole, type AccessRole } from "@/lib/role-access";
 
-let cachedRole: AccessRole | null = null;
-let pendingRole: Promise<AccessRole | null> | null = null;
+export type AccessProfile = {
+  role: AccessRole;
+  name: string;
+  email: string;
+};
 
-function loadRole() {
-  if (!pendingRole) {
-    pendingRole = fetch("/api/auth/access", { method: "POST" })
+let cachedProfile: AccessProfile | null = null;
+let pendingProfile: Promise<AccessProfile | null> | null = null;
+
+function loadProfile() {
+  if (!pendingProfile) {
+    pendingProfile = fetch("/api/auth/access", { method: "POST" })
       .then(async response => {
         if (!response.ok) return null;
-        const data = await response.json() as { role?: unknown };
-        return isAccessRole(data.role) ? data.role : null;
+        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown };
+        if (!isAccessRole(data.role) || typeof data.name !== "string" || typeof data.email !== "string") return null;
+        return { role: data.role, name: data.name, email: data.email };
       })
       .catch(() => null)
-      .then(role => {
-        cachedRole = role;
-        pendingRole = null;
-        return role;
+      .then(profile => {
+        cachedProfile = profile;
+        pendingProfile = null;
+        return profile;
       });
   }
-  return pendingRole;
+  return pendingProfile;
 }
 
-export function useAccessRole() {
-  const [role, setRole] = useState<AccessRole | null>(cachedRole);
+export function useAccessProfile() {
+  const [profile, setProfile] = useState<AccessProfile | null>(cachedProfile);
 
   useEffect(() => {
     let active = true;
-    void loadRole().then(nextRole => {
-      if (active) setRole(nextRole);
+    void loadProfile().then(nextProfile => {
+      if (active) setProfile(nextProfile);
     });
     return () => { active = false; };
   }, []);
 
-  return role;
+  return profile;
+}
+
+export function useAccessRole() {
+  return useAccessProfile()?.role ?? null;
 }

@@ -6,8 +6,9 @@ import { useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
 import { signOutCurrentSession } from "@/lib/sign-out";
-import { canAccessPage } from "@/lib/role-access";
-import { useAccessRole } from "@/lib/use-access-role";
+import { canAccessPage, landingPageForRole } from "@/lib/role-access";
+import { useAccessProfile } from "@/lib/use-access-role";
+import { profileInitials } from "@/lib/user-display";
 
 const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
@@ -17,17 +18,18 @@ const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/settings", label: "Nastavení", icon: "settings" },
 ];
-const viewerItems = items.filter(item => ["/dashboard", "/reports", "/invoices/archive"].includes(item.href));
+const viewerItems = items.filter(item => item.href === "/invoices");
 
 export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
   const pathname = usePathname();
   const router = useRouter();
-  const role = useAccessRole();
+  const profile = useAccessProfile();
+  const role = profile?.role ?? null;
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (role === "viewer" && !canAccessPage(role, pathname)) router.replace("/dashboard");
+    if (role && !canAccessPage(role, pathname)) router.replace(landingPageForRole(role));
   }, [pathname, role, router]);
 
   async function signOut() {
@@ -44,12 +46,12 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
   }
   return (
     <aside className="sidebar">
-      <Link href="/dashboard" className="brand">
+      <Link href={landingPageForRole(role)} className="brand">
         <CompanyLogo className="sidebar-company-logo" />
       </Link>
       <nav className="sidebar-nav" aria-label="Hlavní navigace">
         <span className="nav-heading">Hlavní nabídka</span>
-        {(role === "accounting" || role === "admin" ? items : viewerItems).map(item => {
+        {(role === "viewer" ? viewerItems : role ? items : []).map(item => {
           const active = pathname === item.href || (
             item.href === "/invoices"
               ? pathname.startsWith("/invoices/") && !pathname.startsWith("/invoices/archive")
@@ -60,7 +62,7 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
       </nav>
       <div className="sidebar-bottom">
         {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}
-        <div className="user-card"><div className="avatar">ÚČ</div><div><strong>Účetní oddělení</strong><small>R. Hlavica s.r.o.</small></div><button type="button" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}><Icon name="logout"/></button></div>
+        <div className="user-card"><div className="avatar">{profile ? profileInitials(profile.name, profile.email) : "…"}</div><div><strong>{profile?.name ?? "Načítám uživatele…"}</strong><small>{profile?.email ?? ""}</small></div><button type="button" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}><Icon name="logout"/></button></div>
       </div>
     </aside>
   );

@@ -3,6 +3,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { isDemoMode } from "@/lib/supabase-server";
 import type { ReminderStage } from "@/types/invoice";
 import { isSameOriginMutation } from "@/lib/request-security";
+import { canAccessOperations } from "@/lib/role-access";
 import { unsupportedTemplateVariables } from "@/lib/reminder-template";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
 import { normalizeReminderDeliverySettings } from "@/lib/reminder-recipients";
@@ -24,7 +25,7 @@ export async function GET() {
   });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-  if (identity.membership.role === "viewer") return NextResponse.json({ error: "Čtenář nemá přístup k nastavení upomínek." }, { status: 403 });
+  if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Čtenář nemá přístup k nastavení upomínek." }, { status: 403 });
 
   const org = identity.membership.organization_id;
   const [policyResult, templatesResult, changeResult] = await Promise.all([

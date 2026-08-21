@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
+import { canManageMembers } from "@/lib/role-access";
 
 const roles = ["viewer", "accounting", "admin"] as const;
 type MemberRole = typeof roles[number];
@@ -33,7 +34,7 @@ function validRole(value: unknown): value is MemberRole {
 async function adminIdentity() {
   const identity = await getRequestIdentity();
   if (!identity) return { error: NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 }) };
-  if (identity.membership.role !== "admin") return { error: NextResponse.json({ error: "Přístupy může měnit pouze administrátor." }, { status: 403 }) };
+  if (!canManageMembers(identity.membership.role)) return { error: NextResponse.json({ error: "Přístupy může měnit pouze administrátor." }, { status: 403 }) };
   return { identity };
 }
 
@@ -41,7 +42,7 @@ export async function GET() {
   if (isDemoMode()) return NextResponse.json({ members: demoMembers, access_events: demoAccessEvents, current_role: "admin" });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-  if (identity.membership.role === "viewer") return NextResponse.json({ error: "Čtenář nemá přístup k nastavení uživatelů." }, { status: 403 });
+  if (!canManageMembers(identity.membership.role)) return NextResponse.json({ error: "Přístupy a jejich historii může zobrazit pouze administrátor." }, { status: 403 });
   const [membersResult, eventsResult] = await Promise.all([
     identity.service.from("organization_members").select("id, email, role, user_id, created_at")
       .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: true }),

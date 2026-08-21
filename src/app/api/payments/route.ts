@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
+import { canAccessOperations } from "@/lib/role-access";
 import { demoInvoices } from "@/lib/demo-data";
 import { validatePaymentRows } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -29,6 +30,7 @@ export async function GET() {
   });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Čtenář nemá přístup ke správě bankovních plateb." }, { status: 403 });
 
   const [{ data, error }, { data: openInvoices, error: invoiceError }] = await Promise.all([
     identity.service.from("bank_payments")

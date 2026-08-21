@@ -73,9 +73,6 @@ export async function GET(request: Request) {
 
     const identity = await getRequestIdentity();
     if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-    if (identity.membership.role === "viewer" && !["closed", "paid", "cancelled"].includes(query.status ?? "")) {
-      return NextResponse.json({ error: "Čtenář má přístup pouze k archivu faktur." }, { status: 403 });
-    }
     const loadPage = async (page: number, size: number) => {
       const { data, error } = await identity.service.rpc("list_invoices_page", {
         target_org: identity.membership.organization_id, actor_user: identity.user.id,
