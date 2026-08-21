@@ -82,6 +82,7 @@ describe("authentication flow", () => {
     expect(recoveryRoute).toContain("service.auth.admin.generateLink");
     expect(recoveryRoute).toContain("if (!membership?.user_id) return neutralResponse()");
     expect(recoveryEmail).toContain('process.env.RESEND_API_KEY');
+    expect(recoveryEmail).toContain('process.env.AUTH_EMAIL_DELIVERY_ENABLED === "false"');
     expect(recoveryEmail).toContain('Splatno <prihlaseni@splatno.cz>');
     expect(tokenRoute).toContain('type: "recovery"');
     expect(tokenRoute).toContain("supabase.auth.verifyOtp");

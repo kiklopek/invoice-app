@@ -19,6 +19,7 @@ export function getPasswordRecoveryBaseUrl() {
 }
 
 export function getPasswordRecoveryConfiguration() {
+  if (process.env.AUTH_EMAIL_DELIVERY_ENABLED === "false") return null;
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) return null;
   return { apiKey, from: process.env.AUTH_EMAIL_FROM?.trim() || DEFAULT_AUTH_FROM };
