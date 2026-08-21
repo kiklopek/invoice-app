@@ -1178,6 +1178,7 @@ th,
   .mobile-disclosure.is-open .mobile-disclosure-content { display: block; }
   .mobile-filter-disclosure .filter-panel,
   .mobile-filter-disclosure .report-filters { margin-bottom: 0; }
+  .access-history-disclosure { margin-top: 16px; }
 
   .metrics, .report-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));

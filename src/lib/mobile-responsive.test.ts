@@ -43,6 +43,7 @@ describe("mobile application layout", () => {
     expect(disclosure).toContain('aria-controls={contentId}');
     expect(disclosure).toContain('type="button"');
     expect(css).toContain(".mobile-disclosure.is-open .mobile-disclosure-content");
+    expect(css).toContain(".access-history-disclosure { margin-top: 16px; }");
   });
 
   it("gives role and reminder selects a full-width mobile layout", () => {
