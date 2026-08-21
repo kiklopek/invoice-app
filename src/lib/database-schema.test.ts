@@ -14,6 +14,7 @@ const invoiceArchiveMigration = readFileSync(join(process.cwd(), "supabase", "mi
 const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808182712_add_invoice_vat_amounts.sql"), "utf8");
 const reportLabelEncodingMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808194119_fix_report_label_encoding.sql"), "utf8");
 const memberRoleAuditFixMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260819203652_fix_member_role_audit_variable.sql"), "utf8");
+const memberAuthDeletionMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260821093451_delete_member_auth_account.sql"), "utf8");
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {
@@ -55,7 +56,7 @@ describe("database tenant integrity", () => {
     for (const source of [schema, accessAuditMigration]) {
       expect(source).toContain("create table organization_member_events");
       expect(source).toContain("create or replace function add_organization_member");
-      expect(source.match(/insert into organization_member_events/g)).toHaveLength(3);
+      expect(source.match(/insert into organization_member_events/g)).toHaveLength(source === schema ? 4 : 3);
       expect(source).toContain("cannot_remove_self");
       expect(source).toContain("last_admin");
       expect(source).toContain("actor_email_value");
@@ -68,6 +69,18 @@ describe("database tenant integrity", () => {
       expect(source).toContain("'previous_role', previous_role_value");
       expect(source).not.toMatch(/declare\s+current_role\s+text/i);
     }
+  });
+
+  it("supports complete Auth deletion and a safe membership rollback", () => {
+    for (const source of [schema, memberAuthDeletionMigration]) {
+      expect(source).toContain("select id into auth_user from auth.users");
+      expect(source).toContain("'auth_user_id', auth_user");
+      expect(source).toContain("restore_organization_member_after_auth_delete_failure");
+      expect(source).toContain("references auth.users(id) on delete set null");
+    }
+    expect(memberAuthDeletionMigration.match(/alter column .* drop not null/g)).toHaveLength(3);
+    expect(memberAuthDeletionMigration).toContain("to service_role");
+    expect(memberAuthDeletionMigration).toContain("from public, anon, authenticated");
   });
 
   it("validates and audits reply-to and copy recipients with reminder templates", () => {

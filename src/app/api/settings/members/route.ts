@@ -7,7 +7,17 @@ const roles = ["viewer", "accounting", "admin"] as const;
 type MemberRole = typeof roles[number];
 type AccessEvent = { id: string; actor_email: string; target_email: string; event_type: "added" | "role_changed" | "removed"; previous_role: MemberRole | null; new_role: MemberRole | null; created_at: string };
 type MemberRecord = { id: string; email: string; role: MemberRole; user_id: string | null; created_at: string };
-type MemberMutation = { member?: MemberRecord; event?: AccessEvent; removed?: boolean; id?: string };
+type MemberMutation = {
+  member?: MemberRecord;
+  event?: AccessEvent;
+  removed?: boolean;
+  id?: string;
+  email?: string;
+  previous_role?: MemberRole;
+  member_user_id?: string | null;
+  auth_user_id?: string | null;
+  created_at?: string;
+};
 const demoMembers = [
   { id: "demo-admin", email: "kostihova@hlavica.cz", role: "admin", active: true, current: true, created_at: "2026-01-01T08:00:00Z" },
   { id: "demo-accounting", email: "ucetni@hlavica.cz", role: "accounting", active: false, current: false, created_at: "2026-01-02T08:00:00Z" },
@@ -129,6 +139,32 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Přístup se nepodařilo odebrat." }, { status: 500 });
   }
   const mutation = data as MemberMutation | null;
+  if (!mutation?.removed || !mutation.email || !mutation.previous_role || !mutation.created_at) {
+    return NextResponse.json({ error: "Odebrání přístupu se nepodařilo bezpečně potvrdit." }, { status: 500 });
+  }
+
+  if (mutation.auth_user_id) {
+    const { error: authDeleteError } = await identity.service.auth.admin.deleteUser(mutation.auth_user_id, false);
+    if (authDeleteError) {
+      console.error("Auth user deletion failed", authDeleteError);
+      const { error: restoreError } = await identity.service.rpc("restore_organization_member_after_auth_delete_failure", {
+        target_org: identity.membership.organization_id,
+        target_member: id,
+        target_user: mutation.member_user_id ?? null,
+        target_email: mutation.email,
+        target_role: mutation.previous_role,
+        target_created: mutation.created_at,
+        actor_user: identity.user.id,
+      });
+      if (restoreError) console.error("Member restoration after Auth deletion failure failed", restoreError);
+      return NextResponse.json({
+        error: restoreError
+          ? "Účet se nepodařilo úplně smazat a přístup vyžaduje kontrolu administrátora."
+          : "Přihlašovací účet se nepodařilo smazat, proto byl přístup obnoven. Zkuste odebrání znovu.",
+      }, { status: 500 });
+    }
+  }
+
   const { data: remainingMember, error: confirmationError } = await identity.service
     .from("organization_members")
     .select("id")
@@ -140,5 +176,5 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Odebrání přístupu se nepodařilo bezpečně potvrdit." }, { status: 500 });
   }
   if (remainingMember) return NextResponse.json({ error: "Přístup zůstal aktivní. Zkuste odebrání znovu." }, { status: 500 });
-  return NextResponse.json({ removed: true, access_event: mutation?.event ?? null });
+  return NextResponse.json({ removed: true, auth_account_deleted: Boolean(mutation.auth_user_id), access_event: mutation.event ?? null });
 }

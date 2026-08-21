@@ -19,18 +19,19 @@ describe("authentication flow", () => {
     expect(accessRoute).toContain("isSameOriginMutation(request)");
   });
 
-  it("guides previously removed users back to their existing login", () => {
+  it("deletes removed users and requires a fresh verified registration", () => {
     const register = source("src/app/register/page.tsx");
     const settings = source("src/app/settings/page.tsx");
-    const auth = source("src/lib/auth.ts");
+    const membersRoute = source("src/app/api/settings/members/route.ts");
 
-    expect(register).toContain("Pokud jste tento účet používali už dříve");
-    expect(register).toContain('href="/forgot-password"');
-    expect(register).toContain("Účet nevytvářejte znovu");
-    expect(settings).toContain("Existující uživatel se přihlásí původním heslem");
-    expect(settings).toContain("přihlašovací účet zůstane zachovaný");
-    expect(auth).toContain('.is("user_id", null)');
-    expect(auth).toContain(".update({ user_id: data.user.id, email })");
+    expect(register).toContain("Potvrďte svůj e-mail");
+    expect(register).toContain("data.user.identities.length === 0");
+    expect(register).not.toContain("auth-account-guidance");
+    expect(register).not.toContain("Účet nevytvářejte znovu");
+    expect(settings).toContain("Přihlašovací účet bude smazán");
+    expect(settings).toContain("projít novou registrací a ověřit e-mail");
+    expect(membersRoute).toContain("identity.service.auth.admin.deleteUser(mutation.auth_user_id, false)");
+    expect(membersRoute).toContain('rpc("restore_organization_member_after_auth_delete_failure"');
   });
 
   it("keeps password login behind organization membership verification", () => {
@@ -42,6 +43,7 @@ describe("authentication flow", () => {
     const membersRoute = source("src/app/api/settings/members/route.ts");
     expect(membersRoute).toContain('console.error("Member role confirmation failed"');
     expect(membersRoute).toContain('console.error("Member removal confirmation failed"');
+    expect(membersRoute).toContain('console.error("Auth user deletion failed"');
     expect(membersRoute).toContain('return NextResponse.json({ error: "Přístup zůstal aktivní. Zkuste odebrání znovu." }');
   });
 

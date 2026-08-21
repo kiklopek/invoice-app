@@ -61,6 +61,11 @@ export default function RegisterPage() {
       setSubmitting(false);
       return;
     }
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setError("Přihlašovací účet pro tento e-mail stále existuje. Administrátor musí přístup nejprve odebrat a znovu přidat.");
+      setSubmitting(false);
+      return;
+    }
     if (data.session) {
       const access = await fetch("/api/auth/access", { method: "POST" });
       if (!access.ok) {
@@ -86,16 +91,16 @@ export default function RegisterPage() {
         </header>
         <div className="login-body">
           {sent ? (
-            <div className="login-sent"><Icon name="mail"/><div><strong>Dokončete přístup k účtu</strong><p>Pokud jde o úplně nový účet, na adresu <b>{email}</b> jsme poslali potvrzovací odkaz.</p><p>Pokud jste tento účet používali už dříve, nový e-mail se neposílá. Přihlaste se původním heslem, nebo si nastavte nové.</p><Link href="/login" className="auth-inline-link">Přihlásit se</Link><span aria-hidden="true"> · </span><Link href="/forgot-password" className="auth-inline-link">Obnovit heslo</Link></div></div>
+            <div className="login-sent"><Icon name="mail"/><div><strong>Potvrďte svůj e-mail</strong><p>Na adresu <b>{email}</b> jsme poslali ověřovací odkaz. Otevřete jej a dokončete vytvoření účtu.</p></div></div>
           ) : (
-            <><div className="auth-account-guidance"><strong>Obnovujete dříve odebraný přístup?</strong><span>Účet nevytvářejte znovu. Použijte <Link href="/login">přihlášení</Link> nebo <Link href="/forgot-password">obnovení hesla</Link>.</span></div><form onSubmit={register} className="auth-form">
+            <form onSubmit={register} className="auth-form">
               <label><span>Jméno a příjmení</span><input autoComplete="name" required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
               <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label><span>Heslo</span><input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /><small>Alespoň 12 znaků, velké a malé písmeno a číslo.</small></label>
               <label><span>Heslo znovu</span><input type="password" autoComplete="new-password" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
               <button type="submit" className="btn primary" disabled={submitting}><Icon name="check"/>{submitting ? "Vytvářím účet…" : "Vytvořit účet"}</button>
               {error && <p className="form-error">{error}</p>}
-            </form></>
+            </form>
           )}
           <p className="auth-switch">Už účet máte? <Link href="/login">Přihlásit se</Link></p>
         </div>
