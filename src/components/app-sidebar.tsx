@@ -62,7 +62,16 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
       </nav>
       <div className="sidebar-bottom">
         {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}
-        <div className="user-card"><div className="avatar">{profile ? profileInitials(profile.name, profile.email) : "…"}</div><div><strong>{profile?.name ?? "Načítám uživatele…"}</strong><small>{profile?.email ?? ""}</small></div><button type="button" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}><Icon name="logout"/></button></div>
+        <div className="user-card">
+          <div className="avatar">{profile ? profileInitials(profile.name, profile.email) : "…"}</div>
+          <div className="user-card-details" title={profile ? `${profile.name}\n${profile.email}` : undefined}>
+            <strong>{profile?.name ?? "Načítám uživatele…"}</strong>
+            <small>{profile?.email ?? ""}</small>
+          </div>
+          <button type="button" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}>
+            <Icon name="logout"/><span>{signingOut ? "Odhlašuji…" : "Odhlásit"}</span>
+          </button>
+        </div>
       </div>
     </aside>
   );
