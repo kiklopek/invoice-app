@@ -2,6 +2,7 @@ import { createUserServerClient } from "@/lib/supabase-server";
 import { getRequestIdentity } from "@/lib/auth";
 import { isAllowedCorporateEmail } from "@/lib/auth-policy";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
+import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -19,16 +20,18 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL("/login?error=domain", url.origin));
       }
 
-      const identity = await getRequestIdentity({ requireMfa: false });
+      const identity = await getRequestIdentity({ requireMfa: false, requireLoginSession: false });
       if (!identity) {
         await supabase.auth.signOut();
         return NextResponse.redirect(new URL("/login?error=access", url.origin));
       }
 
       if (next === "/reset-password") {
+        await setLoginSessionPreference(false);
         return NextResponse.redirect(new URL(next, url.origin));
       }
 
+      await setLoginSessionPreference(false);
       const verified = await hasVerifiedEmailMfa({
         email: identity.membership.email,
         userId: identity.user.id,

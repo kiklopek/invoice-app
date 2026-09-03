@@ -3,13 +3,15 @@ import "server-only";
 import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
 import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
+import { hasServerLoginSession } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
 export { canManageInvoices } from "@/lib/role-access";
 
-type IdentityOptions = { requireMfa?: boolean };
+type IdentityOptions = { requireMfa?: boolean; requireLoginSession?: boolean };
 
 export async function getRequestIdentity(options: IdentityOptions = {}) {
-  const { requireMfa = true } = options;
+  const { requireMfa = true, requireLoginSession = true } = options;
+  if (requireLoginSession && !await hasServerLoginSession()) return null;
   const auth = await createUserServerClient();
   const { data, error } = await auth.auth.getUser();
   if (error || !data.user) return null;

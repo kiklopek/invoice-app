@@ -646,6 +646,12 @@ input, select, textarea,
 .auth-form > .btn,
 .auth-wide-button { width: 100%; min-height: 46px; }
 .auth-field-link { margin-top: -6px; text-align: right; }
+.auth-login-options { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: -6px; }
+.auth-login-options > a { flex: none; color: var(--green); font-size: 12px; font-weight: 700; text-decoration: none; }
+.auth-login-options > a:hover { text-decoration: underline; }
+.auth-form .auth-remember { display: inline-flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
+.auth-form .auth-remember input { width: 17px; height: 17px; min-height: 0; margin: 0; accent-color: var(--green); }
+.auth-form .auth-remember > span { margin: 0; color: var(--muted); font-size: 12px; font-weight: 600; }
 .auth-field-link a,
 .auth-switch a,
 .auth-inline-link,
@@ -1451,6 +1457,7 @@ th,
 }
 
 @media (max-width: 520px) {
+  .auth-login-options { align-items: flex-start; flex-direction: column; }
   .content { padding-inline: 11px; }
   .top-actions, .section-header .section-actions { grid-template-columns: 1fr; }
   .invoice-list-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }

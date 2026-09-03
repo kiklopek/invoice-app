@@ -52,13 +52,14 @@ export function createEmailMfaToken(params: {
   sessionId: string;
   secret: string;
   now?: number;
+  ttlSeconds?: number;
 }) {
   const now = params.now ?? Date.now();
   const payload: EmailMfaTokenPayload = {
     v: 1,
     sub: params.userId,
     sid: params.sessionId,
-    exp: Math.floor(now / 1000) + EMAIL_MFA_SESSION_TTL_SECONDS,
+    exp: Math.floor(now / 1000) + (params.ttlSeconds ?? EMAIL_MFA_SESSION_TTL_SECONDS),
   };
   const encoded = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   return `${encoded}.${signature(encoded, params.secret)}`;

@@ -36,7 +36,7 @@ describe("authentication flow", () => {
 
   it("keeps password login behind organization membership verification", () => {
     expect(source("src/app/login/page.tsx")).toContain('fetch("/api/auth/access", { method: "POST" })');
-    expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false })");
+    expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false, requireLoginSession: false })");
   });
 
   it("confirms role changes and removals from the membership table", () => {
@@ -48,9 +48,20 @@ describe("authentication flow", () => {
   });
 
   it("sends password logins through the email verification step", () => {
-    expect(source("src/app/login/page.tsx")).toContain('window.location.assign("/mfa")');
+    const login = source("src/app/login/page.tsx");
+    expect(login).toContain('window.location.assign("/mfa")');
+    expect(login).toContain('fetch("/api/auth/session-preference"');
+    expect(login).toContain("Zapamatovat si mě na 30 dní");
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
+  });
+
+  it("requires an explicit current or remembered login session", () => {
+    const proxy = source("src/proxy.ts");
+    const identity = source("src/lib/auth.ts");
+    expect(proxy).toContain("hasActiveLoginSession(request.cookies)");
+    expect(proxy).toContain('supabase.auth.signOut({ scope: "local" })');
+    expect(identity).toContain("requireLoginSession = true");
   });
 
   it("only accepts the password reset destination in the auth callback", () => {
@@ -100,5 +111,6 @@ describe("authentication flow", () => {
 
   it("clears the email MFA session during logout", () => {
     expect(source("src/app/api/auth/logout/route.ts")).toContain("clearEmailMfaCookie");
+    expect(source("src/app/api/auth/logout/route.ts")).toContain("clearLoginSessionPreference");
   });
 });

@@ -12,6 +12,7 @@ export default function LoginPage() {
   const localDemoMode = !corporateEmailRequired && !hasSupabaseBrowserConfig();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginFailure, setLoginFailure] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +43,16 @@ export default function LoginPage() {
     return false;
   }
 
+  async function saveSessionPreference() {
+    const response = await fetch("/api/auth/session-preference", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ remember }),
+    });
+    return response.ok;
+  }
+
   async function signIn(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -65,6 +76,12 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
+    if (!await saveSessionPreference()) {
+      await supabase.auth.signOut({ scope: "local" });
+      setError("Přihlášení se nepodařilo bezpečně uložit. Zkuste to znovu.");
+      setSubmitting(false);
+      return;
+    }
     window.location.assign("/mfa");
   }
 
@@ -85,7 +102,10 @@ export default function LoginPage() {
               <form onSubmit={signIn} className="auth-form">
                 <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
                 <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
-                <div className="auth-field-link"><Link href="/forgot-password">Obnovit heslo</Link></div>
+                <div className="auth-login-options">
+                  <label className="auth-remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span>Zapamatovat si mě na 30 dní</span></label>
+                  <Link href="/forgot-password">Obnovit heslo</Link>
+                </div>
                 <button type="submit" className="btn primary" disabled={submitting}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
                 {loginFailure && <p className="form-error">E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href="/forgot-password">„Obnovit heslo“</Link>.</p>}
                 {error && <p className="form-error">{error}</p>}

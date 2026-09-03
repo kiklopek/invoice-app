@@ -74,6 +74,18 @@ export default function RegisterPage() {
         setSubmitting(false);
         return;
       }
+      const sessionPreference = await fetch("/api/auth/session-preference", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remember: false }),
+      });
+      if (!sessionPreference.ok) {
+        await supabase.auth.signOut({ scope: "local" });
+        setError("Přihlášení se nepodařilo bezpečně uložit. Přihlaste se prosím znovu.");
+        setSubmitting(false);
+        return;
+      }
       window.location.assign("/mfa");
       return;
     }

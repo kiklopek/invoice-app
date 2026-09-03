@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (isDemoMode()) {
     return NextResponse.json({ allowed: true, role: "admin", name: "Demo administrátor", email: "kostihova@hlavica.cz", companyName: "R. Hlavica s.r.o." });
   }
-  const identity = await getRequestIdentity({ requireMfa: false });
+  const identity = await getRequestIdentity({ requireMfa: false, requireLoginSession: false });
   if (!identity) {
     return NextResponse.json({ error: "Tento účet nemá aktivní přístup do firemní aplikace." }, { status: 403 });
   }

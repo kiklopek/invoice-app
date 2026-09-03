@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Splatno — modrá varianta</title>
+  <desc id="description">Technický symbol faktury v tmavé a světlé modré</desc>
+  <path
+    d="M224 128h368l208 208v304h-80V369L559 208H304v608h336v80H224V128Zm368 0v208h208l-80-80h-48v-48l-80-80ZM384 384h256v72H384v-72Zm0 160h256v72H384v-72Z"
+    fill="#294A57"
+  />
+  <path
+    d="m624 672 64-64 208 208-208 208-64-64 99-99H512v-90h211l-99-99Z"
+    fill="#B9D5D5"
+  />
+</svg>

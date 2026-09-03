@@ -6,9 +6,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/next-clean-env.mjs dev",
+    "build": "node scripts/next-clean-env.mjs build",
+    "start": "node scripts/next-clean-env.mjs start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src",
     "check:mobile": "node scripts/mobile-viewport-check.mjs"

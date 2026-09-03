@@ -7,6 +7,13 @@ import {
   sessionIdFromAccessToken,
   verifyEmailMfaToken,
 } from "@/lib/email-mfa-core";
+import { hasActiveLoginSession } from "@/lib/login-session";
+
+function redirectWithCookies(url: URL, source: NextResponse) {
+  const redirect = NextResponse.redirect(url);
+  source.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
+}
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -69,7 +76,8 @@ export async function proxy(request: NextRequest) {
             name: string;
             value: string;
             options: CookieOptions;
-          }[]
+          }[],
+          headers: Record<string, string>
         ) {
           cookies.forEach(({ name, value }) =>
             request.cookies.set(name, value)
@@ -88,6 +96,8 @@ export async function proxy(request: NextRequest) {
               );
             }
           );
+
+          Object.entries(headers).forEach(([name, value]) => response.headers.set(name, value));
         },
       },
     }
@@ -105,6 +115,7 @@ export async function proxy(request: NextRequest) {
     : { data: { session: null } };
   const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
   const email = user?.email || "";
+  const hasLoginSession = hasActiveLoginSession(request.cookies);
   const hasMfa = Boolean(user && sessionId && (
     isEmailMfaBypassed(email) ||
     verifyEmailMfaToken({
@@ -114,6 +125,19 @@ export async function proxy(request: NextRequest) {
       secret: process.env.EMAIL_MFA_SECRET,
     })
   ));
+
+  // Staré Supabase cookies samy o sobě nestačí. Bez aktivní relace prohlížeče
+  // nebo výslovného „Zapamatovat si mě“ uživatele odhlásíme ještě před MFA.
+  if (user && !hasLoginSession && !pathname.startsWith("/auth/")) {
+    await supabase.auth.signOut({ scope: "local" });
+    response.cookies.set(EMAIL_MFA_COOKIE, "", { path: "/", maxAge: 0 });
+
+    if (pathname === "/login" || pathname === "/register" || pathname === "/forgot-password") {
+      return response;
+    }
+
+    return redirectWithCookies(new URL("/login", request.url), response);
+  }
 
 
   // Veřejné stránky necháme být

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="cs">
+    <html lang="cs" data-scroll-behavior="smooth">
       <body>{children}</body>
     </html>
   );

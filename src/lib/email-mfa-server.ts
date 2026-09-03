@@ -9,6 +9,8 @@ import {
   isEmailMfaBypassed,
   verifyEmailMfaToken,
 } from "@/lib/email-mfa-core";
+import { REMEMBER_LOGIN_TTL_SECONDS } from "@/lib/login-session";
+import { hasRememberedLogin } from "@/lib/login-session-server";
 
 export function requireEmailMfaSecret() {
   const secret = process.env.EMAIL_MFA_SECRET?.trim();
@@ -32,13 +34,15 @@ export async function hasVerifiedEmailMfa(params: {
 }
 
 export async function setVerifiedEmailMfaCookie(userId: string, sessionId: string) {
-  const token = createEmailMfaToken({ userId, sessionId, secret: requireEmailMfaSecret() });
+  const remembered = await hasRememberedLogin();
+  const ttlSeconds = remembered ? REMEMBER_LOGIN_TTL_SECONDS : EMAIL_MFA_SESSION_TTL_SECONDS;
+  const token = createEmailMfaToken({ userId, sessionId, secret: requireEmailMfaSecret(), ttlSeconds });
   (await cookies()).set(EMAIL_MFA_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: EMAIL_MFA_SESSION_TTL_SECONDS,
+    maxAge: ttlSeconds,
     priority: "high",
   });
 }
