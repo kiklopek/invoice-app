@@ -168,7 +168,7 @@ Poté v testovací organizaci proveďte celý scénář: přihlášení, OCR z P
 
 Před přepnutím DNS a zahájením ostrého provozu:
 
-1. spusťte všechny migrace včetně `2026080619_corporate_email_domain.sql`,
+1. ověřte, že Supabase eviduje všech sedm migrací uvedených v `supabase/README.md`,
 2. ověřte, že v `organization_members` nejsou adresy mimo `@hlavica.cz`,
 3. nastavte produkční URL v Supabase Auth a povolený callback,
 4. nastavte všechny tajné proměnné prostředí ve Vercelu,

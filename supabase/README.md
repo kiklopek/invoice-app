@@ -62,27 +62,17 @@ Databáze je víceuživatelská a všechny obchodní záznamy jsou oddělené po
 
 ## Instalace
 
-Pro nový projekt spusťte celý [schema.sql](./schema.sql). U existujícího projektu spouštějte migrace podle názvu vzestupně:
+Pro nový projekt spusťte celý [schema.sql](./schema.sql). Historie migrací v `migrations/` odpovídá verzím evidovaným v propojeném Supabase projektu:
 
-1. `2026080601_invoice_reminder_controls.sql`
-2. `2026080602_invoice_audit_log.sql`
-3. `2026080603_bank_payment_reconciliation.sql`
-4. `2026080604_resend_delivery_tracking.sql`
-5. `2026080605_invoice_ocr.sql`
-6. `2026080606_resend_webhook_race_fix.sql`
-7. `2026080607_atomic_admin_management.sql`
-8. `2026080608_reminder_automation_runs.sql`
-9. `2026080609_atomic_payment_reopen.sql`
-10. `2026080610_paginated_invoice_list.sql`
-11. `2026080611_server_report_aggregation.sql`
-12. `2026080612_dashboard_summary.sql`
-13. `2026080613_tenant_integrity.sql`
-14. `2026080614_reminder_settings_audit.sql`
-15. `2026080615_access_audit.sql`
-16. `2026080616_reminder_delivery_recipients.sql`
-17. `2026080617_single_automation_run.sql`
+1. `20260808125414_initial_invoice_app_schema.sql`
+2. `20260808125802_harden_rls_helper_functions.sql`
+3. `20260808144309_email_mfa_challenges.sql`
+4. `20260808183548_add_invoice_vat_amounts.sql`
+5. `20260808194513_fix_report_label_encoding.sql`
+6. `20260819203652_fix_member_role_audit_variable.sql`
+7. `20260821094121_delete_member_auth_account.sql`
 
-Před migrací 9 zkontrolujte, zda starší verze aplikace už nevytvořila dvě spárované platby pro jednu fakturu:
+Před prvním nasazením počáteční migrace zkontrolujte, zda starší verze aplikace už nevytvořila dvě spárované platby pro jednu fakturu:
 
 ```sql
 select invoice_id, count(*) as pocet, array_agg(external_id order by booked_on) as transakce
@@ -94,7 +84,7 @@ having count(*) > 1;
 
 Pokud dotaz něco vrátí, účetní musí nejprve určit správnou transakci. Migrace záměrně nepokračuje, protože automatický výběr by mohl změnit účetní stav nesprávně.
 
-Před migrací 13 spusťte také tento preflight. Každý počet musí být `0`; migrace záměrně odmítne historicky nekonzistentní data namísto jejich tiché opravy:
+Před prvním nasazením počáteční migrace spusťte také tento preflight. Každý počet musí být `0`; migrace záměrně odmítne historicky nekonzistentní data namísto jejich tiché opravy:
 
 ```sql
 select 'faktura/politika jiné firmy' as kontrola, count(*) as pocet

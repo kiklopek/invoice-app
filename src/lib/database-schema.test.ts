@@ -3,18 +3,18 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const schema = readFileSync(join(process.cwd(), "supabase", "schema.sql"), "utf8");
-const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080613_tenant_integrity.sql"), "utf8");
-const reminderAuditMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080614_reminder_settings_audit.sql"), "utf8");
-const accessAuditMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080615_access_audit.sql"), "utf8");
-const reminderRecipientsMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080616_reminder_delivery_recipients.sql"), "utf8");
-const partialPaymentsMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080618_partial_payments.sql"), "utf8");
-const invoiceDeleteMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080620_safe_invoice_delete.sql"), "utf8");
-const invoicePriorityMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080621_prioritize_open_invoices.sql"), "utf8");
-const invoiceArchiveMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080622_invoice_archive.sql"), "utf8");
-const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808182712_add_invoice_vat_amounts.sql"), "utf8");
-const reportLabelEncodingMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808194119_fix_report_label_encoding.sql"), "utf8");
+const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808125414_initial_invoice_app_schema.sql"), "utf8");
+const reminderAuditMigration = migration;
+const accessAuditMigration = migration;
+const reminderRecipientsMigration = migration;
+const partialPaymentsMigration = migration;
+const invoiceDeleteMigration = migration;
+const invoicePriorityMigration = migration;
+const invoiceArchiveMigration = migration;
+const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808183548_add_invoice_vat_amounts.sql"), "utf8");
+const reportLabelEncodingMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808194513_fix_report_label_encoding.sql"), "utf8");
 const memberRoleAuditFixMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260819203652_fix_member_role_audit_variable.sql"), "utf8");
-const memberAuthDeletionMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260821093451_delete_member_auth_account.sql"), "utf8");
+const memberAuthDeletionMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260821094121_delete_member_auth_account.sql"), "utf8");
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {

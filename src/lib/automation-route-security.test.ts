@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const route = readFileSync(join(process.cwd(), "src", "app", "api", "cron", "check-due", "route.ts"), "utf8");
 const schema = readFileSync(join(process.cwd(), "supabase", "schema.sql"), "utf8");
-const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "2026080617_single_automation_run.sql"), "utf8");
+const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808125414_initial_invoice_app_schema.sql"), "utf8");
 
 describe("manual reminder automation security", () => {
   it("requires same-origin authentication and an accounting role", () => {
