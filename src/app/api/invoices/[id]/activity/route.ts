@@ -3,7 +3,7 @@ import { getRequestIdentity } from "@/lib/auth";
 import { demoInvoices } from "@/lib/demo-data";
 import { isDemoMode } from "@/lib/supabase-server";
 
-export async function GET(_: Request, context: RouteContext<"/api/invoices/[id]/activity">) {
+export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (isDemoMode()) {
     const invoice = demoInvoices.find(item => item.id === id);

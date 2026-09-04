@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { isDemoMode } from "@/lib/supabase-server";
 
-export async function GET(_: Request, context: RouteContext<"/api/invoices/[id]/reminders">) {
+export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (isDemoMode()) {
     return NextResponse.json({ reminders: id === "demo-1" ? [
