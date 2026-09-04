@@ -83,7 +83,9 @@ describe("local OCR document reader", () => {
     const result = await extractInvoiceDocumentText({ bytes: new Uint8Array(image), mime: "image/png", timeoutMs: 20_000 });
     expect(result.ocrUsed).toBe(true);
     expect(result.pagesProcessed).toBe(1);
-    expect(result.text).toContain("FV-2026-007");
+    const normalizedText = result.text.replace(/\s+/g, "");
+    expect(normalizedText).toContain("FV-2026-007");
+    expect(normalizedText).toContain("12100CZK");
   }, 25_000);
 
   it("auto-rotates and recognizes a mobile JPEG with shadows and small invoice text", async () => {
