@@ -8,6 +8,7 @@ export default function MfaPage() {
   const requested = useRef(false);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [codeAvailable, setCodeAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
@@ -17,10 +18,18 @@ export default function MfaPage() {
   const requestCode = useCallback(async (resend = false) => {
     if (resend) setResending(true);
     else setLoading(true);
+    if (!resend) setCodeAvailable(false);
     setError(null);
     try {
       const response = await fetch("/api/auth/email-mfa/send", { method: "POST", credentials: "same-origin" });
-      const data = await response.json().catch(() => ({})) as { error?: string; email?: string; verified?: boolean };
+      const data = await response.json().catch(() => ({})) as {
+        can_verify?: boolean;
+        code?: string;
+        email?: string;
+        error?: string;
+        retry_after?: number;
+        verified?: boolean;
+      };
       if (response.status === 401) {
         window.location.replace("/login");
         return;
@@ -29,11 +38,14 @@ export default function MfaPage() {
         window.location.replace("/dashboard");
         return;
       }
+      if (data.email) setEmail(data.email);
+      if (typeof data.retry_after === "number") setCooldown(Math.max(1, Math.ceil(data.retry_after)));
       if (!response.ok) {
+        setCodeAvailable(data.can_verify === true);
         setError(data.error || "Kód se nepodařilo odeslat.");
         return;
       }
-      setEmail(data.email || "váš firemní e-mail");
+      setCodeAvailable(true);
       setCooldown(60);
     } catch {
       setError("Kód se nepodařilo odeslat. Zkontrolujte připojení.");
@@ -70,11 +82,12 @@ export default function MfaPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
       });
-      const data = await response.json().catch(() => ({})) as { error?: string; verified?: boolean };
+      const data = await response.json().catch(() => ({})) as { code?: string; error?: string; verified?: boolean };
       if (response.ok && data.verified) {
         window.location.replace("/dashboard");
         return;
       }
+      if (data.code === "challenge_expired" || data.code === "challenge_missing") setCodeAvailable(false);
       setError(data.error || "Kód se nepodařilo ověřit.");
       setCode("");
     } catch {
@@ -91,10 +104,14 @@ export default function MfaPage() {
         <div className="login-intro">
           <span>OVĚŘENÍ E-MAILEM</span>
           <h1>Druhé ověření</h1>
-          <p>{loading ? "Odesíláme jednorázový kód…" : `Šestimístný kód jsme poslali na ${email}.`}</p>
+          <p>{loading
+            ? "Odesíláme jednorázový kód…"
+            : codeAvailable
+              ? `Šestimístný kód jsme poslali na ${email || "váš firemní e-mail"}.`
+              : "Ověřovací kód zatím nebyl odeslán."}</p>
         </div>
 
-        {!loading && (
+        {!loading && codeAvailable && (
           <form onSubmit={verify}>
             <label>
               <span>Šestimístný kód</span>

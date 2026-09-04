@@ -61,6 +61,9 @@ describe("authentication flow", () => {
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
+    expect(source("src/app/mfa/page.tsx")).toContain("codeAvailable");
+    expect(source("src/app/api/auth/email-mfa/send/route.ts")).toContain('logError("Email MFA delivery failed"');
+    expect(source("src/app/api/auth/email-mfa/verify/route.ts")).toContain('logError("Email MFA challenge verification failed"');
   });
 
   it("requires an explicit current or remembered login session", () => {

@@ -107,10 +107,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 RESEND_API_KEY=...
 REMINDER_EMAIL_FROM=R. Hlavica <upominky@hlavica.cz>
 AUTH_EMAIL_FROM=Splatno.cz <prihlaseni@splatno.cz>
+AUTH_EMAIL_DELIVERY_ENABLED=true
 RESEND_WEBHOOK_SECRET=...
 EMAIL_MFA_SECRET=nahodny-tajny-retezec-alespon-32-znaku
-# Pouze dočasné testování; před ostrým provozem musí zůstat prázdné.
-EMAIL_MFA_BYPASS_EMAILS=
 APP_BASE_URL=https://VAŠE-DOMÉNA
 # Volitelné; jinak se použije /brand/drevohlavica.png z APP_BASE_URL.
 REMINDER_LOGO_URL=
@@ -132,7 +131,7 @@ CRON_SECRET=dlouhy-nahodny-tajny-retezec
 V režimech `development` a `test` aplikace kvůli lokálnímu testování přijme i platný e-mail mimo `@hlavica.cz`. Produkční sestavení omezení vždy znovu vynutí; uživatel však i při vývoji musí mít odpovídající záznam v `organization_members`.
 
 Pokud při lokálním vývoji není Supabase nakonfigurovaný, aplikace se automaticky spustí v demo režimu: autentizaci přeskočí a API používají ukázková data. Tato větev je podmíněná `NODE_ENV !== "production"`, takže v produkčním sestavení není dostupná.
-- `EMAIL_MFA_BYPASS_EMAILS` je pouze dočasná testovací výjimka a před ostrým provozem musí být prázdná.
+- jedinou výjimkou z e-mailového MFA je potvrzený účet `test-admin@hlavica.cz`, určený pro testování a opravy aplikace; konfigurovatelný seznam výjimek aplikace nepoužívá.
 
 ### 6. Cron a nasazení
 

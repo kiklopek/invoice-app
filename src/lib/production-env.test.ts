@@ -10,6 +10,7 @@ const validProductionEnv = {
   RESEND_API_KEY: "resend",
   REMINDER_EMAIL_FROM: "upominky@splatno.cz",
   AUTH_EMAIL_FROM: "prihlaseni@splatno.cz",
+  AUTH_EMAIL_DELIVERY_ENABLED: "true",
   RESEND_WEBHOOK_SECRET: "webhook",
   EMAIL_MFA_SECRET: "a-secure-secret-with-at-least-32-characters",
   EMAIL_MFA_BYPASS_EMAILS: "",
@@ -26,6 +27,13 @@ describe("production environment validation", () => {
       ...validProductionEnv,
       EMAIL_MFA_BYPASS_EMAILS: "test-admin@hlavica.cz",
     })).toContain("EMAIL_MFA_BYPASS_EMAILS musí být v produkci prázdné.");
+  });
+
+  it("blocks production when authentication e-mail delivery is disabled", () => {
+    expect(validateProductionEnv({
+      ...validProductionEnv,
+      AUTH_EMAIL_DELIVERY_ENABLED: "false",
+    })).toContain("AUTH_EMAIL_DELIVERY_ENABLED musí být v produkci nastavené na true.");
   });
 
   it("does not require production secrets for local development", () => {

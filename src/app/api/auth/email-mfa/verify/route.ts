@@ -4,6 +4,7 @@ import { hashEmailMfaCode, isEmailMfaBypassed } from "@/lib/email-mfa-core";
 import { requireEmailMfaSecret, setVerifiedEmailMfaCookie } from "@/lib/email-mfa-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { apiError } from "@/lib/api-response";
+import { logError, requestId } from "@/lib/structured-log";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) {
@@ -33,13 +34,17 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
   if (challengeError || !challenge) {
+    if (challengeError) {
+      logError("Email MFA challenge lookup failed", challengeError, { request_id: requestId(request) });
+    }
     return apiError(request, "Kód není aktivní. Nechte si poslat nový.", 400, "challenge_missing");
   }
 
   let secret: string;
   try {
     secret = requireEmailMfaSecret();
-  } catch {
+  } catch (error) {
+    logError("Email MFA verification configuration missing", error, { request_id: requestId(request) });
     return apiError(request, "E-mailové ověření není nakonfigurované.", 503, "mfa_unavailable");
   }
   const candidateHash = hashEmailMfaCode({
@@ -55,7 +60,10 @@ export async function POST(request: Request) {
     target_session: identity.sessionId,
     candidate_hash: candidateHash,
   });
-  if (verifyError) return apiError(request, "Kód se nepodařilo ověřit.", 500, "mfa_verification_failed");
+  if (verifyError) {
+    logError("Email MFA challenge verification failed", verifyError, { request_id: requestId(request) });
+    return apiError(request, "Kód se nepodařilo ověřit.", 500, "mfa_verification_failed");
+  }
   if (status !== "verified") {
     const expired = status === "expired" || status === "locked" || status === "not_found";
     return apiError(request,
@@ -65,6 +73,11 @@ export async function POST(request: Request) {
     );
   }
 
-  await setVerifiedEmailMfaCookie(identity.user.id, identity.sessionId);
+  try {
+    await setVerifiedEmailMfaCookie(identity.user.id, identity.sessionId);
+  } catch (error) {
+    logError("Email MFA session cookie creation failed", error, { request_id: requestId(request) });
+    return apiError(request, "Ověření se nepodařilo bezpečně uložit. Přihlaste se znovu.", 503, "mfa_session_failed");
+  }
   return NextResponse.json({ verified: true });
 }

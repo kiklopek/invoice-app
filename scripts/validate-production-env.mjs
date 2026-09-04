@@ -8,6 +8,7 @@ const required = [
   "RESEND_API_KEY",
   "REMINDER_EMAIL_FROM",
   "AUTH_EMAIL_FROM",
+  "AUTH_EMAIL_DELIVERY_ENABLED",
   "RESEND_WEBHOOK_SECRET",
   "EMAIL_MFA_SECRET",
   "CRON_SECRET",
@@ -29,6 +30,9 @@ export function validateProductionEnv(env = process.env) {
   }
   if ((env.CRON_SECRET?.trim().length ?? 0) < 16) {
     errors.push("CRON_SECRET musí mít alespoň 16 znaků.");
+  }
+  if (env.AUTH_EMAIL_DELIVERY_ENABLED?.trim().toLowerCase() !== "true") {
+    errors.push("AUTH_EMAIL_DELIVERY_ENABLED musí být v produkci nastavené na true.");
   }
   try {
     const baseUrl = new URL(env.APP_BASE_URL ?? "");

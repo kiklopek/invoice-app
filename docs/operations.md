@@ -1,6 +1,6 @@
 # Provozní příručka Splatno
 
-Tento dokument doplňuje technické nastavení v `README.md`. Žádný z níže uvedených nouzových postupů nesmí vypnout autentizaci ani obejít e-mailové MFA.
+Tento dokument doplňuje technické nastavení v `README.md`. Žádný z níže uvedených nouzových postupů nesmí vypnout autentizaci ani rozšířit pevnou MFA výjimku pro potvrzený účet `test-admin@hlavica.cz`.
 
 ## Povinná produkční konfigurace
 
@@ -9,19 +9,20 @@ Před každým nasazením spusťte `pnpm validate:env`. Produkční sestavení s
 - chybí některý povinný klíč,
 - `EMAIL_MFA_SECRET`, `CRON_SECRET` nebo webhook secret není dostatečně dlouhý,
 - `APP_BASE_URL` nepoužívá HTTPS,
+- `AUTH_EMAIL_DELIVERY_ENABLED` není nastavené na `true`,
 - `EMAIL_MFA_BYPASS_EMAILS` obsahuje libovolnou hodnotu.
 
 `EMAIL_MFA_SECRET` musí být náhodný tajný řetězec s alespoň 32 znaky a musí být stejný ve všech produkčních instancích. Po jeho změně přestanou platit existující podepsané preference „Zapamatovat si mě“.
 
 ## Výpadek Resendu nebo doručování přihlašovacích kódů
 
-1. Ověřte stav Resendu, domény a poslední události webhooku.
+1. Ověřte stav Resendu, domény a poslední události webhooku. Pro `AUTH_EMAIL_FROM=prihlaseni@splatno.cz` musí být doména `splatno.cz` v Resendu ve stavu `verified` a veřejné DNS musí obsahovat Resendem předepsané SPF/MX a DKIM záznamy.
 2. Nechte aktivní uživatelské relace doběhnout; uživatele zbytečně globálně neodhlašujte.
 3. Pozastavte automatické upomínky v nastavení, pokud nelze garantovat jejich doručení.
 4. Obnovte API klíč nebo DNS/SMTP konfiguraci a proveďte testovací odeslání na interní adresu.
 5. Ověřte nový přihlašovací kód a doručení webhooku před obnovením automatických upomínek.
 
-Nikdy nevyplňujte `EMAIL_MFA_BYPASS_EMAILS` v produkci. Nouzový přístup se řeší opravou doručování nebo návratem na poslední funkční deployment, ne vypnutím druhého kroku přihlášení.
+Legacy proměnnou `EMAIL_MFA_BYPASS_EMAILS` nikdy nevyplňujte. Nouzový přístup se řeší opravou doručování nebo návratem na poslední funkční deployment, ne přidáváním dalších výjimek z druhého kroku přihlášení.
 
 ## Monitoring a upozornění
 
