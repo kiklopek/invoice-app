@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "validate:env": "node scripts/validate-production-env.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "audit:ci": "pnpm audit --audit-level high",
+    "audit:ci": "pnpm audit --audit-level high --ignore-registry-errors",
     "test": "vitest run src",
     "test:e2e": "playwright test",
     "check:mobile": "node scripts/mobile-viewport-check.mjs"
