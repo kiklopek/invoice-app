@@ -18,32 +18,7 @@
   --blue-soft: #e9f0ed;
 }
 
-.tasks-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding: 20px; }
-.tasks-summary > div { display: grid; gap: 4px; }
-.tasks-summary strong { font-size: 20px; color: var(--navy); }
-.tasks-summary p { margin: 0; color: var(--muted); }
-.tasks-summary.has-failures { border-color: #f2cf8e; background: #fffbf2; }
-.tasks-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.task-group { padding: 0; overflow: hidden; }
-.task-group > header { display: flex; justify-content: space-between; gap: 16px; padding: 20px; border-bottom: 1px solid var(--line); }
-.task-group > header h2 { margin: 0 0 4px; font-size: 17px; }
-.task-group > header p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
-.task-group > header > strong { display: grid; place-items: center; min-width: 38px; height: 38px; border-radius: 12px; background: #eef2f6; color: var(--navy); font-size: 18px; }
-.task-group.has-tasks > header > strong { background: #fff0d5; color: #9a5b00; }
-.task-list { display: grid; }
-.task-list > a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
-.task-list > a:hover { background: #f7fafc; }
-.task-list > a span { display: grid; gap: 3px; min-width: 0; }
-.task-list > a strong, .task-list > a small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-list > a small, .tasks-more { color: var(--muted); }
-.task-list > a b { color: var(--green); font-size: 18px; }
-.task-list .page-state { margin: 0; padding: 22px 20px; }
-.tasks-more { padding: 12px 20px; }
-.link-button { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
-
-@media (max-width: 800px) {
-  .tasks-grid { grid-template-columns: 1fr; }
-}
+.today-task-tag { display: inline-flex; align-items: center; width: fit-content; margin: 4px 0 2px; padding: 3px 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: 10px; font-weight: 750; letter-spacing: .025em; text-transform: uppercase; }
 
 *, *::before, *::after { box-sizing: border-box; box-shadow: none !important; }
 html, body { max-width: 100%; min-height: 100%; overflow-x: hidden; }
@@ -1141,7 +1116,7 @@ th,
   }
   .sidebar .sidebar-nav {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     width: 100%;
     min-width: 0;
     overflow: visible;

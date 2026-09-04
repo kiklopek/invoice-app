@@ -13,7 +13,7 @@ test("login page is usable without an authenticated session", async ({ page }) =
   await expect(page.getByLabel("Heslo")).toBeVisible();
 });
 
-test("dashboard and work queue load without browser errors", async ({ page }) => {
+test("dashboard loads without browser errors", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -23,15 +23,12 @@ test("dashboard and work queue load without browser errors", async ({ page }) =>
   await page.goto("/dashboard");
   test.skip(page.url().includes("/login"), "Configured local server requires a real test session");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Přehled pohledávek");
-  await page.goto("/tasks");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Úkoly dnes");
-  await expect(page.getByText("Faktury po splatnosti")).toBeVisible();
   expect(errors).toEqual([]);
 });
 
 test("mobile layout does not overflow horizontally", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Mobile-only viewport assertion");
-  await page.goto("/tasks");
+  await page.goto("/dashboard");
   const sizes = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
   expect(sizes.scroll).toBeLessThanOrEqual(sizes.width + 1);
 });

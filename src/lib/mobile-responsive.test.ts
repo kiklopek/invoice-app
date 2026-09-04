@@ -20,10 +20,10 @@ const czechUiSources = [
 ];
 
 describe("mobile application layout", () => {
-  it("keeps all seven navigation destinations in an equal mobile grid", () => {
-    expect(css).toContain("grid-template-columns: repeat(7, minmax(0, 1fr))");
+  it("keeps all six navigation destinations in an equal mobile grid", () => {
+    expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
     expect(css).toContain("env(safe-area-inset-bottom)");
-    expect(source("src/components/app-sidebar.tsx").match(/href: "\//g)).toHaveLength(7);
+    expect(source("src/components/app-sidebar.tsx").match(/href: "\//g)).toHaveLength(6);
   });
 
   it("uses the agreed mobile breakpoints and touch-safe controls", () => {

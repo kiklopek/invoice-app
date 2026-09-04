@@ -25,6 +25,13 @@ const shortDate = (value: string) =>
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+const isToday = (value: string) => {
+  const date = new Date(value);
+  const today = new Date();
+  return date.getFullYear() === today.getFullYear()
+    && date.getMonth() === today.getMonth()
+    && date.getDate() === today.getDate();
+};
 const statusLabel = {
   pending: "Čeká na úhradu",
   overdue: "Po splatnosti",
@@ -230,6 +237,7 @@ export default function DashboardPage() {
                     </span>
                     <section>
                       <small>{shortDate(invoice.next_reminder_at!)}</small>
+                      {isToday(invoice.next_reminder_at!) ? <span className="today-task-tag">Dnešní úkol</span> : null}
                       <strong>{invoice.counterparty_name}</strong>
                       <p>
                         {invoice.invoice_number} · zbývá{" "}
