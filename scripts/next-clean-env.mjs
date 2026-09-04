@@ -1,8 +1,11 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { assertProductionEnv } from "./validate-production-env.mjs";
 
 const nextBin = fileURLToPath(new URL("../node_modules/next/dist/bin/next", import.meta.url));
 const env = { ...process.env };
+
+assertProductionEnv(env);
 
 // Next.js 16.3 treats any inherited DEBUG value as its internal test mode and
 // prints Turbopack diagnostics. These variables must be opt-in for this app.

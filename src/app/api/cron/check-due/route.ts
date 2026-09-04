@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
-import { createServiceClient, isDemoMode } from "@/lib/supabase-server";
+import { createServiceClient, isDemoMode, nullableRpcString } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { sendReminderEmail } from "@/lib/email";
 import {
@@ -364,7 +364,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
         target_log_id: logId,
         provider_id: result.data?.id ?? null,
         sent_time: sentAt,
-        next_time: decision.nextFuture ? atCronTime(decision.nextFuture.scheduledFor) : null,
+        next_time: nullableRpcString(decision.nextFuture ? atCronTime(decision.nextFuture.scheduledFor) : null),
       });
       if (completionError || !completed) throw new Error("Odeslání se nepodařilo potvrdit v databázi.");
       sent++;

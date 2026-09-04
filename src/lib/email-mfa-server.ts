@@ -34,7 +34,7 @@ export async function hasVerifiedEmailMfa(params: {
 }
 
 export async function setVerifiedEmailMfaCookie(userId: string, sessionId: string) {
-  const remembered = await hasRememberedLogin();
+  const remembered = await hasRememberedLogin({ userId, sessionId });
   const ttlSeconds = remembered ? REMEMBER_LOGIN_TTL_SECONDS : EMAIL_MFA_SESSION_TTL_SECONDS;
   const token = createEmailMfaToken({ userId, sessionId, secret: requireEmailMfaSecret(), ttlSeconds });
   (await cookies()).set(EMAIL_MFA_COOKIE, token, {

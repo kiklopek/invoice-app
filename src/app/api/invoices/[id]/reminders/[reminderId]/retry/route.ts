@@ -3,7 +3,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
 import { buildReminderSchedule, compareDate, hasReminderAttemptBudget, isLatestEligibleReminder, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
+import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
 import { INVOICE_REMINDER_POLICY_STATE_SELECT, reminderDatabaseError } from "@/lib/reminder-automation-query";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
@@ -38,7 +38,7 @@ export async function POST(request: Request, { params }: Context) {
   if (log.status !== "failed") {
     return NextResponse.json({ error: "Znovu lze odeslat pouze neúspěšnou upomínku." }, { status: 409 });
   }
-  if (!hasReminderAttemptBudget(log, MAX_MANUAL_REMINDER_ATTEMPTS)) {
+  if (!hasReminderAttemptBudget({ ...log, status: "failed" }, MAX_MANUAL_REMINDER_ATTEMPTS)) {
     return NextResponse.json({ error: "Upomínka už vyčerpala bezpečný limit pokusů. Zkontrolujte adresu a kontaktujte odběratele jiným způsobem." }, { status: 409 });
   }
 
@@ -135,7 +135,7 @@ export async function POST(request: Request, { params }: Context) {
       target_log_id: reminderId,
       provider_id: result.data?.id ?? null,
       sent_time: sentAt,
-      next_time: nextFuture ? atCronTime(nextFuture.scheduledFor) : null,
+      next_time: nullableRpcString(nextFuture ? atCronTime(nextFuture.scheduledFor) : null),
     });
     if (completionError || !completed) throw new Error("Odeslání se nepodařilo potvrdit v databázi.");
     return NextResponse.json({

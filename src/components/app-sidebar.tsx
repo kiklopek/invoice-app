@@ -11,6 +11,7 @@ import { useAccessProfile } from "@/lib/use-access-role";
 import { profileInitials } from "@/lib/user-display";
 
 const items: { href: string; label: string; icon: IconName }[] = [
+  { href: "/tasks", label: "Úkoly dnes", icon: "alert" },
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
   { href: "/invoices", label: "Faktury", icon: "invoice" },
   { href: "/reports", label: "Reporty", icon: "chart" },

@@ -48,7 +48,7 @@ export async function GET(request: Request) {
   const common = {
     target_org: identity.membership.organization_id, actor_user: identity.user.id,
     report_from: query.from, report_to: query.to, date_basis: query.dateBasis,
-    currency_filter: query.currency, status_filter: query.status, customer_filter: query.customer,
+    currency_filter: query.currency, status_filter: query.status ?? undefined, customer_filter: query.customer ?? undefined,
   };
   if (!wantsCsv) {
     const { data, error } = await identity.service.rpc("invoice_report_summary", { ...common, as_of_date: todayInTimeZone() });

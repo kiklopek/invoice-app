@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
 import { logPasswordRecoveryError } from "@/lib/password-recovery-server";
+import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
 
@@ -29,6 +30,12 @@ export async function GET(request: Request) {
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL("/login?error=access", requestUrl.origin));
   }
-  await setLoginSessionPreference(false);
+  const { data: sessionData } = await supabase.auth.getSession();
+  const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
+  if (!sessionId) {
+    await supabase.auth.signOut({ scope: "local" });
+    return NextResponse.redirect(new URL("/forgot-password?error=technical", requestUrl.origin));
+  }
+  await setLoginSessionPreference(false, { userId: data.user.id, sessionId });
   return NextResponse.redirect(new URL("/reset-password", requestUrl.origin));
 }

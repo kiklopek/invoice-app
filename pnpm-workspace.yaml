@@ -1,3 +1,13 @@
+packages:
+  - .
+
+overrides:
+  nanoid@<3.3.18: 3.3.18
+
 allowBuilds:
   tesseract.js: false
   unrs-resolver: true
+
+# CI performs an explicit frozen install. Commands must never mutate dependencies
+# or wait for the registry implicitly.
+verifyDepsBeforeRun: false

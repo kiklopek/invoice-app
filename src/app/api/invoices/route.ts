@@ -4,7 +4,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import {
   isDemoMode,
 } from "@/lib/supabase-server";
-import type { Invoice, InvoiceInput } from "@/types/invoice";
+import type { Invoice } from "@/types/invoice";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -76,8 +76,8 @@ export async function GET(request: Request) {
     const loadPage = async (page: number, size: number) => {
       const { data, error } = await identity.service.rpc("list_invoices_page", {
         target_org: identity.membership.organization_id, actor_user: identity.user.id,
-        search_query: query.query || null, status_filter: query.status, currency_filter: query.currency,
-        issue_from: query.from, issue_to: query.to, page_number: page, page_size: size,
+        search_query: query.query || undefined, status_filter: query.status ?? undefined, currency_filter: query.currency ?? undefined,
+        issue_from: query.from ?? undefined, issue_to: query.to ?? undefined, page_number: page, page_size: size,
       });
       return { data: data as InvoicePageResult | null, error };
     };

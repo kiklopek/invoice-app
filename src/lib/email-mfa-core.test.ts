@@ -33,6 +33,14 @@ describe("email MFA", () => {
     expect(isEmailMfaBypassed("admin@hlavica.cz", "test-admin@hlavica.cz")).toBe(false);
   });
 
+  it("never permits the temporary bypass in production", () => {
+    expect(isEmailMfaBypassed(
+      "test-admin@hlavica.cz",
+      "test-admin@hlavica.cz",
+      { nodeEnv: "production", vercelEnv: undefined },
+    )).toBe(false);
+  });
+
   it("extracts the stable session id and masks email output", () => {
     const payload = Buffer.from(JSON.stringify({ session_id: sessionId })).toString("base64url");
     expect(sessionIdFromAccessToken(`header.${payload}.signature`)).toBe(sessionId);

@@ -17,6 +17,7 @@ describe("authentication flow", () => {
     expect(accessRoute).toContain('.from("organization_members")');
     expect(accessRoute).toContain('.eq("email", email)');
     expect(accessRoute).toContain("isSameOriginMutation(request)");
+    expect(accessRoute).toContain("consumePublicAuthLimit");
   });
 
   it("deletes removed users and requires a fresh verified registration", () => {
@@ -59,7 +60,8 @@ describe("authentication flow", () => {
   it("requires an explicit current or remembered login session", () => {
     const proxy = source("src/proxy.ts");
     const identity = source("src/lib/auth.ts");
-    expect(proxy).toContain("hasActiveLoginSession(request.cookies)");
+    expect(proxy).toContain("hasActiveLoginSession(request.cookies, {");
+    expect(proxy).toContain("sessionId,");
     expect(proxy).toContain('supabase.auth.signOut({ scope: "local" })');
     expect(identity).toContain("requireLoginSession = true");
   });
@@ -89,6 +91,8 @@ describe("authentication flow", () => {
     expect(forgotPassword).toContain('reason === "expired"');
     expect(forgotPassword).toContain('reason === "technical"');
     expect(recoveryRoute).toContain("isSameOriginMutation(request)");
+    expect(recoveryRoute).toContain("consumePublicAuthLimit");
+    expect(recoveryRoute).toContain("apiError(");
     expect(recoveryRoute).toContain('.from("organization_members")');
     expect(recoveryRoute).toContain("service.auth.admin.generateLink");
     expect(recoveryRoute).toContain("if (!membership?.user_id) return neutralResponse()");

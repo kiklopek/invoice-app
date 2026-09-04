@@ -18,6 +18,33 @@
   --blue-soft: #e9f0ed;
 }
 
+.tasks-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding: 20px; }
+.tasks-summary > div { display: grid; gap: 4px; }
+.tasks-summary strong { font-size: 20px; color: var(--navy); }
+.tasks-summary p { margin: 0; color: var(--muted); }
+.tasks-summary.has-failures { border-color: #f2cf8e; background: #fffbf2; }
+.tasks-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.task-group { padding: 0; overflow: hidden; }
+.task-group > header { display: flex; justify-content: space-between; gap: 16px; padding: 20px; border-bottom: 1px solid var(--line); }
+.task-group > header h2 { margin: 0 0 4px; font-size: 17px; }
+.task-group > header p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.task-group > header > strong { display: grid; place-items: center; min-width: 38px; height: 38px; border-radius: 12px; background: #eef2f6; color: var(--navy); font-size: 18px; }
+.task-group.has-tasks > header > strong { background: #fff0d5; color: #9a5b00; }
+.task-list { display: grid; }
+.task-list > a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
+.task-list > a:hover { background: #f7fafc; }
+.task-list > a span { display: grid; gap: 3px; min-width: 0; }
+.task-list > a strong, .task-list > a small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-list > a small, .tasks-more { color: var(--muted); }
+.task-list > a b { color: var(--green); font-size: 18px; }
+.task-list .page-state { margin: 0; padding: 22px 20px; }
+.tasks-more { padding: 12px 20px; }
+.link-button { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
+
+@media (max-width: 800px) {
+  .tasks-grid { grid-template-columns: 1fr; }
+}
+
 *, *::before, *::after { box-sizing: border-box; box-shadow: none !important; }
 html, body { max-width: 100%; min-height: 100%; overflow-x: hidden; }
 html { background: var(--canvas); }
@@ -190,6 +217,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .btn.secondary:hover:not(:disabled) { background: #f4f6f3; border-color: #aebbb2; }
 .btn.danger { background: #b84336; border-color: #b84336; color: #fff; }
 .btn.danger:hover:not(:disabled) { background: #98352b; border-color: #98352b; }
+.confirm-dialog { width: min(92vw, 520px); padding: 0; border: 0; border-radius: 18px; box-shadow: 0 24px 80px rgb(20 35 50 / 28%); color: var(--navy); }
+.confirm-dialog::backdrop { background: rgb(11 24 36 / 58%); backdrop-filter: blur(2px); }
+.confirm-dialog > div { padding: 24px; }
+.confirm-dialog h2 { margin: 0 0 10px; font-size: 20px; }
+.confirm-dialog p { margin: 0; color: var(--muted); line-height: 1.55; }
+.confirm-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.session-security { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; padding: 20px; }
+.session-security h2 { margin: 0 0 5px; font-size: 17px; }
+.session-security p { margin: 0; color: var(--muted); }
+@media (max-width: 640px) { .session-security { align-items: stretch; flex-direction: column; } }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 input, select, textarea,
@@ -1104,7 +1141,7 @@ th,
   }
   .sidebar .sidebar-nav {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     width: 100%;
     min-width: 0;
     overflow: visible;
@@ -1823,4 +1860,36 @@ th,
   }
 
   .red-text { color: #9f352d !important; }
+}
+/* Shared fallback states are intentionally independent of page-specific layout. */
+.app-error-page,
+.app-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f6f7f3;
+}
+
+.app-error-card {
+  width: min(100%, 560px);
+  padding: 32px;
+  border: 1px solid #dfe4dc;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgb(24 43 31 / 10%);
+}
+
+.app-error-card small {
+  display: block;
+  margin-top: 20px;
+  color: #657067;
+}
+
+.app-loading {
+  align-content: center;
+  grid-auto-flow: column;
+  gap: 12px;
+  color: #315b40;
+  font-weight: 700;
 }

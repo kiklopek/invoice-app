@@ -27,11 +27,11 @@ export async function GET(request: Request) {
       }
 
       if (next === "/reset-password") {
-        await setLoginSessionPreference(false);
+        await setLoginSessionPreference(false, { userId: identity.user.id, sessionId: identity.sessionId });
         return NextResponse.redirect(new URL(next, url.origin));
       }
 
-      await setLoginSessionPreference(false);
+      await setLoginSessionPreference(false, { userId: identity.user.id, sessionId: identity.sessionId });
       const verified = await hasVerifiedEmailMfa({
         email: identity.membership.email,
         userId: identity.user.id,

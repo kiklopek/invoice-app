@@ -8,3 +8,5 @@ node_modules
 /*.png
 .artifacts/
 supabase/.temp/
+test-results/
+playwright-report/

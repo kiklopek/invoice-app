@@ -38,7 +38,7 @@ export async function GET() {
   const policy = policyResult.data;
   const templates = templatesResult.data;
   const merged = templatesWithDeliveryDefaults();
-  for (const template of templates ?? []) if (stages.includes(template.stage)) merged[template.stage as ReminderStage] = {
+  for (const template of templates ?? []) if (stages.includes(template.stage as ReminderStage)) merged[template.stage as ReminderStage] = {
     subject: template.subject,
     body: template.body,
     reply_to: template.reply_to ?? null,

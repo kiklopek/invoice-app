@@ -2,10 +2,10 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import {
-  LOGIN_COOKIE_VALUE,
   LOGIN_SESSION_COOKIE,
   REMEMBER_LOGIN_COOKIE,
   REMEMBER_LOGIN_TTL_SECONDS,
+  createLoginSessionToken,
   hasActiveLoginSession,
   isRememberedLogin,
 } from "@/lib/login-session";
@@ -18,11 +18,23 @@ const baseOptions = {
   priority: "high" as const,
 };
 
-export async function setLoginSessionPreference(remember: boolean) {
+type SessionIdentity = { userId: string; sessionId: string };
+
+function token(identity: SessionIdentity, remember: boolean) {
+  return createLoginSessionToken({
+    ...identity,
+    remember,
+    secret: process.env.EMAIL_MFA_SECRET,
+  });
+}
+
+export async function setLoginSessionPreference(remember: boolean, identity: SessionIdentity) {
   const cookieStore = await cookies();
 
-  cookieStore.set(LOGIN_SESSION_COOKIE, LOGIN_COOKIE_VALUE, baseOptions);
-  cookieStore.set(REMEMBER_LOGIN_COOKIE, remember ? LOGIN_COOKIE_VALUE : "", {
+  // Deliberately omit Max-Age: without "remember me" this is a browser-session
+  // cookie and disappears when the browser session is closed.
+  cookieStore.set(LOGIN_SESSION_COOKIE, token(identity, false), baseOptions);
+  cookieStore.set(REMEMBER_LOGIN_COOKIE, remember ? token(identity, true) : "", {
     ...baseOptions,
     maxAge: remember ? REMEMBER_LOGIN_TTL_SECONDS : 0,
   });
@@ -34,10 +46,16 @@ export async function clearLoginSessionPreference() {
   cookieStore.set(REMEMBER_LOGIN_COOKIE, "", { ...baseOptions, maxAge: 0 });
 }
 
-export async function hasServerLoginSession() {
-  return hasActiveLoginSession(await cookies());
+export async function hasServerLoginSession(identity: SessionIdentity) {
+  return hasActiveLoginSession(await cookies(), {
+    ...identity,
+    secret: process.env.EMAIL_MFA_SECRET,
+  });
 }
 
-export async function hasRememberedLogin() {
-  return isRememberedLogin(await cookies());
+export async function hasRememberedLogin(identity: SessionIdentity) {
+  return isRememberedLogin(await cookies(), {
+    ...identity,
+    secret: process.env.EMAIL_MFA_SECRET,
+  });
 }

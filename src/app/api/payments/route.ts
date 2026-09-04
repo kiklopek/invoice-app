@@ -5,6 +5,7 @@ import { demoInvoices } from "@/lib/demo-data";
 import { validatePaymentRows } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
+import type { Json } from "@/types/database";
 
 type ImportResult = {
   external_id: string;
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
   const { data, error } = await identity.service.rpc("import_and_reconcile_bank_payments", {
     target_org: identity.membership.organization_id,
     actor_user: identity.user.id,
-    payment_rows: payments,
+    payment_rows: payments as unknown as Json,
   });
   if (error) return NextResponse.json({ error: "Platby se nepodařilo bezpečně importovat. Zkontrolujte formát a databázovou migraci." }, { status: 500 });
   return NextResponse.json(data, { status: 201 });

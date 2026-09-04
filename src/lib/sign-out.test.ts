@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase-browser", () => ({
   createClient: () => ({ auth: { signOut: mocks.browserSignOut } }),
 }));
 
-import { signOutCurrentSession } from "./sign-out";
+import { signOutAllSessions, signOutCurrentSession } from "./sign-out";
 
 describe("signOutCurrentSession", () => {
   beforeEach(() => {
@@ -45,5 +45,23 @@ describe("signOutCurrentSession", () => {
     mocks.browserSignOut.mockResolvedValue({ error: new Error("auth failed") });
 
     await expect(signOutCurrentSession()).rejects.toThrow("Odhlášení se nepodařilo");
+  });
+  it("requests global revocation for every user session", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+
+    await signOutAllSessions();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scope: "global" }),
+    });
+  });
+
+  it("reports a global revocation failure", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
+
+    await expect(signOutAllSessions()).rejects.toThrow();
   });
 });

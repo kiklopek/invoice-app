@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { parseResendDeliveryEvent } from "@/lib/resend-webhook";
-import { createServiceClient } from "@/lib/supabase-server";
+import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 const MAX_WEBHOOK_BYTES = 128 * 1024;
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     webhook_event_type: event.type,
     message_id: event.emailId,
     event_time: event.createdAt,
-    event_error: event.error,
+    event_error: nullableRpcString(event.error),
   });
   if (error) return NextResponse.json({ error: "Událost se nepodařilo bezpečně uložit." }, { status: 500 });
   const result = data && typeof data === "object" ? data as { matched?: boolean; duplicate?: boolean } : null;
@@ -55,5 +55,5 @@ export async function POST(request: Request) {
   if (result?.matched === false && Date.now() - Date.parse(event.createdAt) < 5 * 60_000) {
     return NextResponse.json({ error: "Odeslání ještě není připravené ke spárování." }, { status: 503 });
   }
-  return NextResponse.json({ received: true, ...data });
+  return NextResponse.json({ received: true, ...(result ?? {}) });
 }

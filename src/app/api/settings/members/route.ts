@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
+import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
 import { canManageMembers } from "@/lib/role-access";
 
 const roles = ["viewer", "accounting", "admin"] as const;
@@ -151,7 +151,7 @@ export async function DELETE(request: Request) {
       const { error: restoreError } = await identity.service.rpc("restore_organization_member_after_auth_delete_failure", {
         target_org: identity.membership.organization_id,
         target_member: id,
-        target_user: mutation.member_user_id ?? null,
+        target_user: nullableRpcString(mutation.member_user_id ?? null),
         target_email: mutation.email,
         target_role: mutation.previous_role,
         target_created: mutation.created_at,

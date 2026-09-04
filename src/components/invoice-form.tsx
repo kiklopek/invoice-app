@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { InvoiceInput } from "@/types/invoice";
 import { todayInTimeZone } from "@/lib/reminders";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
+import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 export const createEmptyInvoice = (): InvoiceInput => ({
   invoice_number: "",
@@ -33,23 +34,25 @@ export function InvoiceForm({
 }) {
   const [form, setForm] = useState<InvoiceInput>(initial ?? createEmptyInvoice());
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
-  const field = (key: keyof InvoiceInput, value: string | number) => setForm(current => ({ ...current, [key]: value }));
-  const setNetAmount = (value: number) => setForm(current => ({
+  useUnsavedChanges(dirty && !saving);
+  const field = (key: keyof InvoiceInput, value: string | number) => { setDirty(true); setForm(current => ({ ...current, [key]: value })); };
+  const setNetAmount = (value: number) => { setDirty(true); setForm(current => ({
     ...current,
     amount_without_vat: value,
     amount: grossFromNet(value, current.vat_rate),
-  }));
-  const setGrossAmount = (value: number) => setForm(current => ({
+  })); };
+  const setGrossAmount = (value: number) => { setDirty(true); setForm(current => ({
     ...current,
     amount: value,
     amount_without_vat: netFromGross(value, current.vat_rate),
-  }));
-  const setVatRate = (value: number) => setForm(current => ({
+  })); };
+  const setVatRate = (value: number) => { setDirty(true); setForm(current => ({
     ...current,
     vat_rate: value,
     amount: grossFromNet(current.amount_without_vat, value),
-  }));
+  })); };
 
   useEffect(() => {
     setForm(current => current.issue_date ? current : { ...current, issue_date: todayInTimeZone() });
@@ -57,8 +60,8 @@ export function InvoiceForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setSaving(true); setError("");
-    try { await onSubmit(form); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Fakturu se nepodařilo uložit."); }
+    try { setDirty(false); await onSubmit(form); }
+    catch (cause) { setDirty(true); setError(cause instanceof Error ? cause.message : "Fakturu se nepodařilo uložit."); }
     finally { setSaving(false); }
   }
 

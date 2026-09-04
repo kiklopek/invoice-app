@@ -3,17 +3,18 @@ import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
 import { displayName } from "@/lib/user-display";
+import { apiError } from "@/lib/api-response";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) {
-    return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
+    return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   }
   if (isDemoMode()) {
     return NextResponse.json({ allowed: true, role: "admin", name: "Demo administrátor", email: "kostihova@hlavica.cz", companyName: "R. Hlavica s.r.o." });
   }
   const identity = await getRequestIdentity({ requireMfa: false, requireLoginSession: false });
   if (!identity) {
-    return NextResponse.json({ error: "Tento účet nemá aktivní přístup do firemní aplikace." }, { status: 403 });
+    return apiError(request, "Tento účet nemá aktivní přístup do firemní aplikace.", 403, "access_denied");
   }
   const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
   const { data: organization } = await identity.service

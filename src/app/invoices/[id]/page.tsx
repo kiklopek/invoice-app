@@ -7,6 +7,7 @@ import { AppFrame } from "@/components/app-sidebar";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { InvoiceForm } from "@/components/invoice-form";
 import { todayInTimeZone } from "@/lib/reminders";
+import { confirmAction } from "@/lib/confirm-action";
 import type {
   Invoice,
   InvoiceInput,
@@ -216,9 +217,11 @@ export default function InvoiceDetailPage() {
     if (
       status === "pending" &&
       payments.length &&
-      !window.confirm(
-        "Vrátit fakturu mezi neuhrazené? Spárovaná bankovní platba se bezpečně uvolní zpět ke kontrole.",
-      )
+      !await confirmAction({
+        title: "Vrátit fakturu mezi neuhrazené?",
+        description: "Spárovaná bankovní platba se bezpečně uvolní zpět ke kontrole.",
+        confirmLabel: "Vrátit mezi neuhrazené",
+      })
     )
       return;
     setUpdating(true);
@@ -324,9 +327,11 @@ export default function InvoiceDetailPage() {
   }
   async function unassignPayment(payment: BankPayment) {
     if (
-      !window.confirm(
-        "Uvolnit tuto platbu z faktury? Zbývající částka a plán upomínek se automaticky přepočítají.",
-      )
+      !await confirmAction({
+        title: "Uvolnit tuto platbu z faktury?",
+        description: "Zbývající částka a plán upomínek se automaticky přepočítají.",
+        confirmLabel: "Uvolnit platbu",
+      })
     )
       return;
     setUpdating(true);

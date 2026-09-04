@@ -5,13 +5,13 @@ import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { hasServerLoginSession } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
+import { isAccessRole } from "@/lib/role-access";
 export { canManageInvoices } from "@/lib/role-access";
 
 type IdentityOptions = { requireMfa?: boolean; requireLoginSession?: boolean };
 
 export async function getRequestIdentity(options: IdentityOptions = {}) {
   const { requireMfa = true, requireLoginSession = true } = options;
-  if (requireLoginSession && !await hasServerLoginSession()) return null;
   const auth = await createUserServerClient();
   const { data, error } = await auth.auth.getUser();
   if (error || !data.user) return null;
@@ -23,6 +23,8 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
   if (!sessionId) return null;
 
+  if (requireLoginSession && !await hasServerLoginSession({ userId: data.user.id, sessionId })) return null;
+
   if (requireMfa) {
     const verified = await hasVerifiedEmailMfa({
       email,
@@ -32,8 +34,10 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     if (!verified) return null;
   }
 
-  const service = createServiceClient();
-  const { data: boundMembership } = await service
+  // Routine membership reads use the signed-in client so RLS remains the
+  // primary organization boundary. Service role is only needed to claim a
+  // previously invited row whose user_id is still null.
+  const { data: boundMembership } = await auth
     .from("organization_members")
     .select("id, organization_id, role, email")
     .eq("user_id", data.user.id)
@@ -42,6 +46,7 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     .maybeSingle();
 
   let membership = boundMembership;
+  const service = createServiceClient();
   if (!membership) {
     const { data: invitation } = await service
       .from("organization_members")
@@ -63,6 +68,12 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     }
   }
 
-  if (!membership) return null;
-  return { user: data.user, membership, service, sessionId };
+  if (!membership || !isAccessRole(membership.role)) return null;
+  return {
+    user: data.user,
+    membership: { ...membership, role: membership.role },
+    service,
+    userClient: auth,
+    sessionId,
+  };
 }

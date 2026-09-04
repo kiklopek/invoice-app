@@ -8,6 +8,7 @@ import {
   verifyEmailMfaToken,
 } from "@/lib/email-mfa-core";
 import { hasActiveLoginSession } from "@/lib/login-session";
+import type { Database } from "@/types/database";
 
 function redirectWithCookies(url: URL, source: NextResponse) {
   const redirect = NextResponse.redirect(url);
@@ -62,7 +63,7 @@ export async function proxy(request: NextRequest) {
   }
 
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     supabaseUrl,
     supabaseKey,
     {
@@ -115,7 +116,11 @@ export async function proxy(request: NextRequest) {
     : { data: { session: null } };
   const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
   const email = user?.email || "";
-  const hasLoginSession = hasActiveLoginSession(request.cookies);
+  const hasLoginSession = Boolean(user && sessionId && hasActiveLoginSession(request.cookies, {
+    userId: user.id,
+    sessionId,
+    secret: process.env.EMAIL_MFA_SECRET,
+  }));
   const hasMfa = Boolean(user && sessionId && (
     isEmailMfaBypassed(email) ||
     verifyEmailMfaToken({

@@ -6,7 +6,7 @@ import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parsePaymentDate, paymentDateToTimestamp } from "@/lib/payment-validation";
 import { requiresAtomicPaymentReopen } from "@/lib/payment-lifecycle";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
+import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 
 type Context = { params: Promise<{ id: string }> };
@@ -121,7 +121,7 @@ export async function PATCH(request: Request, { params }: Context) {
       target_invoice: id,
       actor_user: identity.user.id,
       new_status: status,
-      next_time: nextReminderAt,
+      next_time: nullableRpcString(nextReminderAt),
     });
     if (reopenError) {
       if (reopenError.message.includes("invoice_not_found")) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });

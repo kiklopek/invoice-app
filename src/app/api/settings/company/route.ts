@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Neplatný požadavek." }, { status: 400 });
   const fields = ["name", "ico", "dic", "registered_address", "operating_address", "data_box_id", "phone", "email", "bank_account_czk", "bank_account_eur"] as const;
-  const company = Object.fromEntries(fields.map(field => [field, typeof body[field] === "string" ? body[field].trim().slice(0, 300) : ""]));
+  const company = Object.fromEntries(fields.map(field => [field, typeof body[field] === "string" ? body[field].trim().slice(0, 300) : ""])) as Record<(typeof fields)[number], string>;
   if (!company.name || !/^\d{8}$/.test(company.ico) || !/^\S+@\S+\.\S+$/.test(company.email)) return NextResponse.json({ error: "Zkontrolujte název, osmimístné IČO a e-mail." }, { status: 400 });
   if (isDemoMode()) return NextResponse.json({ company, saved: true });
   const identity = await getRequestIdentity();

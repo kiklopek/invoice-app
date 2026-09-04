@@ -21,3 +21,13 @@ export async function signOutCurrentSession() {
 
   throw new Error(LOGOUT_ERROR);
 }
+
+export async function signOutAllSessions() {
+  const response = await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ scope: "global" }),
+  });
+  if (!response.ok) throw new Error(LOGOUT_ERROR);
+}

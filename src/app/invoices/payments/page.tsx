@@ -6,6 +6,7 @@ import { AppFrame } from "@/components/app-sidebar";
 import { Icon } from "@/components/icons";
 import { createCsv } from "@/lib/csv";
 import { parsePaymentCsv, type PaymentImportRow } from "@/lib/payment-import";
+import { confirmAction } from "@/lib/confirm-action";
 
 type Result = {
   external_id: string;
@@ -174,9 +175,11 @@ export default function PaymentImportPage() {
 
   async function unassign(payment: SavedPayment) {
     if (
-      !window.confirm(
-        "Uvolnit tuto platbu z faktury? Zůstatek faktury a její upomínky se automaticky přepočítají.",
-      )
+      !await confirmAction({
+        title: "Uvolnit tuto platbu z faktury?",
+        description: "Zůstatek faktury a její upomínky se automaticky přepočítají.",
+        confirmLabel: "Uvolnit platbu",
+      })
     )
       return;
     setWorking(true);
