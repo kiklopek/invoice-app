@@ -67,13 +67,14 @@ export default function RegisterPage() {
       return;
     }
     if (data.session) {
-      const access = await fetch("/api/auth/access", { method: "POST" });
-      if (!access.ok) {
+      const accessResponse = await fetch("/api/auth/access", { method: "POST" });
+      if (!accessResponse.ok) {
         await supabase.auth.signOut();
         setError("Pro tento e-mail není připravená firemní pozvánka. Obraťte se na administrátora.");
         setSubmitting(false);
         return;
       }
+      const access = await accessResponse.json().catch(() => null) as { mfa_bypassed?: unknown } | null;
       const sessionPreference = await fetch("/api/auth/session-preference", {
         method: "POST",
         credentials: "same-origin",
@@ -86,7 +87,7 @@ export default function RegisterPage() {
         setSubmitting(false);
         return;
       }
-      window.location.assign("/mfa");
+      window.location.assign(access?.mfa_bypassed === true ? "/dashboard" : "/mfa");
       return;
     }
     setEmail(normalizedEmail);

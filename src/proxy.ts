@@ -122,7 +122,7 @@ export async function proxy(request: NextRequest) {
     secret: process.env.EMAIL_MFA_SECRET,
   }));
   const hasMfa = Boolean(user && sessionId && (
-    isEmailMfaBypassed(email) ||
+    isEmailMfaBypassed(email, user.email_confirmed_at) ||
     verifyEmailMfaToken({
       token: request.cookies.get(EMAIL_MFA_COOKIE)?.value,
       userId: user.id,

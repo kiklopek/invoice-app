@@ -55,6 +55,9 @@ describe("authentication flow", () => {
     expect(login).toContain('fetch("/api/auth/session-preference"');
     expect(login).toContain("Zapamatovat si mě na 30 dní");
     expect(accessRoute).toContain("mfa_bypassed");
+    expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email, user.email_confirmed_at)");
+    expect(source("src/app/auth/callback/route.ts")).toContain("emailConfirmedAt: identity.user.email_confirmed_at");
+    expect(source("src/app/register/page.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : "/mfa"');
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
