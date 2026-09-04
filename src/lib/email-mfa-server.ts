@@ -12,7 +12,7 @@ import {
 import { REMEMBER_LOGIN_TTL_SECONDS } from "@/lib/login-session";
 import { hasRememberedLogin } from "@/lib/login-session-server";
 
-const DEFAULT_AUTH_FROM = "Splatno <prihlaseni@splatno.cz>";
+const DEFAULT_AUTH_FROM = "Splatno <prihlaseni@mail.splatno.cz>";
 
 type EmailMfaEnvironment = {
   AUTH_EMAIL_DELIVERY_ENABLED?: string;

@@ -17,7 +17,7 @@ describe("email MFA delivery", () => {
   beforeEach(() => {
     resendSend.mockReset();
     vi.stubEnv("AUTH_EMAIL_DELIVERY_ENABLED", "true");
-    vi.stubEnv("AUTH_EMAIL_FROM", "Splatno <prihlaseni@splatno.cz>");
+    vi.stubEnv("AUTH_EMAIL_FROM", "Splatno <prihlaseni@mail.splatno.cz>");
     vi.stubEnv("RESEND_API_KEY", "re_test_key");
   });
 
@@ -31,7 +31,7 @@ describe("email MFA delivery", () => {
   it("uses the dedicated authentication sender with a safe default", () => {
     expect(getEmailMfaConfiguration({ RESEND_API_KEY: " re_key " })).toEqual({
       apiKey: "re_key",
-      from: "Splatno <prihlaseni@splatno.cz>",
+      from: "Splatno <prihlaseni@mail.splatno.cz>",
     });
   });
 
@@ -46,7 +46,7 @@ describe("email MFA delivery", () => {
 
     expect(resendSend).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: "Splatno <prihlaseni@splatno.cz>",
+        from: "Splatno <prihlaseni@mail.splatno.cz>",
         to: "user@hlavica.cz",
         subject: "Přihlašovací kód Splatno.cz",
         text: expect.stringContaining("123456"),

@@ -16,7 +16,7 @@ Před každým nasazením spusťte `pnpm validate:env`. Produkční sestavení s
 
 ## Výpadek Resendu nebo doručování přihlašovacích kódů
 
-1. Ověřte stav Resendu, domény a poslední události webhooku. Pro `AUTH_EMAIL_FROM=prihlaseni@splatno.cz` musí být doména `splatno.cz` v Resendu ve stavu `verified` a veřejné DNS musí obsahovat Resendem předepsané SPF/MX a DKIM záznamy.
+1. Ověřte stav Resendu, domény a poslední události webhooku. Pro `AUTH_EMAIL_FROM=Splatno <prihlaseni@mail.splatno.cz>` musí být doména `mail.splatno.cz` v Resendu ve stavu `verified` a veřejné DNS musí obsahovat Resendem předepsané SPF/MX a DKIM záznamy.
 2. Nechte aktivní uživatelské relace doběhnout; uživatele zbytečně globálně neodhlašujte.
 3. Pozastavte automatické upomínky v nastavení, pokud nelze garantovat jejich doručení.
 4. Obnovte API klíč nebo DNS/SMTP konfiguraci a proveďte testovací odeslání na interní adresu.

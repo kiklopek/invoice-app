@@ -3,7 +3,7 @@ import "server-only";
 import { Resend } from "resend";
 
 const DEFAULT_APP_URL = "https://www.splatno.cz";
-const DEFAULT_AUTH_FROM = "Splatno <prihlaseni@splatno.cz>";
+const DEFAULT_AUTH_FROM = "Splatno <prihlaseni@mail.splatno.cz>";
 
 export function getPasswordRecoveryBaseUrl() {
   const configured = process.env.APP_BASE_URL?.trim();
