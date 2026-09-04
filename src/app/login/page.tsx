@@ -37,10 +37,13 @@ export default function LoginPage() {
 
   async function verifyApplicationAccess() {
     const response = await fetch("/api/auth/access", { method: "POST" });
-    if (response.ok) return true;
+    if (response.ok) {
+      const result = await response.json().catch(() => null) as { mfa_bypassed?: unknown } | null;
+      return { mfaBypassed: result?.mfa_bypassed === true };
+    }
     const supabase = createClient();
     await supabase.auth.signOut();
-    return false;
+    return null;
   }
 
   async function saveSessionPreference() {
@@ -71,7 +74,8 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
-    if (!await verifyApplicationAccess()) {
+    const access = await verifyApplicationAccess();
+    if (!access) {
       setError("Tento účet není pozvaný do firemní aplikace. Obraťte se na administrátora.");
       setSubmitting(false);
       return;
@@ -82,7 +86,7 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
-    window.location.assign("/mfa");
+    window.location.assign(access.mfaBypassed ? "/dashboard" : "/mfa");
   }
 
   return (

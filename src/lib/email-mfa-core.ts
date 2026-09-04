@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const EMAIL_MFA_COOKIE = "splatno-email-mfa";
 export const EMAIL_MFA_CODE_TTL_SECONDS = 10 * 60;
 export const EMAIL_MFA_SESSION_TTL_SECONDS = 12 * 60 * 60;
+export const TRUSTED_EMAIL_MFA_ACCOUNT = "test-admin@hlavica.cz";
 
 type EmailMfaTokenPayload = {
   v: 1;
@@ -29,15 +30,8 @@ export function sessionIdFromAccessToken(accessToken?: string | null) {
   }
 }
 
-export function isEmailMfaBypassed(
-  email: string,
-  configured = process.env.EMAIL_MFA_BYPASS_EMAILS,
-  runtime = { nodeEnv: process.env.NODE_ENV, vercelEnv: process.env.VERCEL_ENV },
-) {
-  if (runtime.nodeEnv === "production" || runtime.vercelEnv === "production") return false;
-  const normalized = email.trim().toLowerCase();
-  if (!normalized || !configured) return false;
-  return configured.split(",").some((candidate) => candidate.trim().toLowerCase() === normalized);
+export function isEmailMfaBypassed(email: string, emailConfirmedAt?: string | null) {
+  return Boolean(emailConfirmedAt) && email.trim().toLowerCase() === TRUSTED_EMAIL_MFA_ACCOUNT;
 }
 
 export function hashEmailMfaCode(params: {

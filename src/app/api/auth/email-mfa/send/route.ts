@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (!identity) return apiError(request, "Nejste přihlášený uživatel.", 401, "unauthorized");
 
   const email = identity.membership.email;
-  if (isEmailMfaBypassed(email)) {
+  if (isEmailMfaBypassed(email, identity.user.email_confirmed_at)) {
     return NextResponse.json({ verified: true, bypassed: true });
   }
 

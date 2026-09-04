@@ -20,10 +20,11 @@ export function requireEmailMfaSecret() {
 
 export async function hasVerifiedEmailMfa(params: {
   email: string;
+  emailConfirmedAt?: string | null;
   userId: string;
   sessionId: string;
 }) {
-  if (isEmailMfaBypassed(params.email)) return true;
+  if (isEmailMfaBypassed(params.email, params.emailConfirmedAt)) return true;
   const token = (await cookies()).get(EMAIL_MFA_COOKIE)?.value;
   return verifyEmailMfaToken({
     token,

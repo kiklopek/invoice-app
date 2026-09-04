@@ -28,17 +28,14 @@ describe("email MFA", () => {
     expect(first).not.toBe(second);
   });
 
-  it("requires an exact normalized email for a temporary bypass", () => {
-    expect(isEmailMfaBypassed(" Test-Admin@Hlavica.cz ", "other@hlavica.cz, test-admin@hlavica.cz")).toBe(true);
-    expect(isEmailMfaBypassed("admin@hlavica.cz", "test-admin@hlavica.cz")).toBe(false);
+  it("permits only the confirmed trusted test account to skip the e-mail code", () => {
+    expect(isEmailMfaBypassed(" Test-Admin@Hlavica.cz ", "2026-09-04T10:00:00.000Z")).toBe(true);
+    expect(isEmailMfaBypassed("test-admin@hlavica.cz", null)).toBe(false);
+    expect(isEmailMfaBypassed("admin@hlavica.cz", "2026-09-04T10:00:00.000Z")).toBe(false);
   });
 
-  it("never permits the temporary bypass in production", () => {
-    expect(isEmailMfaBypassed(
-      "test-admin@hlavica.cz",
-      "test-admin@hlavica.cz",
-      { nodeEnv: "production", vercelEnv: undefined },
-    )).toBe(false);
+  it("does not use a configurable MFA bypass list", () => {
+    expect(isEmailMfaBypassed("test-admin@hlavica.cz", "2026-09-04T10:00:00.000Z")).toBe(true);
   });
 
   it("extracts the stable session id and masks email output", () => {

@@ -4,6 +4,7 @@ import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
 import { displayName } from "@/lib/user-display";
 import { apiError } from "@/lib/api-response";
+import { isEmailMfaBypassed } from "@/lib/email-mfa-core";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) {
@@ -28,5 +29,6 @@ export async function POST(request: Request) {
     name: displayName(identity.user.user_metadata.full_name, email),
     email,
     companyName: organization?.name?.trim() || "Firma",
+    mfa_bypassed: isEmailMfaBypassed(email, identity.user.email_confirmed_at),
   });
 }

@@ -28,6 +28,7 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   if (requireMfa) {
     const verified = await hasVerifiedEmailMfa({
       email,
+      emailConfirmedAt: data.user.email_confirmed_at,
       userId: data.user.id,
       sessionId,
     });

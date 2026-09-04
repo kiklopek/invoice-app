@@ -48,11 +48,14 @@ describe("authentication flow", () => {
     expect(membersRoute).toContain('return NextResponse.json({ error: "Přístup zůstal aktivní. Zkuste odebrání znovu." }');
   });
 
-  it("sends password logins through the email verification step", () => {
+  it("sends ordinary password logins through e-mail verification while the trusted account opens the dashboard", () => {
     const login = source("src/app/login/page.tsx");
-    expect(login).toContain('window.location.assign("/mfa")');
+    const accessRoute = source("src/app/api/auth/access/route.ts");
+    expect(login).toContain('window.location.assign(access.mfaBypassed ? "/dashboard" : "/mfa")');
     expect(login).toContain('fetch("/api/auth/session-preference"');
     expect(login).toContain("Zapamatovat si mě na 30 dní");
+    expect(accessRoute).toContain("mfa_bypassed");
+    expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
   });
