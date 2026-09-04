@@ -2,7 +2,7 @@
   "name": "invoice-reminder-app",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@10.12.4",
   "engines": {
     "node": ">=22"
   },
