@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Filtr faktur: nenalezený text a obnovení seznamu",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Stažení CSV /invoices",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Stažení CSV /invoices/archive",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Stažení CSV /reports",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Nová faktura: povinná pole a přepočet DPH",
+    "status": "selhalo",
+    "detail": "Error: locator.fill: Error: strict mode violation: getByLabel('Částka bez DPH') resolved to 2 elements:\n    1) <input value=\"\" min=\"0.01\" required=\"\" step=\"0.01\" type=\"number\" placeholder=\"0,00\" inputmode=\"decimal\"/> aka getByRole('spinbutton', { name: 'Částka bez DPH *' })\n    2) <input value=\"\" min=\"0.01\" required=\"\" step=\"0.01\" type=\"number\" placeholder=\"0,00\" inputmode=\"decimal\"/> aka getByRole('spinbutton', { name: 'Částka s DPH * Po změně se' })\n\nCall log:\n\u001b[2m  - waiting for getByLabel('Částka bez DPH')\u001b[22m\n"
+  },
+  {
+    "name": "Neuložená faktura: kliknutí na menu a zrušení odchodu",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Neuložená faktura: tlačítko prohlížeče Zpět varuje před ztrátou",
+    "status": "selhalo",
+    "detail": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByRole('dialog')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByRole('dialog')\n"
+  },
+  {
+    "name": "Detail faktury: globální počet v menu zůstává správný",
+    "status": "selhalo",
+    "detail": "Error: expect(locator).toHaveText(expected) failed\n\nLocator:  locator('.sidebar em')\nExpected: \"3\"\nReceived: \"1\"\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.have.text\" with timeout 5000ms\n  - waiting for locator('.sidebar em')\n    14 × locator resolved to <em>1</em>\n       - unexpected value \"1\"\n"
+  },
+  {
+    "name": "Detail: otevření a zrušení potvrzení úhrady",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Detail: zavření potvrzení úhrady klávesou Escape",
+    "status": "selhalo",
+    "detail": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  getByRole('dialog')\nExpected: 0\nReceived: 1\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.have.count\" with timeout 5000ms\n  - waiting for getByRole('dialog')\n    13 × locator resolved to 1 element\n       - unexpected value \"1\"\n"
+  },
+  {
+    "name": "Import: CSV záložka a stažení vzoru",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Platby: stažení vzoru",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Report: předvolby období a tisk",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Upomínky: přidání pravidla a přepnutí šablon",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Nastavení: vlastní účet nelze odebrat; jiný účet lze zrušit v dialogu",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "Nastavení: neplatné firemní údaje zobrazí chybu",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "API 500: přehled zobrazí srozumitelnou chybu a zachová menu",
+    "status": "prošlo",
+    "environment": "local demo; UI only"
+  },
+  {
+    "name": "API 401: přehled přesměruje na přihlášení",
+    "status": "selhalo",
+    "detail": "Error: expect(page).toHaveURL(expected) failed\n\nExpected pattern: /\\/login/\nReceived string:  \"http://localhost:3100/dashboard\"\nTimeout: 5000ms\n\nCall log:\n  - Expect \"to.have.url\" with timeout 5000ms\n    13 × locator resolved to <html lang=\"cs\" data-scroll-behavior=\"smooth\">…</html>\n       - unexpected value \"http://localhost:3100/dashboard\"\n"
+  }
+]

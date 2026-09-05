@@ -1,0 +1,63 @@
+/* Keep Overview at the exact center, including the three-item reader menu. */
+@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+  .sidebar:has(> .mobile-navigation) { overflow: visible; }
+  .sidebar .sidebar-nav.mobile-navigation {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) 56px repeat(6, minmax(0, 1fr));
+    gap: 0;
+    align-items: start;
+  }
+
+  .sidebar .mobile-navigation > a { grid-row: 1; }
+  .sidebar .mobile-navigation > a[href="/invoices"] { grid-column: 1 / 4; }
+  .sidebar .mobile-navigation > a[href="/reports"] { grid-column: 4 / 7; }
+  .sidebar .mobile-navigation > a[href="/invoices/archive"] { grid-column: 8 / 10; }
+  .sidebar .mobile-navigation > a[href="/reminders"] { grid-column: 10 / 12; }
+  .sidebar .mobile-navigation > a[href="/settings"] { grid-column: 12 / 14; }
+
+  .sidebar .mobile-navigation > a.nav-primary {
+    grid-column: 7 / 8;
+    height: 74px;
+    min-height: 74px;
+    padding: 0;
+    gap: 4px;
+    flex-direction: column;
+    justify-content: flex-start;
+    transform: translateY(-19px);
+    background: transparent;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 750;
+    overflow: visible;
+  }
+
+  .sidebar .mobile-navigation > a.nav-primary .nav-symbol {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+    border: 4px solid #17462f;
+    border-radius: 50%;
+    background: #dcebbd;
+    color: #193d2a;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+  }
+
+  .sidebar .mobile-navigation > a.nav-primary .nav-symbol svg {
+    width: 27px;
+    height: 27px;
+  }
+
+  .sidebar .mobile-navigation > a.nav-primary.active .nav-symbol {
+    background: #eff8d7;
+    box-shadow: 0 0 0 2px rgb(220 235 189 / 30%), 0 4px 12px rgb(0 0 0 / 18%);
+  }
+
+  .sidebar .mobile-navigation > a.nav-primary:focus-visible {
+    outline: 2px solid #eff8d7;
+    outline-offset: 3px;
+  }
+
+  .sidebar .mobile-navigation[data-role="viewer"] > a[href="/invoices"] { grid-column: 1 / 7; }
+  .sidebar .mobile-navigation[data-role="viewer"] > a[href="/reports"] { grid-column: 8 / 14; }
+}

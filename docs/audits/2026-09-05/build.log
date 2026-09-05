@@ -1,0 +1,75 @@
+
+> invoice-reminder-app@0.1.0 build
+> node scripts/next-clean-env.mjs build
+
+▲ Next.js 16.3.0 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.js took 62ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.7s
+  Running TypeScript ...
+  Finished TypeScript in 8.6s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/45) ...
+  Generating static pages using 3 workers (11/45)
+  Generating static pages using 3 workers (22/45)
+  Generating static pages using 3 workers (33/45)
+✓ Generating static pages using 3 workers (45/45) in 854ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/access
+├ ƒ /api/auth/email-mfa/send
+├ ƒ /api/auth/email-mfa/verify
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/password-recovery
+├ ƒ /api/auth/registration-access
+├ ƒ /api/auth/session-preference
+├ ƒ /api/cron/check-due
+├ ƒ /api/dashboard
+├ ƒ /api/health
+├ ƒ /api/invoices
+├ ƒ /api/invoices/[id]
+├ ƒ /api/invoices/[id]/activity
+├ ƒ /api/invoices/[id]/reminders
+├ ƒ /api/invoices/[id]/reminders/[reminderId]/retry
+├ ƒ /api/invoices/extract
+├ ƒ /api/invoices/import
+├ ƒ /api/invoices/upload
+├ ƒ /api/invoices/upload/verify
+├ ƒ /api/payments
+├ ƒ /api/reminders
+├ ƒ /api/reports
+├ ƒ /api/settings/company
+├ ƒ /api/settings/members
+├ ƒ /api/settings/reminders
+├ ƒ /api/settings/reminders/test
+├ ƒ /api/webhooks/resend
+├ ○ /apple-icon.png
+├ ƒ /auth/callback
+├ ƒ /auth/recovery
+├ ○ /dashboard
+├ ○ /forgot-password
+├ ○ /icon.png
+├ ○ /invoices
+├ ƒ /invoices/[id]
+├ ○ /invoices/archive
+├ ○ /invoices/import
+├ ○ /invoices/new
+├ ○ /invoices/payments
+├ ○ /login
+├ ○ /mfa
+├ ○ /register
+├ ○ /reminders
+├ ○ /reports
+├ ○ /reset-password
+└ ○ /settings
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

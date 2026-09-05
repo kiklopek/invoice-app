@@ -1,0 +1,248 @@
+[
+  {
+    "file": "src/app/api/auth/access/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/auth/email-mfa/send/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/auth/email-mfa/verify/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/auth/logout/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/auth/password-recovery/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/auth/registration-access/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/auth/session-preference/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/cron/check-due/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/cron/check-due/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/dashboard/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/health/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/extract/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/import/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/upload/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/upload/verify/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/[id]/activity/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/[id]/reminders/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/[id]/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/[id]/route.ts",
+    "method": "PATCH",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/invoices/[id]/route.ts",
+    "method": "DELETE",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/payments/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/payments/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/payments/route.ts",
+    "method": "PATCH",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/payments/route.ts",
+    "method": "DELETE",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/reminders/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/reports/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/company/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/company/route.ts",
+    "method": "PUT",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/members/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/members/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/members/route.ts",
+    "method": "PATCH",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/members/route.ts",
+    "method": "DELETE",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/reminders/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/reminders/route.ts",
+    "method": "PUT",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/settings/reminders/test/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/api/webhooks/resend/route.ts",
+    "method": "POST",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/auth/callback/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  },
+  {
+    "file": "src/app/auth/recovery/route.ts",
+    "method": "GET",
+    "status": "netestováno integračně",
+    "note": "Vybrané neplatné vstupy ověřeny ve follow-up.json; reálná autorizace a zápisy blokované stagingem."
+  }
+]

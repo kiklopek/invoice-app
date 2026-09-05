@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const page = readFileSync(
-  join(process.cwd(), "src", "app", "invoices", "[id]", "page.tsx"),
+  join(process.cwd(), "src", "app", "(workspace)", "invoices", "[id]", "page.tsx"),
   "utf8",
 );
 const css = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");

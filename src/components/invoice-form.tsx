@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { clearInvoiceDraft, readInvoiceDraft, saveInvoiceDraft } from "@/lib/invoice-drafts";
 import type { InvoiceInput } from "@/types/invoice";
 import { todayInTimeZone } from "@/lib/reminders";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
@@ -32,11 +34,17 @@ export function InvoiceForm({
   submitLabel?: string;
   onSubmit: (value: InvoiceInput) => Promise<void>;
 }) {
-  const [form, setForm] = useState<InvoiceInput>(initial ?? createEmptyInvoice());
+  const pathname = usePathname();
+  const draftKey = JSON.stringify([pathname, initial?.file_url ?? "", initial?.invoice_number ?? ""]);
+  const [form, setForm] = useState<InvoiceInput>(() => readInvoiceDraft(draftKey) ?? initial ?? createEmptyInvoice());
   const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(() => Boolean(readInvoiceDraft(draftKey)));
   const [error, setError] = useState("");
-  useUnsavedChanges(dirty && !saving);
+  const discardDraft = useCallback(() => clearInvoiceDraft(draftKey), [draftKey]);
+  useUnsavedChanges(dirty && !saving, discardDraft);
+  useEffect(() => {
+    if (dirty) saveInvoiceDraft(draftKey, form);
+  }, [draftKey, dirty, form]);
   const field = (key: keyof InvoiceInput, value: string | number) => { setDirty(true); setForm(current => ({ ...current, [key]: value })); };
   const setNetAmount = (value: number) => { setDirty(true); setForm(current => ({
     ...current,
@@ -60,7 +68,7 @@ export function InvoiceForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setSaving(true); setError("");
-    try { setDirty(false); await onSubmit(form); }
+    try { setDirty(false); await onSubmit(form); clearInvoiceDraft(draftKey); }
     catch (cause) { setDirty(true); setError(cause instanceof Error ? cause.message : "Fakturu se nepodařilo uložit."); }
     finally { setSaving(false); }
   }

@@ -1,0 +1,5 @@
+
+> invoice-reminder-app@0.1.0 check:migrations
+> node scripts/check-migrations.mjs
+
+Validated 8 Supabase migrations.

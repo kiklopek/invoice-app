@@ -1,0 +1,1306 @@
+[
+  {
+    "file": "src/app/(auth)/forgot-password/page.tsx",
+    "line": 55,
+    "tag": "Link",
+    "source": "<Link href=\"/login\" className=\"auth-inline-link\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/forgot-password/page.tsx",
+    "line": 57,
+    "tag": "form",
+    "source": "<form onSubmit={requestReset} className=\"auth-form\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/forgot-password/page.tsx",
+    "line": 58,
+    "tag": "input",
+    "source": "<input type=\"email\" inputMode=\"email\" autoComplete=\"email\" required placeholder=\"jmeno@hlavica.cz\" value={email} onChange={(event) => setEmail(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/forgot-password/page.tsx",
+    "line": 59,
+    "tag": "button",
+    "source": "<button type=\"submit\" className=\"btn primary\" disabled={submitting}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/forgot-password/page.tsx",
+    "line": 63,
+    "tag": "Link",
+    "source": "<Link href=\"/login\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 102,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn primary\" onClick={() => window.location.assign(\"/dashboard\")}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 106,
+    "tag": "form",
+    "source": "<form onSubmit={signIn} className=\"auth-form\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 107,
+    "tag": "input",
+    "source": "<input type=\"email\" inputMode=\"email\" autoComplete=\"email\" required placeholder=\"jmeno@hlavica.cz\" value={email} onChange={(event) => setEmail(event.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 108,
+    "tag": "input",
+    "source": "<input type=\"password\" autoComplete=\"current-password\" required value={password} onChange={(event) => setPassword(event.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 110,
+    "tag": "input",
+    "source": "<input type=\"checkbox\" checked={remember} onChange={(event) => setRemember(event.target.checked)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 111,
+    "tag": "Link",
+    "source": "<Link href=\"/forgot-password\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 113,
+    "tag": "button",
+    "source": "<button type=\"submit\" className=\"btn primary\" disabled={submitting}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 114,
+    "tag": "Link",
+    "source": "<Link href=\"/forgot-password\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/login/page.tsx",
+    "line": 117,
+    "tag": "Link",
+    "source": "<Link href=\"/register\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/mfa/page.tsx",
+    "line": 115,
+    "tag": "form",
+    "source": "<form onSubmit={verify}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/mfa/page.tsx",
+    "line": 118,
+    "tag": "input",
+    "source": "<input type=\"text\" inputMode=\"numeric\" autoComplete=\"one-time-code\" pattern=\"[0-9]{6}\" maxLength={6} required autoFocus placeholder=\"123456\" value={code} onChange={(event) => setCode(event.target.value.replace(/\\D/g, \"\").slice(0, 6))} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/mfa/page.tsx",
+    "line": 131,
+    "tag": "button",
+    "source": "<button type=\"submit\" className=\"btn primary\" disabled={submitting}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/mfa/page.tsx",
+    "line": 139,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"auth-text-button\" disabled={resending || cooldown > 0} onClick={() => void requestCode(true)} style={{ marginTop: 16 }} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 109,
+    "tag": "form",
+    "source": "<form onSubmit={register} className=\"auth-form\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 110,
+    "tag": "input",
+    "source": "<input autoComplete=\"name\" required value={fullName} onChange={(event) => setFullName(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 111,
+    "tag": "input",
+    "source": "<input type=\"email\" inputMode=\"email\" autoComplete=\"email\" required placeholder=\"jmeno@hlavica.cz\" value={email} onChange={(event) => setEmail(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 112,
+    "tag": "input",
+    "source": "<input type=\"password\" autoComplete=\"new-password\" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 113,
+    "tag": "input",
+    "source": "<input type=\"password\" autoComplete=\"new-password\" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 114,
+    "tag": "button",
+    "source": "<button type=\"submit\" className=\"btn primary\" disabled={submitting}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/register/page.tsx",
+    "line": 118,
+    "tag": "Link",
+    "source": "<Link href=\"/login\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/reset-password/page.tsx",
+    "line": 55,
+    "tag": "form",
+    "source": "<form onSubmit={updatePassword} className=\"auth-form\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/reset-password/page.tsx",
+    "line": 56,
+    "tag": "input",
+    "source": "<input type=\"password\" autoComplete=\"new-password\" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/reset-password/page.tsx",
+    "line": 57,
+    "tag": "input",
+    "source": "<input type=\"password\" autoComplete=\"new-password\" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(auth)/reset-password/page.tsx",
+    "line": 58,
+    "tag": "button",
+    "source": "<button type=\"submit\" className=\"btn primary\" disabled={submitting}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/dashboard/page.tsx",
+    "line": 81,
+    "tag": "Link",
+    "source": "<Link className=\"btn secondary dashboard-document-upload\" href=\"/invoices/import\" >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/dashboard/page.tsx",
+    "line": 88,
+    "tag": "Link",
+    "source": "<Link className=\"btn primary dashboard-add-invoice\" href=\"/invoices/new\" >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/dashboard/page.tsx",
+    "line": 148,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/dashboard/page.tsx",
+    "line": 179,
+    "tag": "Link",
+    "source": "<Link href={`/invoices/${invoice.id}`}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/dashboard/page.tsx",
+    "line": 256,
+    "tag": "Link",
+    "source": "<Link className=\"full-link\" href=\"/reminders\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 112,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" onClick={exportCsv} disabled={!total || exporting}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 124,
+    "tag": "input",
+    "source": "<input value={query} onChange={(event) => changeFilter(() => setQuery(event.target.value))} placeholder=\"Číslo faktury, odběratel, e-mail nebo VS\" />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 128,
+    "tag": "select",
+    "source": "<select value={archiveStatus} onChange={(event) => changeFilter(() => setArchiveStatus(event.target.value as typeof archiveStatus))}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 136,
+    "tag": "select",
+    "source": "<select value={currency} onChange={(event) => changeFilter(() => setCurrency(event.target.value))}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 143,
+    "tag": "input",
+    "source": "<input type=\"date\" value={from} max={to || undefined} onChange={(event) => changeFilter(() => setFrom(event.target.value))} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 147,
+    "tag": "input",
+    "source": "<input type=\"date\" value={to} min={from || undefined} onChange={(event) => changeFilter(() => setTo(event.target.value))} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 186,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={loading || page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/archive/page.tsx",
+    "line": 188,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={loading || page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 142,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices\" className=\"back-link\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 143,
+    "tag": "button",
+    "source": "<button className={mode === \"document\" ? \"active\" : \"\"} onClick={() => setMode(\"document\")}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 143,
+    "tag": "button",
+    "source": "<button className={mode === \"csv\" ? \"active\" : \"\"} onClick={() => setMode(\"csv\")}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 148,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary compact\" disabled={working} onClick={retryOcr}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 148,
+    "tag": "a",
+    "source": "<a className=\"btn secondary compact\" href=\"#manual-invoice-form\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 152,
+    "tag": "input",
+    "source": "<input type=\"file\" accept=\"application/pdf,image/jpeg,image/png,image/webp\" onChange={event => setFile(event.target.files?.[0] ?? null)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 152,
+    "tag": "button",
+    "source": "<button className=\"btn primary\" disabled={!file || working} onClick={upload}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 153,
+    "tag": "input",
+    "source": "<input type=\"file\" accept=\".csv,text/csv\" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 153,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" onClick={downloadTemplate}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/import/page.tsx",
+    "line": 153,
+    "tag": "button",
+    "source": "<button className=\"btn primary import-confirm\" disabled={working} onClick={importCsv}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/new/page.tsx",
+    "line": 18,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices\" className=\"back-link\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/new/page.tsx",
+    "line": 18,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices/import\" className=\"btn secondary\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 215,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices/archive\" className=\"btn secondary\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 219,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices/import\" className=\"btn secondary\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 223,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices/new\" className=\"btn primary\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 255,
+    "tag": "input",
+    "source": "<input value={query} onChange={(e) => changeFilter(() => setQuery(e.target.value))} placeholder=\"Číslo faktury, odběratel, e-mail nebo VS\" />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 263,
+    "tag": "select",
+    "source": "<select value={status} onChange={(e) => changeFilter(() => setStatus(e.target.value as typeof status)) } >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 279,
+    "tag": "select",
+    "source": "<select value={currency} onChange={(e) => changeFilter(() => setCurrency(e.target.value))} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 291,
+    "tag": "input",
+    "source": "<input type=\"date\" value={from} max={to || undefined} onChange={(e) => changeFilter(() => setFrom(e.target.value))} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 300,
+    "tag": "input",
+    "source": "<input type=\"date\" value={to} min={from || undefined} onChange={(e) => changeFilter(() => setTo(e.target.value))} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 307,
+    "tag": "button",
+    "source": "<button className=\"btn secondary export-button\" onClick={exportCsv} disabled={!total || exporting} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 352,
+    "tag": "Link",
+    "source": "<Link href={`/invoices/${invoice.id}`}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 387,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn primary quick-payment-button\" onClick={() => { setPaymentDate(todayInTimeZone()); setPaymentCandidate(invoice); }} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 408,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={loading || page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 418,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={loading || page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 448,
+    "tag": "button",
+    "source": "<button type=\"button\" aria-label=\"Zavřít potvrzení úhrady\" disabled={confirmingPayment} onClick={() => setPaymentCandidate(null)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 466,
+    "tag": "input",
+    "source": "<input type=\"date\" value={paymentDate} max={todayInTimeZone()} onChange={(event) => setPaymentDate(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 476,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" disabled={confirmingPayment || !paymentDate} onClick={() => setPaymentCandidate(null)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/page.tsx",
+    "line": 484,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn primary\" disabled={confirmingPayment} onClick={confirmPayment} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 233,
+    "tag": "select",
+    "source": "<select aria-label={`Vybrat fakturu pro platbu ${payment.external_id}`} value={assignments[payment.id] ?? \"\"} onChange={(event) => setAssignments((current) => ({ ...current, [payment.id]: event.target.value, })) } >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 255,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary compact\" disabled={working || !assignments[payment.id]} onClick={() => assign(payment)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 304,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices\" className=\"back-link\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 326,
+    "tag": "input",
+    "source": "<input type=\"file\" accept=\".csv,text/csv\" onChange={(event) => load(event.target.files?.[0] ?? null)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 331,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" onClick={downloadTemplate} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 375,
+    "tag": "button",
+    "source": "<button className=\"btn primary import-confirm\" disabled={working} onClick={submit} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 451,
+    "tag": "Link",
+    "source": "<Link href={`/invoices/${item.invoice_id}`}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 513,
+    "tag": "Link",
+    "source": "<Link href={`/invoices/${payment.invoice_id}`}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/payments/page.tsx",
+    "line": 517,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary compact\" disabled={working} onClick={() => unassign(payment)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 433,
+    "tag": "Link",
+    "source": "<Link href=\"/invoices\" className=\"back-link\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 442,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" onClick={() => setEditing((value) => !value)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 450,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={updating} onClick={() => setRecordingPayment((value) => !value)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 457,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={updating} onClick={() => changeStatus(\"pending\")} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 466,
+    "tag": "button",
+    "source": "<button className=\"btn primary\" disabled={updating} onClick={() => { setPaymentDate(todayInTimeZone()); setRecordingPayment(true); }} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 509,
+    "tag": "button",
+    "source": "<button type=\"button\" aria-label=\"Zavřít potvrzení úhrady\" disabled={updating} onClick={() => setRecordingPayment(false)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 521,
+    "tag": "input",
+    "source": "<input type=\"date\" value={paymentDate} max={todayInTimeZone()} onChange={(event) => setPaymentDate(event.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 531,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" disabled={updating} onClick={() => setRecordingPayment(false)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 539,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn primary\" disabled={updating || !paymentDate} onClick={recordPayment} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 702,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary compact\" disabled={updating} onClick={() => unassignPayment(payment)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 832,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary compact\" disabled={updating} onClick={() => setReminderPause(!invoice.reminders_paused) } >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 863,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"retry-reminder\" disabled={updating} onClick={() => retryReminder(item.id)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 892,
+    "tag": "a",
+    "source": "<a href={documentUrl} target=\"_blank\" rel=\"noreferrer\" className=\"btn secondary\" >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 910,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn danger invoice-delete-button\" disabled={updating || deleting} onClick={() => setDeleteConfirmOpen(true)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 942,
+    "tag": "button",
+    "source": "<button type=\"button\" aria-label=\"Zavřít potvrzení\" disabled={deleting} onClick={() => setDeleteConfirmOpen(false)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 958,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" disabled={deleting} onClick={() => setDeleteConfirmOpen(false)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/invoices/[id]/page.tsx",
+    "line": 966,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn danger\" disabled={deleting} onClick={deleteInvoice} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 80,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={runningNow || loading || saving} onClick={runNow}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 83,
+    "tag": "button",
+    "source": "<button type=\"button\" role=\"switch\" aria-checked={automationActive} disabled={!operations.can_run} onClick={() => setAutomationActive(value => !value)}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 85,
+    "tag": "Link",
+    "source": "<Link href={`/invoices/${item.id}`} key={item.id} className=\"monitor-row\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 85,
+    "tag": "Link",
+    "source": "<Link href={`/invoices/${item.invoice_id}`} key={item.id} className=\"monitor-row failed\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 86,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={!operations.can_run || rules.length >= 10} onClick={add}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 86,
+    "tag": "input",
+    "source": "<input type=\"number\" min=\"1\" max={rule.relation === \"before\" ? 90 : 365} value={rule.days} disabled={!operations.can_run} onChange={e => update(rule.id, { days: Number(e.target.value) })}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 86,
+    "tag": "select",
+    "source": "<select value={rule.relation} disabled={!operations.can_run} onChange={e => update(rule.id, { relation: e.target.value as Rule[\"relation\"], days: e.target.value === \"on\" ? 0 : rule.days || 1 })}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 86,
+    "tag": "button",
+    "source": "<button className=\"remove-rule\" disabled={!operations.can_run} onClick={() => setRules(current => current.filter(item => item.id !== rule.id))} aria-label=\"Odstranit pravidlo\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 90,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" disabled={!operations.can_run} onClick={useRecommendedTemplate}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 90,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn secondary\" disabled={sendingTest || !operations.can_run} onClick={sendTest}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 91,
+    "tag": "button",
+    "source": "<button key={stage} className={activeStage === stage ? \"active\" : \"\"} onClick={() => setActiveStage(stage)}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 93,
+    "tag": "input",
+    "source": "<input value={templates[activeStage].subject} disabled={!operations.can_run} onChange={e => setTemplates(current => current && ({ ...current, [activeStage]: { ...current[activeStage], subject: e.target.value } }))}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 94,
+    "tag": "textarea",
+    "source": "<textarea value={templates[activeStage].body} disabled={!operations.can_run} onChange={e => setTemplates(current => current && ({ ...current, [activeStage]: { ...current[activeStage], body: e.target.value } }))}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 96,
+    "tag": "input",
+    "source": "<input type=\"email\" placeholder=\"např. ucetni@hlavica.cz\" value={templates[activeStage].reply_to ?? \"\"} disabled={!operations.can_run} onChange={e => setTemplates(current => current && ({ ...current, [activeStage]: { ...current[activeStage], reply_to: e.target.value || null } }))}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 97,
+    "tag": "input",
+    "source": "<input type=\"text\" inputMode=\"email\" placeholder=\"Adresy oddělte čárkou\" value={ccInputs[activeStage]} disabled={!operations.can_run} onChange={e => setCcInputs(current => ({ ...current, [activeStage]: e.target.value }))}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reminders/page.tsx",
+    "line": 100,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn primary\" disabled={!operations.can_run || saving || loading || runningNow} onClick={save}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 162,
+    "tag": "button",
+    "source": "<button className=\"btn secondary\" disabled={loading || !report} onClick={() => window.print()}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 166,
+    "tag": "button",
+    "source": "<button className=\"btn primary\" disabled={!report?.invoice_count || exporting} onClick={exportCsv} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 179,
+    "tag": "button",
+    "source": "<button onClick={() => preset(\"month\")}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 180,
+    "tag": "button",
+    "source": "<button onClick={() => preset(\"quarter\")}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 181,
+    "tag": "button",
+    "source": "<button onClick={() => preset(\"year\")}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 185,
+    "tag": "select",
+    "source": "<select value={dateBasis} onChange={(e) => setDateBasis(e.target.value as ReportDateBasis)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 196,
+    "tag": "input",
+    "source": "<input type=\"date\" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 205,
+    "tag": "input",
+    "source": "<input type=\"date\" value={to} min={from} onChange={(e) => setTo(e.target.value)} />",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 214,
+    "tag": "select",
+    "source": "<select value={currency} onChange={(e) => setCurrency(e.target.value)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 227,
+    "tag": "select",
+    "source": "<select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/reports/page.tsx",
+    "line": 241,
+    "tag": "select",
+    "source": "<select value={customer} onChange={(e) => setCustomer(e.target.value)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 61,
+    "tag": "button",
+    "source": "<button className=\"btn primary\" disabled={saving || loading} onClick={save}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.name} onChange={e => field(\"name\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.ico} onChange={e => field(\"ico\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.dic} onChange={e => field(\"dic\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.registered_address} onChange={e => field(\"registered_address\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.operating_address} onChange={e => field(\"operating_address\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.data_box_id} onChange={e => field(\"data_box_id\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.phone} onChange={e => field(\"phone\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input type=\"email\" value={company.email} onChange={e => field(\"email\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.bank_account_czk} onChange={e => field(\"bank_account_czk\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 63,
+    "tag": "input",
+    "source": "<input value={company.bank_account_eur} onChange={e => field(\"bank_account_eur\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 66,
+    "tag": "select",
+    "source": "<select disabled={saving} value={member.role} onChange={event => changeRole(member, event.target.value as Role)} aria-label={`Role uživatele ${member.email}`}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 66,
+    "tag": "button",
+    "source": "<button type=\"button\" disabled={saving || member.current} onClick={() => removeMember(member)}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 66,
+    "tag": "form",
+    "source": "<form className=\"member-add\" onSubmit={addMember}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 66,
+    "tag": "input",
+    "source": "<input type=\"email\" required value={newEmail} onChange={event => setNewEmail(event.target.value)} placeholder=\"ucetni@hlavica.cz\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 66,
+    "tag": "select",
+    "source": "<select value={newRole} onChange={event => setNewRole(event.target.value as Role)}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/(workspace)/settings/page.tsx",
+    "line": 66,
+    "tag": "button",
+    "source": "<button className=\"btn primary\" disabled={saving}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/error.tsx",
+    "line": 17,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"btn primary\" onClick={reset}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/error.tsx",
+    "line": 18,
+    "tag": "a",
+    "source": "<a className=\"btn secondary\" href=\"/dashboard\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/app/global-error.tsx",
+    "line": 17,
+    "tag": "button",
+    "source": "<button type=\"button\" onClick={reset}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 68,
+    "tag": "form",
+    "source": "<form className=\"standalone-form\" onSubmit={submit}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 71,
+    "tag": "input",
+    "source": "<input required value={form.invoice_number} onChange={e => field(\"invoice_number\", e.target.value)} placeholder=\"např. FV-2026-001\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 72,
+    "tag": "input",
+    "source": "<input value={form.variable_symbol} onChange={e => field(\"variable_symbol\", e.target.value)} placeholder=\"např. 2026001\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 73,
+    "tag": "input",
+    "source": "<input type=\"date\" required value={form.issue_date} onChange={e => field(\"issue_date\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 74,
+    "tag": "input",
+    "source": "<input type=\"date\" required min={form.issue_date} value={form.due_date} onChange={e => field(\"due_date\", e.target.value)}/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 77,
+    "tag": "input",
+    "source": "<input required value={form.counterparty_name} onChange={e => field(\"counterparty_name\", e.target.value)} placeholder=\"Název firmy\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 78,
+    "tag": "input",
+    "source": "<input value={form.counterparty_ico} onChange={e => field(\"counterparty_ico\", e.target.value)} inputMode=\"numeric\" placeholder=\"12345678\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 79,
+    "tag": "input",
+    "source": "<input value={form.counterparty_dic} onChange={e => field(\"counterparty_dic\", e.target.value)} placeholder=\"CZ12345678\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 80,
+    "tag": "input",
+    "source": "<input type=\"email\" required value={form.counterparty_email} onChange={e => field(\"counterparty_email\", e.target.value)} placeholder=\"fakturace@odberatel.cz\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 83,
+    "tag": "input",
+    "source": "<input type=\"number\" required min=\"0.01\" step=\"0.01\" inputMode=\"decimal\" value={form.amount_without_vat || \"\"} onChange={e => setNetAmount(Number(e.target.value))} placeholder=\"0,00\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 84,
+    "tag": "input",
+    "source": "<input type=\"number\" required min=\"0\" max=\"100\" step=\"0.01\" inputMode=\"decimal\" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder=\"21\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 85,
+    "tag": "input",
+    "source": "<input type=\"number\" required min=\"0.01\" step=\"0.01\" inputMode=\"decimal\" value={form.amount || \"\"} onChange={e => setGrossAmount(Number(e.target.value))} placeholder=\"0,00\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 86,
+    "tag": "select",
+    "source": "<select value={form.currency} onChange={e => field(\"currency\", e.target.value)}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 87,
+    "tag": "textarea",
+    "source": "<textarea value={form.notes} onChange={e => field(\"notes\", e.target.value)} placeholder=\"Volitelná poznámka pro účetní oddělení\"/>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/invoice-form.tsx",
+    "line": 90,
+    "tag": "button",
+    "source": "<button className=\"btn primary\" disabled={saving}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/layout/app-shell.tsx",
+    "line": 49,
+    "tag": "Link",
+    "source": "<Link href={landingPageForRole(role)} className=\"brand\">",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/layout/app-shell.tsx",
+    "line": 60,
+    "tag": "Link",
+    "source": "<Link key={item.href} href={item.href} prefetch={true} className={active ? \"active\" : \"\"}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/layout/app-shell.tsx",
+    "line": 71,
+    "tag": "button",
+    "source": "<button type=\"button\" onClick={signOut} disabled={signingOut} aria-label={signingOut ? \"Odhlašuji\" : \"Odhlásit se\"} title={signingOut ? \"Odhlašuji…\" : \"Odhlásit se\"}>",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  },
+  {
+    "file": "src/components/mobile-disclosure.tsx",
+    "line": 22,
+    "tag": "button",
+    "source": "<button type=\"button\" className=\"mobile-disclosure-toggle\" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen((value) => !value)} >",
+    "status": "netestováno jednotlivě",
+    "note": "Konkrétní provedené scénáře jsou v interactions.json; databázové zápisy blokuje chybějící staging."
+  }
+]

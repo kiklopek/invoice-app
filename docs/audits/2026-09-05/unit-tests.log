@@ -1,0 +1,174 @@
+
+ RUN  v4.1.10 C:/Users/tedat/Downloads/invoice-app-production-ready-ts-fixed/invoice-app-final-work
+
+ ✓ src/lib/reminders.test.ts > buildReminderSchedule > omezí automatické pokusy pro jednu fázi upomínky 2ms
+ ✓ src/lib/reminders.test.ts > buildReminderSchedule > vytvoří termíny přes hranici měsíce a správné fáze 1ms
+ ✓ src/lib/reminders.test.ts > buildReminderSchedule > odstraní duplicitní prahy a jediný kladný práh ponechá jako overdue 0ms
+ ✓ src/lib/reminders.test.ts > buildReminderSchedule > odmítne kalendářně neplatné datum 1ms
+ ✓ src/lib/reminders.test.ts > decideReminderAction > vybere nejnovější splatnou fázi a starší označí jako zastaralé 15ms
+ ✓ src/lib/reminders.test.ts > decideReminderAction > opakovaně nabídne neúspěšnou upomínku 0ms
+ ✓ src/lib/reminders.test.ts > decideReminderAction > v den splatnosti vybere právě dnešní fázi a po odeslání ji neopakuje 0ms
+ ✓ src/lib/reminders.test.ts > decideReminderAction > neodešle znovu již odeslanou ani právě zpracovávanou upomínku 0ms
+ ✓ src/lib/reminders.test.ts > decideReminderAction > po vypršení patnáctiminutového zámku obnoví přerušené zpracování 0ms
+ ✓ src/lib/reminders.test.ts > decideReminderAction > nepřevezme čerstvě zpracovávanou upomínku 0ms
+ ✓ src/lib/reminders.test.ts > next reminder > novou starou fakturu naplánuje nejdříve na dnešek, ne do minulosti 0ms
+ ✓ src/lib/reminders.test.ts > next reminder > počítá firemní den v pražské časové zóně 13ms
+ ✓ src/lib/reminders.test.ts > manual retry > povolí pouze nejnovější aktuálně splatnou fázi 0ms
+ ✓ src/lib/reminders.test.ts > manual retry > nepovolí budoucí ani chybně označenou fázi 0ms
+ ✓ src/lib/use-access-role.test.ts > navigation profile requests > shares concurrent requests and reuses the result across page transitions 213ms
+ ✓ src/lib/use-access-role.test.ts > navigation profile requests > refreshes permissions after the short cache lifetime 4ms
+ ✓ src/lib/use-access-role.test.ts > navigation profile requests > does not cache denied access or failed requests 6ms
+ ✓ src/lib/sign-out.test.ts > signOutCurrentSession > uses the server logout route first 32ms
+ ✓ src/lib/sign-out.test.ts > signOutCurrentSession > clears the browser session when the server route is unavailable 1ms
+ ✓ src/lib/sign-out.test.ts > signOutCurrentSession > reports an error when neither logout path succeeds 2ms
+ ✓ src/lib/sign-out.test.ts > signOutCurrentSession > requests global revocation for every user session 1ms
+ ✓ src/lib/sign-out.test.ts > signOutCurrentSession > reports a global revocation failure 1ms
+ ✓ src/lib/reminder-template.test.ts > reminder templates > doplní fakturační údaje ve stabilním českém formátu 30ms
+ ✓ src/lib/reminder-template.test.ts > reminder templates > odhalí překlep nebo nepodporovanou proměnnou 1ms
+ ✓ src/lib/request-security.test.ts > isSameOriginMutation > povolí vlastní origin a serverový požadavek bez Origin hlavičky 29ms
+ ✓ src/lib/request-security.test.ts > isSameOriginMutation > odmítne mutaci z cizího webu 0ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > extracts Czech invoice fields and selects the customer instead of the issuer 11ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > uses an effective VAT rate when an invoice contains multiple VAT rates 2ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > supports invoices without VAT 1ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > parses a Czech invoice title, unaccented payment label and focused customer block 2ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > extracts the primary R. Hlavica invoice layout with changing values 1ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > does not invent missing fields and reports them for manual review 1ms
+ ✓ src/lib/invoice-ocr.test.ts > local invoice OCR parser > normalizes Unicode, whitespace and Czech punctuation without losing diacritics 0ms
+ ✓ src/lib/dashboard-summary.test.ts > dashboard summary > aggregates amounts and counters without returning the complete invoice history 18ms
+ ✓ src/lib/dashboard-summary.test.ts > dashboard summary > orders upcoming reminders and excludes closed invoices 1ms
+ ✓ src/lib/report-query.test.ts > report query > validates period and bounded filter values 3ms
+ ✓ src/lib/report-query.test.ts > report query > builds stable totals, aging and debtor rows 15ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > checks the company invitation before creating an account 3ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > deletes removed users and requires a fresh verified registration 1ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > keeps password login behind organization membership verification 1ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > confirms role changes and removals from the membership table 1ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > sends ordinary password logins through e-mail verification while the trusted account opens the dashboard 4ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > requires an explicit current or remembered login session 1ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > only accepts the password reset destination in the auth callback 0ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > uses one neutral login error with a working password recovery link 0ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > sends password recovery through the protected server endpoint 2ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > keeps recovery logs free of e-mail addresses and recovery tokens 1ms
+ ✓ src/lib/auth-flow.test.ts > authentication flow > clears the email MFA session during logout 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > keeps every invoice-owned relation inside one organization 4ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > makes paid, closed and sent states unambiguous 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > records reminder settings atomically with the authenticated actor 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > records every membership mutation in the same database transaction 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > does not confuse a member's previous role with PostgreSQL CURRENT_ROLE 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > supports complete Auth deletion and a safe membership rollback 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > validates and audits reply-to and copy recipients with reminder templates 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > supports multiple partial bank payments without overstating receivables 4ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > stores net, VAT rate and gross invoice amounts consistently 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > keeps Czech aging labels safe across SQL client encodings 0ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > deletes invoices atomically while preserving unmatched bank payments 1ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > keeps invoices requiring action ahead of the closed archive 0ms
+ ✓ src/lib/database-schema.test.ts > database tenant integrity > provides a server-side archive across paid and cancelled invoices 0ms
+ ✓ src/lib/email-mfa-server.test.ts > email MFA delivery > requires enabled delivery and a Resend API key 3ms
+ ✓ src/lib/email-mfa-server.test.ts > email MFA delivery > uses the dedicated authentication sender with a safe default 2ms
+ ✓ src/lib/email-mfa-server.test.ts > email MFA delivery > sends one idempotent six-digit login code 5ms
+ ✓ src/lib/email-mfa-server.test.ts > email MFA delivery > preserves only the safe Resend error code and status 1ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > renders a client-compatible branded invoice reminder with text fallback 3ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > escapes untrusted template and invoice values 1ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > uses the account matching the currency and omits CTA without an email 0ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > keeps the payment box responsive for the before_due stage 1ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > keeps the payment box responsive for the on_due stage 0ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > keeps the payment box responsive for the overdue stage 1ms
+ ✓ src/lib/reminder-email-template.test.ts > branded reminder email > keeps the payment box responsive for the escalation stage 1ms
+ ✓ src/lib/mobile-responsive.test.ts > mobile application layout > keeps all six navigation destinations in an equal mobile grid 4ms
+ ✓ src/lib/mobile-responsive.test.ts > mobile application layout > uses the agreed mobile breakpoints and touch-safe controls 1ms
+ ✓ src/lib/mobile-responsive.test.ts > mobile application layout > provides an accessible reusable mobile disclosure 0ms
+ ✓ src/lib/mobile-responsive.test.ts > mobile application layout > gives role and reminder selects a full-width mobile layout 1ms
+ ✓ src/lib/mobile-responsive.test.ts > mobile application layout > turns operational wide tables into labeled mobile cards 1ms
+ ✓ src/lib/mobile-responsive.test.ts > mobile application layout > keeps Czech UI sources free of common mojibake sequences 3ms
+ ✓ src/lib/role-authorization.test.ts > role authorization > shows readers dashboard, invoices and reports and redirects forbidden pages 3ms
+ ✓ src/lib/role-authorization.test.ts > role authorization > hides invoice creation actions for readers 1ms
+ ✓ src/lib/role-authorization.test.ts > role authorization > allows read-only insights but enforces reader restrictions on operational endpoints 3ms
+ ✓ src/lib/role-authorization.test.ts > role authorization > shows company data read-only to accounting and hides access administration 1ms
+ ✓ src/lib/role-authorization.test.ts > role authorization > shows the signed-in user's name, company and initials 1ms
+ ✓ src/lib/invoice-ocr-server.test.ts > local OCR document reader > reconstructs visual PDF rows from separately stored text columns 3ms
+ ✓ src/lib/invoice-ocr-server.test.ts > local OCR document reader > reads a text-native PDF without running image OCR 2580ms
+ ✓ src/lib/resend-webhook.test.ts > Resend delivery webhook payload > parses a delivered event 4ms
+ ✓ src/lib/resend-webhook.test.ts > Resend delivery webhook payload > extracts a bounded bounce reason 0ms
+ ✓ src/lib/resend-webhook.test.ts > Resend delivery webhook payload > rejects unrelated event types and malformed IDs 0ms
+ ✓ src/lib/invoice-validation.test.ts > isIsoDate > rozliší skutečné a pouze formálně vypadající datum 5ms
+ ✓ src/lib/invoice-validation.test.ts > parseInvoiceInput > normalizuje bezpečný vstup a částku na haléře 2ms
+ ✓ src/lib/invoice-validation.test.ts > parseInvoiceInput > odmítne obrácenou splatnost, neplatnou měnu a příliš vysokou částku 1ms
+ ✓ src/lib/invoice-validation.test.ts > parseInvoiceInput > zachová kompatibilitu se starým vstupem obsahujícím pouze konečnou částku 0ms
+ ✓ src/lib/invoice-validation.test.ts > parseInvoiceInput > odmítne nadlimitní text namísto tichého zkrácení 0ms
+ ✓ src/lib/email-mfa-core.test.ts > email MFA > binds its signed cookie to both user and Supabase session 5ms
+ ✓ src/lib/email-mfa-core.test.ts > email MFA > hashes a code for one challenge, user and session only 1ms
+ ✓ src/lib/email-mfa-core.test.ts > email MFA > permits only the confirmed trusted test account to skip the e-mail code 0ms
+ ✓ src/lib/email-mfa-core.test.ts > email MFA > does not use a configurable MFA bypass list 0ms
+ ✓ src/lib/email-mfa-core.test.ts > email MFA > extracts the stable session id and masks email output 1ms
+ ✓ src/lib/payment-import.test.ts > payment import > parses Czech semicolon CSV and Czech dates 8ms
+ ✓ src/lib/payment-import.test.ts > payment import > handles quoted comma CSV 1ms
+ ✓ src/lib/payment-import.test.ts > payment import > rejects duplicate transaction identifiers 0ms
+ ✓ src/lib/payment-import.test.ts > payment import > rejects impossible dates and negative amounts 0ms
+ ✓ src/lib/report-print.test.ts > multi-page report printing > renders company, period and active filters in a print-only header 3ms
+ ✓ src/lib/report-print.test.ts > multi-page report printing > prevents printing while the report is incomplete 1ms
+ ✓ src/lib/report-print.test.ts > multi-page report printing > uses portrait A4 and preserves complete blocks across pages 1ms
+ ✓ src/lib/report-print.test.ts > multi-page report printing > allows long tables to span pages with repeated headings and whole rows 1ms
+ ✓ src/lib/reminder-recipients.test.ts > reminder delivery settings > normalizes the reply address and unique copies 3ms
+ ✓ src/lib/reminder-recipients.test.ts > reminder delivery settings > rejects malformed addresses and more than five copies 0ms
+ ✓ src/lib/reminder-recipients.test.ts > reminder delivery settings > accepts comma, semicolon and line separated input 0ms
+ ✓ src/lib/login-session.test.ts > login session preference > rejects an old auth session without an app login cookie 2ms
+ ✓ src/lib/login-session.test.ts > login session preference > accepts a signed current browser session 1ms
+ ✓ src/lib/login-session.test.ts > login session preference > accepts a signed remembered login for thirty days 1ms
+ ✓ src/lib/login-session.test.ts > login session preference > rejects legacy, tampered, expired and cross-session cookies 1ms
+ ✓ src/lib/login-session.test.ts > login session preference > uses a stable development secret but never falls back in production 0ms
+ ✓ src/lib/production-env.test.ts > production environment validation > accepts a complete production configuration 3ms
+ ✓ src/lib/production-env.test.ts > production environment validation > blocks an MFA bypass in production 1ms
+ ✓ src/lib/production-env.test.ts > production environment validation > blocks production when authentication e-mail delivery is disabled 0ms
+ ✓ src/lib/production-env.test.ts > production environment validation > does not require production secrets for local development 0ms
+ ✓ src/lib/automation-route-security.test.ts > manual reminder automation security > requires same-origin authentication and an accounting role 2ms
+ ✓ src/lib/automation-route-security.test.ts > manual reminder automation security > scopes a manual execution to the authenticated organization 3ms
+ ✓ src/lib/automation-route-security.test.ts > manual reminder automation security > prevents two running workers for the same organization 1ms
+ ✓ src/lib/automation-route-security.test.ts > manual reminder automation security > records whether a run was scheduled or started by a user 1ms
+ ✓ src/lib/automation-route-security.test.ts > manual reminder automation security > uses an explicit organization-scoped reminder policy relationship 0ms
+ ✓ src/lib/automation-route-security.test.ts > manual reminder automation security > preserves actionable database errors in the automation run 0ms
+ ✓ src/lib/payment-validation.test.ts > payment date > přijme dnešní a dřívější kalendářní datum 4ms
+ ✓ src/lib/payment-validation.test.ts > payment date > odmítne budoucí a kalendářně neplatné datum 0ms
+ ✓ src/lib/payment-validation.test.ts > payment date > ukládá datum jako stabilní polední čas 0ms
+ ✓ src/lib/invoice-list-query.test.ts > invoice list query > normalizes valid server-side filters 4ms
+ ✓ src/lib/invoice-list-query.test.ts > invoice list query > rejects invalid periods, enums and unbounded input 1ms
+ ✓ src/lib/invoice-ocr-server.test.ts > local OCR document reader > recognizes a generated invoice image with bundled Czech and English data 2819ms
+ ✓ src/lib/automation-run.test.ts > automation run monitoring > marks a completed run with failed sends as partial 2ms
+ ✓ src/lib/automation-run.test.ts > automation run monitoring > detects only an old unfinished run as stale 2ms
+ ✓ src/lib/automation-run.test.ts > automation run monitoring > blocks a concurrent or immediately repeated manual run 1ms
+ ✓ src/lib/reminder-defaults.test.ts > default reminder templates > keep editable copy concise because payment details come from the branded layout 3ms
+ ✓ src/lib/reminder-defaults.test.ts > default reminder templates > never claims that an overdue invoice payment is already recorded 0ms
+ ✓ src/lib/reporting.test.ts > calendarDaysBetween > počítá celé firemní dny bez posunu časovým pásmem 4ms
+ ✓ src/lib/role-access.test.ts > role access > gives readers dashboard, reports and the complete read-only invoice area 3ms
+ ✓ src/lib/role-access.test.ts > role access > allows accounting and admin roles to manage invoices 0ms
+ ✓ src/lib/role-access.test.ts > role access > separates read-only financial insights from operational access 0ms
+ ✓ src/lib/role-access.test.ts > role access > keeps administration separate from accounting operations 0ms
+ ✓ src/lib/role-access.test.ts > role access > uses the first permitted page as the role landing page 0ms
+ ✓ src/lib/reminder-automation-query.test.ts > reminder automation query contract > always disambiguates the organization-scoped policy relationship 3ms
+ ✓ src/lib/reminder-automation-query.test.ts > reminder automation query contract > keeps actionable database diagnostics within the audit column limit 1ms
+ ✓ src/lib/reminder-retry-route.test.ts > manual reminder retry reliability > disambiguates the policy relation during the final invoice recheck 2ms
+ ✓ src/lib/reminder-retry-route.test.ts > manual reminder retry reliability > keeps a retry failed instead of skipping it when the database recheck fails 1ms
+ ✓ src/lib/csv.test.ts > csvCell > escapuje uvozovky a blokuje vzorce tabulkových procesorů 2ms
+ ✓ src/lib/csv.test.ts > csvCell > ponechá číselné hodnoty použitelné pro výpočty 1ms
+ ✓ src/lib/database-hardening.test.ts > database hardening migration > indexes every reported foreign-key access path 3ms
+ ✓ src/lib/database-hardening.test.ts > database hardening migration > keeps internal tables inaccessible to browser roles 0ms
+ ✓ src/lib/database-hardening.test.ts > database hardening migration > serializes and audits persistent auth rate limits 0ms
+ ✓ src/lib/auth-policy.test.ts > auth email policy > allows a valid non-corporate address outside production 3ms
+ ✓ src/lib/auth-policy.test.ts > auth email policy > only allows @hlavica.cz addresses in production 1ms
+ ✓ src/lib/invoice-detail-presentation.test.ts > invoice detail amount summary > shows the net amount as the primary value and gross amount as secondary 2ms
+ ✓ src/lib/document-validation.test.ts > document validation > pozná podporované signatury souborů 3ms
+ ✓ src/lib/document-validation.test.ts > document validation > vynutí typ a limit deseti megabajtů 1ms
+ ✓ src/lib/user-display.test.ts > user display > uses the normalized registration name and creates initials 3ms
+ ✓ src/lib/user-display.test.ts > user display > creates a readable fallback for older accounts without a name 0ms
+ ✓ src/lib/vat.test.ts > VAT calculations > calculates gross from net and back 2ms
+ ✓ src/lib/vat.test.ts > VAT calculations > rounds monetary values to cents 0ms
+ ✓ src/lib/vat.test.ts > VAT calculations > accepts zero VAT and detects inconsistent totals 0ms
+ ✓ src/lib/payment-lifecycle.test.ts > invoice payment lifecycle > requires atomic cleanup whenever a paid invoice becomes open again 2ms
+ ✓ src/lib/payment-lifecycle.test.ts > invoice payment lifecycle > allows cancellation only for an open receivable 0ms
+ ✓ src/lib/password-policy.test.ts > password policy > accepts a sufficiently strong password 2ms
+ ✓ src/lib/password-policy.test.ts > password policy > rejects short or one-dimensional passwords 1ms
+ ✓ src/lib/invoice-ocr-server.test.ts > local OCR document reader > auto-rotates and recognizes a mobile JPEG with shadows and small invoice text 4176ms
+ ✓ src/lib/invoice-ocr-server.test.ts > local OCR document reader > renders and recognizes a scanned PDF through the bundled PDF worker 3827ms
+
+ Test Files  41 passed (41)
+      Tests  166 passed (166)
+   Start at  11:17:55
+   Duration  15.02s (transform 789ms, setup 0ms, import 2.95s, tests 14.08s, environment 9ms)

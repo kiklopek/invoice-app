@@ -1,0 +1,14 @@
+
+Running 1 test using 1 worker
+
+node : (node:8588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+At line:2 char:1
++ node node_modules/@playwright/test/cli.js test ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:8588) War... env being set.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 invoice-app-final-work\e2e\navigation-regressions.spec.ts:28:5 › invoice detail preserves the overall count and Escape closes payment confirmation (4.4s)
+
+  1 passed (6.0s)

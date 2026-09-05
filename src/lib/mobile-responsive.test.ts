@@ -7,23 +7,23 @@ const css = source("src/app/minimal.css");
 const disclosure = source("src/components/mobile-disclosure.tsx");
 
 const czechUiSources = [
-  "src/components/app-sidebar.tsx",
+  "src/components/layout/app-shell.tsx",
   "src/components/invoice-form.tsx",
-  "src/app/dashboard/page.tsx",
-  "src/app/invoices/page.tsx",
-  "src/app/invoices/[id]/page.tsx",
-  "src/app/reminders/page.tsx",
-  "src/app/reports/page.tsx",
-  "src/app/settings/page.tsx",
-  "src/app/login/page.tsx",
-  "src/app/mfa/page.tsx",
+  "src/app/(workspace)/dashboard/page.tsx",
+  "src/app/(workspace)/invoices/page.tsx",
+  "src/app/(workspace)/invoices/[id]/page.tsx",
+  "src/app/(workspace)/reminders/page.tsx",
+  "src/app/(workspace)/reports/page.tsx",
+  "src/app/(workspace)/settings/page.tsx",
+  "src/app/(auth)/login/page.tsx",
+  "src/app/(auth)/mfa/page.tsx",
 ];
 
 describe("mobile application layout", () => {
   it("keeps all six navigation destinations in an equal mobile grid", () => {
     expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
     expect(css).toContain("env(safe-area-inset-bottom)");
-    expect(source("src/components/app-sidebar.tsx").match(/href: "\//g)).toHaveLength(6);
+    expect(source("src/components/layout/app-shell.tsx").match(/href: "\//g)).toHaveLength(6);
   });
 
   it("uses the agreed mobile breakpoints and touch-safe controls", () => {
@@ -59,9 +59,9 @@ describe("mobile application layout", () => {
 
   it("turns operational wide tables into labeled mobile cards", () => {
     for (const path of [
-      "src/app/invoices/import/page.tsx",
-      "src/app/invoices/payments/page.tsx",
-      "src/app/reports/page.tsx",
+      "src/app/(workspace)/invoices/import/page.tsx",
+      "src/app/(workspace)/invoices/payments/page.tsx",
+      "src/app/(workspace)/reports/page.tsx",
     ]) {
       expect(source(path)).toContain("data-label=");
     }

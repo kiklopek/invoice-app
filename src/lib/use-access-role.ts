@@ -12,10 +12,16 @@ export type AccessProfile = {
 
 let cachedProfile: AccessProfile | null = null;
 let pendingProfile: Promise<AccessProfile | null> | null = null;
+let profileExpiresAt = 0;
+const PROFILE_TTL_MS = 30_000;
 
-function loadProfile() {
+// Presentation only: every API request still checks the current server permissions.
+export function loadProfile() {
+  if (cachedProfile && Date.now() < profileExpiresAt) {
+    return Promise.resolve(cachedProfile);
+  }
   if (!pendingProfile) {
-    pendingProfile = fetch("/api/auth/access", { method: "POST" })
+    pendingProfile = fetch("/api/auth/access", { method: "POST", signal: AbortSignal.timeout(15_000) })
       .then(async response => {
         if (!response.ok) return null;
         const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown; companyName?: unknown };
@@ -25,6 +31,7 @@ function loadProfile() {
       .catch(() => null)
       .then(profile => {
         cachedProfile = profile;
+        profileExpiresAt = profile ? Date.now() + PROFILE_TTL_MS : 0;
         pendingProfile = null;
         return profile;
       });

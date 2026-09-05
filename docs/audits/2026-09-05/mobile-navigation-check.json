@@ -1,0 +1,44 @@
+[
+  {
+    "role": "admin",
+    "width": 56,
+    "center": 160,
+    "viewport": 320,
+    "overflow": false
+  },
+  {
+    "role": "admin",
+    "width": 56,
+    "center": 195,
+    "viewport": 390,
+    "overflow": false
+  },
+  {
+    "role": "admin",
+    "width": 20,
+    "center": 40,
+    "viewport": 1440,
+    "overflow": false
+  },
+  {
+    "role": "viewer",
+    "width": 56,
+    "center": 160,
+    "viewport": 320,
+    "overflow": false
+  },
+  {
+    "role": "viewer",
+    "width": 56,
+    "center": 195,
+    "viewport": 390,
+    "overflow": false
+  },
+  {
+    "role": "viewer",
+    "width": 20,
+    "center": 40,
+    "viewport": 1440,
+    "overflow": false
+  }
+]

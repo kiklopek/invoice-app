@@ -1,0 +1,2198 @@
+{
+  "environment": "isolated local demo; no database persistence",
+  "results": [
+    {
+      "route": "/dashboard",
+      "url": "http://localhost:3100/dashboard",
+      "status": 200,
+      "ms": 1794,
+      "heading": [
+        "Přehled pohledávek"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury\n3",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nahrát dokument",
+          "type": null,
+          "href": "/invoices/import",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přidat fakturu",
+          "type": null,
+          "href": "/invoices/new",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Zobrazit všechny →",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-096",
+          "type": null,
+          "href": "/invoices/demo-4",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-091",
+          "type": null,
+          "href": "/invoices/demo-2",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-084",
+          "type": null,
+          "href": "/invoices/demo-1",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-073",
+          "type": null,
+          "href": "/invoices/demo-3",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Nadcházející upomínky⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Spravovat pravidla upomínek →",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/invoices",
+      "url": "http://localhost:3100/invoices",
+      "status": 200,
+      "ms": 1209,
+      "heading": [
+        "Faktury"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury\n3",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Importovat",
+          "type": null,
+          "href": "/invoices/import",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nová faktura",
+          "type": null,
+          "href": "/invoices/new",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Filtry a export⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "Číslo faktury, odběratel, e-mail nebo VS",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Všechny stavy\nČeká na úhradu\nPo splatnosti\nZaplaceno\nStornováno",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Všechny měny\nCZK",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Export CSV",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-084",
+          "type": null,
+          "href": "/invoices/demo-1",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Potvrdit úhradu",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-091",
+          "type": null,
+          "href": "/invoices/demo-2",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Potvrdit úhradu",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-096",
+          "type": null,
+          "href": "/invoices/demo-4",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Potvrdit úhradu",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-073",
+          "type": null,
+          "href": "/invoices/demo-3",
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/invoices/archive",
+      "url": "http://localhost:3100/invoices/archive",
+      "status": 200,
+      "ms": 1267,
+      "heading": [
+        "Archiv faktur"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury\n3",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Export CSV",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Filtry archivu⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "Číslo faktury, odběratel, e-mail nebo VS",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Celý archiv\nPouze zaplacené\nPouze stornované",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Všechny měny\nCZK",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/invoices/new",
+      "url": "http://localhost:3100/invoices/new",
+      "status": 200,
+      "ms": 1193,
+      "heading": [
+        "Nová vydaná faktura"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Zpět na faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Raději importovat dokument",
+          "type": null,
+          "href": "/invoices/import",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "např. FV-2026-001",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "např. 2026001",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "Název firmy",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "12345678",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "CZ12345678",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "fakturace@odberatel.cz",
+          "type": "email",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "0,00",
+          "type": "number",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "21",
+          "type": "number",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "0,00",
+          "type": "number",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "CZK\nEUR\nUSD",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "TEXTAREA",
+          "text": "Volitelná poznámka pro účetní oddělení",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Uložit fakturu",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/invoices/import",
+      "url": "http://localhost:3100/invoices/import",
+      "status": 200,
+      "ms": 1194,
+      "heading": [
+        "Přidat faktury ze souboru"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Zpět na faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Fotografie nebo PDF",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Hromadný import CSV",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "file",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Nahrát a načíst údaje",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": true
+        }
+      ]
+    },
+    {
+      "route": "/invoices/payments",
+      "url": "http://localhost:3100/invoices/payments",
+      "status": 200,
+      "ms": 1295,
+      "heading": [
+        "Bankovní platby"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Zpět na faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "file",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Stáhnout vzor CSV",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Vyberte fakturu…\nFV-2026-084 · Stavby Novák s.r.o. · zbývá 134 500,00 Kč · VS 2026084\nFV-2026-091 · Dřevostavby Morava a.s. · zbývá 96 750,00 Kč · VS 2026091",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Přiřadit",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": true
+        }
+      ]
+    },
+    {
+      "route": "/invoices/demo-1",
+      "url": "http://localhost:3100/invoices/demo-1",
+      "status": 200,
+      "ms": 1571,
+      "heading": [
+        "FV-2026-084"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury\n1",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "← Zpět na faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Upravit údaje",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Potvrdit úhradu",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Historie změn faktury⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Pozastavit",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odeslat znovu",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Přiložený dokument⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Smazat fakturu",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/reports",
+      "url": "http://localhost:3100/reports",
+      "status": 200,
+      "ms": 1733,
+      "heading": [
+        "Reporty",
+        "Report pohledávek"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Vytisknout",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Exportovat CSV",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Období a filtry reportu⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Tento měsíc",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Toto čtvrtletí",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Tento rok",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "data vystavení\ndata splatnosti\ndata úhrady",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "date",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "CZK",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Všechny\nČeká\nPo splatnosti\nZaplaceno\nStorno",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Všichni odběratelé\nDřevostavby Morava a.s.\nKrovservis CZ s.r.o.\nPila Vysočina spol. s r.o.\nStavby Novák s.r.o.",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/reminders",
+      "url": "http://localhost:3100/reminders",
+      "status": 200,
+      "ms": 1553,
+      "heading": [
+        "Upomínky"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Spustit kontrolu",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Zapnuto",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-091\nDřevostavby Morava a.s.\n8. 9. 2026\n96 750 Kč",
+          "type": null,
+          "href": "/invoices/demo-2",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-084\nStavby Novák s.r.o.\n10. 9. 2026\n184 500 Kč",
+          "type": null,
+          "href": "/invoices/demo-1",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "FV-2026-096\nPila Vysočina spol. s r.o.\n13. 9. 2026\n58 320 Kč",
+          "type": null,
+          "href": "/invoices/demo-4",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "+ Přidat další upomínku",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "number",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "dní před splatností\nv den splatnosti\ndní po splatnosti",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "×",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "dní před splatností\nv den splatnosti\ndní po splatnosti",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "×",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "number",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "dní před splatností\nv den splatnosti\ndní po splatnosti",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "×",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "number",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "dní před splatností\nv den splatnosti\ndní po splatnosti",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "×",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Jak bude proces probíhat⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Použít doporučený text",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Poslat test na můj e-mail",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Před splatností\nPřátelské upozornění, že se blíží termín platby.",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "V den splatnosti\nInformace, že faktura má být dnes uhrazena.",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Po splatnosti\nBěžná upomínka po překročení splatnosti.",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Poslední důrazná upomínka\nDůraznější text při dlouhém prodlení.",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "TEXTAREA",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "např. ucetni@hlavica.cz",
+          "type": "email",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "Adresy oddělte čárkou",
+          "type": "text",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Uložit změny",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Náhled výsledného e-mailu⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/settings",
+      "url": "http://localhost:3100/settings",
+      "status": 200,
+      "ms": 1259,
+      "heading": [
+        "Nastavení"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "A",
+          "text": "",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přehled",
+          "type": null,
+          "href": "/dashboard",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Faktury",
+          "type": null,
+          "href": "/invoices",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Reporty",
+          "type": null,
+          "href": "/reports",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Archiv",
+          "type": null,
+          "href": "/invoices/archive",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Upomínky",
+          "type": null,
+          "href": "/reminders",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Nastavení",
+          "type": null,
+          "href": "/settings",
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odhlásit se",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Uložit firemní údaje",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "email",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Význam uživatelských rolí⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Administrátor\nÚčetní\nČtenář",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odebrat",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": true
+        },
+        {
+          "tag": "SELECT",
+          "text": "Administrátor\nÚčetní\nČtenář",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Odebrat",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "ucetni@hlavica.cz",
+          "type": "email",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "SELECT",
+          "text": "Účetní\nČtenář\nAdministrátor",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "+ Přidat přístup",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Historie změn přístupů⌄",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/register",
+      "url": "http://localhost:3100/register",
+      "status": 200,
+      "ms": 807,
+      "heading": [
+        "Vytvoření účtu"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": null,
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "jmeno@hlavica.cz",
+          "type": "email",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "password",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "password",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Vytvořit účet",
+          "type": "submit",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "Přihlásit se",
+          "type": null,
+          "href": "/login",
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/forgot-password",
+      "url": "http://localhost:3100/forgot-password",
+      "status": 200,
+      "ms": 754,
+      "heading": [
+        "Zapomenuté heslo"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "INPUT",
+          "text": "jmeno@hlavica.cz",
+          "type": "email",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Poslat odkaz pro obnovu",
+          "type": "submit",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "A",
+          "text": "← Zpět na přihlášení",
+          "type": null,
+          "href": "/login",
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/reset-password",
+      "url": "http://localhost:3100/reset-password",
+      "status": 200,
+      "ms": 901,
+      "heading": [
+        "Nastavení hesla"
+      ],
+      "errors": [],
+      "inventory": [
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "password",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "type": "password",
+          "href": null,
+          "name": null,
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Nastavit nové heslo",
+          "type": "submit",
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "route": "/mfa",
+      "url": "http://localhost:3100/mfa",
+      "status": 200,
+      "ms": 1176,
+      "heading": [
+        "Druhé ověření"
+      ],
+      "errors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "inventory": [
+        {
+          "tag": "BUTTON",
+          "text": "Poslat nový kód",
+          "type": "button",
+          "href": null,
+          "name": null,
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "scenario": "persistent-sidebar",
+      "route": "/invoices",
+      "ms": 150,
+      "passed": true
+    },
+    {
+      "scenario": "persistent-sidebar",
+      "route": "/reports",
+      "ms": 180,
+      "passed": true
+    },
+    {
+      "scenario": "persistent-sidebar",
+      "route": "/invoices/archive",
+      "ms": 123,
+      "passed": true
+    },
+    {
+      "scenario": "persistent-sidebar",
+      "route": "/reminders",
+      "ms": 143,
+      "passed": true
+    },
+    {
+      "scenario": "persistent-sidebar",
+      "route": "/settings",
+      "ms": 1170,
+      "passed": true
+    },
+    {
+      "scenario": "persistent-sidebar",
+      "route": "/dashboard",
+      "ms": 105,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/dashboard",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/archive",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/new",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/import",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/payments",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/demo-1",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/reports",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/reminders",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/settings",
+      "viewport": 320,
+      "width": 320,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/dashboard",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/archive",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/new",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/import",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/payments",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/demo-1",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/reports",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/reminders",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/settings",
+      "viewport": 390,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/dashboard",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/archive",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/new",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/import",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/payments",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/invoices/demo-1",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/reports",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/reminders",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    },
+    {
+      "scenario": "mobile-overflow",
+      "route": "/settings",
+      "viewport": 768,
+      "width": 768,
+      "passed": true
+    }
+  ]
+}
