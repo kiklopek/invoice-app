@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
+import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import { canAccessPage, landingPageForRole } from "@/lib/role-access";
 import { useAccessProfile } from "@/lib/use-access-role";
@@ -35,6 +36,12 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
 
   async function signOut() {
     if (signingOut) return;
+    const confirmed = await confirmAction({
+      title: "Opravdu se chcete odhlásit?",
+      description: "Pro návrat do aplikace se budete muset znovu přihlásit.",
+      confirmLabel: "Odhlásit se",
+    });
+    if (!confirmed) return;
     setSigningOut(true);
     setLogoutError(null);
     try {
@@ -60,6 +67,7 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
           );
           return <Link key={item.href} href={item.href} prefetch={true} aria-current={active ? "page" : undefined} className={[active ? "active" : "", item.href === "/dashboard" ? "nav-primary" : ""].filter(Boolean).join(" ")}><span className="nav-symbol"><Icon name={item.icon}/></span><span>{item.label}</span>{item.href === "/invoices" && invoiceCount ? <em>{invoiceCount}</em> : null}</Link>;
         })}
+        {role && <button type="button" className="nav-logout" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}><span className="nav-symbol"><Icon name="logout"/></span><span>{signingOut ? "Odhlašuji…" : "Odhlásit"}</span></button>}
       </nav>
       <div className="sidebar-bottom">
         {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}

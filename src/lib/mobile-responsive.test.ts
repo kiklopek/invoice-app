@@ -24,6 +24,10 @@ describe("mobile application layout", () => {
     expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
     expect(css).toContain("env(safe-area-inset-bottom)");
     expect(source("src/components/layout/app-shell.tsx").match(/href: "\//g)).toHaveLength(6);
+    expect(source("src/components/layout/app-shell.tsx")).toContain('className="nav-logout"');
+    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/reminders"] { grid-column: 8 / 10; }');
+    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/settings"] { grid-column: 10 / 12; }');
+    expect(source("src/components/layout/mobile-navigation.css")).toContain('.nav-logout { grid-column: 12 / 14; }');
   });
 
   it("uses the agreed mobile breakpoints and touch-safe controls", () => {
