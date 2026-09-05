@@ -8,11 +8,11 @@
   }
 
   .sidebar .mobile-navigation > a { grid-row: 1; }
-  .sidebar .mobile-navigation > a[href="/invoices"] { grid-column: 1 / 4; }
-  .sidebar .mobile-navigation > a[href="/reports"] { grid-column: 4 / 7; }
-  .sidebar .mobile-navigation > a[href="/invoices/archive"] { grid-column: 8 / 10; }
-  .sidebar .mobile-navigation > a[href="/reminders"] { grid-column: 10 / 12; }
-  .sidebar .mobile-navigation > a[href="/settings"] { grid-column: 12 / 14; }
+  .sidebar .mobile-navigation > a[href="/invoices"] { grid-column: 1 / 3; }
+  .sidebar .mobile-navigation > a[href="/reports"] { grid-column: 3 / 5; }
+  .sidebar .mobile-navigation > a[href="/invoices/archive"] { grid-column: 5 / 7; }
+  .sidebar .mobile-navigation > a[href="/settings"] { grid-column: 8 / 11; }
+  .sidebar .mobile-navigation > a[href="/reminders"] { grid-column: 11 / 14; }
 
   .sidebar .mobile-navigation > a.nav-primary {
     grid-column: 7 / 8;

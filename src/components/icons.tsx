@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export type IconName = "dashboard" | "invoice" | "mail" | "chart" | "settings" | "logout" | "plus" | "upload" | "check" | "alert" | "clock" | "document" | "download" | "print" | "arrow-left";
+export type IconName = "dashboard" | "invoice" | "archive" | "mail" | "chart" | "settings" | "logout" | "plus" | "upload" | "check" | "alert" | "clock" | "document" | "download" | "print" | "arrow-left";
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -18,6 +18,7 @@ export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGEle
     {name === "alert" && <><path d="M10.3 4.3 2.8 17.2A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.8L13.7 4.3a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></>}
     {name === "clock" && <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>}
     {name === "document" && <><path d="M6 3h8l4 4v14H6V3Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></>}
+    {name === "archive" && <><rect x="3" y="3" width="18" height="5" rx="1.5"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M10 12h4"/></>}
     {name === "print" && <><path d="M7 9V3h10v6M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7z"/></>}
     {name === "arrow-left" && <path d="m14 6-6 6 6 6M8 12h12"/>}
   </svg>;

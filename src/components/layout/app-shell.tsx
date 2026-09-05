@@ -15,7 +15,7 @@ const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
   { href: "/invoices", label: "Faktury", icon: "invoice" },
   { href: "/reports", label: "Reporty", icon: "chart" },
-  { href: "/invoices/archive", label: "Archiv", icon: "document" },
+  { href: "/invoices/archive", label: "Archiv", icon: "archive" },
   { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/settings", label: "Nastavení", icon: "settings" },
 ];
