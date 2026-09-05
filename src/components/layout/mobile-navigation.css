@@ -24,7 +24,7 @@
     padding: 4px 1px;
     gap: 2px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     flex-direction: column;
     border: 0;
     border-radius: 8px;
@@ -39,6 +39,12 @@
   }
 
   .sidebar .mobile-navigation > .nav-logout { min-width: 0; }
+  .sidebar .mobile-navigation > a:not(.nav-primary),
+  .sidebar .mobile-navigation > .nav-logout {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
   .sidebar .mobile-navigation > a:not(.nav-primary) > .nav-symbol,
   .sidebar .mobile-navigation > .nav-logout > .nav-symbol {
     display: flex;
