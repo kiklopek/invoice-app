@@ -6,6 +6,9 @@ export interface Invoice {
   id: string;
   organization_id: string;
   reminder_policy_id?: string | null;
+  reminder_days_snapshot: number[];
+  reminder_plan_effective_from: string | null;
+  reminder_policy?: { name: string; archived_at?: string | null } | null;
   invoice_number: string;
   counterparty_name: string;
   counterparty_ico: string | null;
@@ -36,6 +39,7 @@ export interface Invoice {
 }
 
 export interface InvoiceInput {
+  reminder_policy_id?: string;
   invoice_number: string;
   counterparty_name: string;
   counterparty_ico?: string;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { InvoiceForm } from "@/components/invoice-form";
 import { todayInTimeZone } from "@/lib/reminders";
@@ -161,6 +161,15 @@ export default function InvoiceDetailPage() {
   const [paymentDate, setPaymentDate] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!recordingPayment || updating) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRecordingPayment(false);
+    };
+    document.addEventListener("keydown", dismiss);
+    return () => document.removeEventListener("keydown", dismiss);
+  }, [recordingPayment, updating]);
 
   useEffect(() => {
     Promise.all([
@@ -403,6 +412,7 @@ export default function InvoiceDetailPage() {
   const paidAmount = Number(invoice.paid_amount);
   const remainingAmount = Math.max(0, Number(invoice.amount) - paidAmount);
   const initial: InvoiceInput = {
+    reminder_policy_id: invoice.reminder_policy_id ?? undefined,
     invoice_number: invoice.invoice_number,
     counterparty_name: invoice.counterparty_name,
     counterparty_ico: invoice.counterparty_ico ?? "",
@@ -421,13 +431,7 @@ export default function InvoiceDetailPage() {
   };
 
   return (
-    <AppFrame
-      invoiceCount={
-        invoice.status === "pending" || invoice.status === "overdue"
-          ? 1
-          : undefined
-      }
-    >
+    <AppFrame>
       <header className="section-header detail-page-header">
         <div>
           <Link href="/invoices" className="back-link">
@@ -638,6 +642,10 @@ export default function InvoiceDetailPage() {
                   <div>
                     <span>Další upomínka</span>
                     <strong>{dateTime(invoice.next_reminder_at)}</strong>
+                  </div>
+                  <div className="wide invoice-reminder-plan">
+                    <span>Kategorie upomínek</span>
+                    <strong>{invoice.reminder_policy?.name || "Standardní"}{invoice.reminder_policy?.archived_at ? " (archivovaná)" : ""}</strong>
                   </div>
                   <div>
                     <span>Založeno</span>

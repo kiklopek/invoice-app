@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";

@@ -21,6 +21,7 @@ create table organizations (
   email text,
   bank_account_czk text,
   bank_account_eur text,
+  ocr_hourly_limit integer default 20 check (ocr_hourly_limit is null or ocr_hourly_limit between 1 and 10000),
   created_at timestamptz not null default now()
 );
 
@@ -56,6 +57,16 @@ create table organization_member_events (
 create index organization_member_events_org_created
   on organization_member_events (organization_id, created_at desc, id desc);
 
+create or replace function public.valid_reminder_days(days integer[])
+returns boolean language sql immutable parallel safe set search_path = pg_catalog as $$
+  select days is not null and cardinality(days) between 1 and 10
+    and not exists (select 1 from unnest(days) as item(day_value) where day_value < -90 or day_value > 365)
+    and (select count(distinct day_value) from unnest(days) as item(day_value)) = cardinality(days)
+$$;
+
+revoke all on function public.valid_reminder_days(integer[]) from public, anon;
+grant execute on function public.valid_reminder_days(integer[]) to authenticated, service_role;
+
 create table reminder_policies (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references organizations(id) on delete cascade,
@@ -63,12 +74,54 @@ create table reminder_policies (
   is_default boolean not null default false,
   is_active boolean not null default true,
   days_from_due integer[] not null default array[-3, 0, 7, 14],
+  archived_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint reminder_policies_name_length check (length(trim(name)) between 1 and 100),
+  constraint reminder_policies_days_valid check (public.valid_reminder_days(days_from_due))
 );
 
 create unique index reminder_policies_one_default
   on reminder_policies (organization_id) where is_default;
+
+create index reminder_policies_active_org_idx
+  on reminder_policies (organization_id, is_default, name) where archived_at is null;
+
+create unique index reminder_policies_active_name_unique
+  on reminder_policies (organization_id, lower(trim(name))) where archived_at is null;
+
+create or replace function public.set_default_reminder_policy(target_org uuid, target_policy uuid)
+returns void language plpgsql security invoker set search_path = public, pg_temp as $$
+begin
+  if not exists (select 1 from reminder_policies where organization_id = target_org and id = target_policy and archived_at is null) then
+    raise exception 'policy_not_found';
+  end if;
+  update reminder_policies set is_default = false, updated_at = now() where organization_id = target_org and is_default;
+  update reminder_policies set is_default = true, updated_at = now() where organization_id = target_org and id = target_policy and archived_at is null;
+end;
+$$;
+
+revoke all on function public.set_default_reminder_policy(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.set_default_reminder_policy(uuid, uuid) to service_role;
+
+create or replace function public.refresh_reminder_next_times(target_org uuid, automation_active boolean)
+returns void language plpgsql security invoker set search_path = public, pg_temp as $$
+declare company_today date := (now() at time zone 'Europe/Prague')::date;
+begin
+  update invoices invoice set next_reminder_at = case
+    when not automation_active or invoice.reminders_paused then null
+    else (select case
+      when count(*) filter (where invoice.due_date + offset_day <= company_today) > 0 then (company_today + time '06:00') at time zone 'Europe/Prague'
+      else ((min(invoice.due_date + offset_day)) + time '06:00') at time zone 'Europe/Prague' end
+      from unnest(invoice.reminder_days_snapshot) offset_day
+      where invoice.reminder_plan_effective_from is null or invoice.due_date + offset_day >= invoice.reminder_plan_effective_from)
+    end
+  where invoice.organization_id = target_org and invoice.status in ('pending', 'overdue');
+end;
+$$;
+
+revoke all on function public.refresh_reminder_next_times(uuid, boolean) from public, anon, authenticated;
+grant execute on function public.refresh_reminder_next_times(uuid, boolean) to service_role;
 
 create table email_templates (
   id uuid primary key default gen_random_uuid(),
@@ -86,6 +139,8 @@ create table invoices (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references organizations(id) on delete cascade,
   reminder_policy_id uuid references reminder_policies(id) on delete set null,
+  reminder_days_snapshot integer[] not null default array[-3, 0, 7, 14],
+  reminder_plan_effective_from date,
   invoice_number text not null,
   counterparty_name text not null,
   counterparty_ico text,
@@ -115,7 +170,8 @@ create table invoices (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, invoice_number),
-  constraint invoices_vat_amounts_consistent check (abs(amount - round(amount_without_vat * (100 + vat_rate) / 100, 2)) <= 0.01)
+  constraint invoices_vat_amounts_consistent check (abs(amount - round(amount_without_vat * (100 + vat_rate) / 100, 2)) <= 0.01),
+  constraint invoices_reminder_days_snapshot_valid check (public.valid_reminder_days(reminder_days_snapshot))
 );
 
 create unique index invoices_one_document on invoices (file_url) where file_url is not null;
@@ -232,6 +288,7 @@ create table invoice_uploads (
   ocr_error text,
   ocr_model text,
   ocr_provider_response_id text,
+  ocr_field_sources jsonb not null default '{}'::jsonb check (jsonb_typeof(ocr_field_sources) = 'object'),
   created_at timestamptz not null default now()
 );
 
@@ -1602,6 +1659,85 @@ revoke all on function verify_email_mfa_challenge(uuid, uuid, uuid, text) from p
 grant execute on function create_email_mfa_challenge(uuid, uuid, uuid, text, timestamptz) to service_role;
 grant execute on function verify_email_mfa_challenge(uuid, uuid, uuid, text) to service_role;
 
+-- Kategorie upominek zapamatovana pro odberatele podle ICO pri ulozeni OCR faktury.
+create table counterparty_reminder_preferences (
+  organization_id uuid not null references organizations(id) on delete cascade,
+  counterparty_ico text not null check (counterparty_ico ~ '^[0-9]{8}$'),
+  reminder_policy_id uuid not null,
+  last_invoice_id uuid,
+  updated_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (organization_id, counterparty_ico),
+  constraint counterparty_reminder_preferences_policy_same_org_fkey
+    foreign key (organization_id, reminder_policy_id)
+    references reminder_policies (organization_id, id),
+  constraint counterparty_reminder_preferences_invoice_same_org_fkey
+    foreign key (organization_id, last_invoice_id)
+    references invoices (organization_id, id) on delete set null (last_invoice_id)
+);
+
+create index counterparty_reminder_preferences_policy_idx
+  on counterparty_reminder_preferences (organization_id, reminder_policy_id);
+create index counterparty_reminder_preferences_invoice_idx
+  on counterparty_reminder_preferences (organization_id, last_invoice_id);
+create index counterparty_reminder_preferences_updated_by_idx
+  on counterparty_reminder_preferences (updated_by);
+
+alter table counterparty_reminder_preferences enable row level security;
+revoke all on table counterparty_reminder_preferences from public, anon, authenticated;
+grant select, insert, update, delete on table counterparty_reminder_preferences to service_role;
+
+comment on table counterparty_reminder_preferences is
+  'Internal per-organization OCR reminder policy preference keyed by normalized Czech ICO.';
+
+create or replace function remember_ocr_reminder_policy()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  normalized_ico text := regexp_replace(coalesce(new.counterparty_ico, ''), '[^0-9]', '', 'g');
+  previous_ico text;
+begin
+  if tg_op = 'UPDATE' then
+    previous_ico := regexp_replace(coalesce(old.counterparty_ico, ''), '[^0-9]', '', 'g');
+    if previous_ico ~ '^[0-9]{8}$' and previous_ico is distinct from normalized_ico then
+      delete from public.counterparty_reminder_preferences
+      where organization_id = old.organization_id
+        and counterparty_ico = previous_ico
+        and last_invoice_id = old.id;
+    end if;
+  end if;
+
+  if new.source = 'ocr'
+    and normalized_ico ~ '^[0-9]{8}$'
+    and new.reminder_policy_id is not null then
+    insert into public.counterparty_reminder_preferences (
+      organization_id, counterparty_ico, reminder_policy_id, last_invoice_id, updated_by
+    ) values (
+      new.organization_id, normalized_ico, new.reminder_policy_id, new.id,
+      coalesce(new.updated_by, new.created_by)
+    )
+    on conflict (organization_id, counterparty_ico) do update
+    set reminder_policy_id = excluded.reminder_policy_id,
+        last_invoice_id = excluded.last_invoice_id,
+        updated_by = excluded.updated_by,
+        updated_at = now();
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function remember_ocr_reminder_policy() from public, anon, authenticated;
+grant execute on function remember_ocr_reminder_policy() to service_role;
+
+create trigger remember_ocr_invoice_reminder_policy
+after insert or update of reminder_policy_id, counterparty_ico on invoices
+for each row execute function remember_ocr_reminder_policy();
+
 -- Supporting indexes for foreign keys used by cascades, joins and organization filters.
 create index bank_payments_imported_by_idx on bank_payments (imported_by);
 create index bank_payments_org_invoice_idx on bank_payments (organization_id, invoice_id);
@@ -1701,3 +1837,272 @@ $$;
 
 revoke all on function consume_auth_rate_limit(text, text, integer, integer) from public, anon, authenticated;
 grant execute on function consume_auth_rate_limit(text, text, integer, integer) to service_role;
+
+-- Consolidated from: 20260908154602_optimize_reminder_queue.sql
+-- Durable reminder queue and per-phase operational metrics.
+-- reminder_log stays the only queue; no Redis/PGMQ dependency is introduced.
+
+alter table public.reminder_log
+  add column if not exists available_at timestamptz,
+  add column if not exists lease_token uuid,
+  add column if not exists lease_expires_at timestamptz;
+
+update public.reminder_log
+set available_at = ((scheduled_for::timestamp + time '06:00') at time zone 'UTC')
+where available_at is null;
+
+alter table public.reminder_log
+  alter column available_at set default now(),
+  alter column available_at set not null;
+
+alter table public.reminder_log
+  drop constraint if exists reminder_log_lease_pair_check,
+  add constraint reminder_log_lease_pair_check
+    check ((lease_token is null) = (lease_expires_at is null));
+
+alter table public.reminder_automation_runs
+  add column if not exists queued integer not null default 0 check (queued >= 0),
+  add column if not exists processed integer not null default 0 check (processed >= 0),
+  add column if not exists remaining integer not null default 0 check (remaining >= 0),
+  add column if not exists planner_duration_ms integer not null default 0 check (planner_duration_ms >= 0),
+  add column if not exists worker_duration_ms integer not null default 0 check (worker_duration_ms >= 0);
+
+create or replace function public.schedule_reminder_jobs(
+  target_jobs jsonb,
+  target_invoice_updates jsonb,
+  target_now timestamptz default now()
+) returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  result jsonb;
+begin
+  if jsonb_typeof(coalesce(target_jobs, '[]'::jsonb)) <> 'array'
+    or jsonb_typeof(coalesce(target_invoice_updates, '[]'::jsonb)) <> 'array' then
+    raise exception 'invalid_queue_payload';
+  end if;
+
+  with parsed_jobs as (
+    select *
+    from jsonb_to_recordset(coalesce(target_jobs, '[]'::jsonb)) as job(
+      organization_id uuid,
+      invoice_id uuid,
+      stage text,
+      scheduled_for date,
+      sent_to text,
+      status text,
+      available_at timestamptz
+    )
+    where status in ('queued', 'skipped')
+  ), changed_jobs as (
+    insert into public.reminder_log as existing (
+      organization_id, invoice_id, stage, scheduled_for, sent_to, status,
+      available_at, attempt_count, updated_at
+    )
+    select organization_id, invoice_id, stage, scheduled_for, lower(sent_to), status,
+      available_at, 0, target_now
+    from parsed_jobs
+    on conflict (invoice_id, stage, scheduled_for) do update set
+      status = excluded.status,
+      sent_to = excluded.sent_to,
+      available_at = excluded.available_at,
+      error_message = null,
+      lease_token = null,
+      lease_expires_at = null,
+      updated_at = target_now
+    where
+      (excluded.status = 'queued' and existing.status = 'failed' and existing.attempt_count < 3)
+      or (
+        excluded.status = 'skipped'
+        and existing.status in ('failed', 'queued')
+        and (existing.lease_expires_at is null or existing.lease_expires_at <= target_now)
+      )
+    returning status
+  ), parsed_updates as (
+    select *
+    from jsonb_to_recordset(coalesce(target_invoice_updates, '[]'::jsonb)) as invoice_update(
+      organization_id uuid,
+      invoice_id uuid,
+      next_reminder_at timestamptz
+    )
+  ), updated_invoices as (
+    update public.invoices as invoice set
+      next_reminder_at = invoice_update.next_reminder_at,
+      updated_at = target_now
+    from parsed_updates as invoice_update
+    where invoice.id = invoice_update.invoice_id
+      and invoice.organization_id = invoice_update.organization_id
+      and invoice.status in ('pending', 'overdue')
+    returning invoice.id
+  )
+  select jsonb_build_object(
+    'queued', count(*) filter (where status = 'queued'),
+    'skipped', count(*) filter (where status = 'skipped'),
+    'updated_invoices', (select count(*) from updated_invoices)
+  ) into result
+  from changed_jobs;
+
+  return coalesce(result, jsonb_build_object('queued', 0, 'skipped', 0, 'updated_invoices', 0));
+end;
+$$;
+
+create or replace function public.claim_reminder_jobs(
+  target_organizations uuid[],
+  target_worker uuid,
+  target_limit integer default 25,
+  target_lease_seconds integer default 900,
+  target_now timestamptz default now()
+) returns table (
+  id uuid,
+  organization_id uuid,
+  invoice_id uuid,
+  stage text,
+  scheduled_for date,
+  attempt_count integer,
+  lease_token uuid
+)
+language sql
+security invoker
+set search_path = ''
+as $$
+  with candidates as (
+    select queue.id
+    from public.reminder_log as queue
+    where queue.organization_id = any(target_organizations)
+      and queue.status = 'queued'
+      and queue.available_at <= target_now
+      and queue.attempt_count < 3
+      and (queue.lease_expires_at is null or queue.lease_expires_at <= target_now)
+    order by queue.scheduled_for, queue.id
+    limit least(greatest(target_limit, 1), 25)
+    for update skip locked
+  ), claimed as (
+    update public.reminder_log as queue set
+      lease_token = target_worker,
+      lease_expires_at = target_now + make_interval(secs => least(greatest(target_lease_seconds, 60), 3600)),
+      attempt_count = queue.attempt_count + 1,
+      updated_at = target_now
+    from candidates
+    where queue.id = candidates.id
+    returning queue.id, queue.organization_id, queue.invoice_id, queue.stage,
+      queue.scheduled_for, queue.attempt_count, queue.lease_token
+  )
+  select * from claimed order by scheduled_for, id;
+$$;
+
+create or replace function public.complete_claimed_reminder_send(
+  target_log_id uuid,
+  target_lease_token uuid,
+  provider_id text,
+  sent_time timestamptz,
+  next_time timestamptz
+) returns boolean
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  target_invoice_id uuid;
+begin
+  update public.reminder_log set
+    status = 'sent', sent_at = sent_time, provider_message_id = provider_id,
+    delivery_status = 'accepted', delivery_event_at = sent_time,
+    delivered_at = null, delivery_error = null, error_message = null,
+    lease_token = null, lease_expires_at = null, updated_at = sent_time
+  where id = target_log_id and status = 'queued' and lease_token = target_lease_token
+  returning invoice_id into target_invoice_id;
+
+  if target_invoice_id is null then return false; end if;
+
+  update public.invoices set
+    reminders_sent = reminders_sent + 1,
+    last_reminder_at = sent_time,
+    next_reminder_at = next_time,
+    updated_at = sent_time
+  where id = target_invoice_id and status in ('pending', 'overdue');
+
+  return true;
+end;
+$$;
+
+create or replace function public.fail_claimed_reminder_job(
+  target_log_id uuid,
+  target_lease_token uuid,
+  failure_message text,
+  retry_time timestamptz,
+  failed_time timestamptz default now()
+) returns boolean
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  target_invoice_id uuid;
+begin
+  update public.reminder_log set
+    status = 'failed', error_message = left(failure_message, 1000),
+    lease_token = null, lease_expires_at = null, updated_at = failed_time
+  where id = target_log_id and status = 'queued' and lease_token = target_lease_token
+  returning invoice_id into target_invoice_id;
+
+  if target_invoice_id is null then return false; end if;
+  update public.invoices set next_reminder_at = retry_time, updated_at = failed_time
+  where id = target_invoice_id and status in ('pending', 'overdue') and reminders_paused = false;
+  return true;
+end;
+$$;
+
+create or replace function public.skip_claimed_reminder_job(
+  target_log_id uuid,
+  target_lease_token uuid,
+  skipped_time timestamptz default now()
+) returns boolean
+language sql
+security invoker
+set search_path = ''
+as $$
+  update public.reminder_log set
+    status = 'skipped', error_message = null,
+    lease_token = null, lease_expires_at = null, updated_at = skipped_time
+  where id = target_log_id and status = 'queued' and lease_token = target_lease_token
+  returning true;
+$$;
+
+create or replace function public.release_claimed_reminder_jobs(
+  target_lease_token uuid,
+  target_log_ids uuid[],
+  released_time timestamptz default now()
+) returns integer
+language sql
+security invoker
+set search_path = ''
+as $$
+  with released as (
+    update public.reminder_log set
+      lease_token = null,
+      lease_expires_at = null,
+      attempt_count = greatest(attempt_count - 1, 0),
+      updated_at = released_time
+    where id = any(target_log_ids)
+      and status = 'queued'
+      and lease_token = target_lease_token
+    returning id
+  )
+  select count(*)::integer from released;
+$$;
+
+revoke all on function public.schedule_reminder_jobs(jsonb, jsonb, timestamptz) from public, anon, authenticated;
+revoke all on function public.claim_reminder_jobs(uuid[], uuid, integer, integer, timestamptz) from public, anon, authenticated;
+revoke all on function public.complete_claimed_reminder_send(uuid, uuid, text, timestamptz, timestamptz) from public, anon, authenticated;
+revoke all on function public.fail_claimed_reminder_job(uuid, uuid, text, timestamptz, timestamptz) from public, anon, authenticated;
+revoke all on function public.skip_claimed_reminder_job(uuid, uuid, timestamptz) from public, anon, authenticated;
+revoke all on function public.release_claimed_reminder_jobs(uuid, uuid[], timestamptz) from public, anon, authenticated;
+
+grant execute on function public.schedule_reminder_jobs(jsonb, jsonb, timestamptz) to service_role;
+grant execute on function public.claim_reminder_jobs(uuid[], uuid, integer, integer, timestamptz) to service_role;
+grant execute on function public.complete_claimed_reminder_send(uuid, uuid, text, timestamptz, timestamptz) to service_role;
+grant execute on function public.fail_claimed_reminder_job(uuid, uuid, text, timestamptz, timestamptz) to service_role;
+grant execute on function public.skip_claimed_reminder_job(uuid, uuid, timestamptz) to service_role;
+grant execute on function public.release_claimed_reminder_jobs(uuid, uuid[], timestamptz) to service_role;

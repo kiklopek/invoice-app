@@ -11,7 +11,7 @@ export async function GET() {
       upcoming: demoInvoices.filter(invoice => invoice.next_reminder_at && ["pending", "overdue"].includes(invoice.status)).map(invoice => ({ id: invoice.id, invoice_number: invoice.invoice_number, counterparty_name: invoice.counterparty_name, next_reminder_at: invoice.next_reminder_at!, amount: invoice.amount, currency: invoice.currency })).sort((a, b) => a.next_reminder_at.localeCompare(b.next_reminder_at)),
       failed: [],
       recent: [{ id: "demo-reminder", invoice_id: "demo-1", stage: "overdue", sent_at: demoInvoices[0].last_reminder_at, sent_to: demoInvoices[0].counterparty_email, attempt_count: 1, invoices: { invoice_number: demoInvoices[0].invoice_number, counterparty_name: demoInvoices[0].counterparty_name } }],
-      automation_run: { id: "demo-run", status: "succeeded", trigger_source: "scheduled", triggered_by_email: null, started_at: new Date(Date.now() - 15 * 60_000).toISOString(), finished_at: new Date(Date.now() - 14 * 60_000).toISOString(), checked: demoInvoices.length, sent: 1, failed: 0, skipped: 0, disabled: 0, paused: 0, suppressed: 0, exhausted: 0, error_message: null },
+      automation_run: { id: "demo-run", status: "succeeded", trigger_source: "scheduled", triggered_by_email: null, started_at: new Date(Date.now() - 15 * 60_000).toISOString(), finished_at: new Date(Date.now() - 14 * 60_000).toISOString(), checked: demoInvoices.length, queued: 1, processed: 1, remaining: 0, planner_duration_ms: 42, worker_duration_ms: 180, sent: 1, failed: 0, skipped: 0, disabled: 0, paused: 0, suppressed: 0, exhausted: 0, error_message: null },
     });
   }
 
@@ -30,7 +30,7 @@ export async function GET() {
       .order("delivery_event_at", { ascending: false }).limit(20),
     identity.service.from("reminder_log").select("id, invoice_id, stage, sent_at, sent_to, attempt_count, delivery_status, invoices:invoices!reminder_log_invoice_id_fkey(invoice_number, counterparty_name)")
       .eq("organization_id", organizationId).eq("status", "sent").order("sent_at", { ascending: false }).limit(20),
-    identity.service.from("reminder_automation_runs").select("id, status, trigger_source, triggered_by_email, started_at, finished_at, checked, sent, failed, skipped, disabled, paused, suppressed, exhausted, error_message")
+    identity.service.from("reminder_automation_runs").select("id, status, trigger_source, triggered_by_email, started_at, finished_at, checked, queued, processed, remaining, planner_duration_ms, worker_duration_ms, sent, failed, skipped, disabled, paused, suppressed, exhausted, error_message")
       .eq("organization_id", organizationId).order("started_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (upcomingResult.error || failedResult.error || deliveryIssueResult.error || recentResult.error || automationRunResult.error) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { useAccessProfile } from "@/lib/use-access-role";
 import { canEditCompanySettings } from "@/lib/role-access";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
-import { buildReminderSchedule, compareDate, hasReminderAttemptBudget, isLatestEligibleReminder, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone } from "@/lib/reminders";
+import { buildEffectiveReminderSchedule, compareDate, hasReminderAttemptBudget, isLatestEligibleReminder, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
 import { INVOICE_REMINDER_POLICY_STATE_SELECT, reminderDatabaseError } from "@/lib/reminder-automation-query";
@@ -60,7 +60,7 @@ export async function POST(request: Request, { params }: Context) {
     return NextResponse.json({ error: "Na tuto adresu nelze odesílat. Opravte kontaktní e-mail odběratele a zkuste to znovu." }, { status: 409 });
   }
 
-  let policyQuery = identity.service.from("reminder_policies").select("days_from_due, is_active")
+  let policyQuery = identity.service.from("reminder_policies").select("is_active")
     .eq("organization_id", organizationId);
   policyQuery = invoice.reminder_policy_id
     ? policyQuery.eq("id", invoice.reminder_policy_id)
@@ -72,7 +72,7 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   const today = todayInTimeZone();
-  const schedule = buildReminderSchedule(invoice.due_date, policy?.days_from_due ?? DEFAULT_THRESHOLDS);
+  const schedule = buildEffectiveReminderSchedule(invoice.due_date, invoice.reminder_days_snapshot ?? DEFAULT_THRESHOLDS, invoice.reminder_plan_effective_from);
   if (!isLatestEligibleReminder(schedule, today, log.scheduled_for, log.stage as ReminderStage)) {
     return NextResponse.json({ error: "Tato upomínka už neodpovídá aktuálnímu plánu. Vyčkejte na další naplánovaný krok." }, { status: 409 });
   }
@@ -102,7 +102,7 @@ export async function POST(request: Request, { params }: Context) {
       .eq("id", reminderId).eq("status", "queued");
     return NextResponse.json({ error: "Fakturu se nepodařilo znovu ověřit. Pokus zůstal připravený k opakování.", code: "REMINDER_INVOICE_RECHECK_FAILED" }, { status: 500 });
   }
-  if (!currentInvoice || !["pending", "overdue"].includes(currentInvoice.status) || currentInvoice.due_date !== invoice.due_date) {
+  if (!currentInvoice || !["pending", "overdue"].includes(currentInvoice.status) || currentInvoice.due_date !== invoice.due_date || currentInvoice.reminder_policy_id !== invoice.reminder_policy_id || JSON.stringify(currentInvoice.reminder_days_snapshot) !== JSON.stringify(invoice.reminder_days_snapshot)) {
     await identity.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() })
       .eq("id", reminderId).eq("status", "queued");
     return NextResponse.json({ error: "Faktura se mezitím změnila; upomínka nebyla odeslána." }, { status: 409 });

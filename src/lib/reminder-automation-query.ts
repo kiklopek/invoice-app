@@ -1,13 +1,13 @@
 export const REMINDER_POLICY_RELATION = "reminder_policies!invoices_policy_same_org_fkey";
 
 export const INVOICE_REMINDER_POLICY_SELECT =
-  `*, reminder_policy:${REMINDER_POLICY_RELATION}(days_from_due, is_active)`;
+  `*, reminder_policy:${REMINDER_POLICY_RELATION}(name, is_active)`;
 
 export const INVOICE_REMINDER_POLICY_STATE_SELECT =
   `*, reminder_policy:${REMINDER_POLICY_RELATION}(is_active)`;
 
 export type InvoiceReminderPolicy = {
-  reminder_policy?: { days_from_due: number[]; is_active: boolean } | null;
+  reminder_policy?: { name?: string; is_active: boolean } | null;
 };
 
 type DatabaseErrorLike = {

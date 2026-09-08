@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildReminderSchedule,
+  buildEffectiveReminderSchedule,
   decideReminderAction,
   hasReminderAttemptBudget,
   initialNextReminderAt,
@@ -32,6 +33,15 @@ describe("buildReminderSchedule", () => {
 
   it("odmítne kalendářně neplatné datum", () => {
     expect(() => buildReminderSchedule("2026-02-30", [0])).toThrow("Neplatné datum");
+  });
+});
+
+describe("buildEffectiveReminderSchedule", () => {
+  it("po změně kategorie ponechá pouze termíny od účinnosti nového plánu", () => {
+    expect(buildEffectiveReminderSchedule("2026-09-10", [-3, 0, 7, 14], "2026-09-11")).toEqual([
+      { threshold: 7, scheduledFor: "2026-09-17", stage: "overdue" },
+      { threshold: 14, scheduledFor: "2026-09-24", stage: "escalation" },
+    ]);
   });
 });
 

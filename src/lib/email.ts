@@ -27,15 +27,18 @@ export async function sendReminderEmail(params: {
   stage: ReminderStage;
   idempotencyKey: string;
   template?: { subject: string; body: string; reply_to?: string | null; cc?: string[] | null } | null;
+  company?: ReminderEmailCompany;
 }) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.REMINDER_EMAIL_FROM;
   if (!key || !from) throw new Error("E-mailová služba není nakonfigurovaná.");
 
-  const service = createServiceClient();
-  const { data: company, error: companyError } = await service.from("organizations")
-    .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
-    .eq("id", params.invoice.organization_id).single();
+  const service = params.company ? null : createServiceClient();
+  const { data: company, error: companyError } = params.company
+    ? { data: params.company, error: null }
+    : await service!.from("organizations")
+      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
+      .eq("id", params.invoice.organization_id).single();
   if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
 
   const template = params.template ?? defaultReminderTemplates[params.stage];

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { createCsv } from "@/lib/csv";
 import { parsePaymentCsv, type PaymentImportRow } from "@/lib/payment-import";

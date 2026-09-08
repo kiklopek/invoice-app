@@ -52,6 +52,7 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
   const variableSymbol = optional("variable_symbol", 20);
   const notes = optional("notes", 5000);
   const fileUrl = optional("file_url", 500);
+  const reminderPolicyId = optional("reminder_policy_id", 36);
   if (
     (typeof body.counterparty_ico === "string" && body.counterparty_ico.trim().length > 20) ||
     (typeof body.counterparty_dic === "string" && body.counterparty_dic.trim().length > 24) ||
@@ -59,6 +60,7 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     (typeof body.notes === "string" && body.notes.trim().length > 5000) ||
     (typeof body.file_url === "string" && body.file_url.trim().length > 500)
   ) return null;
+  if (reminderPolicyId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reminderPolicyId)) return null;
 
   return {
     invoice_number: invoiceNumber,
@@ -76,5 +78,6 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     notes,
     source: body.source === "ocr" ? "ocr" : "manual",
     file_url: fileUrl,
+    reminder_policy_id: reminderPolicyId,
   };
 }

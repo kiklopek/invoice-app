@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LOCAL_OCR_MODEL, normalizeOcrText, parseInvoiceText } from "./invoice-ocr";
+import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, normalizeOcrText, parseInvoiceText } from "./invoice-ocr";
 
 const organization = { name: "R. Hlavica s.r.o.", ico: "05829309", dic: "CZ05829309" };
 
@@ -47,6 +47,14 @@ describe("local invoice OCR parser", () => {
     expect(result.issuer_matches_organization).toBe(true);
     expect(result.model).toBe(LOCAL_OCR_MODEL);
     expect(result.response_id).toBeNull();
+    expect(result.field_sources.invoice_number).toMatchObject({ page: 1, text: "Číslo faktury: FV-2026-007" });
+    expect(result.field_sources.amount).toMatchObject({ page: 1, text: "Celkem k úhradě 12 100,00 Kč" });
+  });
+
+  it("disables only the usage quota when the organization limit is null", () => {
+    expect(isOcrHourlyQuotaExceeded(null, 100_000)).toBe(false);
+    expect(isOcrHourlyQuotaExceeded(20, 19)).toBe(false);
+    expect(isOcrHourlyQuotaExceeded(20, 20)).toBe(true);
   });
 
   it("uses an effective VAT rate when an invoice contains multiple VAT rates", () => {

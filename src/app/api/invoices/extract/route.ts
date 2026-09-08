@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
-import { LOCAL_OCR_MODEL, parseInvoiceText } from "@/lib/invoice-ocr";
+import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, parseInvoiceText } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
+import { normalizeCounterpartyIco, resolveOcrReminderPolicy } from "@/lib/counterparty-reminder-preferences";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,11 +35,19 @@ export async function POST(request: Request) {
           notes: "Údaje byly předvyplněny z dokumentu. Před uložením je zkontrolujte.",
           source: "ocr",
           file_url: path,
+          reminder_policy_id: "00000000-0000-4000-8000-000000000001",
         },
+        field_sources: {},
         confidence: 0.93,
         warnings: [],
         document_kind: "issued_invoice",
         issuer_matches_organization: true,
+        reminder_policy_assignment: {
+          status: "default",
+          counterparty_ico: "12345678",
+          policy_id: "00000000-0000-4000-8000-000000000001",
+          policy_name: "Standardní",
+        },
         model: "demo",
         response_id: null,
       },
@@ -59,13 +68,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dokument není bezpečně ověřený nebo jeho nahrávání vypršelo." }, { status: 410 });
   }
 
-  const hourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
-  const { data: recentOcr, error: rateError } = await identity.service.from("invoice_uploads")
-    .select("ocr_attempt_count").eq("organization_id", organizationId).eq("created_by", identity.user.id)
-    .gte("created_at", hourAgo).gt("ocr_attempt_count", 0).limit(100);
-  if (rateError) return NextResponse.json({ error: "Limit OCR se nepodařilo ověřit." }, { status: 500 });
-  const attemptsThisHour = (recentOcr ?? []).reduce((sum, item) => sum + Number(item.ocr_attempt_count || 0), 0);
-  if (attemptsThisHour >= 20) return NextResponse.json({ error: "Hodinový limit OCR byl vyčerpán. Zkuste to později." }, { status: 429 });
+  const { data: organization, error: organizationError } = await identity.service.from("organizations")
+    .select("name, ico, dic, ocr_hourly_limit").eq("id", organizationId).single();
+  if (organizationError || !organization) return NextResponse.json({ error: "Firemní údaje se nepodařilo načíst." }, { status: 500 });
+
+  if (organization.ocr_hourly_limit !== null) {
+    const hourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
+    const { data: recentOcr, error: rateError } = await identity.service.from("invoice_uploads")
+      .select("ocr_attempt_count").eq("organization_id", organizationId).eq("created_by", identity.user.id)
+      .gte("created_at", hourAgo).gt("ocr_attempt_count", 0).limit(100);
+    if (rateError) return NextResponse.json({ error: "Limit OCR se nepodařilo ověřit." }, { status: 500 });
+    const attemptsThisHour = (recentOcr ?? []).reduce((sum, item) => sum + Number(item.ocr_attempt_count || 0), 0);
+    if (isOcrHourlyQuotaExceeded(organization.ocr_hourly_limit, attemptsThisHour)) return NextResponse.json({ error: "Hodinový limit OCR byl vyčerpán. Zkuste to později." }, { status: 429 });
+  }
 
   const { data: claimed, error: claimError } = await identity.service.rpc("claim_invoice_ocr", {
     target_upload_id: upload.id,
@@ -90,10 +105,6 @@ export async function POST(request: Request) {
     return fail("Obsah dokumentu už neodpovídá ověřenému souboru.", 415, "document_integrity_failed");
   }
 
-  const { data: organization, error: organizationError } = await identity.service.from("organizations")
-    .select("name, ico, dic").eq("id", organizationId).single();
-  if (organizationError || !organization) return fail("Firemní údaje se nepodařilo načíst.", 500, "organization_load_failed");
-
   let extraction;
   try {
     const documentText = await extractInvoiceDocumentText({ bytes, mime: upload.expected_mime });
@@ -106,6 +117,7 @@ export async function POST(request: Request) {
       organization,
       ocrConfidence: documentText.averageConfidence,
       extraWarnings: documentText.warnings,
+      layout: documentText.layout,
     });
   } catch (cause) {
     console.error("[invoice-ocr] extraction failed", {
@@ -121,10 +133,40 @@ export async function POST(request: Request) {
     return fail("Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, "local_ocr_failed");
   }
 
+  const normalizedIco = normalizeCounterpartyIco(extraction.invoice.counterparty_ico);
+  const preferencePromise = normalizedIco
+    ? identity.service.from("counterparty_reminder_preferences").select("reminder_policy_id")
+        .eq("organization_id", organizationId).eq("counterparty_ico", normalizedIco).maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const policiesPromise = identity.service.from("reminder_policies")
+    .select("id, name, is_default").eq("organization_id", organizationId)
+    .is("archived_at", null).order("is_default", { ascending: false });
+  const [{ data: preference, error: preferenceError }, { data: policies, error: policiesError }] = await Promise.all([
+    preferencePromise,
+    policiesPromise,
+  ]);
+  if (preferenceError || policiesError) {
+    return fail("Kategorii upomínek podle IČO se nepodařilo načíst. Zkontrolujte databázovou migraci.", 503, "reminder_preference_load_failed");
+  }
+  const reminderPolicyAssignment = resolveOcrReminderPolicy({
+    counterpartyIco: normalizedIco,
+    preferredPolicyId: preference?.reminder_policy_id,
+    policies: policies ?? [],
+  });
+  if (!reminderPolicyAssignment) {
+    return fail("Nejdříve nastavte alespoň jednu kategorii upomínek.", 409, "reminder_policy_missing");
+  }
+  extraction = {
+    ...extraction,
+    invoice: { ...extraction.invoice, reminder_policy_id: reminderPolicyAssignment.policy_id },
+    reminder_policy_assignment: reminderPolicyAssignment,
+  };
+
   const { error: completionError } = await identity.service.from("invoice_uploads").update({
     ocr_status: "succeeded",
     ocr_model: LOCAL_OCR_MODEL,
     ocr_provider_response_id: null,
+    ocr_field_sources: extraction.field_sources,
     ocr_error: null,
     ocr_completed_at: new Date().toISOString(),
   }).eq("id", upload.id).eq("ocr_status", "processing");

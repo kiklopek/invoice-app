@@ -6,15 +6,15 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 
 describe("role authorization", () => {
   it("shows readers dashboard, invoices and reports and redirects forbidden pages", () => {
-    const sidebar = source("src/components/app-sidebar.tsx");
+    const sidebar = source("src/components/layout/app-shell.tsx");
     expect(sidebar).toContain('["/dashboard", "/invoices", "/reports"].includes(item.href)');
     expect(sidebar).toContain("router.replace(landingPageForRole(role))");
     expect(sidebar).toContain('role === "viewer" ? viewerItems');
   });
 
   it("hides invoice creation actions for readers", () => {
-    const dashboard = source("src/app/dashboard/page.tsx");
-    const invoices = source("src/app/invoices/page.tsx");
+    const dashboard = source("src/app/(workspace)/dashboard/page.tsx");
+    const invoices = source("src/app/(workspace)/invoices/page.tsx");
     expect(dashboard).toContain("const canManage = canManageInvoices(role)");
     expect(dashboard).toContain("{canManage ? <div className=\"top-actions dashboard-actions\">");
     expect(invoices).toContain("{canManage ? <Link href=\"/invoices/import\"");
@@ -42,7 +42,7 @@ describe("role authorization", () => {
   });
 
   it("shows company data read-only to accounting and hides access administration", () => {
-    const settings = source("src/app/settings/page.tsx");
+    const settings = source("src/app/(workspace)/settings/page.tsx");
     const companyRoute = source("src/app/api/settings/company/route.ts");
     const membersRoute = source("src/app/api/settings/members/route.ts");
     expect(settings).toContain('currentRole === "admin" ? ["/api/settings/company", "/api/settings/members"] : ["/api/settings/company"]');
@@ -56,7 +56,7 @@ describe("role authorization", () => {
 
   it("shows the signed-in user's name, company and initials", () => {
     const accessRoute = source("src/app/api/auth/access/route.ts");
-    const sidebar = source("src/components/app-sidebar.tsx");
+    const sidebar = source("src/components/layout/app-shell.tsx");
     expect(accessRoute).toContain("displayName(identity.user.user_metadata.full_name, email)");
     expect(accessRoute).toContain("email,");
     expect(accessRoute).toContain('companyName: organization?.name?.trim() || "Firma"');

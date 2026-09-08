@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { createEmptyInvoice, InvoiceForm } from "@/components/invoice-form";
 import type { InvoiceInput } from "@/types/invoice";
 import { createCsv } from "@/lib/csv";
@@ -64,7 +64,7 @@ export default function ImportInvoicesPage() {
   const [mode, setMode] = useState<"document" | "csv">("document");
   const [file, setFile] = useState<File | null>(null);
   const [uploaded, setUploaded] = useState<InvoiceInput | null>(null);
-  const [ocrInfo, setOcrInfo] = useState<Pick<InvoiceOcrResult, "confidence" | "warnings" | "document_kind" | "issuer_matches_organization"> | null>(null);
+  const [ocrInfo, setOcrInfo] = useState<Pick<InvoiceOcrResult, "confidence" | "warnings" | "document_kind" | "issuer_matches_organization" | "reminder_policy_assignment" | "field_sources"> | null>(null);
   const [rows, setRows] = useState<InvoiceInput[]>([]);
   const [working, setWorking] = useState(false);
   const [documentStage, setDocumentStage] = useState<DocumentStage>("idle");
@@ -148,7 +148,7 @@ export default function ImportInvoicesPage() {
         {!ocrInfo && <div className="ocr-manual-actions"><button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button><a className="btn secondary compact" href="#manual-invoice-form">Vyplnit ručně</a></div>}
       </div>
       {ocrInfo?.warnings.length ? <div className="ocr-warnings"><strong>Co je potřeba ověřit</strong><ul>{ocrInfo.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div> : null}
-      <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
+      <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} ocrPolicyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
     </> : <section className="page-panel import-panel"><div className="import-drop"><span className="large-import-icon"><Icon name="document"/></span><h2>Vyberte dokument faktury</h2><p>Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB. Údaje rozpozná lokální OCR bez odesílání do externí AI služby.</p><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => setFile(event.target.files?.[0] ?? null)}/>{file && <strong>{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</strong>}<button className="btn primary" disabled={!file || working} onClick={upload}>{working ? documentStageLabel[documentStage] : <><Icon name="upload"/>Nahrát a načíst údaje</>}</button></div></section>
     : <section className="page-panel import-panel"><div className="csv-help"><h2>Hromadný import faktur</h2><p>CSV musí obsahovat sloupce: Číslo faktury, Odběratel, E-mail, Částka bez DPH, Sazba DPH, Částka s DPH, Měna, Vystavení a Splatnost. Starší soubor s jediným sloupcem Částka zůstává podporovaný jako konečná částka s DPH. Data používejte ve formátu RRRR-MM-DD. Jeden import může obsahovat nejvýše 250 faktur a uloží se vždy celý, nebo vůbec.</p><div className="csv-actions"><input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/><button type="button" className="btn secondary" onClick={downloadTemplate}><Icon name="download"/>Stáhnout vzor CSV</button></div></div>{rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><button className="btn primary import-confirm" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></>}</section>}
     {message && <p className="form-error">{message}</p>}

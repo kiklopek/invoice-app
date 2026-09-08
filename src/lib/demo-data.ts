@@ -11,6 +11,9 @@ export const demoInvoices: Invoice[] = [
   {
     id: "demo-1",
     organization_id: "demo-org",
+    reminder_policy_id: "00000000-0000-4000-8000-000000000001",
+    reminder_days_snapshot: [-3, 0, 7, 14],
+    reminder_plan_effective_from: null,
     invoice_number: "FV-2026-084",
     counterparty_name: "Stavby Novák s.r.o.",
     counterparty_ico: "08342156",
@@ -42,6 +45,9 @@ export const demoInvoices: Invoice[] = [
   {
     id: "demo-2",
     organization_id: "demo-org",
+    reminder_policy_id: "00000000-0000-4000-8000-000000000001",
+    reminder_days_snapshot: [-3, 0, 7, 14],
+    reminder_plan_effective_from: null,
     invoice_number: "FV-2026-091",
     counterparty_name: "Dřevostavby Morava a.s.",
     counterparty_ico: "27659312",
@@ -73,6 +79,9 @@ export const demoInvoices: Invoice[] = [
   {
     id: "demo-3",
     organization_id: "demo-org",
+    reminder_policy_id: "00000000-0000-4000-8000-000000000001",
+    reminder_days_snapshot: [-3, 0, 7, 14],
+    reminder_plan_effective_from: null,
     invoice_number: "FV-2026-073",
     counterparty_name: "Krovservis CZ s.r.o.",
     counterparty_ico: "04791288",
@@ -104,6 +113,9 @@ export const demoInvoices: Invoice[] = [
   {
     id: "demo-4",
     organization_id: "demo-org",
+    reminder_policy_id: "00000000-0000-4000-8000-000000000001",
+    reminder_days_snapshot: [-3, 0, 7, 14],
+    reminder_plan_effective_from: null,
     invoice_number: "FV-2026-096",
     counterparty_name: "Pila Vysočina spol. s r.o.",
     counterparty_ico: "25510471",

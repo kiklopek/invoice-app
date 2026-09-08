@@ -32,3 +32,20 @@ test("mobile layout does not overflow horizontally", async ({ page }, testInfo) 
   const sizes = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
   expect(sizes.scroll).toBeLessThanOrEqual(sizes.width + 1);
 });
+
+test("sidebar stays mounted while navigating between workspace pages", async ({ page }) => {
+  await page.goto("/dashboard");
+  test.skip(page.url().includes("/login"), "Requires a demo or authenticated session");
+  const sidebar = page.locator(".sidebar");
+  await expect(sidebar.locator('a[href="/invoices"]')).toBeVisible();
+  await sidebar.evaluate(element => {
+    element.setAttribute("data-persistence-check", "original");
+  });
+  for (const path of ["/invoices", "/reports", "/dashboard"]) {
+    await sidebar.locator(`nav a[href="${path}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(sidebar).toHaveAttribute("data-persistence-check", "original");
+    await expect(sidebar).toBeVisible();
+    await expect(page.locator("main")).toHaveCount(1);
+  }
+});

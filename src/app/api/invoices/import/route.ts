@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const organizationId = identity.membership.organization_id;
   const { data: policy } = await identity.service.from("reminder_policies")
     .select("id, days_from_due, is_active")
-    .eq("organization_id", organizationId).eq("is_default", true).maybeSingle();
+    .eq("organization_id", organizationId).eq("is_default", true).is("archived_at", null).maybeSingle();
   const today = todayInTimeZone();
   const rows = invoices.map((invoice) => ({
     ...invoice,
@@ -41,6 +41,8 @@ export async function POST(request: Request) {
     file_url: null,
     organization_id: organizationId,
     reminder_policy_id: policy?.id ?? null,
+    reminder_days_snapshot: policy?.days_from_due ?? [-3, 0, 7, 14],
+    reminder_plan_effective_from: null,
     next_reminder_at: policy?.is_active === false
       ? null
       : initialNextReminderAt(invoice.due_date, policy?.days_from_due ?? [-3, 0, 7, 14], today),

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { InvoiceForm } from "@/components/invoice-form";
 import { Icon } from "@/components/icons";
 import type { InvoiceInput } from "@/types/invoice";

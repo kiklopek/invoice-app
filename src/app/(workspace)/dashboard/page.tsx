@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import {
@@ -71,9 +71,7 @@ export default function DashboardPage() {
   const upcoming = summary.upcoming;
 
   return (
-    <div className="app-shell">
-      <AppSidebar invoiceCount={activeCount} />
-      <main className="content">
+    <AppFrame invoiceCount={loading ? undefined : activeCount} className="content">
         <header className="topbar">
           <div>
             <p>R. Hlavica s.r.o. · účetní oddělení</p>
@@ -261,7 +259,6 @@ export default function DashboardPage() {
           </aside>
           </MobileDisclosure>
         </section>
-      </main>
-    </div>
+    </AppFrame>
   );
 }

@@ -2,19 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
 import { signOutCurrentSession } from "@/lib/sign-out";
+import { confirmAction } from "@/lib/confirm-action";
 import { canAccessPage, landingPageForRole } from "@/lib/role-access";
 import { useAccessProfile } from "@/lib/use-access-role";
 import { profileInitials } from "@/lib/user-display";
+import "./mobile-navigation.css";
 
 const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
   { href: "/invoices", label: "Faktury", icon: "invoice" },
   { href: "/reports", label: "Reporty", icon: "chart" },
-  { href: "/invoices/archive", label: "Archiv", icon: "document" },
+  { href: "/invoices/archive", label: "Archiv", icon: "archive" },
   { href: "/reminders", label: "Upomínky", icon: "mail" },
   { href: "/settings", label: "Nastavení", icon: "settings" },
 ];
@@ -34,6 +36,12 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
 
   async function signOut() {
     if (signingOut) return;
+    const confirmed = await confirmAction({
+      title: "Opravdu se chcete odhlásit?",
+      description: "Pro návrat do aplikace se budete muset znovu přihlásit.",
+      confirmLabel: "Odhlásit se",
+    });
+    if (!confirmed) return;
     setSigningOut(true);
     setLogoutError(null);
     try {
@@ -49,7 +57,7 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
       <Link href={landingPageForRole(role)} className="brand">
         <CompanyLogo className="sidebar-company-logo" />
       </Link>
-      <nav className="sidebar-nav" aria-label="Hlavní navigace">
+      <nav className="sidebar-nav mobile-navigation" data-role={role} aria-label="Hlavní navigace">
         <span className="nav-heading">Hlavní nabídka</span>
         {(role === "viewer" ? viewerItems : role ? items : []).map(item => {
           const active = pathname === item.href || (
@@ -57,8 +65,9 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
               ? pathname.startsWith("/invoices/") && !pathname.startsWith("/invoices/archive")
               : item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)
           );
-          return <Link key={item.href} href={item.href} className={active ? "active" : ""}><span className="nav-symbol"><Icon name={item.icon}/></span><span>{item.label}</span>{item.href === "/invoices" && invoiceCount ? <em>{invoiceCount}</em> : null}</Link>;
+          return <Link key={item.href} href={item.href} prefetch={true} aria-current={active ? "page" : undefined} className={[active ? "active" : "", item.href === "/dashboard" ? "nav-primary" : ""].filter(Boolean).join(" ")}><span className="nav-symbol"><Icon name={item.icon}/></span><span>{item.label}</span>{item.href === "/invoices" && invoiceCount ? <em>{invoiceCount}</em> : null}</Link>;
         })}
+        {role && <button type="button" className="nav-logout" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}><span className="nav-symbol"><Icon name="logout"/></span><span>{signingOut ? "Odhlašuji…" : "Odhlásit"}</span></button>}
       </nav>
       <div className="sidebar-bottom">
         {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}
@@ -77,6 +86,17 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
   );
 }
 
-export function AppFrame({ children, invoiceCount }: { children: React.ReactNode; invoiceCount?: number }) {
-  return <div className="app-shell"><AppSidebar invoiceCount={invoiceCount}/><main className="content section-page">{children}</main></div>;
+const InvoiceCountContext = createContext<((count: number) => void) | null>(null);
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const [invoiceCount, setInvoiceCount] = useState<number>();
+  return <InvoiceCountContext.Provider value={setInvoiceCount}><div className="app-shell"><AppSidebar invoiceCount={invoiceCount}/>{children}</div></InvoiceCountContext.Provider>;
+}
+
+export function AppFrame({ children, invoiceCount, className = "content section-page" }: { children: React.ReactNode; invoiceCount?: number; className?: string }) {
+  const setInvoiceCount = useContext(InvoiceCountContext);
+  useEffect(() => {
+    if (invoiceCount !== undefined) setInvoiceCount?.(invoiceCount);
+  }, [invoiceCount, setInvoiceCount]);
+  return <main className={className}>{children}</main>;
 }

@@ -3,7 +3,7 @@ import sharp from "sharp";
 
 vi.mock("server-only", () => ({}));
 
-import { extractInvoiceDocumentText, layoutPdfTextItems } from "./invoice-ocr-server";
+import { extractInvoiceDocumentText, layoutPdfPage, layoutPdfTextItems } from "./invoice-ocr-server";
 
 function createTextPdf(text: string) {
   const escaped = text.replace(/([\\()])/g, "\\$1");
@@ -67,6 +67,17 @@ describe("local OCR document reader", () => {
     expect(text).toBe("Číslo faktury : 2600178 Odběratel : MADREV s.r.o.\nDatum vystavení : 06.08.2026");
   });
 
+  it("keeps page, line and normalized geometry for PDF fields", () => {
+    const page = layoutPdfPage([
+      { str: "Datum splatnosti:", transform: [12, 0, 0, 12, 40, 500], width: 110, height: 12 },
+      { str: "20.08.2026", transform: [12, 0, 0, 12, 170, 500], width: 70, height: 12 },
+    ], 2, 600, 800);
+
+    expect(page.lines[0]).toMatchObject({ page: 2, line: 1, source: "pdf_text", text: "Datum splatnosti: 20.08.2026" });
+    expect(page.lines[0].blocks).toHaveLength(2);
+    expect(page.lines[0].bounds).toMatchObject({ x: expect.any(Number), y: expect.any(Number), width: expect.any(Number), height: expect.any(Number) });
+  });
+
   it("reads a text-native PDF without running image OCR", async () => {
     const result = await extractInvoiceDocumentText({
       bytes: createTextPdf("FAKTURA FV-2026-007 ODBERATEL STAVBY NOVAK CELKEM 12100 CZK DATUM VYSTAVENI 2026-08-01 SPLATNOST 2026-08-15"),
@@ -76,6 +87,7 @@ describe("local OCR document reader", () => {
     expect(result.ocrUsed).toBe(false);
     expect(result.totalPages).toBe(1);
     expect(result.text).toContain("FV-2026-007");
+    expect(result.layout.pages[0].lines[0]).toMatchObject({ page: 1, source: "pdf_text" });
   });
 
   it("recognizes a generated invoice image with bundled Czech and English data", async () => {
@@ -86,6 +98,8 @@ describe("local OCR document reader", () => {
     const normalizedText = result.text.replace(/\s+/g, "");
     expect(normalizedText).toContain("FV-2026-007");
     expect(normalizedText).toContain("12100CZK");
+    expect(result.layout.pages[0].lines.length).toBeGreaterThan(0);
+    expect(result.layout.pages[0].lines[0].bounds).not.toBeNull();
   }, 25_000);
 
   it("auto-rotates and recognizes a mobile JPEG with shadows and small invoice text", async () => {

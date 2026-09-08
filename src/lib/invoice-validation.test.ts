@@ -51,4 +51,10 @@ describe("parseInvoiceInput", () => {
     expect(parseInvoiceInput({ ...validInvoice, invoice_number: "x".repeat(101) })).toBeNull();
     expect(parseInvoiceInput({ ...validInvoice, notes: "x".repeat(5001) })).toBeNull();
   });
+
+  it("přijme pouze platný identifikátor kategorie upomínek", () => {
+    const reminderPolicyId = "00000000-0000-4000-8000-000000000001";
+    expect(parseInvoiceInput({ ...validInvoice, reminder_policy_id: reminderPolicyId })).toMatchObject({ reminder_policy_id: reminderPolicyId });
+    expect(parseInvoiceInput({ ...validInvoice, reminder_policy_id: "cizí-kategorie" })).toBeNull();
+  });
 });

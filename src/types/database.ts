@@ -120,6 +120,58 @@ export type Database = {
           },
         ]
       }
+      counterparty_reminder_preferences: {
+        Row: {
+          counterparty_ico: string
+          created_at: string
+          last_invoice_id: string | null
+          organization_id: string
+          reminder_policy_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          counterparty_ico: string
+          created_at?: string
+          last_invoice_id?: string | null
+          organization_id: string
+          reminder_policy_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          counterparty_ico?: string
+          created_at?: string
+          last_invoice_id?: string | null
+          organization_id?: string
+          reminder_policy_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counterparty_reminder_preferences_invoice_same_org_fkey"
+            columns: ["organization_id", "last_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "counterparty_reminder_preferences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counterparty_reminder_preferences_policy_same_org_fkey"
+            columns: ["organization_id", "reminder_policy_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_policies"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       email_mfa_challenges: {
         Row: {
           attempts: number
@@ -296,6 +348,7 @@ export type Database = {
           ocr_attempt_count: number
           ocr_completed_at: string | null
           ocr_error: string | null
+          ocr_field_sources: Json
           ocr_model: string | null
           ocr_provider_response_id: string | null
           ocr_started_at: string | null
@@ -317,6 +370,7 @@ export type Database = {
           ocr_attempt_count?: number
           ocr_completed_at?: string | null
           ocr_error?: string | null
+          ocr_field_sources?: Json
           ocr_model?: string | null
           ocr_provider_response_id?: string | null
           ocr_started_at?: string | null
@@ -338,6 +392,7 @@ export type Database = {
           ocr_attempt_count?: number
           ocr_completed_at?: string | null
           ocr_error?: string | null
+          ocr_field_sources?: Json
           ocr_model?: string | null
           ocr_provider_response_id?: string | null
           ocr_started_at?: string | null
@@ -395,6 +450,8 @@ export type Database = {
           paid_amount: number
           paid_at: string | null
           reminder_policy_id: string | null
+          reminder_days_snapshot: number[]
+          reminder_plan_effective_from: string | null
           reminders_paused: boolean
           reminders_paused_at: string | null
           reminders_paused_by: string | null
@@ -428,6 +485,8 @@ export type Database = {
           paid_amount?: number
           paid_at?: string | null
           reminder_policy_id?: string | null
+          reminder_days_snapshot?: number[]
+          reminder_plan_effective_from?: string | null
           reminders_paused?: boolean
           reminders_paused_at?: string | null
           reminders_paused_by?: string | null
@@ -461,6 +520,8 @@ export type Database = {
           paid_amount?: number
           paid_at?: string | null
           reminder_policy_id?: string | null
+          reminder_days_snapshot?: number[]
+          reminder_plan_effective_from?: string | null
           reminders_paused?: boolean
           reminders_paused_at?: string | null
           reminders_paused_by?: string | null
@@ -590,6 +651,7 @@ export type Database = {
           id: string
           name: string
           operating_address: string | null
+          ocr_hourly_limit: number | null
           phone: string | null
           registered_address: string | null
         }
@@ -604,6 +666,7 @@ export type Database = {
           id?: string
           name: string
           operating_address?: string | null
+          ocr_hourly_limit?: number | null
           phone?: string | null
           registered_address?: string | null
         }
@@ -618,6 +681,7 @@ export type Database = {
           id?: string
           name?: string
           operating_address?: string | null
+          ocr_hourly_limit?: number | null
           phone?: string | null
           registered_address?: string | null
         }
@@ -658,6 +722,10 @@ export type Database = {
           id: string
           organization_id: string
           paused: number
+          planner_duration_ms: number
+          processed: number
+          queued: number
+          remaining: number
           run_key: string
           sent: number
           skipped: number
@@ -667,6 +735,7 @@ export type Database = {
           trigger_source: string
           triggered_by: string | null
           triggered_by_email: string | null
+          worker_duration_ms: number
         }
         Insert: {
           checked?: number
@@ -678,6 +747,10 @@ export type Database = {
           id?: string
           organization_id: string
           paused?: number
+          planner_duration_ms?: number
+          processed?: number
+          queued?: number
+          remaining?: number
           run_key: string
           sent?: number
           skipped?: number
@@ -687,6 +760,7 @@ export type Database = {
           trigger_source?: string
           triggered_by?: string | null
           triggered_by_email?: string | null
+          worker_duration_ms?: number
         }
         Update: {
           checked?: number
@@ -698,6 +772,10 @@ export type Database = {
           id?: string
           organization_id?: string
           paused?: number
+          planner_duration_ms?: number
+          processed?: number
+          queued?: number
+          remaining?: number
           run_key?: string
           sent?: number
           skipped?: number
@@ -707,6 +785,7 @@ export type Database = {
           trigger_source?: string
           triggered_by?: string | null
           triggered_by_email?: string | null
+          worker_duration_ms?: number
         }
         Relationships: [
           {
@@ -721,6 +800,7 @@ export type Database = {
       reminder_log: {
         Row: {
           attempt_count: number
+          available_at: string
           created_at: string
           delivered_at: string | null
           delivery_error: string | null
@@ -729,6 +809,8 @@ export type Database = {
           error_message: string | null
           id: string
           invoice_id: string
+          lease_expires_at: string | null
+          lease_token: string | null
           organization_id: string
           provider_message_id: string | null
           scheduled_for: string
@@ -740,6 +822,7 @@ export type Database = {
         }
         Insert: {
           attempt_count?: number
+          available_at?: string
           created_at?: string
           delivered_at?: string | null
           delivery_error?: string | null
@@ -748,6 +831,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           invoice_id: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
           organization_id: string
           provider_message_id?: string | null
           scheduled_for: string
@@ -759,6 +844,7 @@ export type Database = {
         }
         Update: {
           attempt_count?: number
+          available_at?: string
           created_at?: string
           delivered_at?: string | null
           delivery_error?: string | null
@@ -767,6 +853,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           invoice_id?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
           organization_id?: string
           provider_message_id?: string | null
           scheduled_for?: string
@@ -802,6 +890,7 @@ export type Database = {
       }
       reminder_policies: {
         Row: {
+          archived_at: string | null
           created_at: string
           days_from_due: number[]
           id: string
@@ -812,6 +901,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           days_from_due?: number[]
           id?: string
@@ -822,6 +912,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           days_from_due?: number[]
           id?: string
@@ -909,11 +1000,49 @@ export type Database = {
         Args: { target_upload_id: string; target_user_id: string }
         Returns: boolean
       }
+      claim_reminder_jobs: {
+        Args: {
+          target_lease_seconds?: number
+          target_limit?: number
+          target_now?: string
+          target_organizations: string[]
+          target_worker: string
+        }
+        Returns: {
+          attempt_count: number
+          id: string
+          invoice_id: string
+          lease_token: string
+          organization_id: string
+          scheduled_for: string
+          stage: string
+        }[]
+      }
+      complete_claimed_reminder_send: {
+        Args: {
+          next_time: string
+          provider_id: string
+          sent_time: string
+          target_lease_token: string
+          target_log_id: string
+        }
+        Returns: boolean
+      }
       complete_reminder_send: {
         Args: {
           next_time: string
           provider_id: string
           sent_time: string
+          target_log_id: string
+        }
+        Returns: boolean
+      }
+      fail_claimed_reminder_job: {
+        Args: {
+          failed_time?: string
+          failure_message: string
+          retry_time: string
+          target_lease_token: string
           target_log_id: string
         }
         Returns: boolean
@@ -1024,6 +1153,18 @@ export type Database = {
         }
         Returns: Json
       }
+      refresh_reminder_next_times: {
+        Args: { automation_active: boolean; target_org: string }
+        Returns: undefined
+      }
+      release_claimed_reminder_jobs: {
+        Args: {
+          released_time?: string
+          target_lease_token: string
+          target_log_ids: string[]
+        }
+        Returns: number
+      }
       restore_organization_member_after_auth_delete_failure: {
         Args: {
           actor_user: string
@@ -1045,6 +1186,26 @@ export type Database = {
           template_data: Json
         }
         Returns: Json
+      }
+      schedule_reminder_jobs: {
+        Args: {
+          target_invoice_updates: Json
+          target_jobs: Json
+          target_now?: string
+        }
+        Returns: Json
+      }
+      set_default_reminder_policy: {
+        Args: { target_org: string; target_policy: string }
+        Returns: undefined
+      }
+      skip_claimed_reminder_job: {
+        Args: {
+          skipped_time?: string
+          target_lease_token: string
+          target_log_id: string
+        }
+        Returns: boolean
       }
       unassign_bank_payment: {
         Args: { actor_user: string; target_org: string; target_payment: string }

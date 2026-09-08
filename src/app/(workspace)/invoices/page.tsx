@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { todayInTimeZone } from "@/lib/reminders";
@@ -48,6 +48,15 @@ export default function InvoicesPage() {
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [openTotals, setOpenTotals] = useState<Record<string, number>>({});
   const [activeCount, setActiveCount] = useState(0);
+
+  useEffect(() => {
+    if (!paymentCandidate || confirmingPayment) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPaymentCandidate(null);
+    };
+    document.addEventListener("keydown", dismiss);
+    return () => document.removeEventListener("keydown", dismiss);
+  }, [paymentCandidate, confirmingPayment]);
 
   function requestParams(requestedPage = page, format?: "csv") {
     const params = new URLSearchParams({
@@ -202,7 +211,7 @@ export default function InvoicesPage() {
   );
 
   return (
-    <AppFrame invoiceCount={activeCount}>
+    <AppFrame invoiceCount={loading ? undefined : activeCount}>
       <header className="section-header">
         <div>
           <p>POHLEDÁVKY</p>

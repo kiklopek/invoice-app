@@ -2,6 +2,11 @@ export type AutomationRunStatus = "running" | "succeeded" | "partial" | "failed"
 
 export type AutomationRunCounters = {
   checked: number;
+  queued: number;
+  processed: number;
+  remaining: number;
+  planner_duration_ms: number;
+  worker_duration_ms: number;
   sent: number;
   failed: number;
   skipped: number;
@@ -25,7 +30,21 @@ export const AUTOMATION_RUN_STALE_MINUTES = 90;
 export const MANUAL_AUTOMATION_RUN_COOLDOWN_SECONDS = 60;
 
 export function emptyAutomationRunCounters(): AutomationRunCounters {
-  return { checked: 0, sent: 0, failed: 0, skipped: 0, disabled: 0, paused: 0, suppressed: 0, exhausted: 0 };
+  return {
+    checked: 0,
+    queued: 0,
+    processed: 0,
+    remaining: 0,
+    planner_duration_ms: 0,
+    worker_duration_ms: 0,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    disabled: 0,
+    paused: 0,
+    suppressed: 0,
+    exhausted: 0,
+  };
 }
 
 export function completedAutomationRunStatus(counters: AutomationRunCounters): Extract<AutomationRunStatus, "succeeded" | "partial"> {

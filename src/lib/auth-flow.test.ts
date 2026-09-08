@@ -6,7 +6,7 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 
 describe("authentication flow", () => {
   it("checks the company invitation before creating an account", () => {
-    const register = source("src/app/register/page.tsx");
+    const register = source("src/app/(auth)/register/page.tsx");
     const accessRoute = source("src/app/api/auth/registration-access/route.ts");
 
     expect(register).toContain('fetch("/api/auth/registration-access"');
@@ -21,8 +21,8 @@ describe("authentication flow", () => {
   });
 
   it("deletes removed users and requires a fresh verified registration", () => {
-    const register = source("src/app/register/page.tsx");
-    const settings = source("src/app/settings/page.tsx");
+    const register = source("src/app/(auth)/register/page.tsx");
+    const settings = source("src/app/(workspace)/settings/page.tsx");
     const membersRoute = source("src/app/api/settings/members/route.ts");
 
     expect(register).toContain("Potvrďte svůj e-mail");
@@ -36,7 +36,7 @@ describe("authentication flow", () => {
   });
 
   it("keeps password login behind organization membership verification", () => {
-    expect(source("src/app/login/page.tsx")).toContain('fetch("/api/auth/access", { method: "POST" })');
+    expect(source("src/app/(auth)/login/page.tsx")).toContain('fetch("/api/auth/access", { method: "POST" })');
     expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false, requireLoginSession: false })");
   });
 
@@ -49,7 +49,7 @@ describe("authentication flow", () => {
   });
 
   it("sends ordinary password logins through e-mail verification while the trusted account opens the dashboard", () => {
-    const login = source("src/app/login/page.tsx");
+    const login = source("src/app/(auth)/login/page.tsx");
     const accessRoute = source("src/app/api/auth/access/route.ts");
     expect(login).toContain('window.location.assign(access.mfaBypassed ? "/dashboard" : "/mfa")');
     expect(login).toContain('fetch("/api/auth/session-preference"');
@@ -57,11 +57,11 @@ describe("authentication flow", () => {
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email, user.email_confirmed_at)");
     expect(source("src/app/auth/callback/route.ts")).toContain("emailConfirmedAt: identity.user.email_confirmed_at");
-    expect(source("src/app/register/page.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : "/mfa"');
+    expect(source("src/app/(auth)/register/page.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : "/mfa"');
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
-    expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
-    expect(source("src/app/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
-    expect(source("src/app/mfa/page.tsx")).toContain("codeAvailable");
+    expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
+    expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
+    expect(source("src/app/(auth)/mfa/page.tsx")).toContain("codeAvailable");
     expect(source("src/app/api/auth/email-mfa/send/route.ts")).toContain('logError("Email MFA delivery failed"');
     expect(source("src/app/api/auth/email-mfa/verify/route.ts")).toContain('logError("Email MFA challenge verification failed"');
   });
@@ -82,7 +82,7 @@ describe("authentication flow", () => {
   });
 
   it("uses one neutral login error with a working password recovery link", () => {
-    const login = source("src/app/login/page.tsx");
+    const login = source("src/app/(auth)/login/page.tsx");
     expect(login).toContain("E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na");
     expect(login).toContain('<Link href="/forgot-password">„Obnovit heslo“</Link>');
     expect(login).toContain('<Link href="/forgot-password">Obnovit heslo</Link>');
@@ -90,7 +90,7 @@ describe("authentication flow", () => {
   });
 
   it("sends password recovery through the protected server endpoint", () => {
-    const forgotPassword = source("src/app/forgot-password/page.tsx");
+    const forgotPassword = source("src/app/(auth)/forgot-password/page.tsx");
     const recoveryRoute = source("src/app/api/auth/password-recovery/route.ts");
     const tokenRoute = source("src/app/auth/recovery/route.ts");
     const recoveryEmail = source("src/lib/password-recovery-server.ts");

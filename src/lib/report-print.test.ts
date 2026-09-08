@@ -6,7 +6,7 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 
 describe("multi-page report printing", () => {
   it("renders company, period and active filters in a print-only header", () => {
-    const report = source("src/app/reports/page.tsx");
+    const report = source("src/app/(workspace)/reports/page.tsx");
     expect(report).toContain('className="report-print-running-header"');
     expect(report).toContain('className="report-print-cover"');
     expect(report).toContain("profile?.companyName");
@@ -16,7 +16,7 @@ describe("multi-page report printing", () => {
   });
 
   it("prevents printing while the report is incomplete", () => {
-    const report = source("src/app/reports/page.tsx");
+    const report = source("src/app/(workspace)/reports/page.tsx");
     expect(report).toContain('disabled={loading || !report} onClick={() => window.print()}');
   });
 

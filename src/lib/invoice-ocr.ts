@@ -2,16 +2,83 @@ import type { InvoiceInput } from "../types/invoice";
 import { isIsoDate } from "./invoice-validation";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
 
-export const LOCAL_OCR_MODEL = "local-tesseract-v2";
+export const LOCAL_OCR_MODEL = "local-tesseract-v3-geometry";
+
+export function isOcrHourlyQuotaExceeded(limit: number | null, attempts: number) {
+  return limit !== null && attempts >= limit;
+}
 
 export type OcrDocumentKind = "issued_invoice" | "proforma" | "credit_note" | "other";
 
+export type OcrReminderPolicyAssignment = {
+  status: "remembered" | "default" | "missing_ico";
+  counterparty_ico: string | null;
+  policy_id: string;
+  policy_name: string;
+};
+
+export type OcrBoundingBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type OcrLayoutBlock = OcrBoundingBox & {
+  text: string;
+  confidence: number | null;
+};
+
+export type OcrLayoutLine = {
+  page: number;
+  line: number;
+  text: string;
+  source: "pdf_text" | "ocr";
+  confidence: number | null;
+  bounds: OcrBoundingBox | null;
+  blocks: OcrLayoutBlock[];
+};
+
+export type OcrDocumentLayout = {
+  pages: Array<{
+    page: number;
+    width: number;
+    height: number;
+    lines: OcrLayoutLine[];
+  }>;
+};
+
+export type OcrFieldSource = {
+  page: number;
+  line: number;
+  text: string;
+  method: "pdf_text" | "ocr" | "derived";
+  confidence: number | null;
+  bounds: OcrBoundingBox | null;
+};
+
+export type OcrFieldName =
+  | "invoice_number"
+  | "variable_symbol"
+  | "issue_date"
+  | "due_date"
+  | "counterparty_name"
+  | "counterparty_ico"
+  | "counterparty_dic"
+  | "counterparty_email"
+  | "amount_without_vat"
+  | "vat_rate"
+  | "amount"
+  | "currency";
+
 export type InvoiceOcrResult = {
   invoice: InvoiceInput;
+  field_sources: Partial<Record<OcrFieldName, OcrFieldSource>>;
   confidence: number;
   warnings: string[];
   document_kind: OcrDocumentKind;
   issuer_matches_organization: boolean | null;
+  reminder_policy_assignment?: OcrReminderPolicyAssignment;
   model: string;
   response_id: string | null;
 };
@@ -261,12 +328,71 @@ function issuerMatches(text: string, organization: InvoiceOcrOrganization) {
   return name.length >= 5 ? normalizeComparable(text).includes(name) : null;
 }
 
-export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrConfidence = null, extraWarnings = [] }: {
+function fallbackLayout(text: string): OcrDocumentLayout {
+  return {
+    pages: [{
+      page: 1,
+      width: 0,
+      height: 0,
+      lines: text.split("\n").map((line, index) => ({
+        page: 1,
+        line: index + 1,
+        text: line,
+        source: "ocr" as const,
+        confidence: null,
+        bounds: null,
+        blocks: [],
+      })),
+    }],
+  };
+}
+
+function sourceFromLine(line: OcrLayoutLine, method: OcrFieldSource["method"] = line.source): OcrFieldSource {
+  return {
+    page: line.page,
+    line: line.line,
+    text: boundedText(line.text, 300),
+    method,
+    confidence: line.confidence === null ? null : Math.max(0, Math.min(1, roundMoney(line.confidence / 100))),
+    bounds: line.bounds,
+  };
+}
+
+function bestSource(
+  layout: OcrDocumentLayout,
+  value: string | number,
+  options: { labels?: RegExp; kind?: "text" | "digits" | "date" | "amount" } = {},
+) {
+  if (value === "" || value === 0) return null;
+  const lines = layout.pages.flatMap(page => page.lines);
+  const kind = options.kind ?? "text";
+  const comparable = normalizeComparable(String(value));
+  const numeric = typeof value === "number" ? value : null;
+  let selected: { line: OcrLayoutLine; score: number } | null = null;
+
+  for (const line of lines) {
+    let score = options.labels?.test(line.text) ? 40 : 0;
+    if (kind === "date") score += parseDate(line.text) === value ? 80 : 0;
+    else if (kind === "amount" && numeric !== null) {
+      score += amountsFromLine(line.text).some(amount => Math.abs(amount.value - numeric) < 0.011) ? 80 : 0;
+    } else if (kind === "digits") {
+      const sought = digits(String(value));
+      score += sought && digits(line.text).includes(sought) ? 80 : 0;
+    } else {
+      score += comparable.length >= 2 && normalizeComparable(line.text).includes(comparable) ? 80 : 0;
+    }
+    if (score > 40 && (!selected || score > selected.score)) selected = { line, score };
+  }
+  return selected ? sourceFromLine(selected.line) : null;
+}
+
+export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrConfidence = null, extraWarnings = [], layout }: {
   text: string;
   fileUrl: string;
   organization: InvoiceOcrOrganization;
   ocrConfidence?: number | null;
   extraWarnings?: string[];
+  layout?: OcrDocumentLayout;
 }): InvoiceOcrResult {
   const text = normalizeOcrText(sourceText);
   const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
@@ -348,6 +474,24 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const required = [invoiceNumber, counterparty.name, counterparty.email, amount > 0, issueDate, dueDate];
   const fieldConfidence = required.filter(Boolean).length / required.length;
   const confidence = Math.max(0, Math.min(1, roundMoney(ocrConfidence === null ? fieldConfidence : fieldConfidence * 0.75 + ocrConfidence / 100 * 0.25)));
+  const documentLayout = layout ?? fallbackLayout(text);
+  const grossSource = bestSource(documentLayout, amount, { kind: "amount", labels: /k\s+[úu]hrad[ěe]|celkem\s+s\s+dph|grand\s+total|total\s+due/i });
+  const netSource = bestSource(documentLayout, amountWithoutVat, { kind: "amount", labels: /bez\s+dph|základ|subtotal|součet\s+položek/i });
+  const vatSource = bestSource(documentLayout, vatRate, { kind: "amount", labels: /dph|vat/i });
+  const fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>> = {
+    invoice_number: bestSource(documentLayout, invoiceNumber, { labels: /číslo\s+(?:faktury|dokladu)|invoice\s*(?:no|number)|faktura/i }) ?? undefined,
+    variable_symbol: bestSource(documentLayout, variableSymbol, { kind: "digits", labels: /variabilní\s+symbol|var\.?\s*symbol|^VS\b/i }) ?? undefined,
+    issue_date: bestSource(documentLayout, issueDate, { kind: "date", labels: /datum\s+vystavení|vystaven[oa]|issue\s+date/i }) ?? undefined,
+    due_date: bestSource(documentLayout, dueDate, { kind: "date", labels: /splatnost|due\s+date/i }) ?? undefined,
+    counterparty_name: bestSource(documentLayout, counterparty.name, { labels: /odb[ěé]ratel|zákazník|customer|bill\s+to/i }) ?? undefined,
+    counterparty_ico: bestSource(documentLayout, counterparty.ico, { kind: "digits", labels: /i[čc]o?|ico|ID/i }) ?? undefined,
+    counterparty_dic: bestSource(documentLayout, counterparty.dic, { labels: /di[čc]|vat/i }) ?? undefined,
+    counterparty_email: bestSource(documentLayout, counterparty.email) ?? undefined,
+    amount_without_vat: netSource ?? (grossSource ? { ...grossSource, method: "derived" } : undefined),
+    vat_rate: vatSource ?? (grossSource ? { ...grossSource, method: "derived" } : undefined),
+    amount: grossSource ?? (netSource ? { ...netSource, method: "derived" } : undefined),
+    currency: grossSource ?? netSource ?? undefined,
+  };
 
   return {
     invoice: {
@@ -367,6 +511,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
       source: "ocr",
       file_url: fileUrl,
     },
+    field_sources: fieldSources,
     confidence,
     warnings: [...new Set(warnings.map(warning => boundedText(warning, 240)).filter(Boolean))].slice(0, 12),
     document_kind: kind,

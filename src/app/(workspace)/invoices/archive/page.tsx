@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppFrame } from "@/components/app-sidebar";
+import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import type { Invoice } from "@/types/invoice";
@@ -102,10 +101,9 @@ export default function InvoiceArchivePage() {
   }
 
   return (
-    <AppFrame invoiceCount={activeCount}>
+    <AppFrame invoiceCount={loading ? undefined : activeCount}>
       <header className="section-header">
         <div>
-          <Link href="/invoices" className="back-link">← Zpět na aktuální faktury</Link>
           <p>ARCHIV</p>
           <h1>Archiv faktur</h1>
           <span>Úplný přehled zaplacených a stornovaných faktur.</span>

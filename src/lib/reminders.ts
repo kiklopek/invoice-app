@@ -82,6 +82,15 @@ export function buildReminderSchedule(dueDate: string, rawThresholds: number[]) 
   });
 }
 
+export function buildEffectiveReminderSchedule(dueDate: string, rawThresholds: number[], effectiveFrom?: string | null) {
+  const schedule = buildReminderSchedule(dueDate, rawThresholds);
+  return effectiveFrom ? schedule.filter(entry => compareDate(entry.scheduledFor, effectiveFrom) >= 0) : schedule;
+}
+
+export function nextFutureReminderAt(dueDate: string, thresholds: number[], today: string) {
+  return buildReminderSchedule(dueDate, thresholds).find(entry => compareDate(entry.scheduledFor, today) > 0)?.scheduledFor ?? null;
+}
+
 export function decideReminderAction(
   schedule: ReminderScheduleEntry[],
   today: string,
@@ -102,8 +111,8 @@ export function decideReminderAction(
   return { candidate, obsolete, nextFuture };
 }
 
-export function initialNextReminderAt(dueDate: string, thresholds: number[], today: string) {
-  const schedule = buildReminderSchedule(dueDate, thresholds);
+export function initialNextReminderAt(dueDate: string, thresholds: number[], today: string, effectiveFrom?: string | null) {
+  const schedule = buildEffectiveReminderSchedule(dueDate, thresholds, effectiveFrom);
   const due = schedule.filter(entry => compareDate(entry.scheduledFor, today) <= 0).at(-1);
   return due ? today : schedule[0]?.scheduledFor ?? null;
 }

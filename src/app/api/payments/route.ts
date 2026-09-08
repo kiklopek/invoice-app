@@ -6,6 +6,7 @@ import { validatePaymentRows } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { isDemoMode } from "@/lib/supabase-server";
 import type { Json } from "@/types/database";
+import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 
 type ImportResult = {
   external_id: string;
@@ -138,5 +139,13 @@ export async function DELETE(request: Request) {
     actor_user: identity.user.id,
   });
   if (error) return NextResponse.json({ error: "Platbu se nepodařilo bezpečně uvolnit. Zkontrolujte její stav a databázovou migraci." }, { status: 409 });
+  const result = data as { invoice_id?: string } | null;
+  if (result?.invoice_id) {
+    const { data: invoice } = await identity.service.from("invoices").select("due_date, reminder_days_snapshot, reminder_plan_effective_from, reminders_paused, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(is_active)")
+      .eq("organization_id", identity.membership.organization_id).eq("id", result.invoice_id).maybeSingle();
+    const relation = invoice?.reminder_policy as { is_active?: boolean } | null | undefined;
+    if (invoice) await identity.service.from("invoices").update({ next_reminder_at: invoice.reminders_paused || relation?.is_active === false ? null : initialNextReminderAt(invoice.due_date, invoice.reminder_days_snapshot ?? [-3, 0, 7, 14], todayInTimeZone(), invoice.reminder_plan_effective_from) })
+      .eq("organization_id", identity.membership.organization_id).eq("id", result.invoice_id);
+  }
   return NextResponse.json(data);
 }

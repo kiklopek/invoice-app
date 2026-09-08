@@ -117,6 +117,9 @@ export async function POST(request: Request) {
           ...input,
           id: crypto.randomUUID(),
           organization_id: "demo-org",
+          reminder_policy_id: input.reminder_policy_id ?? "00000000-0000-4000-8000-000000000001",
+          reminder_days_snapshot: [-3, 0, 7, 14],
+          reminder_plan_effective_from: null,
           status: "pending",
           paid_amount: 0,
           file_url: input.file_url ?? null,
@@ -151,12 +154,17 @@ export async function POST(request: Request) {
     verifiedUploadId = upload.id;
   }
 
-  const { data: defaultPolicy } = await identity.service
+  let policyQuery = identity.service
     .from("reminder_policies")
     .select("id, days_from_due, is_active")
     .eq("organization_id", organizationId)
-    .eq("is_default", true)
-    .maybeSingle();
+    .is("archived_at", null);
+  policyQuery = input.reminder_policy_id
+    ? policyQuery.eq("id", input.reminder_policy_id)
+    : policyQuery.eq("is_default", true);
+  const { data: selectedPolicy, error: policyError } = await policyQuery.maybeSingle();
+  if (policyError || !selectedPolicy) return NextResponse.json({ error: "Vybraná kategorie upomínek není dostupná." }, { status: 400 });
+  const reminderDays = selectedPolicy.days_from_due ?? [-3, 0, 7, 14];
 
   const { data, error } = await identity.service
     .from("invoices")
@@ -164,12 +172,14 @@ export async function POST(request: Request) {
       ...input,
       file_url: input.file_url ?? null,
       organization_id: organizationId,
-      reminder_policy_id: defaultPolicy?.id ?? null,
-      next_reminder_at: defaultPolicy?.is_active === false
+      reminder_policy_id: selectedPolicy.id,
+      reminder_days_snapshot: reminderDays,
+      reminder_plan_effective_from: null,
+      next_reminder_at: selectedPolicy.is_active === false
         ? null
         : initialNextReminderAt(
             input.due_date,
-            defaultPolicy?.days_from_due ?? [-3, 0, 7, 14],
+            reminderDays,
             todayInTimeZone()
           ),
       created_by: identity.user.id,

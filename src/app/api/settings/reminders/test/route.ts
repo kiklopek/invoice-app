@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     id: "template-test",
     organization_id: identity.membership.organization_id,
     reminder_policy_id: null,
+    reminder_days_snapshot: [-3, 0, 7, 14],
+    reminder_plan_effective_from: null,
     invoice_number: "TEST-2026-001",
     counterparty_name: "Ukázkový odběratel s.r.o.",
     counterparty_ico: "12345678",

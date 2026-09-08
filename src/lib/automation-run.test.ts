@@ -4,6 +4,7 @@ import { AUTOMATION_RUN_STALE_MINUTES, completedAutomationRunStatus, emptyAutoma
 describe("automation run monitoring", () => {
   it("marks a completed run with failed sends as partial", () => {
     const counters = emptyAutomationRunCounters();
+    expect(counters).toMatchObject({ queued: 0, processed: 0, remaining: 0, planner_duration_ms: 0, worker_duration_ms: 0 });
     expect(completedAutomationRunStatus(counters)).toBe("succeeded");
     counters.failed = 1;
     expect(completedAutomationRunStatus(counters)).toBe("partial");

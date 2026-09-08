@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { confirmAction } from "@/lib/confirm-action";
 
-export function useUnsavedChanges(active: boolean) {
+export function useUnsavedChanges(active: boolean, onDiscard?: () => void) {
+  const router = useRouter();
   const dialogOpen = useRef(false);
 
   useEffect(() => {
@@ -23,7 +25,10 @@ export function useUnsavedChanges(active: boolean) {
         confirmLabel: "Opustit stránku",
       }).then((confirmed) => {
         dialogOpen.current = false;
-        if (confirmed) window.location.assign(anchor.href);
+        if (confirmed) {
+          onDiscard?.();
+          router.push(`${anchor.pathname}${anchor.search}${anchor.hash}`);
+        }
       });
     };
     window.addEventListener("beforeunload", beforeUnload);
@@ -32,5 +37,5 @@ export function useUnsavedChanges(active: boolean) {
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", navigate, true);
     };
-  }, [active]);
+  }, [active, onDiscard, router]);
 }

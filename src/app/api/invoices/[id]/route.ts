@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { demoInvoices } from "@/lib/demo-data";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
-import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
+import { initialNextReminderAt, nextFutureReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parsePaymentDate, paymentDateToTimestamp } from "@/lib/payment-validation";
 import { requiresAtomicPaymentReopen } from "@/lib/payment-lifecycle";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -28,7 +28,7 @@ export async function GET(_: Request, { params }: Context) {
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
 
-  const { data, error } = await identity.service.from("invoices").select("*")
+  const { data, error } = await identity.service.from("invoices").select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)")
     .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
   if (error) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
@@ -87,24 +87,39 @@ export async function PATCH(request: Request, { params }: Context) {
     ? requestedStatus
     : input.due_date < today ? "overdue" : "pending";
   const remindersPaused = (body.reminders_paused as boolean | undefined) ?? existing.reminders_paused ?? false;
+  const policyChanged = "reminder_policy_id" in body && input.reminder_policy_id !== existing.reminder_policy_id;
   const requestedPaidOn = "paid_on" in body ? parsePaymentDate(body.paid_on, today) : null;
   if ("paid_on" in body && !requestedPaidOn) {
     return NextResponse.json({ error: "Datum úhrady musí být platné a nesmí být v budoucnosti." }, { status: 400 });
   }
   let nextReminderAt: string | null = null;
-  if (!remindersPaused && (status === "pending" || status === "overdue")) {
-    let thresholds = [-3, 0, 7, 14];
-    if (identity) {
-      let policyQuery = identity.service.from("reminder_policies").select("days_from_due, is_active")
-        .eq("organization_id", identity.membership.organization_id);
-      policyQuery = existing.reminder_policy_id
-        ? policyQuery.eq("id", existing.reminder_policy_id)
-        : policyQuery.eq("is_default", true);
-      const { data: policy } = await policyQuery.maybeSingle();
-      if (policy?.is_active === false) thresholds = [];
-      else if (policy?.days_from_due) thresholds = policy.days_from_due;
+  let reminderPolicyId = existing.reminder_policy_id ?? null;
+  let reminderDays = existing.reminder_days_snapshot?.length ? existing.reminder_days_snapshot : [-3, 0, 7, 14];
+  let reminderPlanEffectiveFrom = existing.reminder_plan_effective_from ?? null;
+  let automationActive = true;
+  if (identity) {
+    let policyQuery = identity.service.from("reminder_policies").select("id, days_from_due, is_active")
+      .eq("organization_id", identity.membership.organization_id);
+    policyQuery = policyChanged && input.reminder_policy_id
+      ? policyQuery.eq("id", input.reminder_policy_id).is("archived_at", null)
+      : reminderPolicyId
+        ? policyQuery.eq("id", reminderPolicyId)
+        : policyQuery.eq("is_default", true).is("archived_at", null);
+    const { data: policy, error: policyError } = await policyQuery.maybeSingle();
+    if (policyError || (policyChanged && !policy)) return NextResponse.json({ error: "Vybraná kategorie upomínek není dostupná." }, { status: 400 });
+    automationActive = policy?.is_active ?? true;
+    if (policyChanged && policy) {
+      reminderPolicyId = policy.id;
+      reminderDays = policy.days_from_due;
+      reminderPlanEffectiveFrom = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
     }
-    nextReminderAt = thresholds.length ? initialNextReminderAt(input.due_date, thresholds, today) : null;
+  }
+  if (!remindersPaused && (status === "pending" || status === "overdue")) {
+    nextReminderAt = automationActive
+      ? policyChanged
+        ? nextFutureReminderAt(input.due_date, reminderDays, today)
+        : initialNextReminderAt(input.due_date, reminderDays, today, reminderPlanEffectiveFrom)
+      : null;
   }
 
   if (existing.status === "paid" && status === "cancelled") {
@@ -147,6 +162,9 @@ export async function PATCH(request: Request, { params }: Context) {
       ? paymentDateToTimestamp(requestedPaidOn ?? existing.paid_at?.slice(0, 10) ?? today)
       : null,
     next_reminder_at: nextReminderAt,
+    reminder_policy_id: reminderPolicyId,
+    reminder_days_snapshot: reminderDays,
+    reminder_plan_effective_from: reminderPlanEffectiveFrom,
     reminders_paused: remindersPaused,
     reminders_paused_at: remindersPaused ? existing.reminders_paused_at ?? new Date().toISOString() : null,
     reminders_paused_by: remindersPaused ? existing.reminders_paused_by ?? identity?.user.id ?? null : null,
@@ -157,11 +175,11 @@ export async function PATCH(request: Request, { params }: Context) {
   if (demo) return NextResponse.json({ invoice: { ...existing, ...changes, id } });
 
   const { data, error } = await identity!.service.from("invoices").update(changes).eq("id", id)
-    .eq("organization_id", identity!.membership.organization_id).select("*").maybeSingle();
+    .eq("organization_id", identity!.membership.organization_id).select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)").maybeSingle();
   if (error) return NextResponse.json({ error: error.code === "23505" ? "Faktura s tímto číslem už existuje." : "Fakturu se nepodařilo uložit." }, { status: error.code === "23505" ? 409 : 500 });
   if (!data) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
-  if ((status === "paid" || status === "cancelled") || input.due_date !== existing.due_date) {
+  if ((status === "paid" || status === "cancelled") || input.due_date !== existing.due_date || policyChanged) {
     await identity!.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: changes.updated_at })
       .eq("invoice_id", id).in("status", ["queued", "failed"]);
   }

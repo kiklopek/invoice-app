@@ -95,5 +95,9 @@ export async function PUT(request: Request) {
     actor_user: identity.user.id,
   });
   if (error) return NextResponse.json({ error: "Nastavení upomínek se nepodařilo uložit. Zkontrolujte databázovou migraci." }, { status: 500 });
+  const { error: activeError } = await identity.service.from("reminder_policies").update({ is_active: active, updated_at: new Date().toISOString() }).eq("organization_id", org);
+  if (activeError) return NextResponse.json({ error: "Globální stav automatických upomínek se nepodařilo uložit." }, { status: 500 });
+  const { error: refreshError } = await identity.service.rpc("refresh_reminder_next_times", { target_org: org, automation_active: active });
+  if (refreshError) return NextResponse.json({ error: "Uložené plány faktur se nepodařilo obnovit. Zkontrolujte databázovou migraci." }, { status: 500 });
   return NextResponse.json({ active, days, templates: normalizedTemplates, last_change: change, saved: true });
 }
