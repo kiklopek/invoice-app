@@ -1,0 +1,59 @@
+[
+  {
+    "name": "Přepočet 100 bez DPH na 121 s DPH",
+    "status": "prošlo",
+    "note": "Původní test měl nejednoznačný selektor; nešlo o chybu aplikace."
+  },
+  {
+    "name": "API validace neplatných dat",
+    "responses": [
+      {
+        "url": "/api/invoices",
+        "method": "POST",
+        "status": 400,
+        "passed": true,
+        "body": "{\"error\":\"Zkontrolujte povinná pole, e-mail, částku a data faktury.\"}"
+      },
+      {
+        "url": "/api/invoices/import",
+        "method": "POST",
+        "status": 400,
+        "passed": true,
+        "body": "{\"error\":\"Import musí obsahovat 1 až 250 faktur.\"}"
+      },
+      {
+        "url": "/api/invoices/upload",
+        "method": "POST",
+        "status": 400,
+        "passed": true,
+        "body": "{\"error\":\"Podporujeme PDF, JPG, PNG a WEBP.\"}"
+      },
+      {
+        "url": "/api/invoices/upload",
+        "method": "POST",
+        "status": 400,
+        "passed": true,
+        "body": "{\"error\":\"Dokument musí mít 16 B až 10 MB.\"}"
+      },
+      {
+        "url": "/api/settings/company",
+        "method": "PUT",
+        "status": 400,
+        "passed": true,
+        "body": "{\"error\":\"Zkontrolujte název, osmimístné IČO a e-mail.\"}"
+      },
+      {
+        "url": "/api/settings/members",
+        "method": "POST",
+        "status": 400,
+        "passed": true,
+        "body": "{\"error\":\"Zkontrolujte e-mail a vybranou roli.\"}"
+      }
+    ]
+  },
+  {
+    "name": "Přihlašovací stránka nakonfigurovaného lokálního serveru",
+    "status": "prošlo",
+    "url": "http://localhost:3000/login"
+  }
+]

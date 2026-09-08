@@ -1,0 +1,10 @@
+{
+  "localAsProduction": [
+    "Chybí produkční proměnná EMAIL_MFA_SECRET.",
+    "EMAIL_MFA_BYPASS_EMAILS musí být v produkci prázdné.",
+    "EMAIL_MFA_SECRET musí mít alespoň 32 znaků."
+  ],
+  "ci": [
+    "AUTH_EMAIL_DELIVERY_ENABLED musí být v produkci nastavené na true."
+  ]
+}

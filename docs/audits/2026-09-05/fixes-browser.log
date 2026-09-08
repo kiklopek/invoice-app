@@ -1,0 +1,53 @@
+
+Running 7 tests using 1 worker
+
+node : (node:18692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+At line:2 char:1
++ node node_modules/@playwright/test/cli.js test ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:18692) Wa... env being set.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 invoice-app-final-work\e2e\navigation-regressions.spec.ts:9:5 › Back preserves a draft and explicit discard keeps the shell mounted (8.8s)
+  x  2 invoice-app-final-work\e2e\navigation-regressions.spec.ts:28:5 › invoice detail preserves the overall count and Escape closes payment confirmation (901ms)
+(node:17264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 3 invoice-app-final-work\e2e\navigation-regressions.spec.ts:39:5 › Escape also closes payment confirmation from the invoice list (1.0s)
+  ok 4 invoice-app-final-work\e2e\smoke.spec.ts:3:5 › login page is usable without an authenticated session (1.1s)
+  ok 5 invoice-app-final-work\e2e\smoke.spec.ts:16:5 › dashboard loads without browser errors (785ms)
+  -  6 invoice-app-final-work\e2e\smoke.spec.ts:29:5 › mobile layout does not overflow horizontally
+  ok 7 invoice-app-final-work\e2e\smoke.spec.ts:36:5 › sidebar stays mounted while navigating between workspace pages (2.4s)
+
+
+  1) invoice-app-final-work\e2e\navigation-regressions.spec.ts:28:5 › invoice detail preserves the overall count and Escape closes payment confirmation
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Potvrdit úhradu', exact: true })
+    Expected: visible
+    Error: strict mode violation: getByRole('button', { name: 'Potvrdit úhradu', exact: true }) resolved to 3 elements:
+        1) <button type="button" class="btn primary quick-payment-button">Potvrdit úhradu</button> aka getByRole('row', { name: 'FV-2026-084 VS 2026084 Stavby' }).getByRole('button')
+        2) <button type="button" class="btn primary quick-payment-button">Potvrdit úhradu</button> aka getByRole('row', { name: 'FV-2026-091 VS 2026091 Dř' }).getByRole('button')
+        3) <button type="button" class="btn primary quick-payment-button">Potvrdit úhradu</button> aka getByRole('row', { name: 'FV-2026-096 VS 2026096 Pila' }).getByRole('button')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Potvrdit úhradu', exact: true })
+
+
+      29 |   const count = await page.locator('.sidebar em').textContent();
+      30 |   await page.locator('tbody tr').first().click();
+    > 31 |   await expect(page.getByRole('button', { name: 'Potvrdit úhradu', exact: true })).toBeVisible();
+         |                                                                                    ^
+      32 |   await expect(page.locator('.sidebar em')).toHaveText(count!);
+      33 |   await page.getByRole('button', { name: 'Potvrdit úhradu', exact: true }).click();
+      34 |   await expect(page.getByRole('dialog')).toBeVisible();
+        at C:\Users\tedat\Downloads\invoice-app-production-ready-ts-fixed\invoice-app-final-work\e2e\navigation-regressions.spec.ts:31:84
+
+    Error Context: audit-2026-09-05\fix-test-results\navigation-regressions-inv-2739b-closes-payment-confirmation\error-context.md
+
+  1 failed
+    invoice-app-final-work\e2e\navigation-regressions.spec.ts:28:5 › invoice detail preserves the overall count and Escape closes payment confirmation
+  1 skipped
+  5 passed (17.6s)
