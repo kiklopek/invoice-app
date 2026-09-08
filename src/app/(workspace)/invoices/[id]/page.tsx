@@ -443,12 +443,6 @@ export default function InvoiceDetailPage() {
         </div>
         {canManage && (
           <div className="section-actions">
-            <button
-              className="btn secondary"
-              onClick={() => setEditing((value) => !value)}
-            >
-              {editing ? "Zavřít úpravy" : "Upravit údaje"}
-            </button>
             {invoice.status === "paid" ? (
               <>
                 <button
@@ -478,6 +472,12 @@ export default function InvoiceDetailPage() {
                 Potvrdit úhradu
               </button>
             ) : null}
+            <button
+              className="btn secondary"
+              onClick={() => setEditing((value) => !value)}
+            >
+              {editing ? "Zavřít úpravy" : "Upravit údaje"}
+            </button>
             <button
               type="button"
               className="btn danger invoice-delete-button"
