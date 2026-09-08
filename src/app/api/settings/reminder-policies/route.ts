@@ -73,7 +73,7 @@ export async function DELETE(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Chybí kategorie." }, { status: 400 });
-  if (isDemoMode()) return NextResponse.json({ archived: true });
+  if (isDemoMode()) return NextResponse.json({ deleted: true });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění spravovat kategorie." }, { status: 403 });
@@ -82,7 +82,7 @@ export async function DELETE(request: Request) {
   if (!policy) return NextResponse.json({ error: "Kategorie nebyla nalezena." }, { status: 404 });
   if (policy.is_default) return NextResponse.json({ error: "Nejdříve nastavte jinou výchozí kategorii." }, { status: 409 });
   const { error } = await identity.service.from("reminder_policies").update({ archived_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("organization_id", org).eq("id", id);
-  if (error) return NextResponse.json({ error: "Kategorii se nepodařilo archivovat." }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Kategorii se nepodařilo smazat." }, { status: 500 });
   await identity.service.from("reminder_settings_events").insert({ organization_id: org, actor_user_id: identity.user.id, actor_email: identity.user.email?.toLowerCase() ?? "", is_active: true, days_from_due: [], template_data: { event: "category_archived", policy_id: id } });
-  return NextResponse.json({ archived: true });
+  return NextResponse.json({ deleted: true });
 }

@@ -23,6 +23,13 @@ const statusNames: Record<InvoiceStatus, string> = {
   paid: "Zaplaceno",
   cancelled: "Storno",
 };
+const statusChartColors: Record<InvoiceStatus, string> = {
+  paid: "#1f6844",
+  overdue: "#a92f28",
+  pending: "#b56f00",
+  cancelled: "#68736c",
+};
+const statusChartOrder: InvoiceStatus[] = ["paid", "overdue", "pending", "cancelled"];
 const dateBasisNames: Record<ReportDateBasis, string> = {
   issue_date: "Datum vystavení",
   due_date: "Datum splatnosti",
@@ -37,6 +44,37 @@ const displayDateTime = (value: Date) =>
     dateStyle: "medium",
     timeStyle: "short",
   }).format(value);
+
+function PrintableStatusChart({ counts, total }: { counts: InvoiceReport["counts"]; total: number }) {
+  let offset = 0;
+  return (
+    <svg className="donut-print-chart" viewBox="0 0 42 42" aria-hidden="true">
+      <circle cx="21" cy="21" r="15.5" pathLength="100" fill="none" stroke="#d3dad5" strokeWidth="8" />
+      {total > 0 && statusChartOrder.map((status) => {
+        const percentage = counts[status] / total * 100;
+        const dashOffset = -offset;
+        offset += percentage;
+        return percentage > 0 ? (
+          <circle
+            key={status}
+            cx="21"
+            cy="21"
+            r="15.5"
+            pathLength="100"
+            fill="none"
+            stroke={statusChartColors[status]}
+            strokeWidth="8"
+            strokeDasharray={`${percentage} ${100 - percentage}`}
+            strokeDashoffset={dashOffset}
+            transform="rotate(-90 21 21)"
+          />
+        ) : null;
+      })}
+      <text x="21" y="20" textAnchor="middle" className="donut-print-total">{total}</text>
+      <text x="21" y="25" textAnchor="middle" className="donut-print-label">faktur</text>
+    </svg>
+  );
+}
 
 export default function ReportsPage() {
   const profile = useAccessProfile();
@@ -313,6 +351,7 @@ export default function ReportsPage() {
                 </div>
               </header>
               <div className="donut-wrap">
+                <PrintableStatusChart counts={report.counts} total={report.invoice_count} />
                 <div
                   className="donut"
                   style={{

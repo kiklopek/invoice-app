@@ -370,7 +370,7 @@ tr:hover td { background: #fafbf9; }
 .invoice-hero.overdue > div > span, .invoice-hero.overdue small { color: #934b42; }
 .invoice-hero > div > span, .invoice-hero small { color: #64766a; }
 .invoice-hero > div > strong { font-family: inherit; font-size: 28px; font-weight: 750; }
-.invoice-delete-button { align-self: flex-end; }
+.invoice-delete-button { white-space: nowrap; }
 .detail-page-grid { grid-template-columns: minmax(0, 1fr) minmax(310px, 380px); gap: 16px; }
 .detail-page-grid > div, .detail-page-grid > aside { gap: 12px; }
 .info-section { padding: 0 20px 20px; }
@@ -1607,7 +1607,8 @@ th,
 .report-print-footer,
 .report-print-cover,
 .report-print-table-spacer,
-.report-print-table-footer { display: none; }
+.report-print-table-footer,
+.donut-print-chart { display: none; }
 
 @page {
   size: A4 portrait;
@@ -1825,6 +1826,24 @@ th,
     flex-direction: row !important;
     break-inside: avoid;
   }
+  .donut { display: none !important; }
+  .donut-print-chart {
+    display: block !important;
+    width: 38mm;
+    height: 38mm;
+    flex: 0 0 38mm;
+    overflow: visible;
+  }
+  .donut-print-total {
+    fill: #14291d;
+    font-size: 7px;
+    font-weight: 800;
+  }
+  .donut-print-label {
+    fill: #364d40;
+    font-size: 3.2px;
+    font-weight: 650;
+  }
   .donut {
     width: 38mm !important;
     height: 38mm !important;
@@ -1836,12 +1855,31 @@ th,
   }
   .donut strong { font-size: 15pt !important; }
   .donut-legend { min-width: 34mm !important; }
-  .donut-legend > div { font-size: 7.5pt !important; }
+  .donut-legend > div { color: #17251d !important; font-size: 7.5pt !important; font-weight: 650; }
+  .donut-legend i {
+    width: 0 !important;
+    height: 0 !important;
+    border: 1.2mm solid #68736c;
+    background: transparent !important;
+  }
+  .donut-legend i.paid { border-color: #1f6844; }
+  .donut-legend i.overdue { border-color: #a92f28; }
+  .donut-legend i.pending { border-color: #b56f00; }
+  .donut-legend i.cancelled { border-color: #68736c; }
 
   .aging-report { break-inside: avoid; }
   .aging-report > div { margin: 3.5mm 0 !important; }
   .aging-report > div > div { font-size: 7.5pt !important; }
-  .aging-report i { height: 2mm !important; }
+  .aging-report i {
+    height: 2mm !important;
+    border: .25mm solid #a9b6ad;
+    background: #e5eae7 !important;
+  }
+  .aging-report b {
+    height: 100% !important;
+    border-right: .45mm solid #164f33;
+    background: #1f6844 !important;
+  }
 
   .debtor-table {
     width: 100% !important;
@@ -1890,7 +1928,7 @@ th,
     display: table-cell !important;
     width: auto !important;
     padding: 2.6mm 2mm !important;
-    border-bottom: .2mm solid #dce3de !important;
+    border: .25mm solid #aab8af !important;
     vertical-align: top;
     overflow-wrap: anywhere;
     font-size: 7.2pt !important;
@@ -1898,11 +1936,13 @@ th,
     text-align: right;
   }
   .debtor-table th {
-    background: #e9f0eb !important;
-    color: #30483a !important;
+    background: #d9e4dc !important;
+    color: #14291d !important;
     font-size: 6.7pt !important;
     font-weight: 750;
   }
+  .debtor-table tbody tr:nth-child(even) td { background: #f2f5f3 !important; }
+  .debtor-table td { color: #17251d !important; font-weight: 550; }
   .debtor-table th:first-child,
   .debtor-table td:first-child { width: 29% !important; text-align: left; }
   .debtor-table th:nth-child(2),

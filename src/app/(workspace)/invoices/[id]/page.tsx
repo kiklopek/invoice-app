@@ -478,6 +478,14 @@ export default function InvoiceDetailPage() {
                 Potvrdit úhradu
               </button>
             ) : null}
+            <button
+              type="button"
+              className="btn danger invoice-delete-button"
+              disabled={updating || deleting}
+              onClick={() => setDeleteConfirmOpen(true)}
+            >
+              Smazat fakturu
+            </button>
           </div>
         )}
       </header>
@@ -914,16 +922,6 @@ export default function InvoiceDetailPage() {
                 )}
               </section>
               </MobileDisclosure>
-              {canManage && (
-                <button
-                  type="button"
-                  className="btn danger invoice-delete-button"
-                  disabled={updating || deleting}
-                  onClick={() => setDeleteConfirmOpen(true)}
-                >
-                  Smazat fakturu
-                </button>
-              )}
             </aside>
           </div>
         </>

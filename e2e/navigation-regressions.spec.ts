@@ -30,6 +30,7 @@ test("invoice detail preserves the overall count and Escape closes payment confi
   await page.locator('tbody tr').first().click();
   await expect(page).toHaveURL(/\/invoices\/[^/]+$/);
   await expect(page.getByRole('button', { name: 'Potvrdit úhradu', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Smazat fakturu', exact: true })).toBeVisible();
   await expect(page.locator('.sidebar em')).toHaveText(count!);
   await page.getByRole('button', { name: 'Potvrdit úhradu', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
