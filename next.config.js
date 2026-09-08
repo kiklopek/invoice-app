@@ -22,6 +22,7 @@ const ocrRuntimeFiles = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: process.env.CI ? false : { position: "bottom-left" },
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@napi-rs/canvas", "sharp"],
   outputFileTracingIncludes: {

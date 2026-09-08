@@ -1838,7 +1838,7 @@ $$;
 revoke all on function consume_auth_rate_limit(text, text, integer, integer) from public, anon, authenticated;
 grant execute on function consume_auth_rate_limit(text, text, integer, integer) to service_role;
 
--- Consolidated from: 20260908154602_optimize_reminder_queue.sql
+-- Consolidated from: 20260908160937_optimize_reminder_queue.sql
 -- Durable reminder queue and per-phase operational metrics.
 -- reminder_log stays the only queue; no Redis/PGMQ dependency is introduced.
 

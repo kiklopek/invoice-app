@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const route = source("src/app/api/cron/check-due/route.ts");
-const migration = source("supabase/migrations/20260908154602_optimize_reminder_queue.sql");
+const migration = source("supabase/migrations/20260908160937_optimize_reminder_queue.sql");
 const vercel = source("vercel.json");
 
 describe("durable reminder queue optimization", () => {
@@ -32,7 +32,7 @@ describe("durable reminder queue optimization", () => {
     expect(route).toContain('idempotencyKey: `reminder-${job.id}`');
   });
 
-  it("runs repeatedly during the morning window", () => {
-    expect(JSON.parse(vercel).crons).toContainEqual({ path: "/api/cron/check-due", schedule: "*/15 6-8 * * *" });
+  it("uses a daily schedule supported by Vercel Hobby", () => {
+    expect(JSON.parse(vercel).crons).toContainEqual({ path: "/api/cron/check-due", schedule: "0 6 * * *" });
   });
 });
