@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { createCsv } from "@/lib/csv";
 import { demoInvoices } from "@/lib/demo-data";
-import { buildInvoiceReport, invoiceDateForReport, parseReportQuery, type InvoiceReport } from "@/lib/report-query";
+import { buildInvoiceReport, invoiceDateForReport, parseReportQuery } from "@/lib/report-query";
 import { todayInTimeZone } from "@/lib/reminders";
 import { isDemoMode } from "@/lib/supabase-server";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import { canViewFinancialInsights } from "@/lib/role-access";
+import { loadReportPageData } from "@/lib/report-page-data";
+import { PageDataError } from "@/lib/dashboard-page-data";
 
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
@@ -26,6 +28,7 @@ function csvResponse(rows: ReportRow[]) {
 }
 
 export async function GET(request: Request) {
+  const requestStartedAt = performance.now();
   const url = new URL(request.url);
   const query = parseReportQuery(url.searchParams);
   if (!query) return NextResponse.json({ error: "Zkontrolujte období a filtry reportu." }, { status: 400 });
@@ -43,6 +46,7 @@ export async function GET(request: Request) {
   }
 
   const identity = await getRequestIdentity();
+  const identityDoneAt = performance.now();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canViewFinancialInsights(identity.membership.role)) return NextResponse.json({ error: "K reportům nemáte přístup." }, { status: 403 });
   const common = {
@@ -51,9 +55,17 @@ export async function GET(request: Request) {
     currency_filter: query.currency, status_filter: query.status ?? undefined, customer_filter: query.customer ?? undefined,
   };
   if (!wantsCsv) {
-    const { data, error } = await identity.service.rpc("invoice_report_summary", { ...common, as_of_date: todayInTimeZone() });
-    if (error || !data) return NextResponse.json({ error: "Report se nepodařilo sestavit. Zkontrolujte databázovou migraci." }, { status: 500 });
-    return NextResponse.json(data as InvoiceReport, { headers: { "cache-control": "private, no-store" } });
+    try {
+      const data = await loadReportPageData(identity, query);
+      const dataDoneAt = performance.now();
+      const response = NextResponse.json(data, { headers: { "cache-control": "private, no-store" } });
+      const finishedAt = performance.now();
+      response.headers.set("server-timing", `auth;dur=${Math.round(identityDoneAt - requestStartedAt)}, data;dur=${Math.round(dataDoneAt - identityDoneAt)}, response;dur=${Math.round(finishedAt - dataDoneAt)}, total;dur=${Math.round(finishedAt - requestStartedAt)}`);
+      return response;
+    } catch (error) {
+      if (error instanceof PageDataError) return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json({ error: "Report se nepodařilo sestavit." }, { status: 500 });
+    }
   }
 
   const loadPage = async (page: number) => {

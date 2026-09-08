@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
 import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
@@ -78,3 +80,12 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     sessionId,
   };
 }
+
+/**
+ * Request-scoped identity for Server Components and shared page loaders.
+ * React clears this memo between requests, so credentials are never shared
+ * between users while nested loaders avoid repeating the same auth work.
+ */
+export const getCachedRequestIdentity = cache(() => getRequestIdentity());
+
+export type RequestIdentity = NonNullable<Awaited<ReturnType<typeof getRequestIdentity>>>;

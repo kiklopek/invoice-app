@@ -13,8 +13,8 @@ describe("role authorization", () => {
   });
 
   it("hides invoice creation actions for readers", () => {
-    const dashboard = source("src/app/(workspace)/dashboard/page.tsx");
-    const invoices = source("src/app/(workspace)/invoices/page.tsx");
+    const dashboard = source("src/app/(workspace)/dashboard/dashboard-client.tsx");
+    const invoices = source("src/app/(workspace)/invoices/invoices-client.tsx");
     expect(dashboard).toContain("const canManage = canManageInvoices(role)");
     expect(dashboard).toContain("{canManage ? <div className=\"top-actions dashboard-actions\">");
     expect(invoices).toContain("{canManage ? <Link href=\"/invoices/import\"");
@@ -22,12 +22,11 @@ describe("role authorization", () => {
   });
 
   it("allows read-only insights but enforces reader restrictions on operational endpoints", () => {
-    for (const path of [
-      "src/app/api/dashboard/route.ts",
-      "src/app/api/reports/route.ts",
-    ]) {
-      expect(source(path), path).toContain("canViewFinancialInsights(identity.membership.role)");
-      expect(source(path), path).not.toContain("canAccessOperations(identity.membership.role)");
+    const dashboardRead = source("src/app/api/dashboard/route.ts") + source("src/lib/dashboard-page-data.ts");
+    const reportsRead = source("src/app/api/reports/route.ts") + source("src/lib/report-page-data.ts");
+    for (const [name, implementation] of [["dashboard", dashboardRead], ["reports", reportsRead]]) {
+      expect(implementation, name).toContain("canViewFinancialInsights(identity.membership.role)");
+      expect(implementation, name).not.toContain("canAccessOperations(identity.membership.role)");
     }
     for (const path of [
       "src/app/api/payments/route.ts",
@@ -42,10 +41,11 @@ describe("role authorization", () => {
   });
 
   it("shows company data read-only to accounting and hides access administration", () => {
-    const settings = source("src/app/(workspace)/settings/page.tsx");
+    const settings = source("src/app/(workspace)/settings/settings-client.tsx");
+    const settingsLoader = source("src/lib/settings-page-data.ts");
     const companyRoute = source("src/app/api/settings/company/route.ts");
     const membersRoute = source("src/app/api/settings/members/route.ts");
-    expect(settings).toContain('currentRole === "admin" ? ["/api/settings/company", "/api/settings/members"] : ["/api/settings/company"]');
+    expect(settingsLoader).toContain("canManageMembers(identity.membership.role)");
     expect(settings).toContain("<fieldset disabled={!canAdminister}>");
     expect(settings).toContain("{canAdminister && <><section");
     expect(settings).toContain("Přehled, reporty a faktury pouze pro čtení");

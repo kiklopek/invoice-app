@@ -5,17 +5,23 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const css = source("src/app/minimal.css");
 const disclosure = source("src/components/mobile-disclosure.tsx");
-const remindersPage = source("src/app/(workspace)/reminders/page.tsx");
+const remindersPage = source("src/app/(workspace)/reminders/reminders-client.tsx");
 
 const czechUiSources = [
   "src/components/layout/app-shell.tsx",
   "src/components/invoice-form.tsx",
   "src/app/(workspace)/dashboard/page.tsx",
+  "src/app/(workspace)/dashboard/dashboard-client.tsx",
   "src/app/(workspace)/invoices/page.tsx",
+  "src/app/(workspace)/invoices/invoices-client.tsx",
   "src/app/(workspace)/invoices/[id]/page.tsx",
+  "src/app/(workspace)/invoices/[id]/invoice-detail-client.tsx",
   "src/app/(workspace)/reminders/page.tsx",
+  "src/app/(workspace)/reminders/reminders-client.tsx",
   "src/app/(workspace)/reports/page.tsx",
+  "src/app/(workspace)/reports/reports-client.tsx",
   "src/app/(workspace)/settings/page.tsx",
+  "src/app/(workspace)/settings/settings-client.tsx",
   "src/app/(auth)/login/page.tsx",
   "src/app/(auth)/mfa/page.tsx",
 ];
@@ -79,7 +85,7 @@ describe("mobile application layout", () => {
     for (const path of [
       "src/app/(workspace)/invoices/import/page.tsx",
       "src/app/(workspace)/invoices/payments/page.tsx",
-      "src/app/(workspace)/reports/page.tsx",
+      "src/app/(workspace)/reports/reports-client.tsx",
     ]) {
       expect(source(path)).toContain("data-label=");
     }

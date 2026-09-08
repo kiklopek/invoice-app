@@ -22,7 +22,7 @@ describe("authentication flow", () => {
 
   it("deletes removed users and requires a fresh verified registration", () => {
     const register = source("src/app/(auth)/register/page.tsx");
-    const settings = source("src/app/(workspace)/settings/page.tsx");
+    const settings = source("src/app/(workspace)/settings/settings-client.tsx");
     const membersRoute = source("src/app/api/settings/members/route.ts");
 
     expect(register).toContain("Potvrďte svůj e-mail");

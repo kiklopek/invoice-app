@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, createElement, useContext, useEffect, useState, type ReactNode } from "react";
 import { isAccessRole, type AccessRole } from "@/lib/role-access";
 
 export type AccessProfile = {
@@ -14,6 +14,16 @@ let cachedProfile: AccessProfile | null = null;
 let pendingProfile: Promise<AccessProfile | null> | null = null;
 let profileExpiresAt = 0;
 const PROFILE_TTL_MS = 30_000;
+const AccessProfileContext = createContext<AccessProfile | null | undefined>(undefined);
+
+export function AccessProfileProvider({ profile, children }: { profile: AccessProfile | null; children: ReactNode }) {
+  useEffect(() => {
+    cachedProfile = profile;
+    profileExpiresAt = profile ? Date.now() + PROFILE_TTL_MS : 0;
+    pendingProfile = null;
+  }, [profile]);
+  return createElement(AccessProfileContext.Provider, { value: profile }, children);
+}
 
 // Presentation only: every API request still checks the current server permissions.
 export function loadProfile() {
@@ -39,16 +49,28 @@ export function loadProfile() {
   return pendingProfile;
 }
 
-export function useAccessProfile() {
-  const [profile, setProfile] = useState<AccessProfile | null>(cachedProfile);
+export function useAccessProfile(initialProfile: AccessProfile | null = null) {
+  const providedProfile = useContext(AccessProfileContext);
+  const seededProfile = providedProfile !== undefined ? providedProfile : initialProfile ?? cachedProfile;
+  const [profile, setProfile] = useState<AccessProfile | null>(seededProfile);
 
   useEffect(() => {
+    if (providedProfile !== undefined) {
+      setProfile(providedProfile);
+      return;
+    }
+    if (initialProfile) {
+      cachedProfile = initialProfile;
+      profileExpiresAt = Date.now() + PROFILE_TTL_MS;
+      setProfile(initialProfile);
+      return;
+    }
     let active = true;
     void loadProfile().then(nextProfile => {
       if (active) setProfile(nextProfile);
     });
     return () => { active = false; };
-  }, []);
+  }, [initialProfile, providedProfile]);
 
   return profile;
 }

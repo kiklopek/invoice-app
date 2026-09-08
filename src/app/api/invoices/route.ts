@@ -10,6 +10,8 @@ import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { parseInvoiceListQuery } from "@/lib/invoice-list-query";
 import { createCsv } from "@/lib/csv";
+import { loadInvoiceListPageData } from "@/lib/invoice-list-page-data";
+import { PageDataError } from "@/lib/dashboard-page-data";
 
 const LIST_PAGE_SIZE = 25;
 const EXPORT_PAGE_SIZE = 500;
@@ -61,6 +63,7 @@ function invoiceCsv(invoices: Invoice[]) {
 }
 
 export async function GET(request: Request) {
+  const requestStartedAt = performance.now();
   const url = new URL(request.url);
   const query = parseInvoiceListQuery(url.searchParams);
     if (!query) return NextResponse.json({ error: "Neplatný filtr, období nebo číslo stránky." }, { status: 400 });
@@ -72,6 +75,7 @@ export async function GET(request: Request) {
     }
 
     const identity = await getRequestIdentity();
+    const identityDoneAt = performance.now();
     if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
     const loadPage = async (page: number, size: number) => {
       const { data, error } = await identity.service.rpc("list_invoices_page", {
@@ -94,9 +98,17 @@ export async function GET(request: Request) {
       }
       return new Response(invoiceCsv(invoices), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=faktury.csv", "cache-control": "private, no-store" } });
     }
-    const result = await loadPage(query.page, LIST_PAGE_SIZE);
-    if (result.error || !result.data) return NextResponse.json({ error: "Faktury se nepodařilo načíst. Zkontrolujte databázovou migraci." }, { status: 500 });
-    return NextResponse.json({ ...result.data, can_manage: canManageInvoices(identity.membership.role), page: query.page, page_size: LIST_PAGE_SIZE, total_pages: Math.max(1, Math.ceil(result.data.total / LIST_PAGE_SIZE)) }, { headers: { "cache-control": "private, no-store" } });
+    try {
+      const result = await loadInvoiceListPageData(identity, query);
+      const dataDoneAt = performance.now();
+      const response = NextResponse.json(result, { headers: { "cache-control": "private, no-store" } });
+      const finishedAt = performance.now();
+      response.headers.set("server-timing", `auth;dur=${Math.round(identityDoneAt - requestStartedAt)}, data;dur=${Math.round(dataDoneAt - identityDoneAt)}, response;dur=${Math.round(finishedAt - dataDoneAt)}, total;dur=${Math.round(finishedAt - requestStartedAt)}`);
+      return response;
+    } catch (error) {
+      if (error instanceof PageDataError) return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json({ error: "Faktury se nepodařilo načíst." }, { status: 500 });
+    }
 }
 
 export async function POST(request: Request) {

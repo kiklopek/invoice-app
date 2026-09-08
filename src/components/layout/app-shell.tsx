@@ -8,7 +8,7 @@ import { CompanyLogo } from "@/components/company-logo";
 import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import { canAccessPage, landingPageForRole } from "@/lib/role-access";
-import { useAccessProfile } from "@/lib/use-access-role";
+import { AccessProfileProvider, useAccessProfile, type AccessProfile } from "@/lib/use-access-role";
 import { profileInitials } from "@/lib/user-display";
 import "./mobile-navigation.css";
 
@@ -22,10 +22,10 @@ const items: { href: string; label: string; icon: IconName }[] = [
 ];
 const viewerItems = items.filter(item => ["/dashboard", "/invoices", "/reports"].includes(item.href));
 
-export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
+export function AppSidebar({ invoiceCount, initialProfile }: { invoiceCount?: number; initialProfile: AccessProfile | null }) {
   const pathname = usePathname();
   const router = useRouter();
-  const profile = useAccessProfile();
+  const profile = useAccessProfile(initialProfile);
   const role = profile?.role ?? null;
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
@@ -88,9 +88,9 @@ export function AppSidebar({ invoiceCount }: { invoiceCount?: number }) {
 
 const InvoiceCountContext = createContext<((count: number) => void) | null>(null);
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, initialProfile }: { children: React.ReactNode; initialProfile: AccessProfile | null }) {
   const [invoiceCount, setInvoiceCount] = useState<number>();
-  return <InvoiceCountContext.Provider value={setInvoiceCount}><div className="app-shell"><AppSidebar invoiceCount={invoiceCount}/>{children}</div></InvoiceCountContext.Provider>;
+  return <AccessProfileProvider profile={initialProfile}><InvoiceCountContext.Provider value={setInvoiceCount}><div className="app-shell"><AppSidebar invoiceCount={invoiceCount} initialProfile={initialProfile}/>{children}</div></InvoiceCountContext.Provider></AccessProfileProvider>;
 }
 
 export function AppFrame({ children, invoiceCount, className = "content section-page" }: { children: React.ReactNode; invoiceCount?: number; className?: string }) {
