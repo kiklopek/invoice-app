@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
-import { createCsv } from "@/lib/csv";
+import { createExcelWorkbook, excelDate, excelResponse } from "@/lib/excel-export";
 import { demoInvoices } from "@/lib/demo-data";
 import { buildInvoiceReport, invoiceDateForReport, parseReportQuery } from "@/lib/report-query";
 import { todayInTimeZone } from "@/lib/reminders";
@@ -16,15 +16,21 @@ const statusLabels: Record<InvoiceStatus, string> = { pending: "Čeká", overdue
 type ReportRow = Pick<Invoice, "invoice_number" | "counterparty_name" | "amount_without_vat" | "vat_rate" | "amount" | "paid_amount" | "currency" | "issue_date" | "due_date" | "paid_at" | "status" | "reminders_sent"> & { remaining_amount?: number };
 type ReportRowsPage = { rows: (ReportRow & { id: string })[]; total: number };
 
-function reportCsv(rows: ReportRow[]) {
-  return createCsv([["Faktura", "Odběratel", "Částka bez DPH", "Sazba DPH", "Částka s DPH", "Uhrazená částka", "Zbývá", "Měna", "Vystavení", "Splatnost", "Datum úplné úhrady", "Stav", "Upomínky"],
-    ...rows.map(invoice => [invoice.invoice_number, invoice.counterparty_name, invoice.amount_without_vat, invoice.vat_rate, invoice.amount, invoice.paid_amount, invoice.remaining_amount ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency, invoice.issue_date, invoice.due_date, invoice.paid_at?.slice(0, 10) ?? "", statusLabels[invoice.status], invoice.reminders_sent])]);
-}
-
-function csvResponse(rows: ReportRow[]) {
-  return new Response(reportCsv(rows), { headers: {
-    "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=report-faktur.csv", "cache-control": "private, no-store",
-  } });
+async function reportExcel(rows: ReportRow[]) {
+  const moneyFormat = "#,##0.00";
+  return createExcelWorkbook("Report faktur", [
+    { header: "Faktura", key: "number", width: 18 }, { header: "Odběratel", key: "customer", width: 32 },
+    { header: "Částka bez DPH", key: "net", width: 19, numberFormat: moneyFormat }, { header: "Sazba DPH", key: "vat", width: 14, numberFormat: '0.##" %"' },
+    { header: "Částka s DPH", key: "gross", width: 18, numberFormat: moneyFormat }, { header: "Uhrazená částka", key: "paid", width: 19, numberFormat: moneyFormat },
+    { header: "Zbývá", key: "remaining", width: 16, numberFormat: moneyFormat }, { header: "Měna", key: "currency", width: 10 },
+    { header: "Vystavení", key: "issued", width: 14, numberFormat: "dd.mm.yyyy" }, { header: "Splatnost", key: "due", width: 14, numberFormat: "dd.mm.yyyy" },
+    { header: "Datum úplné úhrady", key: "paidAt", width: 22, numberFormat: "dd.mm.yyyy" }, { header: "Stav", key: "status", width: 17 },
+    { header: "Upomínky", key: "reminders", width: 12, numberFormat: "0" },
+  ], rows.map(invoice => ({ number: invoice.invoice_number, customer: invoice.counterparty_name, net: Number(invoice.amount_without_vat),
+    vat: Number(invoice.vat_rate), gross: Number(invoice.amount), paid: Number(invoice.paid_amount),
+    remaining: Number(invoice.remaining_amount ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))), currency: invoice.currency,
+    issued: excelDate(invoice.issue_date), due: excelDate(invoice.due_date), paidAt: excelDate(invoice.paid_at),
+    status: statusLabels[invoice.status], reminders: invoice.reminders_sent })));
 }
 
 export async function GET(request: Request) {
@@ -32,7 +38,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = parseReportQuery(url.searchParams);
   if (!query) return NextResponse.json({ error: "Zkontrolujte období a filtry reportu." }, { status: 400 });
-  const wantsCsv = url.searchParams.get("format") === "csv";
+  const wantsExcel = url.searchParams.get("format") === "xlsx";
 
   if (isDemoMode()) {
     const filtered = demoInvoices.filter(invoice => {
@@ -41,7 +47,7 @@ export async function GET(request: Request) {
         && invoice.currency === query.currency && (!query.status || invoice.status === query.status)
         && (!query.customer || invoice.counterparty_name === query.customer);
     });
-    if (wantsCsv) return csvResponse(filtered);
+    if (wantsExcel) return excelResponse(await reportExcel(filtered), "report-faktur.xlsx");
     return NextResponse.json(buildInvoiceReport(filtered, query.currency, todayInTimeZone(), demoInvoices));
   }
 
@@ -54,7 +60,7 @@ export async function GET(request: Request) {
     report_from: query.from, report_to: query.to, date_basis: query.dateBasis,
     currency_filter: query.currency, status_filter: query.status ?? undefined, customer_filter: query.customer ?? undefined,
   };
-  if (!wantsCsv) {
+  if (!wantsExcel) {
     try {
       const data = await loadReportPageData(identity, query);
       const dataDoneAt = performance.now();
@@ -81,5 +87,5 @@ export async function GET(request: Request) {
     if (next.error || !next.data) return NextResponse.json({ error: "Export reportu se nepodařilo dokončit." }, { status: 500 });
     rows.push(...next.data.rows);
   }
-  return csvResponse(rows);
+  return excelResponse(await reportExcel(rows), "report-faktur.xlsx");
 }

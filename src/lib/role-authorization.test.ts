@@ -37,7 +37,7 @@ describe("role authorization", () => {
     }
     const invoicesRoute = source("src/app/api/invoices/route.ts");
     expect(invoicesRoute).not.toContain("Čtenář má přístup pouze k archivu faktur");
-    expect(invoicesRoute).toContain("if (wantsCsv)");
+    expect(invoicesRoute).toContain("if (wantsExcel)");
   });
 
   it("shows company data read-only to accounting and hides access administration", () => {

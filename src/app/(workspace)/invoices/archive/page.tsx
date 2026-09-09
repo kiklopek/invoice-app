@@ -31,7 +31,7 @@ export default function InvoiceArchivePage() {
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [activeCount, setActiveCount] = useState(0);
 
-  function requestParams(requestedPage = page, format?: "csv") {
+  function requestParams(requestedPage = page, format?: "xlsx") {
     const params = new URLSearchParams({ paged: "1", page: String(requestedPage), status: archiveStatus });
     if (query.trim()) params.set("q", query.trim());
     if (currency !== "all") params.set("currency", currency);
@@ -78,11 +78,11 @@ export default function InvoiceArchivePage() {
     change();
   }
 
-  async function exportCsv() {
+  async function exportExcel() {
     setExporting(true);
     setError("");
     try {
-      const response = await fetch(`/api/invoices?${requestParams(1, "csv").toString()}`);
+      const response = await fetch(`/api/invoices?${requestParams(1, "xlsx").toString()}`);
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         throw new Error(data?.error || "Export archivu se nepodařilo připravit.");
@@ -90,7 +90,7 @@ export default function InvoiceArchivePage() {
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `archiv-faktur-${from || "zacatek"}-${to || "dnes"}.csv`;
+      link.download = `archiv-faktur-${from || "zacatek"}-${to || "dnes"}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
@@ -109,9 +109,9 @@ export default function InvoiceArchivePage() {
           <span>Úplný přehled zaplacených a stornovaných faktur.</span>
         </div>
         <div className="section-actions">
-          <button className="btn secondary" onClick={exportCsv} disabled={!total || exporting}>
+          <button className="btn secondary" onClick={exportExcel} disabled={!total || exporting}>
             <Icon name="download" />
-            {exporting ? "Připravuji…" : "Export CSV"}
+            {exporting ? "Připravuji…" : "Export do Excelu"}
           </button>
         </div>
       </header>

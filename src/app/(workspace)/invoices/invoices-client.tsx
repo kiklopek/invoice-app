@@ -60,7 +60,7 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
     return () => document.removeEventListener("keydown", dismiss);
   }, [paymentCandidate, confirmingPayment]);
 
-  function requestParams(requestedPage = page, format?: "csv", searchQuery = query) {
+  function requestParams(requestedPage = page, format?: "xlsx", searchQuery = query) {
     const params = new URLSearchParams({
       paged: "1",
       page: String(requestedPage),
@@ -111,12 +111,12 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
   function prefetchInvoice(id: string) {
     router.prefetch(`/invoices/${id}`);
   }
-  async function exportCsv() {
+  async function exportExcel() {
     setExporting(true);
     setError("");
     try {
       const response = await fetch(
-        `/api/invoices?${requestParams(1, "csv").toString()}`,
+        `/api/invoices?${requestParams(1, "xlsx").toString()}`,
       );
       if (!response.ok) {
         const data = await response.json().catch(() => null);
@@ -125,7 +125,7 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `faktury-${from || "zacatek"}-${to || "dnes"}.csv`;
+      link.download = `faktury-${from || "zacatek"}-${to || "dnes"}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
@@ -298,11 +298,11 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
           </label>
           <button
             className="btn secondary export-button"
-            onClick={exportCsv}
+            onClick={exportExcel}
             disabled={!total || exporting}
           >
             <Icon name="download" />
-            {exporting ? "Připravuji…" : "Export CSV"}
+            {exporting ? "Připravuji…" : "Export do Excelu"}
           </button>
         </div>
       </section>

@@ -90,7 +90,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
   const [error, setError] = useState("");
   const [generatedAt, setGeneratedAt] = useState(() => new Date(initialGeneratedAt));
 
-  function requestParams(format?: "csv") {
+  function requestParams(format?: "xlsx") {
     const params = new URLSearchParams({
       from,
       to,
@@ -124,12 +124,12 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
     setFrom(iso(start));
     setTo(today);
   }
-  async function exportCsv() {
+  async function exportExcel() {
     setExporting(true);
     setError("");
     try {
       const response = await fetch(
-        `/api/reports?${requestParams("csv").toString()}`,
+        `/api/reports?${requestParams("xlsx").toString()}`,
       );
       if (!response.ok) {
         const data = await response.json().catch(() => null);
@@ -138,7 +138,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `report-${from}-${to}-${currency}.csv`;
+      link.download = `report-${from}-${to}-${currency}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
@@ -181,10 +181,10 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
           <button
             className="btn primary"
             disabled={!report?.invoice_count || exporting}
-            onClick={exportCsv}
+            onClick={exportExcel}
           >
             <Icon name="download" />
-            {exporting ? "Připravuji…" : "Exportovat CSV"}
+            {exporting ? "Připravuji…" : "Exportovat do Excelu"}
           </button>
         </div>
       </header>

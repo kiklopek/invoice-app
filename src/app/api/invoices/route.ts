@@ -9,7 +9,7 @@ import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { parseInvoiceListQuery } from "@/lib/invoice-list-query";
-import { createCsv } from "@/lib/csv";
+import { createExcelWorkbook, excelDate, excelResponse } from "@/lib/excel-export";
 import { loadInvoiceListPageData } from "@/lib/invoice-list-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
 
@@ -57,9 +57,20 @@ function demoInvoicePage(query: NonNullable<ReturnType<typeof parseInvoiceListQu
   };
 }
 
-function invoiceCsv(invoices: Invoice[]) {
-  return createCsv([["Číslo faktury", "Odběratel", "IČO", "E-mail", "Částka bez DPH", "Sazba DPH", "Částka s DPH", "Uhrazeno", "Zbývá", "Měna", "Vystavení", "Splatnost", "Stav", "Upomínky"],
-    ...invoices.map(invoice => [invoice.invoice_number, invoice.counterparty_name, invoice.counterparty_ico, invoice.counterparty_email, invoice.amount_without_vat, invoice.vat_rate, invoice.amount, invoice.paid_amount, Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency, invoice.issue_date, invoice.due_date, invoiceStatusLabels[invoice.status], invoice.reminders_sent])]);
+async function invoiceExcel(invoices: Invoice[]) {
+  const moneyFormat = "#,##0.00";
+  return createExcelWorkbook("Faktury", [
+    { header: "Číslo faktury", key: "number", width: 18 }, { header: "Odběratel", key: "customer", width: 32 },
+    { header: "IČO", key: "ico", width: 13 }, { header: "E-mail", key: "email", width: 30 },
+    { header: "Částka bez DPH", key: "net", width: 19, numberFormat: moneyFormat }, { header: "Sazba DPH", key: "vat", width: 14, numberFormat: '0.##" %"' },
+    { header: "Částka s DPH", key: "gross", width: 18, numberFormat: moneyFormat }, { header: "Uhrazeno", key: "paid", width: 16, numberFormat: moneyFormat },
+    { header: "Zbývá", key: "remaining", width: 16, numberFormat: moneyFormat }, { header: "Měna", key: "currency", width: 10 },
+    { header: "Vystavení", key: "issued", width: 14, numberFormat: "dd.mm.yyyy" }, { header: "Splatnost", key: "due", width: 14, numberFormat: "dd.mm.yyyy" },
+    { header: "Stav", key: "status", width: 18 }, { header: "Upomínky", key: "reminders", width: 12, numberFormat: "0" },
+  ], invoices.map(invoice => ({ number: invoice.invoice_number, customer: invoice.counterparty_name, ico: invoice.counterparty_ico,
+    email: invoice.counterparty_email, net: Number(invoice.amount_without_vat), vat: Number(invoice.vat_rate), gross: Number(invoice.amount),
+    paid: Number(invoice.paid_amount), remaining: Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), currency: invoice.currency,
+    issued: excelDate(invoice.issue_date), due: excelDate(invoice.due_date), status: invoiceStatusLabels[invoice.status], reminders: invoice.reminders_sent })));
 }
 
 export async function GET(request: Request) {
@@ -67,10 +78,10 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = parseInvoiceListQuery(url.searchParams);
     if (!query) return NextResponse.json({ error: "Neplatný filtr, období nebo číslo stránky." }, { status: 400 });
-    const wantsCsv = url.searchParams.get("format") === "csv";
+    const wantsExcel = url.searchParams.get("format") === "xlsx";
     if (isDemoMode()) {
-      const result = demoInvoicePage(wantsCsv ? { ...query, page: 1 } : query, wantsCsv ? MAX_EXPORT_ROWS : LIST_PAGE_SIZE);
-      if (wantsCsv) return new Response(invoiceCsv(result.invoices), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=faktury.csv" } });
+      const result = demoInvoicePage(wantsExcel ? { ...query, page: 1 } : query, wantsExcel ? MAX_EXPORT_ROWS : LIST_PAGE_SIZE);
+      if (wantsExcel) return excelResponse(await invoiceExcel(result.invoices), "faktury.xlsx");
       return NextResponse.json({ ...result, can_manage: true, page: query.page, page_size: LIST_PAGE_SIZE, total_pages: Math.max(1, Math.ceil(result.total / LIST_PAGE_SIZE)) });
     }
 
@@ -85,7 +96,7 @@ export async function GET(request: Request) {
       });
       return { data: data as InvoicePageResult | null, error };
     };
-    if (wantsCsv) {
+    if (wantsExcel) {
       const first = await loadPage(1, EXPORT_PAGE_SIZE);
       if (first.error || !first.data) return NextResponse.json({ error: "Export se nepodařilo připravit. Zkontrolujte databázovou migraci." }, { status: 500 });
       if (first.data.total > MAX_EXPORT_ROWS) return NextResponse.json({ error: `Export obsahuje více než ${MAX_EXPORT_ROWS.toLocaleString("cs-CZ")} řádků. Zpřesněte období nebo další filtry.` }, { status: 413 });
@@ -96,7 +107,7 @@ export async function GET(request: Request) {
         if (next.error || !next.data) return NextResponse.json({ error: "Export se nepodařilo dokončit." }, { status: 500 });
         invoices.push(...next.data.invoices);
       }
-      return new Response(invoiceCsv(invoices), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=faktury.csv", "cache-control": "private, no-store" } });
+      return excelResponse(await invoiceExcel(invoices), "faktury.xlsx");
     }
     try {
       const result = await loadInvoiceListPageData(identity, query);
