@@ -30,6 +30,7 @@ export function AppSidebar({ invoiceCount, initialProfile }: { invoiceCount?: nu
   const role = profile?.role ?? null;
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
 
   useEffect(() => {
     if (role && !canAccessPage(role, pathname)) router.replace(landingPageForRole(role));
@@ -68,8 +69,23 @@ export function AppSidebar({ invoiceCount, initialProfile }: { invoiceCount?: nu
           );
           return <Link key={item.href} href={item.href} prefetch={true} aria-current={active ? "page" : undefined} className={[active ? "active" : "", item.href === "/dashboard" ? "nav-primary" : ""].filter(Boolean).join(" ")}><span className="nav-symbol"><Icon name={item.icon}/></span><span>{item.label}</span>{item.href === "/invoices" && invoiceCount ? <em>{invoiceCount}</em> : null}</Link>;
         })}
-        {role && <button type="button" className="nav-logout" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}><span className="nav-symbol"><Icon name="logout"/></span><span>{signingOut ? "Odhlašuji…" : "Odhlásit"}</span></button>}
       </nav>
+      {role && <div className={`mobile-account ${mobileAccountOpen ? "is-open" : ""}`}>
+        <button type="button" className="mobile-account-trigger" aria-label="Uživatelský účet" aria-expanded={mobileAccountOpen} onClick={() => setMobileAccountOpen((open) => !open)}>
+          {profile ? profileInitials(profile.name, profile.email) : "…"}
+        </button>
+        <div className="mobile-account-popover">
+          <div>
+            <strong>{profile?.name ?? "Uživatel"}</strong>
+            <small>{profile?.companyName ?? ""}</small>
+          </div>
+          {logoutError && <p role="alert">{logoutError}</p>}
+          <button type="button" onClick={signOut} disabled={signingOut}>
+            <Icon name="logout" />
+            {signingOut ? "Odhlašuji…" : "Odhlásit se"}
+          </button>
+        </div>
+      </div>}
       <div className="sidebar-bottom">
         {logoutError && <p className="sidebar-logout-error" role="alert">{logoutError}</p>}
         <div className="user-card">

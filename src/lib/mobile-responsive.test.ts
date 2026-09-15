@@ -27,15 +27,16 @@ const czechUiSources = [
 ];
 
 describe("mobile application layout", () => {
-  it("keeps all seven navigation destinations reachable on mobile", () => {
+  it("keeps all seven navigation destinations balanced and account actions reachable on mobile", () => {
     expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
     expect(css).toContain("env(safe-area-inset-bottom)");
     expect(source("src/components/layout/app-shell.tsx").match(/href: "\//g)).toHaveLength(7);
-    expect(source("src/components/layout/app-shell.tsx")).toContain('className="nav-logout"');
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/invoices/payments"] { grid-column: 4 / 7; }');
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/reminders"] { grid-column: 12 / 14; }');
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/settings"] { grid-column: 14 / 16; }');
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('.nav-logout { grid-column: 16 / 18; }');
+    expect(source("src/components/layout/app-shell.tsx")).toContain('className="mobile-account-trigger"');
+    expect(source("src/components/layout/app-shell.tsx")).toContain("Odhlásit se");
+    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/invoices/payments"] { grid-column: 3 / 5; }');
+    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/reminders"] { grid-column: 10 / 12; }');
+    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/settings"] { grid-column: 12 / 14; }');
+    expect(source("src/components/layout/mobile-navigation.css")).not.toContain("nav-logout");
   });
 
   it("uses the agreed mobile breakpoints and touch-safe controls", () => {

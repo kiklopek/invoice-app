@@ -135,6 +135,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .user-card { padding: 18px 8px 0; border-top: 1px solid #376249; }
 .avatar { width: 36px; height: 36px; background: #e8eee8; color: #244e38; }
 .user-card > button { width: 34px; height: 34px; border-radius: 7px; }
+.mobile-account { display: none; }
 
 /* Obsah a typografie */
 .content {
@@ -1077,6 +1078,16 @@ input, select, textarea,
   .sidebar nav a { min-width: 0; height: 55px; padding: 5px 2px; border-radius: 6px; font-size: 10px; gap: 3px; }
   .nav-symbol, .nav-symbol svg { width: 21px; height: 21px; }
   .sidebar nav a.active::before { display: none; }
+  .mobile-account { display: block; position: fixed; z-index: 32; right: max(12px, env(safe-area-inset-right)); bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .mobile-account-trigger { display: grid; width: 42px; height: 42px; place-items: center; border: 2px solid rgba(255,255,255,.88); border-radius: 50%; background: #e7eddf; color: #214b36; box-shadow: 0 5px 16px rgba(22,55,38,.18) !important; font-size: 11px; font-weight: 800; }
+  .mobile-account-popover { position: absolute; right: 0; bottom: 50px; display: none; width: min(260px,calc(100vw - 24px)); padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 12px 34px rgba(22,55,38,.17) !important; }
+  .mobile-account.is-open .mobile-account-popover { display: block; }
+  .mobile-account-popover > div strong,.mobile-account-popover > div small { display: block; }
+  .mobile-account-popover > div strong { font-size: 12px; }
+  .mobile-account-popover > div small { margin-top: 2px; color: var(--muted); font-size: 10px; }
+  .mobile-account-popover > p { margin: 10px 0 0; color: var(--red); font-size: 10px; }
+  .mobile-account-popover > button { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; background: #f7f8f5; color: var(--ink); font-size: 11px; font-weight: 700; }
+  .mobile-account-popover > button svg { width: 16px; }
   .content { width: 100%; margin: 0; padding: 24px 16px calc(94px + env(safe-area-inset-bottom)); }
   .invoice-area-background {
     left: 0;
