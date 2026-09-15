@@ -1009,8 +1009,6 @@ input, select, textarea,
 .login-page { width: 100%; grid-template-columns: minmax(0, 1fr); background: var(--canvas); }
 .login-card { border-radius: 12px; padding: 32px; }
 .login-header { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 24px; }
-.login-header-product-only { display: block; }
-.login-header-product-only .splatno-mark { margin-bottom: 18px; }
 .login-header .login-brand { flex: none; }
 .login-header .login-intro { min-width: 0; margin: 0; }
 .login-header .login-intro h1 { margin-top: 7px; }

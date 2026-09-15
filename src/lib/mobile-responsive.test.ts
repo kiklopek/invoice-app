@@ -55,12 +55,10 @@ describe("mobile application layout", () => {
     expect(layout).toContain('viewportFit: "cover"');
   });
 
-  it("keeps only the compact Splatno mark in the login card header", () => {
+  it("keeps the company logo and excludes the Splatno mark from the login card", () => {
     const login = source("src/app/(auth)/login/page.tsx");
-    expect(login).toContain("<SplatnoMark />");
-    expect(login).toContain('className="login-header login-header-product-only"');
-    expect(login).not.toContain("CompanyLogo");
-    expect(css).toContain(".login-header-product-only .splatno-mark");
+    expect(login).toContain('<CompanyLogo className="login-company-logo" />');
+    expect(login).not.toContain("SplatnoMark");
   });
 
   it("provides an accessible reusable mobile disclosure", () => {
