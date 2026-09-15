@@ -55,8 +55,8 @@ describe("authentication flow", () => {
     expect(login).toContain('fetch("/api/auth/session-preference"');
     expect(login).toContain("Zapamatovat si mě na 30 dní");
     expect(accessRoute).toContain("mfa_bypassed");
-    expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email, user.email_confirmed_at)");
-    expect(source("src/app/auth/callback/route.ts")).toContain("emailConfirmedAt: identity.user.email_confirmed_at");
+    expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
+    expect(source("src/app/auth/callback/route.ts")).toContain("email: identity.membership.email");
     expect(source("src/app/(auth)/register/page.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : "/mfa"');
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
@@ -73,6 +73,17 @@ describe("authentication flow", () => {
     expect(proxy).toContain("sessionId,");
     expect(proxy).toContain('supabase.auth.signOut({ scope: "local" })');
     expect(identity).toContain("requireLoginSession = true");
+  });
+
+  it("fails closed when localhost has no real Supabase configuration", () => {
+    const proxy = source("src/proxy.ts");
+    const login = source("src/app/(auth)/login/page.tsx");
+    const server = source("src/lib/supabase-server.ts");
+    expect(proxy).not.toContain("isLocalDemo");
+    expect(login).not.toContain("Lokální demo režim");
+    expect(login).not.toContain("Otevřít aplikaci");
+    expect(server).not.toContain("isDemoMode");
+    expect(server).toContain("requireEnv");
   });
 
   it("only accepts the password reset destination in the auth callback", () => {

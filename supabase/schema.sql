@@ -1336,7 +1336,13 @@ begin
       'cancelled', (select count(*) from filtered where status = 'cancelled')
     ),
     'aging', coalesce((select jsonb_agg(jsonb_build_object(
-      'label', case g.bucket when 0 then 'Před splatností' when 1 then '1–7 dní' when 2 then '8–14 dní' when 3 then '15–30 dní' else 'Více než 30 dní' end,
+      'label', case g.bucket
+        when 0 then U&'P\0159ed splatnost\00ED'
+        when 1 then U&'1\20137 dn\00ED'
+        when 2 then U&'8\201314 dn\00ED'
+        when 3 then U&'15\201330 dn\00ED'
+        else U&'V\00EDce ne\017E 30 dn\00ED'
+      end,
       'amount', coalesce(a.amount, 0), 'count', coalesce(a.count, 0)
     ) order by g.bucket) from generate_series(0, 4) g(bucket) left join aging_values a using (bucket)), '[]'::jsonb),
     'monthly', coalesce((select jsonb_agg(jsonb_build_object('key', month_key, 'issued', issued, 'paid', paid) order by month_key) from monthly_values), '[]'::jsonb),

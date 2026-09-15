@@ -28,14 +28,17 @@ describe("email MFA", () => {
     expect(first).not.toBe(second);
   });
 
-  it("permits only the confirmed trusted test account to skip the e-mail code", () => {
-    expect(isEmailMfaBypassed(" Test-Admin@Hlavica.cz ", "2026-09-04T10:00:00.000Z")).toBe(true);
-    expect(isEmailMfaBypassed("test-admin@hlavica.cz", null)).toBe(false);
-    expect(isEmailMfaBypassed("admin@hlavica.cz", "2026-09-04T10:00:00.000Z")).toBe(false);
+  it("permits only the trusted test account to skip the e-mail code", () => {
+    // email_confirmed_at is only on the full GoTrue user object, never on the
+    // access-token JWT that middleware decodes via getClaims() — a bypass that
+    // depended on it silently never applied in proxy.ts and caused an infinite
+    // /mfa <-> /dashboard redirect loop. The trusted-email match is the boundary.
+    expect(isEmailMfaBypassed(" Test-Admin@Hlavica.cz ")).toBe(true);
+    expect(isEmailMfaBypassed("admin@hlavica.cz")).toBe(false);
   });
 
   it("does not use a configurable MFA bypass list", () => {
-    expect(isEmailMfaBypassed("test-admin@hlavica.cz", "2026-09-04T10:00:00.000Z")).toBe(true);
+    expect(isEmailMfaBypassed("test-admin@hlavica.cz")).toBe(true);
   });
 
   it("extracts the stable session id and masks email output", () => {

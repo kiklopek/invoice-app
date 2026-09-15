@@ -44,16 +44,6 @@ export async function createUserServerClient() {
   );
 }
 
-export function isDemoMode() {
-  // Lokální vývoj bez Supabase používá ukázková data. Produkční sestavení
-  // nesmí vracet demo data ani obcházet autentizaci za žádných okolností.
-  return process.env.NODE_ENV !== "production" && Boolean(
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-}
-
 // PostgreSQL function arguments can accept SQL NULL even though generated
 // Supabase function types currently expose non-defaulted text/timestamp args as
 // plain strings. Keep the escape hatch centralized and visible.

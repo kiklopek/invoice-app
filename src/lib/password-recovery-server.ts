@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
+import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 
 const DEFAULT_APP_URL = "https://www.splatno.cz";
 const DEFAULT_AUTH_FROM = "Splatno <prihlaseni@mail.splatno.cz>";
@@ -30,6 +31,7 @@ function escapeHtml(value: string) {
 }
 
 export async function sendPasswordRecoveryEmail(params: { email: string; recoveryUrl: string; userId: string }) {
+  assertLocalEmailRecipientsAllowed([params.email]);
   const configuration = getPasswordRecoveryConfiguration();
   if (!configuration) throw new Error("PASSWORD_RECOVERY_EMAIL_NOT_CONFIGURED");
 

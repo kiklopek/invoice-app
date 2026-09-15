@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-labelledby="title desc">
+  <title id="title">Splatno</title>
+  <desc id="desc">Světlá varianta symbolu plynulého toku platby</desc>
+  <rect width="72" height="72" rx="20" fill="#F7F6EF"/>
+  <path d="M49 20H31.5C24.6 20 20 23.8 20 29s4.6 9 11.5 9h9C47.4 38 52 41.8 52 47s-4.6 9-11.5 9H23" fill="none" stroke="#17462F" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="51.5" cy="20" r="5.5" fill="#A86F2D"/>
+</svg>

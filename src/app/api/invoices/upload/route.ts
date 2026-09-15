@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { documentTypes, validateDocumentMetadata } from "@/lib/document-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
@@ -13,8 +12,6 @@ export async function POST(request: Request) {
   const validationError = validateDocumentMetadata(mime, size);
   if (!name || validationError) return NextResponse.json({ error: validationError ?? "Soubor nemá platný název." }, { status: 400 });
   const extension = documentTypes.get(mime)!;
-
-  if (isDemoMode()) return NextResponse.json({ path: `demo/${crypto.randomUUID()}.${extension}`, token: null, demo: true }, { status: 201 });
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
@@ -35,6 +32,6 @@ export async function POST(request: Request) {
     expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
   });
   if (recordError) return NextResponse.json({ error: "Nahrávání dokumentu se nepodařilo připravit." }, { status: 500 });
-  return NextResponse.json({ path, token: signed.token, demo: false }, { status: 201 });
+  return NextResponse.json({ path, token: signed.token }, { status: 201 });
 }
 

@@ -1,0 +1,201 @@
+import { NextResponse } from "next/server";
+import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
+import { isSameOriginMutation } from "@/lib/request-security";
+import type { Json } from "@/types/database";
+import { canUseGpcImport } from "@/lib/gpc-feature";
+
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+type Context = { params: Promise<{ id: string }> };
+
+export async function GET(request: Request, context: Context) {
+  const { id } = await context.params;
+  if (!uuid.test(id))
+    return NextResponse.json({ error: "Neplatný import." }, { status: 400 });
+  const identity = await getRequestIdentity();
+  if (!identity)
+    return NextResponse.json(
+      { error: "Nejste přihlášený uživatel." },
+      { status: 401 },
+    );
+  const org = identity.membership.organization_id;
+  const url = new URL(request.url);
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const disposition = url.searchParams.get("status");
+  const allowedDispositions = new Set(["accepted", "ignored", "error", "duplicate"]);
+  if (disposition && !allowedDispositions.has(disposition))
+    return NextResponse.json({ error: "Neplatný filtr položek." }, { status: 400 });
+  const pageSize = 50;
+  const { data: statement, error } = await identity.service
+    .from("bank_statement_imports")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", org)
+    .single();
+  if (error)
+    return NextResponse.json(
+      { error: "Import nebyl nalezen." },
+      { status: 404 },
+    );
+  if (url.searchParams.get("download") === "1") {
+    if (!statement.storage_path)
+      return NextResponse.json(
+        { error: "Originální soubor není v archivu." },
+        { status: 404 },
+      );
+    const { data, error: signedError } = await identity.service.storage
+      .from("bank-statements")
+      .createSignedUrl(statement.storage_path, 60);
+    if (signedError)
+      return NextResponse.json(
+        { error: "Odkaz na soubor se nepodařilo vytvořit." },
+        { status: 500 },
+      );
+    return NextResponse.json({ url: data.signedUrl, expires_in: 60 });
+  }
+  const from = (page - 1) * pageSize;
+  let entryQuery = identity.service
+    .from("bank_statement_entries")
+    .select("*", { count: "exact" })
+    .eq("import_id", id)
+    .eq("organization_id", org);
+  if (disposition) entryQuery = entryQuery.eq("disposition", disposition);
+  const {
+    data: entries,
+    error: entryError,
+    count,
+  } = await entryQuery
+    .order("line_number")
+    .range(from, from + pageSize - 1);
+  // Allocations are fetched separately for only the visible entry IDs to keep large imports bounded.
+  let visibleAllocations: Array<{
+    id: string;
+    statement_entry_id: string | null;
+    invoice_id: string;
+    amount: number;
+    is_manual_partial: boolean;
+    is_committed: boolean;
+  }> = [];
+  if ((entries?.length ?? 0) > 0) {
+    const fetched = await identity.service
+      .from("bank_payment_allocations")
+      .select(
+        "id, statement_entry_id, invoice_id, amount, is_manual_partial, is_committed",
+      )
+      .eq("organization_id", org)
+      .in(
+        "statement_entry_id",
+        entries!.map((entry) => entry.id),
+      );
+    if (fetched.error)
+      return NextResponse.json(
+        { error: "Přiřazení se nepodařilo načíst." },
+        { status: 500 },
+      );
+    visibleAllocations = fetched.data ?? [];
+  }
+  if (entryError)
+    return NextResponse.json(
+      { error: "Položky importu se nepodařilo načíst." },
+      { status: 500 },
+    );
+  const invoiceIds = [
+    ...new Set([
+      ...(entries ?? []).flatMap((entry) => entry.proposed_invoice_ids ?? []),
+      ...visibleAllocations.map((allocation) => allocation.invoice_id),
+    ]),
+  ];
+  let proposalInvoices: Array<{
+    id: string;
+    invoice_number: string;
+    counterparty_name: string;
+    amount: number;
+    paid_amount: number;
+    currency: string;
+    variable_symbol: string | null;
+  }> = [];
+  if (invoiceIds.length > 0) {
+    const fetched = await identity.service
+      .from("invoices")
+      .select(
+        "id, invoice_number, counterparty_name, amount, paid_amount, currency, variable_symbol",
+      )
+      .eq("organization_id", org)
+      .in("id", invoiceIds);
+    if (fetched.error)
+      return NextResponse.json(
+        { error: "Navržené faktury se nepodařilo načíst." },
+        { status: 500 },
+      );
+    proposalInvoices = fetched.data ?? [];
+  }
+  return NextResponse.json({
+    import: statement,
+    entries: entries ?? [],
+    allocations: visibleAllocations,
+    proposal_invoices: proposalInvoices,
+    page,
+    page_size: pageSize,
+    total: count ?? 0,
+    can_manage: canManageInvoices(identity.membership.role),
+  });
+}
+
+export async function PATCH(request: Request, context: Context) {
+  if (!isSameOriginMutation(request))
+    return NextResponse.json(
+      { error: "Požadavek pochází z nepovoleného webu." },
+      { status: 403 },
+    );
+  const { id } = await context.params;
+  const body = (await request.json().catch(() => null)) as {
+    revision?: unknown;
+    reviewed_entry_ids?: unknown;
+    allocations?: unknown;
+  } | null;
+  if (
+    !uuid.test(id) ||
+    !Number.isInteger(body?.revision) ||
+    !Array.isArray(body?.reviewed_entry_ids) ||
+    !Array.isArray(body?.allocations)
+  )
+    return NextResponse.json(
+      { error: "Neplatná revize nebo přiřazení." },
+      { status: 400 },
+    );
+  const identity = await getRequestIdentity();
+  if (!identity)
+    return NextResponse.json(
+      { error: "Nejste přihlášený uživatel." },
+      { status: 401 },
+    );
+  if (
+    !canManageInvoices(identity.membership.role) ||
+    !canUseGpcImport(identity.membership.role)
+  )
+    return NextResponse.json(
+      { error: "Nemáte oprávnění měnit návrh." },
+      { status: 403 },
+    );
+  const { data, error } = await identity.service.rpc(
+    "save_bank_statement_allocations",
+    {
+      target_org: identity.membership.organization_id,
+      actor_user: identity.user.id,
+      target_import: id,
+      expected_revision: Number(body?.revision),
+      reviewed_entries: body?.reviewed_entry_ids as Json,
+      allocation_rows: body?.allocations as Json,
+    },
+  );
+  if (error)
+    return NextResponse.json(
+      {
+        error: error.message.includes("revision_conflict")
+          ? "Návrh mezitím změnil jiný uživatel. Načtěte jej znovu."
+          : "Návrh se nepodařilo uložit.",
+      },
+      { status: error.message.includes("revision_conflict") ? 409 : 400 },
+    );
+  return NextResponse.json(data);
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
+import { nullableRpcString } from "@/lib/supabase-server";
 import { canManageMembers } from "@/lib/role-access";
 
 const roles = ["viewer", "accounting", "admin"] as const;
@@ -19,14 +19,6 @@ type MemberMutation = {
   auth_user_id?: string | null;
   created_at?: string;
 };
-const demoMembers = [
-  { id: "demo-admin", email: "kostihova@hlavica.cz", role: "admin", active: true, current: true, created_at: "2026-01-01T08:00:00Z" },
-  { id: "demo-accounting", email: "ucetni@hlavica.cz", role: "accounting", active: false, current: false, created_at: "2026-01-02T08:00:00Z" },
-];
-const demoAccessEvents: AccessEvent[] = [
-  { id: "demo-access-1", actor_email: "kostihova@hlavica.cz", target_email: "ucetni@hlavica.cz", event_type: "added", previous_role: null, new_role: "accounting", created_at: "2026-08-04T08:15:00Z" },
-];
-
 function validRole(value: unknown): value is MemberRole {
   return typeof value === "string" && roles.includes(value as MemberRole);
 }
@@ -39,7 +31,6 @@ async function adminIdentity() {
 }
 
 export async function GET() {
-  if (isDemoMode()) return NextResponse.json({ members: demoMembers, access_events: demoAccessEvents, current_role: "admin" });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageMembers(identity.membership.role)) return NextResponse.json({ error: "Přístupy a jejich historii může zobrazit pouze administrátor." }, { status: 403 });
@@ -62,10 +53,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { email?: unknown; role?: unknown } | null;
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254 || !validRole(body?.role)) return NextResponse.json({ error: "Zkontrolujte e-mail a vybranou roli." }, { status: 400 });
-  if (isDemoMode()) {
-    const id = crypto.randomUUID(); const created_at = new Date().toISOString();
-    return NextResponse.json({ member: { id, email, role: body.role, active: false, current: false, created_at }, access_event: { id: crypto.randomUUID(), actor_email: "kostihova@hlavica.cz", target_email: email, event_type: "added", previous_role: null, new_role: body.role, created_at } }, { status: 201 });
-  }
   const result = await adminIdentity();
   if (result.error) return result.error;
   const { identity } = result;
@@ -81,11 +68,6 @@ export async function PATCH(request: Request) {
   const body = await request.json().catch(() => null) as { id?: unknown; role?: unknown } | null;
   const id = typeof body?.id === "string" ? body.id : "";
   if (!id || !validRole(body?.role)) return NextResponse.json({ error: "Neplatný člen nebo role." }, { status: 400 });
-  if (isDemoMode()) {
-    if (id === "demo-admin" && body.role !== "admin") return NextResponse.json({ error: "Organizace musí mít alespoň jednoho administrátora." }, { status: 409 });
-    const member = demoMembers.find(item => item.id === id);
-    return member ? NextResponse.json({ member: { ...member, role: body.role }, access_event: { id: crypto.randomUUID(), actor_email: "kostihova@hlavica.cz", target_email: member.email, event_type: "role_changed", previous_role: member.role, new_role: body.role, created_at: new Date().toISOString() } }) : NextResponse.json({ error: "Uživatel nebyl nalezen." }, { status: 404 });
-  }
   const result = await adminIdentity();
   if (result.error) return result.error;
   const { identity } = result;
@@ -120,10 +102,6 @@ export async function DELETE(request: Request) {
   const body = await request.json().catch(() => null) as { id?: unknown } | null;
   const id = typeof body?.id === "string" ? body.id : "";
   if (!id) return NextResponse.json({ error: "Chybí uživatel." }, { status: 400 });
-  if (isDemoMode()) {
-    const member = demoMembers.find(item => item.id === id);
-    return id === "demo-admin" ? NextResponse.json({ error: "Nemůžete odebrat vlastní přístup." }, { status: 409 }) : NextResponse.json({ removed: true, access_event: member ? { id: crypto.randomUUID(), actor_email: "kostihova@hlavica.cz", target_email: member.email, event_type: "removed", previous_role: member.role, new_role: null, created_at: new Date().toISOString() } : null });
-  }
   const result = await adminIdentity();
   if (result.error) return result.error;
   const { identity } = result;

@@ -2,19 +2,13 @@ import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { canAccessOperations } from "@/lib/role-access";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
-import { DEFAULT_REMINDER_DAYS, normalizeReminderDays } from "@/lib/reminder-policies";
-
-const demoPolicies = [
-  { id: "00000000-0000-4000-8000-000000000001", name: "Standardní", is_default: true, days_from_due: [...DEFAULT_REMINDER_DAYS], archived_at: null },
-];
+import { normalizeReminderDays } from "@/lib/reminder-policies";
 
 function validName(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 && value.trim().length <= 100 ? value.trim() : null;
 }
 
 export async function GET() {
-  if (isDemoMode()) return NextResponse.json({ policies: demoPolicies });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Nemáte přístup ke kategoriím upomínek." }, { status: 403 });
@@ -32,7 +26,6 @@ export async function POST(request: Request) {
   const name = validName(body?.name);
   const days = normalizeReminderDays(body?.days);
   if (!name || !days) return NextResponse.json({ error: "Zadejte název a 1 až 10 platných termínů." }, { status: 400 });
-  if (isDemoMode()) return NextResponse.json({ policy: { id: crypto.randomUUID(), name, is_default: false, days_from_due: days, archived_at: null } }, { status: 201 });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění spravovat kategorie." }, { status: 403 });
@@ -51,7 +44,6 @@ export async function PATCH(request: Request) {
   const name = validName(body.name);
   const days = normalizeReminderDays(body.days);
   if (!name || !days || (body.make_default !== undefined && typeof body.make_default !== "boolean")) return NextResponse.json({ error: "Zkontrolujte název a termíny kategorie." }, { status: 400 });
-  if (isDemoMode()) return NextResponse.json({ policy: { id: body.id, name, is_default: Boolean(body.make_default), days_from_due: days, archived_at: null } });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění spravovat kategorie." }, { status: 403 });
@@ -73,7 +65,6 @@ export async function DELETE(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Chybí kategorie." }, { status: 400 });
-  if (isDemoMode()) return NextResponse.json({ deleted: true });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění spravovat kategorie." }, { status: 403 });

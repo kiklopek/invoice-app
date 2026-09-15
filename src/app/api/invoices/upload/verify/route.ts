@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   const body = await request.json().catch(() => null) as { path?: unknown } | null;
   const path = typeof body?.path === "string" ? body.path : "";
   if (!path) return NextResponse.json({ error: "Chybí cesta dokumentu." }, { status: 400 });
-  if (isDemoMode()) return NextResponse.json({ path, verified: true });
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });

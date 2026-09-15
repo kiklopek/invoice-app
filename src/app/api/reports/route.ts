@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { createExcelWorkbook, excelDate, excelResponse } from "@/lib/excel-export";
-import { demoInvoices } from "@/lib/demo-data";
-import { buildInvoiceReport, invoiceDateForReport, parseReportQuery } from "@/lib/report-query";
-import { todayInTimeZone } from "@/lib/reminders";
-import { isDemoMode } from "@/lib/supabase-server";
+import { parseReportQuery } from "@/lib/report-query";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import { canViewFinancialInsights } from "@/lib/role-access";
 import { loadReportPageData } from "@/lib/report-page-data";
@@ -39,17 +36,6 @@ export async function GET(request: Request) {
   const query = parseReportQuery(url.searchParams);
   if (!query) return NextResponse.json({ error: "Zkontrolujte období a filtry reportu." }, { status: 400 });
   const wantsExcel = url.searchParams.get("format") === "xlsx";
-
-  if (isDemoMode()) {
-    const filtered = demoInvoices.filter(invoice => {
-      const reportDate = invoiceDateForReport(invoice, query.dateBasis);
-      return Boolean(reportDate && reportDate >= query.from && reportDate <= query.to)
-        && invoice.currency === query.currency && (!query.status || invoice.status === query.status)
-        && (!query.customer || invoice.counterparty_name === query.customer);
-    });
-    if (wantsExcel) return excelResponse(await reportExcel(filtered), "report-faktur.xlsx");
-    return NextResponse.json(buildInvoiceReport(filtered, query.currency, todayInTimeZone(), demoInvoices));
-  }
 
   const identity = await getRequestIdentity();
   const identityDoneAt = performance.now();

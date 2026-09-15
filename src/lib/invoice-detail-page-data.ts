@@ -2,9 +2,8 @@ import "server-only";
 
 import type { RequestIdentity } from "@/lib/auth";
 import { canManageInvoices } from "@/lib/role-access";
-import { demoInvoices } from "@/lib/demo-data";
-import { isDemoMode } from "@/lib/supabase-server";
 import { PageDataError } from "@/lib/dashboard-page-data";
+import { loadInvoicePaymentHistory, type InvoicePaymentHistoryEntry } from "@/lib/invoice-payment-history";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
 export type ReminderRecord = {
@@ -21,10 +20,7 @@ export type ActivityRecord = {
   actor_email: string | null;
   created_at: string;
 };
-export type BankPayment = {
-  id: string; external_id: string; booked_on: string; amount: number; currency: string; variable_symbol: string | null;
-  counterparty_name: string | null; counterparty_account: string | null; note: string | null; matched_at: string | null;
-};
+export type BankPayment = InvoicePaymentHistoryEntry;
 export type InvoiceDetailPageData = {
   invoice: Invoice;
   document_url: string | null;
@@ -35,21 +31,7 @@ export type InvoiceDetailPageData = {
   events: ActivityRecord[];
 };
 
-function demoDetail(id: string): InvoiceDetailPageData {
-  const invoice = demoInvoices.find(item => item.id === id);
-  if (!invoice) throw new PageDataError("Faktura nebyla nalezena.", 404);
-  const events: ActivityRecord[] = [
-    { id: "demo-event-created", event_type: "created" as const, details: {}, actor_email: "ucetni@hlavica.cz", created_at: invoice.created_at },
-    ...(invoice.status === "paid" && invoice.paid_at ? [{ id: "demo-event-paid", event_type: "paid" as const, details: { paid_at: invoice.paid_at }, actor_email: "ucetni@hlavica.cz", created_at: invoice.paid_at }] : []),
-  ].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const reminders: ReminderRecord[] = id === "demo-1" ? [
-    { id: "r1", stage: "on_due", scheduled_for: "2026-07-28", sent_at: "2026-07-28T06:03:00Z", sent_to: "fakturace@stavbynovak.cz", status: "sent", attempt_count: 1, error_message: null, delivery_status: "delivered", delivery_event_at: "2026-07-28T06:03:12Z", delivered_at: "2026-07-28T06:03:12Z", delivery_error: null },
-  ] : [];
-  return { invoice, document_url: null, payments: [], can_manage: true, reminders, suppression: null, events };
-}
-
 export async function loadInvoiceDetailPageData(identity: RequestIdentity | null, id: string): Promise<InvoiceDetailPageData> {
-  if (isDemoMode()) return demoDetail(id);
   if (!identity) throw new PageDataError("Nejste přihlášený uživatel.", 401);
   const organizationId = identity.membership.organization_id;
   const { data: invoice, error: invoiceError } = await identity.service.from("invoices")
@@ -59,8 +41,10 @@ export async function loadInvoiceDetailPageData(identity: RequestIdentity | null
   if (!invoice) throw new PageDataError("Faktura nebyla nalezena.", 404);
 
   const [paymentsResult, historyResult, suppressionResult, eventsResult, signedResult] = await Promise.all([
-    identity.service.from("bank_payments").select("id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, counterparty_account, note, matched_at")
-      .eq("organization_id", organizationId).eq("invoice_id", id).order("booked_on", { ascending: false }),
+    loadInvoicePaymentHistory(identity.service, organizationId, id).then(
+      (value) => ({ data: value, error: null }),
+      (error) => ({ data: null, error }),
+    ),
     identity.service.from("reminder_log").select("id, stage, scheduled_for, sent_at, sent_to, status, attempt_count, error_message, delivery_status, delivery_event_at, delivered_at, delivery_error")
       .eq("invoice_id", id).order("scheduled_for", { ascending: false }),
     identity.service.from("email_suppressions").select("reason, last_event_at").eq("organization_id", organizationId)
@@ -93,7 +77,7 @@ export async function loadInvoiceDetailPageData(identity: RequestIdentity | null
   return {
     invoice: invoice as Invoice,
     document_url: signedResult.data?.signedUrl ?? null,
-    payments: (paymentsResult.data ?? []) as BankPayment[],
+    payments: paymentsResult.data ?? [],
     can_manage: canManageInvoices(identity.membership.role),
     reminders: (historyResult.data ?? []) as ReminderRecord[],
     suppression: suppressionResult.data as EmailSuppression | null,

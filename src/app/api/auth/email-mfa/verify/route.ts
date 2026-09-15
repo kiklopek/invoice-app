@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const identity = await getRequestIdentity({ requireMfa: false });
   if (!identity) return apiError(request, "Nejste přihlášený uživatel.", 401, "unauthorized");
 
-  if (isEmailMfaBypassed(identity.membership.email, identity.user.email_confirmed_at)) {
+  if (isEmailMfaBypassed(identity.membership.email)) {
     return NextResponse.json({ verified: true, bypassed: true });
   }
 

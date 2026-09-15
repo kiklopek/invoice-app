@@ -22,7 +22,11 @@ const ocrRuntimeFiles = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  devIndicators: process.env.CI ? false : { position: "bottom-left" },
+  // Keep localhost visually equivalent to production and prevent the floating
+  // development portal from covering mobile controls. Compile/runtime errors
+  // are still shown by Next.js when this indicator is disabled.
+  devIndicators: false,
+  allowedDevOrigins: ["127.0.0.1"],
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@napi-rs/canvas", "sharp"],
   outputFileTracingIncludes: {

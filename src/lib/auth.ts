@@ -3,7 +3,6 @@ import "server-only";
 import { cache } from "react";
 
 import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
-import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { hasServerLoginSession } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
@@ -15,14 +14,15 @@ type IdentityOptions = { requireMfa?: boolean; requireLoginSession?: boolean };
 export async function getRequestIdentity(options: IdentityOptions = {}) {
   const { requireMfa = true, requireLoginSession = true } = options;
   const auth = await createUserServerClient();
+  const { data: claimsData, error: claimsError } = await auth.auth.getClaims();
+  if (claimsError || !claimsData?.claims?.sub) return null;
   const { data, error } = await auth.auth.getUser();
-  if (error || !data.user) return null;
+  if (error || !data.user || claimsData.claims.sub !== data.user.id) return null;
 
   const email = normalizeEmail(data.user.email);
   if (!isAllowedCorporateEmail(email)) return null;
 
-  const { data: sessionData } = await auth.auth.getSession();
-  const sessionId = sessionIdFromAccessToken(sessionData.session?.access_token);
+  const sessionId = typeof claimsData.claims.session_id === "string" ? claimsData.claims.session_id : null;
   if (!sessionId) return null;
 
   if (requireLoginSession && !await hasServerLoginSession({ userId: data.user.id, sessionId })) return null;
@@ -30,7 +30,6 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   if (requireMfa) {
     const verified = await hasVerifiedEmailMfa({
       email,
-      emailConfirmedAt: data.user.email_confirmed_at,
       userId: data.user.id,
       sessionId,
     });

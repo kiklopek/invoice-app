@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { PageDataError } from "@/lib/dashboard-page-data";
 import { loadReminderPageData } from "@/lib/reminder-page-data";
-import { isDemoMode } from "@/lib/supabase-server";
 
 export async function GET() {
   const startedAt = performance.now();
   try {
-    const identity = isDemoMode() ? null : await getRequestIdentity();
+    const identity = await getRequestIdentity();
     const identityDoneAt = performance.now();
     const data = await loadReminderPageData(identity);
     const dataDoneAt = performance.now();

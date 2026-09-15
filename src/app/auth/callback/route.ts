@@ -34,7 +34,6 @@ export async function GET(request: Request) {
       await setLoginSessionPreference(false, { userId: identity.user.id, sessionId: identity.sessionId });
       const verified = await hasVerifiedEmailMfa({
         email: identity.membership.email,
-        emailConfirmedAt: identity.user.email_confirmed_at,
         userId: identity.user.id,
         sessionId: identity.sessionId,
       });

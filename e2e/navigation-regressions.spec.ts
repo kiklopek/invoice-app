@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/invoices");
-  test.skip(page.url().includes("/login"), "Requires a demo or authenticated test session");
+  test.skip(page.url().includes("/login"), "Requires an authenticated test session");
   await expect(page.locator('.sidebar nav a[href="/invoices"]')).toBeVisible();
 });
 
@@ -48,4 +48,18 @@ test("Escape also closes payment confirmation from the invoice list", async ({ p
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test("invoice filters stay in the URL without overriding later navigation", async ({
+  page,
+}) => {
+  const search = page.getByPlaceholder(
+    "Číslo faktury, odběratel, IČO, e-mail nebo VS",
+  );
+  if (!(await search.isVisible()))
+    await page.getByRole("button", { name: "Filtry a export" }).click();
+  await search.fill("Novák");
+  await expect(page).toHaveURL(/q=Nov%C3%A1k/);
+  await page.locator('.sidebar nav a[href="/reports"]').click();
+  await expect(page).toHaveURL(/\/reports$/);
 });

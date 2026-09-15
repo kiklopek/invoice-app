@@ -2,12 +2,6 @@ import { expect, test } from "@playwright/test";
 
 test("login page is usable without an authenticated session", async ({ page }) => {
   await page.goto("/login");
-  // A local demo server redirects straight into the app; a configured server
-  // must render the real login form.
-  if (page.url().endsWith("/dashboard")) {
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Přehled pohledávek");
-    return;
-  }
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Přihlášení");
   await expect(page.getByLabel("Firemní e-mail")).toBeVisible();
   await expect(page.getByLabel("Heslo")).toBeVisible();
@@ -35,7 +29,7 @@ test("mobile layout does not overflow horizontally", async ({ page }, testInfo) 
 
 test("sidebar stays mounted while navigating between workspace pages", async ({ page }) => {
   await page.goto("/dashboard");
-  test.skip(page.url().includes("/login"), "Requires a demo or authenticated session");
+  test.skip(page.url().includes("/login"), "Requires an authenticated test session");
   const sidebar = page.locator(".sidebar");
   await expect(sidebar.locator('a[href="/invoices"]')).toBeVisible();
   await sidebar.evaluate(element => {

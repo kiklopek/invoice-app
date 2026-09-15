@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import type { DashboardData } from "@/lib/dashboard-summary";
 import { loadDashboardPageData, PageDataError } from "@/lib/dashboard-page-data";
-import { isDemoMode } from "@/lib/supabase-server";
 
 const response = (data: DashboardData, serverTiming?: string) => NextResponse.json(data, { headers: {
   "cache-control": "private, no-store",
@@ -12,7 +11,7 @@ const response = (data: DashboardData, serverTiming?: string) => NextResponse.js
 export async function GET() {
   const startedAt = performance.now();
   try {
-    const identity = isDemoMode() ? null : await getRequestIdentity();
+    const identity = await getRequestIdentity();
     const identityDoneAt = performance.now();
     const data = await loadDashboardPageData(identity);
     const dataDoneAt = performance.now();

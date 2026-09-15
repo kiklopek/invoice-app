@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { clearInvoiceDraft, readInvoiceDraft, saveInvoiceDraft } from "@/lib/invoice-drafts";
 import type { InvoiceInput } from "@/types/invoice";
@@ -56,10 +56,15 @@ export function InvoiceForm({
   const [policies, setPolicies] = useState<ReminderPolicySummary[]>([]);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const [policiesError, setPoliciesError] = useState("");
-  const discardDraft = useCallback(() => clearInvoiceDraft(draftKey), [draftKey]);
+  const discardingDraft = useRef(false);
+  const discardDraft = useCallback(() => {
+    discardingDraft.current = true;
+    setDirty(false);
+    clearInvoiceDraft(draftKey);
+  }, [draftKey]);
   useUnsavedChanges(dirty && !saving, discardDraft);
   useEffect(() => {
-    if (dirty) saveInvoiceDraft(draftKey, form);
+    if (dirty && !discardingDraft.current) saveInvoiceDraft(draftKey, form);
   }, [draftKey, dirty, form]);
   const field = (key: keyof InvoiceInput, value: string | number) => { setDirty(true); setForm(current => ({ ...current, [key]: value })); };
   const setNetAmount = (value: number) => { setDirty(true); setForm(current => ({

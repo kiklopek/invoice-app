@@ -16,7 +16,7 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 5"] } },
   ],
   webServer: {
-    command: "pnpm dev --hostname 127.0.0.1 --port 3000",
+    command: "corepack pnpm dev --hostname 127.0.0.1 --port 3000",
     url: "http://127.0.0.1:3000/dashboard",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

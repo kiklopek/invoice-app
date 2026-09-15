@@ -4,7 +4,6 @@ import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document
 import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, parseInvoiceText } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode } from "@/lib/supabase-server";
 import { normalizeCounterpartyIco, resolveOcrReminderPolicy } from "@/lib/counterparty-reminder-preferences";
 
 export const runtime = "nodejs";
@@ -15,44 +14,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { path?: unknown } | null;
   const path = typeof body?.path === "string" ? body.path : "";
   if (!path || path.length > 500) return NextResponse.json({ error: "Chybí platná cesta dokumentu." }, { status: 400 });
-
-  if (isDemoMode()) {
-    return NextResponse.json({
-      extraction: {
-        invoice: {
-          invoice_number: "FV-2026-084",
-          counterparty_name: "Stavby Novák s.r.o.",
-          counterparty_ico: "12345678",
-          counterparty_dic: "CZ12345678",
-          counterparty_email: "fakturace@stavbynovak.cz",
-          variable_symbol: "2026084",
-          amount_without_vat: 40289.26,
-          vat_rate: 21,
-          amount: 48750,
-          currency: "CZK",
-          issue_date: "2026-08-01",
-          due_date: "2026-08-15",
-          notes: "Údaje byly předvyplněny z dokumentu. Před uložením je zkontrolujte.",
-          source: "ocr",
-          file_url: path,
-          reminder_policy_id: "00000000-0000-4000-8000-000000000001",
-        },
-        field_sources: {},
-        confidence: 0.93,
-        warnings: [],
-        document_kind: "issued_invoice",
-        issuer_matches_organization: true,
-        reminder_policy_assignment: {
-          status: "default",
-          counterparty_ico: "12345678",
-          policy_id: "00000000-0000-4000-8000-000000000001",
-          policy_name: "Standardní",
-        },
-        model: "demo",
-        response_id: null,
-      },
-    });
-  }
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });

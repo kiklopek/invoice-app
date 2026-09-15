@@ -15,6 +15,7 @@ Interní webová aplikace pro evidenci pouze těch vydaných faktur, které maj�
 - trvalá evidence nespárovaných a nejasných plateb ke kontrole a zobrazení spárované transakce přímo v detailu faktury,
 - bezpečné ruční přiřazení výjimky pouze k otevřené faktuře se stejnou částkou a měnou,
 - více částečných bankovních úhrad jedné faktury, průběžný zůstatek a atomická oprava chybného přiřazení s obnovením plánování upomínek,
+- náhled a atomické potvrzení GPC výpisu až s 10 000 položkami, kombinované úhrady více faktur, archiv originálů a ruční kontrola nejednoznačných návrhů,
 - export právě filtrovaných dat s ochranou před CSV formula injection,
 - databázově filtrovaný a stránkovaný seznam faktur s přesnými souhrny bez načítání celé historie do prohlížeče,
 - lidské nastavení termínů upomínek a čtyř e-mailových šablon,
@@ -43,10 +44,12 @@ OCR běží lokálně v serverové funkci pomocí Tesseract.js. Textová PDF se 
 
 Lokální aplikace vyžaduje nakonfigurovaný Supabase projekt a platný firemní účet:
 
-```powershell
-npm install
-npm run dev
+```shell
+corepack pnpm install --frozen-lockfile
+corepack pnpm dev
 ```
+
+Globální instalace `pnpm` není potřeba. Pokud shell hlásí `command not found: pnpm`, používejte příkazy přes `corepack pnpm`, který respektuje verzi uvedenou v `package.json`.
 
 Aplikace poběží na `http://localhost:3000`.
 
@@ -91,7 +94,7 @@ E-mail v `organization_members` ukládejte malými písmeny. Při prvním přihl
 
 ### 3. Lokální OCR
 
-1. Nainstalujte závislosti pomocí `pnpm install`; český a anglický OCR model je součástí balíčků projektu.
+1. Nainstalujte závislosti pomocí `corepack pnpm install --frozen-lockfile`; český a anglický OCR model je součástí balíčků projektu.
 2. Pro OCR se nenastavuje žádná proměnná prostředí ani externí API klíč.
 3. Textové PDF může mít nejvýše 30 stran a skenované PDF nejvýše 8 stran bez textové vrstvy. Maximální velikost dokumentu je 10 MB.
 4. OCR je pomocné předvyplnění: žádná faktura se neuloží bez kontroly a potvrzení účetním.
@@ -130,7 +133,7 @@ CRON_SECRET=dlouhy-nahodny-tajny-retezec
 
 V režimech `development` a `test` aplikace kvůli lokálnímu testování přijme i platný e-mail mimo `@hlavica.cz`. Produkční sestavení omezení vždy znovu vynutí; uživatel však i při vývoji musí mít odpovídající záznam v `organization_members`.
 
-Pokud při lokálním vývoji není Supabase nakonfigurovaný, aplikace se automaticky spustí v demo režimu: autentizaci přeskočí a API používají ukázková data. Tato větev je podmíněná `NODE_ENV !== "production"`, takže v produkčním sestavení není dostupná.
+Aplikace vždy vyžaduje skutečně nakonfigurovaný Supabase projekt (proměnné `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) — bez něj selže i lokální vývoj (fail-closed), žádný demo režim s ukázkovými daty neexistuje.
 - jedinou výjimkou z e-mailového MFA je potvrzený účet `test-admin@hlavica.cz`, určený pro testování a opravy aplikace; konfigurovatelný seznam výjimek aplikace nepoužívá.
 
 ### 6. Cron a nasazení

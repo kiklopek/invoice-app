@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const route = source("src/app/api/cron/check-due/route.ts");
-const migration = source("supabase/migrations/20260908160937_optimize_reminder_queue.sql");
+const migration = source("supabase/migrations/20260808000000_baseline_schema.sql");
 const vercel = source("vercel.json");
 
 describe("durable reminder queue optimization", () => {

@@ -1,12 +1,13 @@
 import type { SVGProps } from "react";
 
-export type IconName = "dashboard" | "invoice" | "archive" | "mail" | "chart" | "settings" | "logout" | "plus" | "upload" | "check" | "alert" | "clock" | "document" | "download" | "print" | "arrow-left";
+export type IconName = "dashboard" | "invoice" | "bank" | "archive" | "mail" | "chart" | "settings" | "logout" | "plus" | "upload" | "check" | "alert" | "clock" | "document" | "download" | "print" | "arrow-left";
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" {...props} {...common}>
     {name === "dashboard" && <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>}
     {name === "invoice" && <><path d="M6 3h9l3 3v15l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></>}
+    {name === "bank" && <><path d="m3 9 9-5 9 5H3Z"/><path d="M5 9v8M9.5 9v8M14.5 9v8M19 9v8M3 20h18M2 17h20"/></>}
     {name === "mail" && <><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4.5 7 7.5 6 7.5-6"/></>}
     {name === "chart" && <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></>}
     {name === "settings" && <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.1A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.13.38.35.73.65 1 .3.28.69.42 1.1.4h.1v4h-.1A1.7 1.7 0 0 0 19.4 15Z"/></>}

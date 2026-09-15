@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const schema = readFileSync(join(process.cwd(), "supabase", "schema.sql"), "utf8");
-const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808125414_initial_invoice_app_schema.sql"), "utf8");
+const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808000000_baseline_schema.sql"), "utf8");
 const reminderAuditMigration = migration;
 const accessAuditMigration = migration;
 const reminderRecipientsMigration = migration;
@@ -11,10 +11,9 @@ const partialPaymentsMigration = migration;
 const invoiceDeleteMigration = migration;
 const invoicePriorityMigration = migration;
 const invoiceArchiveMigration = migration;
-const invoiceVatMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808183548_add_invoice_vat_amounts.sql"), "utf8");
-const reportLabelEncodingMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260808194513_fix_report_label_encoding.sql"), "utf8");
-const memberRoleAuditFixMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260819203652_fix_member_role_audit_variable.sql"), "utf8");
-const memberAuthDeletionMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "20260821094121_delete_member_auth_account.sql"), "utf8");
+const invoiceVatMigration = migration;
+const memberRoleAuditFixMigration = migration;
+const memberAuthDeletionMigration = migration;
 const databaseSources = [schema, migration];
 
 describe("database tenant integrity", () => {
@@ -43,20 +42,19 @@ describe("database tenant integrity", () => {
 
   it("records reminder settings atomically with the authenticated actor", () => {
     for (const source of [schema, reminderAuditMigration]) {
-      expect(source).toContain("create table reminder_settings_events");
+      expect(source).toMatch(/create table (if not exists )?reminder_settings_events/);
       expect(source).toContain("actor_user uuid");
       expect(source).toContain("insert into reminder_settings_events");
       expect(source).toContain("role in ('accounting', 'admin')");
       expect(source).toContain("invalid_templates");
     }
-    expect(reminderAuditMigration).toContain("drop function save_default_reminder_settings(uuid, integer[], jsonb, boolean)");
   });
 
   it("records every membership mutation in the same database transaction", () => {
     for (const source of [schema, accessAuditMigration]) {
-      expect(source).toContain("create table organization_member_events");
+      expect(source).toMatch(/create table (if not exists )?organization_member_events/);
       expect(source).toContain("create or replace function add_organization_member");
-      expect(source.match(/insert into organization_member_events/g)).toHaveLength(source === schema ? 4 : 3);
+      expect(source.match(/insert into organization_member_events/g)).toHaveLength(4);
       expect(source).toContain("cannot_remove_self");
       expect(source).toContain("last_admin");
       expect(source).toContain("actor_email_value");
@@ -78,7 +76,6 @@ describe("database tenant integrity", () => {
       expect(source).toContain("restore_organization_member_after_auth_delete_failure");
       expect(source).toContain("references auth.users(id) on delete set null");
     }
-    expect(memberAuthDeletionMigration.match(/alter column .* drop not null/g)).toHaveLength(3);
     expect(memberAuthDeletionMigration).toContain("to service_role");
     expect(memberAuthDeletionMigration).toContain("from public, anon, authenticated");
   });
@@ -104,7 +101,6 @@ describe("database tenant integrity", () => {
       expect(source).toContain("'settlement'");
       expect(source).toContain("'partial'");
     }
-    expect(partialPaymentsMigration).toContain("drop index if exists bank_payments_one_match_per_invoice");
   });
 
   it("stores net, VAT rate and gross invoice amounts consistently", () => {
@@ -117,10 +113,12 @@ describe("database tenant integrity", () => {
   });
 
   it("keeps Czech aging labels safe across SQL client encodings", () => {
-    expect(reportLabelEncodingMigration).toContain("U&'P\\0159ed splatnost\\00ED'");
-    expect(reportLabelEncodingMigration).toContain("U&'1\\20137 dn\\00ED'");
-    expect(reportLabelEncodingMigration).toContain("U&'V\\00EDce ne\\017E 30 dn\\00ED'");
-    expect(reportLabelEncodingMigration).not.toMatch(/PĹ|dnĂ|â€“|VĂ/);
+    for (const source of [schema, migration]) {
+      expect(source).toContain("U&'P\\0159ed splatnost\\00ED'");
+      expect(source).toContain("U&'1\\20137 dn\\00ED'");
+      expect(source).toContain("U&'V\\00EDce ne\\017E 30 dn\\00ED'");
+      expect(source).not.toMatch(/PĹ|dnĂ|â€“|VĂ/);
+    }
   });
 
   it("deletes invoices atomically while preserving unmatched bank payments", () => {

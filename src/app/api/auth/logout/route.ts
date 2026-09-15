@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { clearEmailMfaCookie } from "@/lib/email-mfa-server";
 import { clearLoginSessionPreference } from "@/lib/login-session-server";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { createUserServerClient, isDemoMode } from "@/lib/supabase-server";
+import { createUserServerClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
 
 export async function POST(request: Request) {
@@ -11,10 +11,8 @@ export async function POST(request: Request) {
   const scope = body?.scope === "global" ? "global" : "local";
   await clearEmailMfaCookie();
   await clearLoginSessionPreference();
-  if (!isDemoMode()) {
-    const supabase = await createUserServerClient();
-    const { error } = await supabase.auth.signOut({ scope });
-    if (error) return apiError(request, "Odhlášení se nepodařilo.", 500, "sign_out_failed");
-  }
+  const supabase = await createUserServerClient();
+  const { error } = await supabase.auth.signOut({ scope });
+  if (error) return apiError(request, "Odhlášení se nepodařilo.", 500, "sign_out_failed");
   return NextResponse.json({ signed_out: true, scope });
 }

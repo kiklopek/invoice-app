@@ -4,7 +4,7 @@ import { parseInvoiceListQuery } from "./invoice-list-query";
 describe("invoice list query", () => {
   it("normalizes valid server-side filters", () => {
     expect(parseInvoiceListQuery(new URLSearchParams("q= FV-12 &status=overdue&currency=CZK&from=2026-01-01&to=2026-12-31&page=3"))).toEqual({
-      query: "FV-12", status: "overdue", currency: "CZK", from: "2026-01-01", to: "2026-12-31", page: 3,
+      query: "FV-12", status: "overdue", currency: "CZK", from: "2026-01-01", to: "2026-12-31", dueFrom: null, dueTo: null, amountMin: null, amountMax: null, paymentState: null, bankMatch: null, page: 3,
     });
     expect(parseInvoiceListQuery(new URLSearchParams("status=closed"))?.status).toBe("closed");
   });
@@ -15,5 +15,6 @@ describe("invoice list query", () => {
     expect(parseInvoiceListQuery(new URLSearchParams("currency=czk"))).toBeNull();
     expect(parseInvoiceListQuery(new URLSearchParams(`q=${"x".repeat(101)}`))).toBeNull();
     expect(parseInvoiceListQuery(new URLSearchParams("page=0"))).toBeNull();
+    expect(parseInvoiceListQuery(new URLSearchParams("amount_min=200&amount_max=100"))).toBeNull();
   });
 });

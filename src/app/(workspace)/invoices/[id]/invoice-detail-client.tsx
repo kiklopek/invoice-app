@@ -521,6 +521,9 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
             <span className={`status large ${invoice.status}`}>
               {statusLabels[invoice.status]}
             </span>
+            {(invoice.status === "pending" || invoice.status === "overdue") && paidAmount > 0 ? (
+              <span className="status large partial">Částečně uhrazeno</span>
+            ) : null}
           </section>
           <div className="detail-page-grid">
             <div>
@@ -630,17 +633,21 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                       <article key={payment.id}>
                         <div>
                           <strong>
-                            {money(Number(payment.amount), payment.currency)}
+                            {money(Number(payment.allocation_amount), payment.currency)}
                           </strong>
                           <span>
                             Připsáno {date(payment.booked_on)} · VS{" "}
                             {payment.variable_symbol || "—"}
                           </span>
                           <small>
-                            {payment.counterparty_name ||
-                              "Protistrana neuvedena"}
+                            {payment.source === "manual"
+                              ? "Ručně potvrzeno"
+                              : payment.counterparty_name || "Protistrana neuvedena"}
                             {payment.counterparty_account
                               ? ` · ${payment.counterparty_account}`
+                              : ""}
+                            {payment.match_status === "split"
+                              ? " · platba rozdělená na více faktur"
                               : ""}
                           </small>
                         </div>

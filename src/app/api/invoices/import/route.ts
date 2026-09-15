@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
-import { isDemoMode } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 
 const MAX_BATCH_SIZE = 250;
@@ -23,8 +22,6 @@ export async function POST(request: Request) {
   const numbers = new Set<string>();
   const duplicate = invoices.find((invoice) => numbers.has(invoice.invoice_number) || !numbers.add(invoice.invoice_number));
   if (duplicate) return NextResponse.json({ error: `Číslo faktury ${duplicate.invoice_number} je v souboru vícekrát.` }, { status: 409 });
-
-  if (isDemoMode()) return NextResponse.json({ imported: invoices.length }, { status: 201 });
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
-import { createServiceClient, isDemoMode, nullableRpcString } from "@/lib/supabase-server";
+import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { sendReminderEmail } from "@/lib/email";
 import type { ReminderEmailCompany } from "@/lib/reminder-email-template";
@@ -422,7 +422,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
-  if (isDemoMode()) return NextResponse.json({ ...emptyAutomationRunCounters(), checked: 4, busy_organizations: 0, demo: true });
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění spustit kontrolu upomínek." }, { status: 403 });

@@ -10,3 +10,8 @@ node_modules
 supabase/.temp/
 test-results/
 playwright-report/
+
+# Local agent/vector-DB tooling artifacts, unrelated to the app
+/agentdb.rvf
+/agentdb.rvf.lock
+/ruvector.db

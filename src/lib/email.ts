@@ -6,6 +6,7 @@ import { interpolateReminderTemplate, reminderTemplateValues } from "@/lib/remin
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
 import { renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { createServiceClient } from "@/lib/supabase-server";
+import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 
 function reminderLogoUrl() {
   const explicit = process.env.REMINDER_LOGO_URL?.trim();
@@ -29,6 +30,7 @@ export async function sendReminderEmail(params: {
   template?: { subject: string; body: string; reply_to?: string | null; cc?: string[] | null } | null;
   company?: ReminderEmailCompany;
 }) {
+  assertLocalEmailRecipientsAllowed([params.to, ...(params.template?.cc ?? [])]);
   const key = process.env.RESEND_API_KEY;
   const from = process.env.REMINDER_EMAIL_FROM;
   if (!key || !from) throw new Error("E-mailová služba není nakonfigurovaná.");

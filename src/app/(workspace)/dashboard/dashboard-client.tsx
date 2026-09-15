@@ -57,11 +57,11 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const upcoming = summary.upcoming;
 
   return (
-    <AppFrame invoiceCount={loading ? undefined : activeCount} className="content">
+    <AppFrame invoiceCount={loading ? undefined : activeCount} className="content dashboard-page">
         <header className="topbar">
           <div>
             <p>R. Hlavica s.r.o. · účetní oddělení</p>
-            <h1>Přehled pohledávek</h1>
+            <h1>Finanční přehled</h1>
           </div>
           {canManage ? <div className="top-actions dashboard-actions">
             <Link
@@ -80,51 +80,35 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
             </Link>
           </div> : null}
         </header>
-        <section className="metrics">
-          <article>
-            <div className="metric-icon green">
-              <Icon name="invoice" />
+        <section className="dashboard-command" aria-label="Souhrn pohledávek">
+          <article className="dashboard-balance-card">
+            <div className="dashboard-balance-topline">
+              <span>CELKOVĚ K ÚHRADĚ</span>
+              <span className="dashboard-live-state"><i /> Aktuální stav</span>
             </div>
-            <div>
-              <p>Zbývá uhradit</p>
-              <strong>{formatTotals(summary.open_totals)}</strong>
-              <small>{activeCount} aktivních faktur</small>
-            </div>
-          </article>
-          <article>
-            <div className="metric-icon red">
-              <Icon name="clock" />
-            </div>
-            <div>
-              <p>Po splatnosti</p>
-              <strong>{formatTotals(summary.overdue_totals)}</strong>
-              <small className="negative">
-                {summary.overdue_count} vyžaduje pozornost
-              </small>
+            <strong>{formatTotals(summary.open_totals)}</strong>
+            <p>{activeCount} aktivních faktur čeká na úplné uhrazení</p>
+            <div className="dashboard-balance-actions">
+              <Link href="/invoices">Zobrazit pohledávky <span>→</span></Link>
+              <Link href="/reports">Otevřít reporty</Link>
             </div>
           </article>
-          <article>
-            <div className="metric-icon blue">
-              <Icon name="check" />
-            </div>
-            <div>
-              <p>Celkem přijato</p>
-              <strong>{formatTotals(summary.paid_totals)}</strong>
-              <small>Včetně částečných úhrad</small>
-            </div>
-          </article>
-          <article>
-            <div className="metric-icon amber">
-              <Icon name="mail" />
-            </div>
-            <div>
-              <p>Odeslané upomínky</p>
-              <strong>{summary.reminders_sent}</strong>
-              <small>Automaticky evidováno</small>
-            </div>
-          </article>
+          <div className="dashboard-signal-grid">
+            <article className="dashboard-signal critical">
+              <span className="dashboard-signal-icon"><Icon name="clock" /></span>
+              <div><small>Po splatnosti</small><strong>{formatTotals(summary.overdue_totals)}</strong><p>{summary.overdue_count} {summary.overdue_count === 1 ? "faktura vyžaduje" : "faktur vyžaduje"} pozornost</p></div>
+            </article>
+            <article className="dashboard-signal positive">
+              <span className="dashboard-signal-icon"><Icon name="check" /></span>
+              <div><small>Celkem přijato</small><strong>{formatTotals(summary.paid_totals)}</strong><p>Včetně částečných úhrad</p></div>
+            </article>
+            <article className="dashboard-signal neutral">
+              <span className="dashboard-signal-icon"><Icon name="mail" /></span>
+              <div><small>Odeslané upomínky</small><strong>{summary.reminders_sent}</strong><p>Automaticky evidováno</p></div>
+            </article>
+          </div>
         </section>
-        <section className="workspace-grid">
+        <section className="workspace-grid dashboard-workspace">
           <div className="panel invoice-panel">
             <div className="panel-head">
               <div>
@@ -196,6 +180,10 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                           <span className={`status ${invoice.status}`}>
                             {statusLabel[invoice.status]}
                           </span>
+                          {(invoice.status === "pending" || invoice.status === "overdue") &&
+                          Number(invoice.paid_amount) > 0 ? (
+                            <span className="status partial">Částečně uhrazeno</span>
+                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -204,13 +192,26 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
               </div>
             )}
           </div>
-          <MobileDisclosure label="Nadcházející upomínky" className="dashboard-upcoming-disclosure">
-          <aside className="panel activity-panel">
+          <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure">
+          <aside className="panel activity-panel dashboard-attention-panel">
             <div className="panel-head">
               <div>
-                <h2>Nadcházející upomínky</h2>
-                <p>Nejbližší automatické akce</p>
+                <span className="dashboard-panel-eyebrow">PRIORITY</span>
+                <h2>Vyžaduje pozornost</h2>
+                <p>Co je potřeba řešit jako první</p>
               </div>
+            </div>
+            <Link href="/invoices?status=overdue" className={`dashboard-overdue-alert ${summary.overdue_count ? "has-items" : ""}`}>
+              <span><Icon name={summary.overdue_count ? "alert" : "check"} /></span>
+              <div>
+                <strong>{summary.overdue_count ? `${summary.overdue_count} po splatnosti` : "Vše je v pořádku"}</strong>
+                <small>{summary.overdue_count ? formatTotals(summary.overdue_totals) : "Žádná faktura není po splatnosti"}</small>
+              </div>
+              <b>→</b>
+            </Link>
+            <div className="dashboard-timeline-title">
+              <strong>Nejbližší upomínky</strong>
+              <span>{upcoming.length}</span>
             </div>
             <div className="timeline">
               {upcoming.length ? (

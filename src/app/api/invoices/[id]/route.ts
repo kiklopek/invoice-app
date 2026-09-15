@@ -1,30 +1,20 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
-import { demoInvoices } from "@/lib/demo-data";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, nextFutureReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parsePaymentDate, paymentDateToTimestamp } from "@/lib/payment-validation";
 import { requiresAtomicPaymentReopen } from "@/lib/payment-lifecycle";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
+import { loadInvoicePaymentHistory } from "@/lib/invoice-payment-history";
+import { nullableRpcString } from "@/lib/supabase-server";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 
 type Context = { params: Promise<{ id: string }> };
 const allowedStatus: InvoiceStatus[] = ["pending", "paid", "overdue", "cancelled"];
 const editableFields = ["invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date", "notes"] as const;
 
-function demoInvoice(id: string) {
-  return demoInvoices.find((invoice) => invoice.id === id) ?? null;
-}
-
 export async function GET(_: Request, { params }: Context) {
   const { id } = await params;
-  if (isDemoMode()) {
-    const invoice = demoInvoice(id);
-    return invoice
-      ? NextResponse.json({ invoice, document_url: null, payments: [], can_manage: true })
-      : NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
-  }
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
 
@@ -32,16 +22,18 @@ export async function GET(_: Request, { params }: Context) {
     .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
   if (error) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
-  const { data: payments } = await identity.service.from("bank_payments")
-    .select("id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, counterparty_account, note, matched_at")
-    .eq("organization_id", identity.membership.organization_id).eq("invoice_id", id)
-    .order("booked_on", { ascending: false });
+  let payments;
+  try {
+    payments = await loadInvoicePaymentHistory(identity.service, identity.membership.organization_id, id);
+  } catch {
+    return NextResponse.json({ error: "Historii plateb se nepodařilo načíst." }, { status: 500 });
+  }
   let documentUrl: string | null = null;
   if (data.file_url) {
     const { data: signed } = await identity.service.storage.from("invoice-documents").createSignedUrl(data.file_url, 300);
     documentUrl = signed?.signedUrl ?? null;
   }
-  return NextResponse.json({ invoice: data, document_url: documentUrl, payments: payments ?? [], can_manage: canManageInvoices(identity.membership.role) });
+  return NextResponse.json({ invoice: data, document_url: documentUrl, payments, can_manage: canManageInvoices(identity.membership.role) });
 }
 
 export async function PATCH(request: Request, { params }: Context) {
@@ -56,18 +48,14 @@ export async function PATCH(request: Request, { params }: Context) {
     return NextResponse.json({ error: "Neplatné nastavení automatických upomínek." }, { status: 400 });
   }
 
-  const demo = isDemoMode();
-  const identity = demo ? null : await getRequestIdentity();
-  if (!demo && !identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-  if (identity && !canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění fakturu upravit." }, { status: 403 });
+  const identity = await getRequestIdentity();
+  if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění fakturu upravit." }, { status: 403 });
 
-  let existing: Invoice | null = demo ? demoInvoice(id) : null;
-  if (identity) {
-    const { data, error } = await identity.service.from("invoices").select("*")
-      .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
-    if (error) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
-    existing = data as Invoice | null;
-  }
+  const { data: existingData, error: existingError } = await identity.service.from("invoices").select("*")
+    .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
+  if (existingError) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+  const existing = existingData as Invoice | null;
   if (!existing) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
   const merged = { ...existing } as Record<string, unknown>;
@@ -97,7 +85,7 @@ export async function PATCH(request: Request, { params }: Context) {
   let reminderDays = existing.reminder_days_snapshot?.length ? existing.reminder_days_snapshot : [-3, 0, 7, 14];
   let reminderPlanEffectiveFrom = existing.reminder_plan_effective_from ?? null;
   let automationActive = true;
-  if (identity) {
+  {
     let policyQuery = identity.service.from("reminder_policies").select("id, days_from_due, is_active")
       .eq("organization_id", identity.membership.organization_id);
     policyQuery = policyChanged && input.reminder_policy_id
@@ -128,7 +116,61 @@ export async function PATCH(request: Request, { params }: Context) {
   if (status === "cancelled" && Number(existing.paid_amount) > 0) {
     return NextResponse.json({ error: "Fakturu s částečnou úhradou nelze stornovat. Nejprve uvolněte její bankovní platby." }, { status: 409 });
   }
-  if (identity && requiresAtomicPaymentReopen(existing.status, status)) {
+  // Potvrzení úhrady (pending/overdue -> paid) se zapisuje do stejné evidence
+  // plateb jako bankovní párování (confirm_manual_payment), místo aby se
+  // paid_amount natvrdo přepsalo bez záznamu v evidenci. Editace ostatních polí
+  // na už zaplacené faktuře (status se nemění) jde beze změny běžnou cestou níže.
+  if (status === "paid" && existing.status !== "paid") {
+    const fieldChanges = {
+      ...input,
+      counterparty_ico: input.counterparty_ico ?? null,
+      counterparty_dic: input.counterparty_dic ?? null,
+      variable_symbol: input.variable_symbol ?? null,
+      notes: input.notes ?? null,
+      reminder_policy_id: reminderPolicyId,
+      reminder_days_snapshot: reminderDays,
+      reminder_plan_effective_from: reminderPlanEffectiveFrom,
+      reminders_paused: remindersPaused,
+      reminders_paused_at: remindersPaused ? existing.reminders_paused_at ?? new Date().toISOString() : null,
+      reminders_paused_by: remindersPaused ? existing.reminders_paused_by ?? identity.user.id ?? null : null,
+      updated_by: identity.user.id ?? null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error: fieldError } = await identity.service.from("invoices").update(fieldChanges).eq("id", id)
+      .eq("organization_id", identity.membership.organization_id);
+    if (fieldError) {
+      return NextResponse.json({ error: fieldError.code === "23505" ? "Faktura s tímto číslem už existuje." : "Fakturu se nepodařilo uložit." }, { status: fieldError.code === "23505" ? 409 : 500 });
+    }
+
+    const remaining = Number(input.amount) - Number(existing.paid_amount);
+    const { error: confirmError } = await identity.service.rpc("confirm_manual_payment", {
+      target_org: identity.membership.organization_id,
+      target_invoice: id,
+      actor_user: identity.user.id,
+      payment_amount: remaining,
+      paid_on: requestedPaidOn ?? today,
+    });
+    if (confirmError) {
+      if (confirmError.message.includes("invoice_not_available_for_confirmation")) {
+        return NextResponse.json({ error: "Stav faktury se mezitím změnil. Načtěte stránku znovu." }, { status: 409 });
+      }
+      if (confirmError.message.includes("payment_exceeds_remaining_amount") || confirmError.message.includes("invalid_payment_amount")) {
+        return NextResponse.json({ error: "Uhrazovaná částka neodpovídá zbývajícímu zůstatku faktury." }, { status: 409 });
+      }
+      return NextResponse.json({ error: "Úhradu se nepodařilo potvrdit. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+    }
+
+    await identity.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() })
+      .eq("invoice_id", id).in("status", ["queued", "failed"]);
+
+    const { data: refreshed, error: refreshError } = await identity.service.from("invoices")
+      .select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)")
+      .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
+    if (refreshError || !refreshed) return NextResponse.json({ error: "Fakturu se nepodařilo znovu načíst." }, { status: 500 });
+    return NextResponse.json({ invoice: refreshed });
+  }
+
+  if (requiresAtomicPaymentReopen(existing.status, status)) {
     const combinedChange = editableFields.some(key => key in body) || "paid_on" in body || "reminders_paused" in body;
     if (combinedChange) return NextResponse.json({ error: "Vrácení uhrazené faktury proveďte samostatně před dalšími úpravami." }, { status: 400 });
     const { data: reopened, error: reopenError } = await identity.service.rpc("reopen_paid_invoice", {
@@ -167,20 +209,18 @@ export async function PATCH(request: Request, { params }: Context) {
     reminder_plan_effective_from: reminderPlanEffectiveFrom,
     reminders_paused: remindersPaused,
     reminders_paused_at: remindersPaused ? existing.reminders_paused_at ?? new Date().toISOString() : null,
-    reminders_paused_by: remindersPaused ? existing.reminders_paused_by ?? identity?.user.id ?? null : null,
-    updated_by: identity?.user.id ?? null,
+    reminders_paused_by: remindersPaused ? existing.reminders_paused_by ?? identity.user.id ?? null : null,
+    updated_by: identity.user.id ?? null,
     updated_at: new Date().toISOString(),
   };
 
-  if (demo) return NextResponse.json({ invoice: { ...existing, ...changes, id } });
-
-  const { data, error } = await identity!.service.from("invoices").update(changes).eq("id", id)
-    .eq("organization_id", identity!.membership.organization_id).select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)").maybeSingle();
+  const { data, error } = await identity.service.from("invoices").update(changes).eq("id", id)
+    .eq("organization_id", identity.membership.organization_id).select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)").maybeSingle();
   if (error) return NextResponse.json({ error: error.code === "23505" ? "Faktura s tímto číslem už existuje." : "Fakturu se nepodařilo uložit." }, { status: error.code === "23505" ? 409 : 500 });
   if (!data) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
   if ((status === "paid" || status === "cancelled") || input.due_date !== existing.due_date || policyChanged) {
-    await identity!.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: changes.updated_at })
+    await identity.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: changes.updated_at })
       .eq("invoice_id", id).in("status", ["queued", "failed"]);
   }
   return NextResponse.json({ invoice: data });
@@ -189,8 +229,6 @@ export async function PATCH(request: Request, { params }: Context) {
 export async function DELETE(request: Request, { params }: Context) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   const { id } = await params;
-  if (isDemoMode()) return NextResponse.json({ deleted: true });
-
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění fakturu smazat." }, { status: 403 });

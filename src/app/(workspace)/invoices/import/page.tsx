@@ -105,10 +105,8 @@ export default function ImportInvoicesPage() {
       if (!hasExpectedDocumentSignature(signature, file.type)) throw new Error("Obsah souboru neodpovídá jeho typu.");
       const response = await fetch("/api/invoices/upload", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: file.name, mime: file.type, size: file.size }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
-      if (!data.demo) {
-        const { error } = await createClient().storage.from("invoice-documents").uploadToSignedUrl(data.path, data.token, file, { contentType: file.type });
-        if (error) throw new Error("Dokument se nepodařilo přenést do bezpečného úložiště.");
-      }
+      const { error } = await createClient().storage.from("invoice-documents").uploadToSignedUrl(data.path, data.token, file, { contentType: file.type });
+      if (error) throw new Error("Dokument se nepodařilo přenést do bezpečného úložiště.");
       setDocumentStage("verifying");
       const verification = await fetch("/api/invoices/upload/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: data.path }) });
       const verified = await verification.json(); if (!verification.ok) throw new Error(verified.error);

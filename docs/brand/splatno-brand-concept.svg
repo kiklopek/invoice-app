@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Koncept značky Splatno</title>
+  <desc id="desc">Znak, wordmark, barevná paleta a ukázky použití značky Splatno</desc>
+  <rect width="1440" height="900" fill="#F3F4EF"/>
+  <rect x="64" y="58" width="1312" height="784" rx="34" fill="#FFFFFF" stroke="#DDE3DE"/>
+
+  <g transform="translate(124 122)">
+    <rect width="92" height="92" rx="26" fill="#17462F"/>
+    <path d="M63 25H40C31 25 25 30 25 37s6 12 15 12h12c9 0 15 5 15 12s-6 12-15 12H29" fill="none" stroke="#F7F6EF" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="66" cy="25" r="7" fill="#C9DDAA"/>
+    <text x="122" y="67" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="750" letter-spacing="-2">splatno</text>
+    <text x="124" y="91" fill="#66736B" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="650" letter-spacing="2.8">FAKTURY VČAS. BEZ CHAOSU.</text>
+  </g>
+
+  <text x="124" y="292" fill="#245F42" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="2.5">MYŠLENKA ZNAKU</text>
+  <text x="124" y="332" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="29" font-weight="720">Tok platby, který končí potvrzením.</text>
+  <text x="124" y="369" fill="#66736B" font-family="Inter, Arial, sans-serif" font-size="17">Plynulé S propojuje fakturu, splatnost a přijatou úhradu do jednoho zapamatovatelného gesta.</text>
+
+  <g transform="translate(124 432)">
+    <rect width="380" height="250" rx="26" fill="#17462F"/>
+    <rect x="42" y="45" width="74" height="74" rx="21" fill="#F7F6EF"/>
+    <path d="M93 65H75c-7 0-12 4-12 10s5 10 12 10h9c7 0 12 4 12 10s-5 10-12 10H66" fill="none" stroke="#17462F" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="95" cy="65" r="5.5" fill="#A86F2D"/>
+    <text x="42" y="164" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="750" letter-spacing="-1.2">splatno</text>
+    <text x="42" y="194" fill="#B9CCBF" font-family="Inter, Arial, sans-serif" font-size="14">Tmavá plocha · aplikace a hero</text>
+  </g>
+
+  <g transform="translate(528 432)">
+    <rect width="380" height="250" rx="26" fill="#F7F6EF" stroke="#DDE3DE"/>
+    <rect x="42" y="45" width="74" height="74" rx="21" fill="#17462F"/>
+    <path d="M93 65H75c-7 0-12 4-12 10s5 10 12 10h9c7 0 12 4 12 10s-5 10-12 10H66" fill="none" stroke="#F7F6EF" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="95" cy="65" r="5.5" fill="#C9DDAA"/>
+    <text x="42" y="164" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="750" letter-spacing="-1.2">splatno</text>
+    <text x="42" y="194" fill="#66736B" font-family="Inter, Arial, sans-serif" font-size="14">Světlá plocha · web a dokumenty</text>
+  </g>
+
+  <g transform="translate(932 432)">
+    <text x="0" y="18" fill="#245F42" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800" letter-spacing="2">PALETA</text>
+    <g transform="translate(0 43)"><rect width="150" height="72" rx="16" fill="#17462F"/><text x="168" y="30" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Forest</text><text x="168" y="52" fill="#66736B" font-family="monospace" font-size="13">#17462F</text></g>
+    <g transform="translate(0 127)"><rect width="150" height="72" rx="16" fill="#C9DDAA"/><text x="168" y="30" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Fresh</text><text x="168" y="52" fill="#66736B" font-family="monospace" font-size="13">#C9DDAA</text></g>
+    <g transform="translate(0 211)"><rect width="150" height="72" rx="16" fill="#A86F2D"/><text x="168" y="30" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Warm</text><text x="168" y="52" fill="#66736B" font-family="monospace" font-size="13">#A86F2D</text></g>
+  </g>
+
+  <line x1="124" y1="746" x2="1316" y2="746" stroke="#DDE3DE"/>
+  <text x="124" y="790" fill="#66736B" font-family="Inter, Arial, sans-serif" font-size="14">Doporučené písmo</text>
+  <text x="277" y="790" fill="#17251D" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="750">Inter 750 / 650 / 400</text>
+  <text x="980" y="790" fill="#66736B" font-family="Inter, Arial, sans-serif" font-size="14">Směr: klidný fintech · důvěra · lidskost</text>
+</svg>

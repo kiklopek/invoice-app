@@ -30,8 +30,15 @@ export function sessionIdFromAccessToken(accessToken?: string | null) {
   }
 }
 
-export function isEmailMfaBypassed(email: string, emailConfirmedAt?: string | null) {
-  return Boolean(emailConfirmedAt) && email.trim().toLowerCase() === TRUSTED_EMAIL_MFA_ACCOUNT;
+// `email_confirmed_at` was previously required here, but it only exists on the
+// full GoTrue user object (`auth.getUser()`) — the access-token JWT never carries
+// it, so middleware (which only decodes the JWT via `getClaims()`) always saw it
+// as undefined and the bypass silently never applied there. That mismatch between
+// the middleware's MFA gate and the API routes caused an infinite /mfa <-> /dashboard
+// redirect loop for the trusted account. The trusted-email match alone is the
+// intended security boundary, so it no longer depends on a field middleware can't see.
+export function isEmailMfaBypassed(email: string) {
+  return email.trim().toLowerCase() === TRUSTED_EMAIL_MFA_ACCOUNT;
 }
 
 export function hashEmailMfaCode(params: {

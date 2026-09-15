@@ -11,6 +11,7 @@ import {
 } from "@/lib/email-mfa-core";
 import { REMEMBER_LOGIN_TTL_SECONDS } from "@/lib/login-session";
 import { hasRememberedLogin } from "@/lib/login-session-server";
+import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 
 const DEFAULT_AUTH_FROM = "Splatno <prihlaseni@mail.splatno.cz>";
 
@@ -62,11 +63,10 @@ export function requireEmailMfaSecret() {
 
 export async function hasVerifiedEmailMfa(params: {
   email: string;
-  emailConfirmedAt?: string | null;
   userId: string;
   sessionId: string;
 }) {
-  if (isEmailMfaBypassed(params.email, params.emailConfirmedAt)) return true;
+  if (isEmailMfaBypassed(params.email)) return true;
   const token = (await cookies()).get(EMAIL_MFA_COOKIE)?.value;
   return verifyEmailMfaToken({
     token,
@@ -101,6 +101,7 @@ export async function clearEmailMfaCookie() {
 }
 
 export async function sendEmailMfaCode(params: { email: string; code: string; challengeId: string }) {
+  assertLocalEmailRecipientsAllowed([params.email]);
   const configuration = getEmailMfaConfiguration();
   if (!configuration) throw new Error("EMAIL_MFA_NOT_CONFIGURED");
 

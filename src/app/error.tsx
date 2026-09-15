@@ -2,9 +2,18 @@
 
 import { useEffect } from "react";
 
-export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function AppError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   useEffect(() => {
-    console.error("Application route error", { message: error.message, digest: error.digest });
+    console.error("Application route error", {
+      message: error.message,
+      digest: error.digest,
+    });
   }, [error]);
 
   return (
@@ -12,12 +21,21 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
       <section className="app-error-card" role="alert" aria-live="assertive">
         <p className="eyebrow">Splatno</p>
         <h1>Stránku se nepodařilo načíst</h1>
-        <p>Vaše data se nezměnila. Zkontrolujte připojení a zkuste načtení zopakovat.</p>
+        <p>
+          Stránka narazila na neočekávanou chybu. Než akci zopakujete, ověřte
+          její výsledek v přehledu.
+        </p>
         <div className="button-row">
-          <button type="button" className="btn primary" onClick={reset}>Zkusit znovu</button>
-          <a className="btn secondary" href="/dashboard">Zpět na přehled</a>
+          <button type="button" className="btn primary" onClick={reset}>
+            Zkusit znovu
+          </button>
+          <a className="btn secondary" href="/dashboard">
+            Zpět na přehled
+          </a>
         </div>
-        {error.digest && <small>Kód chyby: {error.digest}</small>}
+        {error.digest && (
+          <small>ID požadavku / kód chyby: {error.digest}</small>
+        )}
       </section>
     </main>
   );

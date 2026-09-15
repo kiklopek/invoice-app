@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(
-  join(process.cwd(), "supabase/migrations/20260903175926_harden_auth_and_database_operations.sql"),
+  join(process.cwd(), "supabase/migrations/20260808000000_baseline_schema.sql"),
   "utf8",
 );
 
@@ -33,15 +33,15 @@ describe("database hardening migration", () => {
   });
 
   it("keeps internal tables inaccessible to browser roles", () => {
-    expect(migration).toContain("revoke all on table public.email_mfa_challenges from public, anon, authenticated");
-    expect(migration).toContain("revoke all on table public.provider_webhook_events from public, anon, authenticated");
-    expect(migration).toContain("revoke all on table public.auth_request_events from public, anon, authenticated");
+    expect(migration).toContain("revoke all on table email_mfa_challenges from public, anon, authenticated");
+    expect(migration).toContain("revoke all on table provider_webhook_events from public, anon, authenticated");
+    expect(migration).toContain("revoke all on table auth_request_events from public, anon, authenticated");
   });
 
   it("serializes and audits persistent auth rate limits", () => {
-    expect(migration).toContain("create or replace function public.consume_auth_rate_limit");
+    expect(migration).toContain("create or replace function consume_auth_rate_limit");
     expect(migration).toContain("pg_advisory_xact_lock");
     expect(migration).toContain("target_subject_hash !~ '^[0-9a-f]{64}$'");
-    expect(migration).toContain("grant execute on function public.consume_auth_rate_limit");
+    expect(migration).toContain("grant execute on function consume_auth_rate_limit");
   });
 });

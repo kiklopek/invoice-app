@@ -1,20 +1,8 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
-import { demoInvoices } from "@/lib/demo-data";
-import { isDemoMode } from "@/lib/supabase-server";
 import { canAccessOperations } from "@/lib/role-access";
 
 export async function GET() {
-  if (isDemoMode()) {
-    return NextResponse.json({
-      can_run: true,
-      upcoming: demoInvoices.filter(invoice => invoice.next_reminder_at && ["pending", "overdue"].includes(invoice.status)).map(invoice => ({ id: invoice.id, invoice_number: invoice.invoice_number, counterparty_name: invoice.counterparty_name, next_reminder_at: invoice.next_reminder_at!, amount: invoice.amount, currency: invoice.currency })).sort((a, b) => a.next_reminder_at.localeCompare(b.next_reminder_at)),
-      failed: [],
-      recent: [{ id: "demo-reminder", invoice_id: "demo-1", stage: "overdue", sent_at: demoInvoices[0].last_reminder_at, sent_to: demoInvoices[0].counterparty_email, attempt_count: 1, invoices: { invoice_number: demoInvoices[0].invoice_number, counterparty_name: demoInvoices[0].counterparty_name } }],
-      automation_run: { id: "demo-run", status: "succeeded", trigger_source: "scheduled", triggered_by_email: null, started_at: new Date(Date.now() - 15 * 60_000).toISOString(), finished_at: new Date(Date.now() - 14 * 60_000).toISOString(), checked: demoInvoices.length, queued: 1, processed: 1, remaining: 0, planner_duration_ms: 42, worker_duration_ms: 180, sent: 1, failed: 0, skipped: 0, disabled: 0, paused: 0, suppressed: 0, exhausted: 0, error_message: null },
-    });
-  }
-
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Čtenář nemá přístup k upomínkám." }, { status: 403 });

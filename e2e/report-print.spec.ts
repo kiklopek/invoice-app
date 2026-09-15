@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("printed report keeps the status chart and table borders visible", async ({ page }) => {
   await page.goto("/reports");
-  test.skip(page.url().includes("/login"), "Requires a demo or authenticated test session");
+  test.skip(page.url().includes("/login"), "Requires an authenticated test session");
 
   await expect(page.locator(".donut")).toBeVisible();
   await page.emulateMedia({ media: "print" });

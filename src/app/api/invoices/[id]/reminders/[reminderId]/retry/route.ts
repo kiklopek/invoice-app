@@ -3,7 +3,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
 import { buildEffectiveReminderSchedule, compareDate, hasReminderAttemptBudget, isLatestEligibleReminder, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isDemoMode, nullableRpcString } from "@/lib/supabase-server";
+import { nullableRpcString } from "@/lib/supabase-server";
 import { INVOICE_REMINDER_POLICY_STATE_SELECT, reminderDatabaseError } from "@/lib/reminder-automation-query";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
@@ -16,13 +16,6 @@ export async function POST(request: Request, { params }: Context) {
     return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   }
   const { id, reminderId } = await params;
-  if (isDemoMode()) {
-    return NextResponse.json({
-      reminder: { id: reminderId, status: "sent", sent_at: new Date().toISOString(), attempt_count: 2, error_message: null },
-      invoice: { id, reminders_sent: 3 },
-    });
-  }
-
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) {

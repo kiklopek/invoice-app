@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
+import { signOutCurrentSession } from "@/lib/sign-out";
 
 export default function MfaPage() {
   const requested = useRef(false);
@@ -14,6 +15,18 @@ export default function MfaPage() {
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function signOutAndReturnToLogin() {
+    setSigningOut(true);
+    try {
+      await signOutCurrentSession();
+    } catch {
+      // Odhlášení serveru se nemuselo podařit; přesto uživatele vrátíme na přihlášení.
+    } finally {
+      window.location.replace("/login");
+    }
+  }
 
   const requestCode = useCallback(async (resend = false) => {
     if (resend) setResending(true);
@@ -144,6 +157,17 @@ export default function MfaPage() {
             style={{ marginTop: 16 }}
           >
             {resending ? "Odesílám…" : cooldown > 0 ? `Poslat nový kód za ${cooldown} s` : "Poslat nový kód"}
+          </button>
+        )}
+        {!loading && (
+          <button
+            type="button"
+            className="auth-text-button"
+            disabled={signingOut}
+            onClick={() => void signOutAndReturnToLogin()}
+            style={{ marginTop: 8 }}
+          >
+            {signingOut ? "Odhlašuji…" : "Odhlásit se a přihlásit jiným účtem"}
           </button>
         )}
         <small className="login-security">Kód platí 10 minut, lze jej použít pouze jednou a po pěti chybných pokusech se zablokuje.</small>

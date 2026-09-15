@@ -4,7 +4,6 @@ import { sendReminderEmail } from "@/lib/email";
 import { unsupportedTemplateVariables } from "@/lib/reminder-template";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { todayInTimeZone } from "@/lib/reminders";
-import { isDemoMode } from "@/lib/supabase-server";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
 const stages: ReminderStage[] = ["before_due", "on_due", "overdue", "escalation"];
@@ -33,8 +32,6 @@ export async function POST(request: Request) {
   if (unsupported.length) {
     return NextResponse.json({ error: `Nepodporované proměnné: ${unsupported.map(item => `{{${item}}}`).join(", ")}.` }, { status: 400 });
   }
-  if (isDemoMode()) return NextResponse.json({ sent: true, recipient: "ucetni@hlavica.cz" });
-
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) {

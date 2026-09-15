@@ -15,6 +15,7 @@ import "./mobile-navigation.css";
 const items: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "Přehled", icon: "dashboard" },
   { href: "/invoices", label: "Faktury", icon: "invoice" },
+  { href: "/invoices/payments", label: "Bankovní platby", icon: "bank" },
   { href: "/reports", label: "Reporty", icon: "chart" },
   { href: "/invoices/archive", label: "Archiv", icon: "archive" },
   { href: "/reminders", label: "Upomínky", icon: "mail" },
@@ -62,7 +63,7 @@ export function AppSidebar({ invoiceCount, initialProfile }: { invoiceCount?: nu
         {(role === "viewer" ? viewerItems : role ? items : []).map(item => {
           const active = pathname === item.href || (
             item.href === "/invoices"
-              ? pathname.startsWith("/invoices/") && !pathname.startsWith("/invoices/archive")
+              ? pathname.startsWith("/invoices/") && !pathname.startsWith("/invoices/archive") && !pathname.startsWith("/invoices/payments")
               : item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)
           );
           return <Link key={item.href} href={item.href} prefetch={true} aria-current={active ? "page" : undefined} className={[active ? "active" : "", item.href === "/dashboard" ? "nav-primary" : ""].filter(Boolean).join(" ")}><span className="nav-symbol"><Icon name={item.icon}/></span><span>{item.label}</span>{item.href === "/invoices" && invoiceCount ? <em>{invoiceCount}</em> : null}</Link>;

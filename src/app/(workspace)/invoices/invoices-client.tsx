@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
@@ -28,28 +28,59 @@ const labels: Record<InvoiceStatus, string> = {
   cancelled: "Stornováno",
 };
 
-export function InvoicesClient({ initialData, initialQuery, initialKey }: { initialData: InvoiceListPageData; initialQuery: InvoiceListQuery; initialKey: string }) {
+export function InvoicesClient({
+  initialData,
+  initialQuery,
+  initialKey,
+}: {
+  initialData: InvoiceListPageData;
+  initialQuery: InvoiceListQuery;
+  initialKey: string;
+}) {
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>(initialData.invoices);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [canManage, setCanManage] = useState(initialData.can_manage);
-  const [paymentCandidate, setPaymentCandidate] = useState<Invoice | null>(null);
+  const [paymentCandidate, setPaymentCandidate] = useState<Invoice | null>(
+    null,
+  );
   const [paymentDate, setPaymentDate] = useState(todayInTimeZone());
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [query, setQuery] = useState(initialQuery.query);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery.query);
-  const [status, setStatus] = useState<"all" | InvoiceStatus>(initialQuery.status && initialQuery.status !== "closed" ? initialQuery.status : "all");
+  const [status, setStatus] = useState<"all" | InvoiceStatus>(
+    initialQuery.status && initialQuery.status !== "closed"
+      ? initialQuery.status
+      : "all",
+  );
   const [currency, setCurrency] = useState(initialQuery.currency ?? "all");
   const [from, setFrom] = useState(initialQuery.from ?? "");
   const [to, setTo] = useState(initialQuery.to ?? "");
+  const [dueFrom, setDueFrom] = useState(initialQuery.dueFrom ?? "");
+  const [dueTo, setDueTo] = useState(initialQuery.dueTo ?? "");
+  const [amountMin, setAmountMin] = useState(
+    initialQuery.amountMin?.toString() ?? "",
+  );
+  const [amountMax, setAmountMax] = useState(
+    initialQuery.amountMax?.toString() ?? "",
+  );
+  const [paymentState, setPaymentState] = useState(
+    initialQuery.paymentState ?? "all",
+  );
+  const [bankMatch, setBankMatch] = useState(initialQuery.bankMatch ?? "all");
   const [page, setPage] = useState(initialQuery.page);
   const [total, setTotal] = useState(initialData.total);
   const [totalPages, setTotalPages] = useState(initialData.total_pages);
-  const [currencies, setCurrencies] = useState<string[]>(initialData.currencies);
-  const [openTotals, setOpenTotals] = useState<Record<string, number>>(initialData.open_totals);
+  const [currencies, setCurrencies] = useState<string[]>(
+    initialData.currencies,
+  );
+  const [openTotals, setOpenTotals] = useState<Record<string, number>>(
+    initialData.open_totals,
+  );
   const [activeCount, setActiveCount] = useState(initialData.active_count);
+  const shouldSyncUrl = useRef(false);
 
   useEffect(() => {
     if (!paymentCandidate || confirmingPayment) return;
@@ -60,7 +91,11 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
     return () => document.removeEventListener("keydown", dismiss);
   }, [paymentCandidate, confirmingPayment]);
 
-  function requestParams(requestedPage = page, format?: "xlsx", searchQuery = query) {
+  function requestParams(
+    requestedPage = page,
+    format?: "xlsx",
+    searchQuery = query,
+  ) {
     const params = new URLSearchParams({
       paged: "1",
       page: String(requestedPage),
@@ -70,6 +105,12 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
     if (currency !== "all") params.set("currency", currency);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
+    if (dueFrom) params.set("due_from", dueFrom);
+    if (dueTo) params.set("due_to", dueTo);
+    if (amountMin) params.set("amount_min", amountMin);
+    if (amountMax) params.set("amount_max", amountMax);
+    if (paymentState !== "all") params.set("payment", paymentState);
+    if (bankMatch !== "all") params.set("bank_match", bankMatch);
     if (format) params.set("format", format);
     return params;
   }
@@ -83,7 +124,26 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
   }, [query]);
 
   const listKey = `/api/invoices?${requestParams(page, undefined, debouncedQuery).toString()}`;
-  const { data: loadedData, error: loadError, isLoading, mutate: refreshInvoices } = useSWR<InvoiceListPageData>(listKey, {
+  useEffect(() => {
+    // Only user-initiated filter/page changes belong in the URL. A mount-time
+    // replacement (including React Strict Mode's second effect pass) can race
+    // and cancel an immediate navigation to another workspace page.
+    if (!shouldSyncUrl.current) return;
+    shouldSyncUrl.current = false;
+    const nextUrl = `/invoices?${listKey.slice(listKey.indexOf("?") + 1)}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    // This is presentation state already fetched by SWR. Native replaceState is
+    // synchronous and integrated with the App Router, so a pending RSC
+    // navigation cannot race a later click to another workspace page.
+    if (window.location.pathname === "/invoices" && currentUrl !== nextUrl)
+      window.history.replaceState(null, "", nextUrl);
+  }, [listKey]);
+  const {
+    data: loadedData,
+    error: loadError,
+    isLoading,
+    mutate: refreshInvoices,
+  } = useSWR<InvoiceListPageData>(listKey, {
     fallbackData: listKey === initialKey ? initialData : undefined,
     revalidateOnMount: listKey !== initialKey,
   });
@@ -105,8 +165,13 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
   }, [loadedData]);
 
   function changeFilter(change: () => void) {
+    shouldSyncUrl.current = true;
     setPage(1);
     change();
+  }
+  function changePage(nextPage: number) {
+    shouldSyncUrl.current = true;
+    setPage(nextPage);
   }
   function prefetchInvoice(id: string) {
     router.prefetch(`/invoices/${id}`);
@@ -151,7 +216,8 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
         body: JSON.stringify({ status: "paid", paid_on: paymentDate }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
+      if (!response.ok)
+        throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
 
       const remaining = Math.max(
         0,
@@ -160,7 +226,9 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
       setInvoices((current) =>
         status === "pending" || status === "overdue"
           ? current.filter((item) => item.id !== paymentCandidate.id)
-          : current.map((item) => item.id === paymentCandidate.id ? data.invoice : item),
+          : current.map((item) =>
+              item.id === paymentCandidate.id ? data.invoice : item,
+            ),
       );
       setOpenTotals((current) => {
         const next = { ...current };
@@ -168,7 +236,8 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
           0,
           Number(next[paymentCandidate.currency] || 0) - remaining,
         );
-        if (!next[paymentCandidate.currency]) delete next[paymentCandidate.currency];
+        if (!next[paymentCandidate.currency])
+          delete next[paymentCandidate.currency];
         return next;
       });
       setActiveCount((current) => Math.max(0, current - 1));
@@ -177,11 +246,17 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
         setTotal(nextTotal);
         setTotalPages(Math.max(1, Math.ceil(nextTotal / PAGE_SIZE)));
       }
-      setNotice(`Úhrada faktury ${paymentCandidate.invoice_number} byla potvrzena.`);
+      setNotice(
+        `Úhrada faktury ${paymentCandidate.invoice_number} byla potvrzena.`,
+      );
       setPaymentCandidate(null);
       void refreshInvoices();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Úhradu se nepodařilo potvrdit.");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Úhradu se nepodařilo potvrdit.",
+      );
     } finally {
       setConfirmingPayment(false);
     }
@@ -204,18 +279,22 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
           </span>
         </div>
         <div className="section-actions invoice-list-actions">
+          {canManage ? <Link href="/invoices/payments" className="btn secondary">
+              <Icon name="bank" />
+              Bankovní platby
+            </Link> : null}
           <Link href="/invoices/archive" className="btn secondary">
             <Icon name="document" />
             Archiv
           </Link>
           {canManage ? <Link href="/invoices/import" className="btn secondary">
-            <Icon name="upload" />
-            Importovat
-          </Link> : null}
+              <Icon name="upload" />
+              Importovat
+            </Link> : null}
           {canManage ? <Link href="/invoices/new" className="btn primary">
-            <Icon name="plus" />
-            Nová faktura
-          </Link> : null}
+              <Icon name="plus" />
+              Nová faktura
+            </Link> : null}
         </div>
       </header>
       {notice && <p className="form-success">{notice}</p>}
@@ -239,73 +318,151 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
           <small>každá měna je počítána samostatně</small>
         </div>
       </section>
-      <MobileDisclosure label="Filtry a export" className="mobile-filter-disclosure">
-      <section className="page-panel filter-panel">
-        <div className="filter-row">
-          <label className="grow">
-            <span>Hledat</span>
-            <input
-              value={query}
-              onChange={(e) => changeFilter(() => setQuery(e.target.value))}
-              placeholder="Číslo faktury, odběratel, e-mail nebo VS"
-            />
-          </label>
-          <label>
-            <span>Stav</span>
-            <select
-              value={status}
-              onChange={(e) =>
-                changeFilter(() => setStatus(e.target.value as typeof status))
-              }
+      <MobileDisclosure
+        label="Filtry a export"
+        className="mobile-filter-disclosure"
+      >
+        <section className="page-panel filter-panel">
+          <div className="filter-row">
+            <label className="grow">
+              <span>Hledat</span>
+              <input
+                value={query}
+                onChange={(e) => changeFilter(() => setQuery(e.target.value))}
+                placeholder="Číslo faktury, odběratel, IČO, e-mail nebo VS"
+              />
+            </label>
+            <label>
+              <span>Stav</span>
+              <select
+                value={status}
+                onChange={(e) =>
+                  changeFilter(() => setStatus(e.target.value as typeof status))
+                }
+              >
+                <option value="all">Všechny stavy</option>
+                {Object.entries(labels).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Měna</span>
+              <select
+                value={currency}
+                onChange={(e) =>
+                  changeFilter(() => setCurrency(e.target.value))
+                }
+              >
+                <option value="all">Všechny měny</option>
+                {currencies.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Vystaveno od</span>
+              <input
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => changeFilter(() => setFrom(e.target.value))}
+              />
+            </label>
+            <label>
+              <span>Vystaveno do</span>
+              <input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => changeFilter(() => setTo(e.target.value))}
+              />
+            </label>
+            <label>
+              <span>Splatnost od</span>
+              <input
+                type="date"
+                value={dueFrom}
+                max={dueTo || undefined}
+                onChange={(e) => changeFilter(() => setDueFrom(e.target.value))}
+              />
+            </label>
+            <label>
+              <span>Splatnost do</span>
+              <input
+                type="date"
+                value={dueTo}
+                min={dueFrom || undefined}
+                onChange={(e) => changeFilter(() => setDueTo(e.target.value))}
+              />
+            </label>
+            <label>
+              <span>Částka od</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={amountMin}
+                onChange={(e) =>
+                  changeFilter(() => setAmountMin(e.target.value))
+                }
+              />
+            </label>
+            <label>
+              <span>Částka do</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={amountMax}
+                onChange={(e) =>
+                  changeFilter(() => setAmountMax(e.target.value))
+                }
+              />
+            </label>
+            <label>
+              <span>Stav úhrady</span>
+              <select
+                value={paymentState}
+                onChange={(e) =>
+                  changeFilter(() =>
+                    setPaymentState(e.target.value as typeof paymentState),
+                  )
+                }
+              >
+                <option value="all">Všechny</option>
+                <option value="unpaid">Bez úhrady</option>
+                <option value="partial">Částečně uhrazené</option>
+                <option value="paid">Plně uhrazené</option>
+              </select>
+            </label>
+            <label>
+              <span>Bankovní párování</span>
+              <select
+                value={bankMatch}
+                onChange={(e) =>
+                  changeFilter(() =>
+                    setBankMatch(e.target.value as typeof bankMatch),
+                  )
+                }
+              >
+                <option value="all">Všechny</option>
+                <option value="matched">Má bankovní vazbu</option>
+                <option value="unmatched">Bez bankovní vazby</option>
+              </select>
+            </label>
+            <button
+              className="btn secondary export-button"
+              onClick={exportExcel}
+              disabled={!total || exporting}
             >
-              <option value="all">Všechny stavy</option>
-              {Object.entries(labels).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Měna</span>
-            <select
-              value={currency}
-              onChange={(e) => changeFilter(() => setCurrency(e.target.value))}
-            >
-              <option value="all">Všechny měny</option>
-              {currencies.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Vystaveno od</span>
-            <input
-              type="date"
-              value={from}
-              max={to || undefined}
-              onChange={(e) => changeFilter(() => setFrom(e.target.value))}
-            />
-          </label>
-          <label>
-            <span>Vystaveno do</span>
-            <input
-              type="date"
-              value={to}
-              min={from || undefined}
-              onChange={(e) => changeFilter(() => setTo(e.target.value))}
-            />
-          </label>
-          <button
-            className="btn secondary export-button"
-            onClick={exportExcel}
-            disabled={!total || exporting}
-          >
-            <Icon name="download" />
-            {exporting ? "Připravuji…" : "Export do Excelu"}
-          </button>
-        </div>
-      </section>
+              <Icon name="download" />
+              {exporting ? "Připravuji…" : "Export do Excelu"}
+            </button>
+          </div>
+        </section>
       </MobileDisclosure>
       <section className="page-panel data-panel">
         {error ? (
@@ -338,12 +495,19 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
                     className="invoice-row"
                     onClick={(event) => {
                       const target = event.target;
-                      if (target instanceof HTMLElement && target.closest("a, button, input, select, textarea")) return;
+                      if (
+                        target instanceof HTMLElement &&
+                        target.closest("a, button, input, select, textarea")
+                      )
+                        return;
                       router.push(`/invoices/${invoice.id}`);
                     }}
                   >
                     <td data-label="Faktura">
-                      <Link href={`/invoices/${invoice.id}`} onFocus={() => prefetchInvoice(invoice.id)}>
+                      <Link
+                        href={`/invoices/${invoice.id}`}
+                        onFocus={() => prefetchInvoice(invoice.id)}
+                      >
                         <strong>{invoice.invoice_number}</strong>
                       </Link>
                       <small>VS {invoice.variable_symbol || "—"}</small>
@@ -359,7 +523,15 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
                       {Number(invoice.paid_amount) > 0 &&
                       invoice.status !== "cancelled" ? (
                         <small>
-                          Zbývá {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
+                          Zbývá{" "}
+                          {money(
+                            Math.max(
+                              0,
+                              Number(invoice.amount) -
+                                Number(invoice.paid_amount),
+                            ),
+                            invoice.currency,
+                          )}
                         </small>
                       ) : null}
                     </td>
@@ -375,9 +547,15 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
                       <span className={`status ${invoice.status}`}>
                         {labels[invoice.status]}
                       </span>
+                      {(invoice.status === "pending" || invoice.status === "overdue") &&
+                      Number(invoice.paid_amount) > 0 ? (
+                        <span className="status partial">Částečně uhrazeno</span>
+                      ) : null}
                     </td>
                     <td className="invoice-card-action">
-                      {canManage && (invoice.status === "pending" || invoice.status === "overdue") ? (
+                      {canManage &&
+                      (invoice.status === "pending" ||
+                        invoice.status === "overdue") ? (
                         <button
                           type="button"
                           className="btn primary quick-payment-button"
@@ -402,7 +580,7 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
           <button
             className="btn secondary"
             disabled={loading || page <= 1}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            onClick={() => changePage(Math.max(1, page - 1))}
           >
             ← Předchozí
           </button>
@@ -412,7 +590,7 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
           <button
             className="btn secondary"
             disabled={loading || page >= totalPages}
-            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            onClick={() => changePage(Math.min(totalPages, page + 1))}
           >
             Další →
           </button>
@@ -422,7 +600,8 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
         <div
           className="modal-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !confirmingPayment) setPaymentCandidate(null);
+            if (event.target === event.currentTarget && !confirmingPayment)
+              setPaymentCandidate(null);
           }}
         >
           <section
@@ -435,9 +614,13 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
               <div>
                 <small>MANUÁLNÍ ÚHRADA</small>
                 <h2 id="list-payment-confirm-title">
-                  Opravdu potvrdit úhradu faktury {paymentCandidate.invoice_number}?
+                  Opravdu potvrdit úhradu faktury{" "}
+                  {paymentCandidate.invoice_number}?
                 </h2>
-                <p>Faktura bude označena jako zaplacená zvoleným dnem a automatické upomínky se zastaví.</p>
+                <p>
+                  Faktura bude označena jako zaplacená zvoleným dnem a
+                  automatické upomínky se zastaví.
+                </p>
               </div>
               <button
                 type="button"
@@ -453,7 +636,12 @@ export function InvoicesClient({ initialData, initialQuery, initialKey }: { init
                 <span>Odběratel</span>
                 <strong>{paymentCandidate.counterparty_name}</strong>
                 <span>Částka</span>
-                <strong>{money(Number(paymentCandidate.amount), paymentCandidate.currency)}</strong>
+                <strong>
+                  {money(
+                    Number(paymentCandidate.amount),
+                    paymentCandidate.currency,
+                  )}
+                </strong>
               </div>
               <label className="quick-payment-date">
                 <span>Datum úhrady</span>

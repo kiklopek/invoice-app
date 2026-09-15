@@ -4,27 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
-import { createCsv } from "@/lib/csv";
-import { parsePaymentCsv, type PaymentImportRow } from "@/lib/payment-import";
 import { confirmAction } from "@/lib/confirm-action";
+import { apiFetch, ApiRequestError } from "@/lib/api-client";
+import { GpcImportPanel } from "./gpc-import-panel";
 
-type Result = {
-  external_id: string;
-  status: "matched" | "unmatched" | "ambiguous" | "duplicate";
-  invoice_id?: string;
-  invoice_number?: string;
-  settlement?: "full" | "partial";
-  remaining?: number;
-};
-type Summary = {
-  imported: number;
-  matched: number;
-  partial_matched: number;
-  unmatched: number;
-  ambiguous: number;
-  duplicates: number;
-  results: Result[];
-};
 type SavedPayment = {
   id: string;
   external_id: string;
@@ -33,9 +16,11 @@ type SavedPayment = {
   currency: string;
   variable_symbol: string | null;
   counterparty_name: string | null;
-  match_status: "matched" | "unmatched" | "ambiguous";
+  match_status: "matched" | "split" | "unmatched" | "ambiguous";
+  source: "bank_import" | "manual";
   invoice_id: string | null;
   invoices?: { invoice_number: string; counterparty_name: string } | null;
+  allocations?: Array<{ invoice_id: string; amount: number; invoice_number: string; counterparty_name: string }>;
 };
 type OpenInvoice = {
   id: string;
@@ -51,86 +36,45 @@ const money = (value: number, currency: string) =>
   new Intl.NumberFormat("cs-CZ", { style: "currency", currency }).format(value);
 const statusLabel = {
   matched: "Spárováno",
+  split: "Rozděleno na více faktur",
   unmatched: "Nenalezená faktura",
-  ambiguous: "Více možných faktur",
-  duplicate: "Již importováno",
+  ambiguous: "Vyžaduje kontrolu",
 };
 
 export default function PaymentImportPage() {
-  const [rows, setRows] = useState<PaymentImportRow[]>([]);
   const [history, setHistory] = useState<SavedPayment[]>([]);
+  const [paymentsLoaded, setPaymentsLoaded] = useState(false);
   const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [canManage, setCanManage] = useState(false);
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const [gpcEnabled, setGpcEnabled] = useState<boolean | null>(null);
+  const [gpcDiagnostic, setGpcDiagnostic] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState("");
 
+  async function refreshPayments() {
+    const data = await apiFetch<{ payments: SavedPayment[]; open_invoices: OpenInvoice[]; can_manage: boolean; gpc_enabled?: boolean; runtime_mode?: "production-database" }>("/api/payments");
+    setHistory(data.payments ?? []);
+    setOpenInvoices(data.open_invoices ?? []);
+    setCanManage(Boolean(data.can_manage));
+    setGpcEnabled(Boolean(data.gpc_enabled));
+    setGpcDiagnostic(data.gpc_enabled ? null : "Import bankovních výpisů není pro vaši roli nebo toto prostředí povolený.");
+    setPaymentsLoaded(true);
+  }
+
   useEffect(() => {
-    fetch("/api/payments")
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
-        setHistory(data.payments ?? []);
-        setOpenInvoices(data.open_invoices ?? []);
-        setCanManage(Boolean(data.can_manage));
-      })
-      .catch((cause) =>
-        setMessage(
-          cause instanceof Error
-            ? cause.message
-            : "Historii plateb se nepodařilo načíst.",
-        ),
-      );
-  }, []);
-
-  async function load(selected: File | null) {
-    setRows([]);
-    setSummary(null);
-    setMessage("");
-    setNotice("");
-    if (!selected) return;
-    try {
-      setRows(parsePaymentCsv(await selected.text()));
-    } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : "CSV se nepodařilo načíst.",
-      );
-    }
-  }
-
-  async function submit() {
-    setWorking(true);
-    setMessage("");
-    setNotice("");
-    try {
-      const response = await fetch("/api/payments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ payments: rows }),
+    refreshPayments()
+      .catch((cause) => {
+        const requestId = cause instanceof ApiRequestError ? cause.requestId : null;
+        const detail = `${cause instanceof Error ? cause.message : "Historii plateb se nepodařilo načíst."}${requestId ? ` ID požadavku: ${requestId}` : ""}`;
+        // Zobrazit jen jednou v diagnostickém panelu importu, ne ještě
+        // jednou v obecném banneru níže na stránce.
+        setGpcEnabled(false);
+        setPaymentsLoaded(true);
+        setGpcDiagnostic(detail);
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setSummary(data);
-      setRows([]);
-      const historyResponse = await fetch("/api/payments");
-      if (historyResponse.ok) {
-        const refreshed = await historyResponse.json();
-        setHistory(refreshed.payments ?? []);
-        setOpenInvoices(refreshed.open_invoices ?? []);
-        setCanManage(Boolean(refreshed.can_manage));
-      }
-    } catch (cause) {
-      setMessage(
-        cause instanceof Error
-          ? cause.message
-          : "Platby se nepodařilo importovat.",
-      );
-    } finally {
-      setWorking(false);
-    }
-  }
+  }, []);
 
   async function assign(payment: SavedPayment) {
     const invoiceId = assignments[payment.id];
@@ -139,19 +83,19 @@ export default function PaymentImportPage() {
     setMessage("");
     setNotice("");
     try {
-      const response = await fetch("/api/payments", {
+      const data = await apiFetch<{
+        settlement: "full" | "partial";
+        invoice_number: string;
+        remaining: number;
+      }>("/api/payments", {
         method: "PATCH",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-idempotency-key": `assign-${payment.id}-${invoiceId}`,
+        },
         body: JSON.stringify({ payment_id: payment.id, invoice_id: invoiceId }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      const historyResponse = await fetch("/api/payments");
-      if (historyResponse.ok) {
-        const refreshed = await historyResponse.json();
-        setHistory(refreshed.payments ?? []);
-        setOpenInvoices(refreshed.open_invoices ?? []);
-      }
+      await refreshPayments();
       setAssignments((current) => {
         const next = { ...current };
         delete next[payment.id];
@@ -186,22 +130,16 @@ export default function PaymentImportPage() {
     setMessage("");
     setNotice("");
     try {
-      const response = await fetch("/api/payments", {
+      const data = await apiFetch<{ remaining?: number }>("/api/payments", {
         method: "DELETE",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-idempotency-key": `unassign-${payment.id}`,
+        },
         body: JSON.stringify({ payment_id: payment.id }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      const historyResponse = await fetch("/api/payments");
-      if (historyResponse.ok) {
-        const refreshed = await historyResponse.json();
-        setHistory(refreshed.payments ?? []);
-        setOpenInvoices(refreshed.open_invoices ?? []);
-      }
-      setNotice(
-        `Platba byla uvolněna. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.`,
-      );
+      await refreshPayments();
+      setNotice(typeof data.remaining === "number" ? `Platba byla uvolněna. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.` : "Všechna přiřazení platby byla bezpečně uvolněna.");
     } catch (cause) {
       setMessage(
         cause instanceof Error
@@ -264,216 +202,48 @@ export default function PaymentImportPage() {
     );
   }
 
-  function downloadTemplate() {
-    const csv = createCsv([
-      [
-        "ID transakce",
-        "Datum",
-        "Částka",
-        "Měna",
-        "Variabilní symbol",
-        "Protistrana",
-        "Účet protistrany",
-        "Poznámka",
-      ],
-      [
-        "BANK-2026-0001",
-        "2026-08-06",
-        12500,
-        "CZK",
-        "2026001",
-        "Ukázkový odběratel s.r.o.",
-        "CZ0000000000000000000000",
-        "Úhrada faktury",
-      ],
-    ]);
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: "text/csv;charset=utf-8" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "vzor-importu-bankovnich-plateb.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
-    <AppFrame>
-      <header className="section-header">
-        <div>
+    <AppFrame className="content section-page payments-page">
+      <header className="section-header payments-hero">
+        <div className="payments-hero-copy">
           <Link href="/invoices" className="back-link">
             <Icon name="arrow-left" />
             Zpět na faktury
           </Link>
-          <p>KONTROLA ÚHRAD</p>
-          <h1>Bankovní platby</h1>
-          <span>
-            Nahrajte export z banky. Aplikace bezpečně rozpozná i částečné
-            úhrady a vždy ukáže zbývající částku.
-          </span>
+          <p>BANKOVNÍ PÁROVÁNÍ</p>
+          <h1>Platby pod kontrolou</h1>
+          <span>Importujte výpis, zkontrolujte návrhy a bezpečně spárujte úhrady s fakturami.</span>
+        </div>
+        <div className="payments-hero-side">
+          <nav className="payments-jump-links" aria-label="Sekce bankovních plateb">
+            <a href="#import-vypisu">Import</a>
+            <a href="#archiv-vypisu">Archiv</a>
+            <a href="#historie-plateb">Platby</a>
+          </nav>
         </div>
       </header>
 
-      <section className="page-panel import-panel payment-import-panel">
-        <div className="csv-help">
-          <h2>Načíst příchozí platby</h2>
-          <p>
-            Povinné jsou ID transakce, datum, částka a měna. Pro automatické
-            spárování je potřeba také variabilní symbol. Stejné ID nelze
-            importovat dvakrát.
-          </p>
-          <div className="csv-actions">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              onChange={(event) => load(event.target.files?.[0] ?? null)}
-            />
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={downloadTemplate}
-            >
-              <Icon name="download" />
-              Stáhnout vzor CSV
-            </button>
-          </div>
-        </div>
-        {rows.length > 0 && (
-          <>
-            <div className="import-preview">
-              <strong>Před uložením zkontrolujte {rows.length} plateb</strong>
-              <div className="large-table payment-preview-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID transakce</th>
-                      <th>Datum</th>
-                      <th>Protistrana</th>
-                      <th>VS</th>
-                      <th>Částka</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.slice(0, 12).map((row) => (
-                      <tr key={row.external_id}>
-                        <td data-label="ID transakce">{row.external_id}</td>
-                        <td data-label="Datum">{row.booked_on}</td>
-                        <td data-label="Protistrana">{row.counterparty_name || "—"}</td>
-                        <td data-label="Variabilní symbol">{row.variable_symbol || "—"}</td>
-                        <td data-label="Částka">
-                          <strong>{money(row.amount, row.currency)}</strong>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {rows.length > 12 && (
-                <small>…a dalších {rows.length - 12} plateb</small>
-              )}
-            </div>
-            <button
-              className="btn primary import-confirm"
-              disabled={working}
-              onClick={submit}
-            >
-              {working ? (
-                "Páruji…"
-              ) : (
-                <>
-                  <Icon name="check" />
-                  Importovat a bezpečně spárovat
-                </>
-              )}
-            </button>
-          </>
-        )}
-      </section>
+      <div id="import-vypisu" className="payments-anchor" />
+      {gpcEnabled === null ? <section className="page-panel payments-loading"><span className="payments-loading-icon"><Icon name="upload" /></span><div><h2>Importovat bankovní výpis</h2><p>Ověřuji dostupnost bezpečného importu…</p></div></section> : gpcEnabled ? <GpcImportPanel invoices={openInvoices} canManage={canManage} onCommitted={() => void refreshPayments()} /> : <section className="page-panel payments-unavailable"><span className="payments-loading-icon payments-warning-icon"><Icon name="alert" /></span><div><h2>Import bankovního výpisu není dostupný</h2><p className="form-error" role="alert">{gpcDiagnostic ?? "Import momentálně není dostupný."}</p><p>Náhled ani potvrzení nezmění faktury, dokud není databázová migrace a oprávnění správně aktivní.</p></div></section>}
       {message && <p className="form-error">{message}</p>}
       {notice && <p className="form-success">{notice}</p>}
 
-      {summary && (
-        <section className="payment-result">
-          <div>
-            <span>Nově importováno</span>
-            <strong>{summary.imported}</strong>
-          </div>
-          <div className="good">
-            <span>Spárováno</span>
-            <strong>{summary.matched}</strong>
-            <small>{summary.partial_matched || 0} částečně</small>
-          </div>
-          <div>
-            <span>K ruční kontrole</span>
-            <strong>{summary.unmatched + summary.ambiguous}</strong>
-          </div>
-          <div>
-            <span>Přeskočené duplicity</span>
-            <strong>{summary.duplicates}</strong>
-          </div>
-        </section>
-      )}
-      {summary?.results?.length ? (
-        <section className="page-panel data-panel">
-          <header className="panel-head">
-            <div>
-              <h2>Výsledek posledního importu</h2>
-              <p>Nejasné platby nikdy automaticky nemění fakturu.</p>
-            </div>
-          </header>
-          <div className="large-table payment-result-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID transakce</th>
-                  <th>Výsledek</th>
-                  <th>Faktura</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.results.map((item) => (
-                  <tr key={item.external_id}>
-                    <td data-label="ID transakce">{item.external_id}</td>
-                    <td data-label="Výsledek">
-                      <span className={`payment-match ${item.status}`}>
-                        {item.status === "matched" &&
-                        item.settlement === "partial"
-                          ? "Částečně spárováno"
-                          : statusLabel[item.status]}
-                      </span>
-                      {item.settlement === "partial" &&
-                      typeof item.remaining === "number" ? (
-                        <small>Zbývá {money(item.remaining, "CZK")}</small>
-                      ) : null}
-                    </td>
-                    <td data-label="Faktura">
-                      {item.invoice_id ? (
-                        <Link href={`/invoices/${item.invoice_id}`}>
-                          {item.invoice_number} →
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="page-panel data-panel">
+      <section className="page-panel data-panel payments-history" id="historie-plateb">
         <header className="panel-head">
-          <div>
+          <span className="payments-section-number">03</span>
+          <div className="payments-section-heading">
+            <small>HISTORIE A RUČNÍ KONTROLA</small>
             <h2>Poslední importované platby</h2>
             <p>
               U nejasné platby vyberte fakturu ručně. Nabízejí se otevřené
               faktury se stejnou měnou a dostatečným zůstatkem.
             </p>
           </div>
+          <span className="payments-record-count">{history.length} {history.length === 1 ? "platba" : history.length > 1 && history.length < 5 ? "platby" : "plateb"}</span>
         </header>
-        {history.length ? (
+        {!paymentsLoaded ? (
+          <p className="page-state">Načítám historii plateb…</p>
+        ) : history.length ? (
           <div className="large-table payment-history-table">
             <table>
               <thead>
@@ -506,13 +276,14 @@ export default function PaymentImportPage() {
                       <span className={`payment-match ${payment.match_status}`}>
                         {statusLabel[payment.match_status]}
                       </span>
+                      {payment.source === "manual" && <small>Ručně potvrzeno</small>}
                     </td>
                     <td data-label="Přiřazení">
-                      {payment.invoice_id ? (
+                      {payment.invoice_id || payment.allocations?.length ? (
                         <div className="payment-assignment matched-payment">
-                          <Link href={`/invoices/${payment.invoice_id}`}>
-                            {payment.invoices?.invoice_number || "Detail"} →
-                          </Link>
+                          {(payment.allocations?.length ? payment.allocations : payment.invoice_id ? [{ invoice_id: payment.invoice_id, invoice_number: payment.invoices?.invoice_number || "Detail", amount: Number(payment.amount), counterparty_name: payment.invoices?.counterparty_name || "" }] : []).map(allocation => <Link key={allocation.invoice_id} href={`/invoices/${allocation.invoice_id}`}>
+                            {allocation.invoice_number} · {money(Number(allocation.amount), payment.currency)} →
+                          </Link>)}
                           {canManage && (
                             <button
                               type="button"
@@ -534,9 +305,12 @@ export default function PaymentImportPage() {
             </table>
           </div>
         ) : (
-          <p className="page-state">
-            Zatím nebyla importována žádná bankovní platba.
-          </p>
+          <div className="payments-empty-state">
+            <span><Icon name="bank" /></span>
+            <strong>Žádné importované platby</strong>
+            <p>Nahrajte první bankovní výpis a platby se objeví zde připravené ke kontrole.</p>
+            <a href="#import-vypisu">Přejít k importu</a>
+          </div>
         )}
       </section>
     </AppFrame>

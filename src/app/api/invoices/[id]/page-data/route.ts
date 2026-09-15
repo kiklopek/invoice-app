@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { loadInvoiceDetailPageData } from "@/lib/invoice-detail-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
-import { isDemoMode } from "@/lib/supabase-server";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const startedAt = performance.now();
   try {
     const { id } = await params;
-    const identity = isDemoMode() ? null : await getRequestIdentity();
+    const identity = await getRequestIdentity();
     const identityDoneAt = performance.now();
     const data = await loadInvoiceDetailPageData(identity, id);
     const dataDoneAt = performance.now();
