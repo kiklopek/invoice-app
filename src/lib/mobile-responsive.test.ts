@@ -46,9 +46,21 @@ describe("mobile application layout", () => {
     expect(css).toContain("min-height: 44px");
     expect(css).toContain("font-size: 16px");
     expect(css).toContain("overflow-x: clip");
+    expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("overscroll-behavior: none");
+    expect(css).toContain("calc(82px + env(safe-area-inset-bottom))");
+    expect(css).not.toContain("calc(94px + env(safe-area-inset-bottom))");
     const layout = source("src/app/layout.tsx");
     expect(layout).toContain('width: "device-width"');
     expect(layout).toContain('viewportFit: "cover"');
+  });
+
+  it("keeps only the compact Splatno mark in the login card header", () => {
+    const login = source("src/app/(auth)/login/page.tsx");
+    expect(login).toContain("<SplatnoMark />");
+    expect(login).toContain('className="login-header login-header-product-only"');
+    expect(login).not.toContain("CompanyLogo");
+    expect(css).toContain(".login-header-product-only .splatno-mark");
   });
 
   it("provides an accessible reusable mobile disclosure", () => {

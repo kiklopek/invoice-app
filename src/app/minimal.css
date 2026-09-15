@@ -48,7 +48,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* Pevná, klidná navigace */
-.app-shell { min-width: 0; min-height: 100vh; background: var(--canvas); }
+.app-shell {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--canvas);
+}
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -1004,6 +1009,8 @@ input, select, textarea,
 .login-page { width: 100%; grid-template-columns: minmax(0, 1fr); background: var(--canvas); }
 .login-card { border-radius: 12px; padding: 32px; }
 .login-header { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 24px; }
+.login-header-product-only { display: block; }
+.login-header-product-only .splatno-mark { margin-bottom: 18px; }
 .login-header .login-brand { flex: none; }
 .login-header .login-intro { min-width: 0; margin: 0; }
 .login-header .login-intro h1 { margin-top: 7px; }
@@ -1088,7 +1095,7 @@ input, select, textarea,
   .mobile-account-popover > p { margin: 10px 0 0; color: var(--red); font-size: 10px; }
   .mobile-account-popover > button { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; background: #f7f8f5; color: var(--ink); font-size: 11px; font-weight: 700; }
   .mobile-account-popover > button svg { width: 16px; }
-  .content { width: 100%; margin: 0; padding: 24px 16px calc(94px + env(safe-area-inset-bottom)); }
+  .content { width: 100%; margin: 0; padding: 24px 16px calc(82px + env(safe-area-inset-bottom)); }
   .invoice-area-background {
     left: 0;
   }
@@ -1504,7 +1511,12 @@ th,
 .mobile-disclosure-toggle { display: none; }
 
 @media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
-  html, body { width: 100%; min-width: 0; overflow-x: clip; }
+  html, body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+    overscroll-behavior: none;
+  }
   body { -webkit-text-size-adjust: 100%; }
   .app-shell, .content, .section-page, .content > *,
   .page-panel, .panel, .form-section, .data-panel,
@@ -1545,7 +1557,7 @@ th,
   }
   .sidebar nav a em { display: none; }
   .nav-symbol, .nav-symbol svg { width: 20px; height: 20px; }
-  .content { padding: 22px 14px calc(94px + env(safe-area-inset-bottom)); }
+  .content { padding: 22px 14px calc(82px + env(safe-area-inset-bottom)); }
 
   .topbar, .section-header { margin-bottom: 20px; gap: 14px; }
   .topbar > div, .section-header > div { width: 100%; min-width: 0; }

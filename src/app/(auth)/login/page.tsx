@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { Icon } from "@/components/icons";
-import { CompanyLogo } from "@/components/company-logo";
 import { SplatnoMark } from "@/components/splatno-mark";
 import { isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
 
@@ -94,9 +93,8 @@ export default function LoginPage() {
   return (
     <main className="login-page auth-page">
       <section className="login-card auth-card">
-        <header className="login-header">
+        <header className="login-header login-header-product-only">
           <SplatnoMark />
-          <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
           <div className="login-intro"><span>FIREMNÍ APLIKACE</span><h1>Přihlášení</h1><p>Správa faktur a pohledávek R. Hlavica.</p></div>
         </header>
 
