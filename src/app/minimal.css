@@ -264,6 +264,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .app-shell:has(> .report-area-background) > .content { position: relative; z-index: 1; background: transparent; }
 .topbar, .section-header { align-items: flex-end; gap: 24px; margin-bottom: 24px; }
+.settings-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+.settings-tabs a { padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 650; color: var(--muted); text-decoration: none; }
+.settings-tabs a.active { background: #fff; color: var(--ink); border: 1px solid var(--line); }
 .section-header > div { min-width: 0; max-width: 100%; }
 .section-header .section-actions { display: grid; grid-template-columns: repeat(2, max-content); }
 .section-header .section-actions.invoice-list-actions {
@@ -314,6 +317,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .btn.danger:hover:not(:disabled) { background: #98352b; border-color: #98352b; }
 .confirm-dialog { width: min(92vw, 520px); padding: 0; border: 0; border-radius: 18px; box-shadow: 0 24px 80px rgb(20 35 50 / 28%); color: var(--navy); }
 .confirm-dialog::backdrop { background: rgb(11 24 36 / 58%); backdrop-filter: blur(2px); }
+dialog.modal { border: 0; padding: 0; }
+dialog.modal::backdrop { background: #102219a8; backdrop-filter: blur(3px); }
 .confirm-dialog > div { padding: 24px; }
 .confirm-dialog h2 { margin: 0 0 10px; font-size: 20px; }
 .confirm-dialog p { margin: 0; color: var(--muted); line-height: 1.55; }
@@ -487,6 +492,18 @@ tr:hover td { background: #fafbf9; }
 .import-panel { width: min(100%, 960px); max-width: none; padding: 24px; }
 .import-drop { min-height: 280px; padding: 40px 20px; background: #fafbf9; border: 1px dashed #aabbb0; border-radius: 8px; }
 .large-import-icon { width: 54px; height: 54px; border-radius: 8px; background: var(--green-soft); }
+.import-queue-list { list-style: none; margin: 14px 0; padding: 0; text-align: left; font-size: 11px; max-width: 480px; }
+.import-queue-list li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.import-queue-actions { display: flex; gap: 10px; margin-top: 10px; }
+.import-queue-tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 4px; }
+.import-queue-tab { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 11px; max-width: 220px; }
+.import-queue-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.import-queue-tab small { font-size: 9px; color: var(--muted); }
+.import-queue-tab.active { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+.import-queue-tab.ready small { color: var(--amber, #95651f); }
+.import-queue-tab.saved small { color: var(--green); }
+.import-queue-tab.error small { color: var(--red); }
+.import-queue-tab:disabled { opacity: .6; cursor: default; }
 .csv-help { padding-bottom: 20px; }
 .import-step-note {
   max-width: 960px;
@@ -607,6 +624,131 @@ tr:hover td { background: #fafbf9; }
 .reminder-operations article { padding: 17px; }
 .reminder-monitor-grid, .reminders-layout { gap: 16px; }
 .reminders-layout { margin-bottom: 22px; }
+
+/* Upomínky — stejné výrazné objekty jako dashboard a bankovní platby. */
+.reminders-hero {
+  position: relative;
+  min-height: 210px;
+  align-items: center;
+  overflow: hidden;
+  padding: 28px 30px;
+  border: 1px solid rgba(39,82,57,.12);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 82% 15%, rgba(220,235,189,.72), transparent 30%),
+    linear-gradient(135deg,#fbfcf9 0%,#edf4ee 100%);
+}
+.reminders-hero::after {
+  content: "";
+  position: absolute;
+  right: -72px;
+  bottom: -132px;
+  width: 290px;
+  height: 290px;
+  border: 42px solid rgba(35,96,68,.055);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.reminders-hero-copy,
+.reminders-hero-side { position: relative; z-index: 1; }
+.reminders-hero-copy { max-width: 650px; }
+.reminders-hero h1 { font-size: clamp(31px,3vw,43px); }
+.reminders-hero .reminders-hero-copy > span { max-width: 600px; margin-top: 10px; font-size: 13px; line-height: 1.6; }
+.reminders-hero-side { min-width: 230px; align-items: flex-end; justify-content: center; flex-direction: column; }
+.reminders-hero-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid rgba(35,96,68,.11);
+  border-radius: 999px;
+  background: rgba(255,255,255,.68);
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.reminders-hero-status i { width: 7px; height: 7px; border-radius: 50%; background: #4f956c; }
+.reminders-hero-status.is-paused { color: var(--amber); }
+.reminders-hero-status.is-paused i { background: #c38a35; }
+.reminders-hero-run { min-width: 170px; background: #fff; }
+
+.reminders-automation-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 84px;
+  border-radius: 17px;
+}
+.reminders-automation-card.active {
+  border-color: #214c36;
+  background: linear-gradient(135deg,#24563d 0%,#173e2c 100%);
+  color: #fff;
+}
+.reminders-automation-card > div,
+.reminders-automation-card > button { position: relative; z-index: 1; }
+.reminders-automation-card.active > div > i { background: #dcebbd; color: #214b36; }
+.reminders-automation-card.active small,
+.reminders-automation-card.active .settings-audit { color: #bfd1c5; }
+.reminders-automation-card.active > button { color: #edf5ef; }
+.reminders-automation-card.active > button b { background: #dcebbd; }
+.reminders-automation-card.paused { background: linear-gradient(135deg,#fffaf0,#f8f0df); }
+
+.reminder-stat-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0,1fr);
+  align-items: center;
+  gap: 15px;
+  min-height: 112px;
+  border-radius: 17px;
+}
+.reminder-stat-card .reminder-stat-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+}
+.reminder-stat-card .reminder-stat-icon svg { width: 21px; height: 21px; }
+.reminder-stat-card.is-scheduled .reminder-stat-icon { background: var(--green-soft); color: var(--green); }
+.reminder-stat-card.is-attention .reminder-stat-icon { background: var(--amber-soft); color: var(--amber); }
+.reminder-stat-card.is-attention.has-failures { border-color: #e2aaa3; }
+.reminder-stat-card.is-attention.has-failures .reminder-stat-icon { background: var(--red-soft); color: var(--red); }
+.reminder-stat-card > div { min-width: 0; }
+.reminder-stat-card > div > span { color: #536259; font-weight: 750; }
+.reminder-stat-card > div > strong { margin: 2px 0; font-size: 28px; }
+
+.reminders-policy-toolbar {
+  padding: 20px 22px;
+  border-radius: 17px;
+  background: #fff;
+}
+.reminders-rules-card { overflow: hidden; border-radius: 17px; }
+.reminders-rules-card > header { background: #fafbf9; }
+.reminders-process-card {
+  overflow: hidden;
+  border-radius: 17px;
+  background: #fff;
+}
+
+@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+  .section-header.reminders-hero { min-height: 0; align-items: flex-start; padding: 22px 20px; }
+  .reminders-hero h1 { font-size: 29px; }
+  .reminders-hero .reminders-hero-copy > span { font-size: 12px; }
+  .reminders-hero-side { display: grid; grid-template-columns: minmax(0,1fr) auto; width: 100%; min-width: 0; align-items: center; }
+  .reminders-hero-status { justify-content: center; white-space: normal; }
+  .reminders-hero-run { min-width: 0; }
+  .reminder-stat-card { min-height: 104px; }
+  .reminders-policy-toolbar { padding: 17px; }
+  .reminders-automation-card.active > button { border-top-color: rgba(255,255,255,.16); }
+}
+
+@media (max-width: 520px) {
+  .section-header.reminders-hero .reminders-hero-side { grid-template-columns: 1fr; }
+  .reminders-hero-run { width: 100%; }
+  .reminder-stat-card { grid-template-columns: 44px minmax(0,1fr); min-height: 98px; gap: 13px; }
+  .reminder-stat-card .reminder-stat-icon { width: 44px; height: 44px; }
+}
+
 .reminder-section-disclosure { margin-bottom: 16px; overflow: hidden; }
 .reminder-section-disclosure > summary {
   display: flex;
@@ -1088,7 +1230,7 @@ input, select, textarea,
   .mobile-account-popover { position: absolute; right: 0; bottom: 50px; display: none; width: min(260px,calc(100vw - 24px)); padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 12px 34px rgba(22,55,38,.17) !important; }
   .mobile-account.is-open .mobile-account-popover { display: block; }
   .mobile-account-popover > div strong,.mobile-account-popover > div small { display: block; }
-  .mobile-account-popover > div strong { font-size: 12px; }
+  .mobile-account-popover > div strong { color: var(--ink); font-size: 12px; }
   .mobile-account-popover > div small { margin-top: 2px; color: var(--muted); font-size: 10px; }
   .mobile-account-popover > p { margin: 10px 0 0; color: var(--red); font-size: 10px; }
   .mobile-account-popover > button { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; background: #f7f8f5; color: var(--ink); font-size: 11px; font-weight: 700; }
@@ -1098,6 +1240,7 @@ input, select, textarea,
     left: 0;
   }
   .report-area-background { left: 0; }
+  .payments-page .gpc-safety-card { display: none; }
   .invoice-area-background.overview::before { top: -120px; right: -155px; width: 360px; height: 360px; border-width: 52px; }
   .invoice-area-background.overview::after { left: -190px; bottom: -230px; width: 430px; height: 430px; border-width: 62px; }
   .invoice-area-background.detail::before { left: -250px; }

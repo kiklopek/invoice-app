@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { Modal } from "@/components/modal";
 import { todayInTimeZone } from "@/lib/reminders";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import type { InvoiceListPageData } from "@/lib/invoice-list-page-data";
@@ -81,15 +82,6 @@ export function InvoicesClient({
   );
   const [activeCount, setActiveCount] = useState(initialData.active_count);
   const shouldSyncUrl = useRef(false);
-
-  useEffect(() => {
-    if (!paymentCandidate || confirmingPayment) return;
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPaymentCandidate(null);
-    };
-    document.addEventListener("keydown", dismiss);
-    return () => document.removeEventListener("keydown", dismiss);
-  }, [paymentCandidate, confirmingPayment]);
 
   function requestParams(
     requestedPage = page,
@@ -596,20 +588,15 @@ export function InvoicesClient({
           </button>
         </nav>
       )}
-      {paymentCandidate && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !confirmingPayment)
-              setPaymentCandidate(null);
-          }}
-        >
-          <section
-            className="modal payment-confirm-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="list-payment-confirm-title"
-          >
+      <Modal
+        open={Boolean(paymentCandidate)}
+        onClose={() => setPaymentCandidate(null)}
+        closeDisabled={confirmingPayment}
+        labelledBy="list-payment-confirm-title"
+        className="payment-confirm-modal"
+      >
+        {paymentCandidate && (
+          <>
             <header>
               <div>
                 <small>MANUÁLNÍ ÚHRADA</small>
@@ -672,9 +659,9 @@ export function InvoicesClient({
                 {confirmingPayment ? "Ukládám…" : "Ano, potvrdit úhradu"}
               </button>
             </footer>
-          </section>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </AppFrame>
   );
 }

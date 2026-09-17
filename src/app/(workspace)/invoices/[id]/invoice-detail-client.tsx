@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { InvoiceForm } from "@/components/invoice-form";
+import { Modal } from "@/components/modal";
 import { todayInTimeZone } from "@/lib/reminders";
 import { confirmAction } from "@/lib/confirm-action";
 import type {
@@ -106,15 +107,6 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
   const [paymentDate, setPaymentDate] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    if (!recordingPayment || updating) return;
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setRecordingPayment(false);
-    };
-    document.addEventListener("keydown", dismiss);
-    return () => document.removeEventListener("keydown", dismiss);
-  }, [recordingPayment, updating]);
 
   const { data: refreshedData, error: loadError, mutate: refreshDetail } = useSWR<InvoiceDetailPageData>(`/api/invoices/${id}/page-data`, {
     fallbackData: initialData,
@@ -423,79 +415,71 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       </header>
       {error && <p className="form-error">{error}</p>}
       {notice && <p className="form-success">{notice}</p>}
-      {recordingPayment && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !updating) setRecordingPayment(false);
-          }}
-        >
-          <section
-            className="modal payment-confirm-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="payment-confirm-title"
+      <Modal
+        open={recordingPayment}
+        onClose={() => setRecordingPayment(false)}
+        closeDisabled={updating}
+        labelledBy="payment-confirm-title"
+        className="payment-confirm-modal"
+      >
+        <header>
+          <div>
+            <small>MANUÁLNÍ ÚHRADA</small>
+            <h2 id="payment-confirm-title">
+              {invoice.status === "paid"
+                ? "Upravit datum úhrady?"
+                : `Opravdu potvrdit úhradu faktury ${invoice.invoice_number}?`}
+            </h2>
+            <p>
+              {invoice.status === "paid"
+                ? "Změna se promítne do přehledů a reportů."
+                : "Faktura bude označena jako zaplacená a automatické upomínky se zastaví."}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Zavřít potvrzení úhrady"
+            disabled={updating}
+            onClick={() => setRecordingPayment(false)}
           >
-            <header>
-              <div>
-                <small>MANUÁLNÍ ÚHRADA</small>
-                <h2 id="payment-confirm-title">
-                  {invoice.status === "paid"
-                    ? "Upravit datum úhrady?"
-                    : `Opravdu potvrdit úhradu faktury ${invoice.invoice_number}?`}
-                </h2>
-                <p>
-                  {invoice.status === "paid"
-                    ? "Změna se promítne do přehledů a reportů."
-                    : "Faktura bude označena jako zaplacená a automatické upomínky se zastaví."}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="Zavřít potvrzení úhrady"
-                disabled={updating}
-                onClick={() => setRecordingPayment(false)}
-              >
-                ×
-              </button>
-            </header>
-            <div className="payment-confirm-content">
-              <label>
-                <span>Datum úhrady</span>
-                <input
-                  type="date"
-                  value={paymentDate}
-                  max={todayInTimeZone()}
-                  onChange={(event) => setPaymentDate(event.target.value)}
-                />
-                <small>Zadejte skutečný den, kdy byla částka připsána.</small>
-              </label>
-            </div>
-            <footer className="payment-confirm-actions">
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={updating}
-                onClick={() => setRecordingPayment(false)}
-              >
-                Zrušit
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                disabled={updating || !paymentDate}
-                onClick={recordPayment}
-              >
-                {updating
-                  ? "Ukládám…"
-                  : invoice.status === "paid"
-                    ? "Uložit datum"
-                    : "Ano, potvrdit úhradu"}
-              </button>
-            </footer>
-          </section>
+            ×
+          </button>
+        </header>
+        <div className="payment-confirm-content">
+          <label>
+            <span>Datum úhrady</span>
+            <input
+              type="date"
+              value={paymentDate}
+              max={todayInTimeZone()}
+              onChange={(event) => setPaymentDate(event.target.value)}
+            />
+            <small>Zadejte skutečný den, kdy byla částka připsána.</small>
+          </label>
         </div>
-      )}
+        <footer className="payment-confirm-actions">
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={updating}
+            onClick={() => setRecordingPayment(false)}
+          >
+            Zrušit
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={updating || !paymentDate}
+            onClick={recordPayment}
+          >
+            {updating
+              ? "Ukládám…"
+              : invoice.status === "paid"
+                ? "Uložit datum"
+                : "Ano, potvrdit úhradu"}
+          </button>
+        </footer>
+      </Modal>
       {editing ? (
         <InvoiceForm
           key={invoice.updated_at}
@@ -865,61 +849,53 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
           </div>
         </>
       )}
-      {deleteConfirmOpen && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !deleting) setDeleteConfirmOpen(false);
-          }}
-        >
-          <section
-            className="modal delete-invoice-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-invoice-title"
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        closeDisabled={deleting}
+        labelledBy="delete-invoice-title"
+        className="delete-invoice-modal"
+      >
+        <header>
+          <div>
+            <small>TRVALÉ SMAZÁNÍ</small>
+            <h2 id="delete-invoice-title">Smazat fakturu {invoice.invoice_number}?</h2>
+            <p>Tuto akci nebude možné vrátit zpět.</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Zavřít potvrzení"
+            disabled={deleting}
+            onClick={() => setDeleteConfirmOpen(false)}
           >
-            <header>
-              <div>
-                <small>TRVALÉ SMAZÁNÍ</small>
-                <h2 id="delete-invoice-title">Smazat fakturu {invoice.invoice_number}?</h2>
-                <p>Tuto akci nebude možné vrátit zpět.</p>
-              </div>
-              <button
-                type="button"
-                aria-label="Zavřít potvrzení"
-                disabled={deleting}
-                onClick={() => setDeleteConfirmOpen(false)}
-              >
-                ×
-              </button>
-            </header>
-            <div className="delete-invoice-content">
-              <p>
-                Faktura, její historie, upomínky a přiložený dokument budou trvale odstraněny.
-                Případné bankovní platby zůstanou zachované, ale od faktury se odpojí.
-              </p>
-            </div>
-            <footer className="delete-invoice-actions">
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={deleting}
-                onClick={() => setDeleteConfirmOpen(false)}
-              >
-                Zrušit
-              </button>
-              <button
-                type="button"
-                className="btn danger"
-                disabled={deleting}
-                onClick={deleteInvoice}
-              >
-                {deleting ? "Mažu fakturu…" : "Ano, trvale smazat"}
-              </button>
-            </footer>
-          </section>
+            ×
+          </button>
+        </header>
+        <div className="delete-invoice-content">
+          <p>
+            Faktura, její historie, upomínky a přiložený dokument budou trvale odstraněny.
+            Případné bankovní platby zůstanou zachované, ale od faktury se odpojí.
+          </p>
         </div>
-      )}
+        <footer className="delete-invoice-actions">
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={deleting}
+            onClick={() => setDeleteConfirmOpen(false)}
+          >
+            Zrušit
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={deleting}
+            onClick={deleteInvoice}
+          >
+            {deleting ? "Mažu fakturu…" : "Ano, trvale smazat"}
+          </button>
+        </footer>
+      </Modal>
     </AppFrame>
   );
 }

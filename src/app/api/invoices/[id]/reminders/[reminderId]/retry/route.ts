@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
-import { buildEffectiveReminderSchedule, compareDate, hasReminderAttemptBudget, isLatestEligibleReminder, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone } from "@/lib/reminders";
+import { compareDate, evaluateReminderEligibility, hasReminderAttemptBudget, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone, type ReminderIneligibleReason } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { nullableRpcString } from "@/lib/supabase-server";
 import { INVOICE_REMINDER_POLICY_STATE_SELECT, reminderDatabaseError } from "@/lib/reminder-automation-query";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
-const DEFAULT_THRESHOLDS = [-3, 0, 7, 14];
 const atCronTime = (date: string) => `${date}T06:00:00.000Z`;
+const REMINDER_INELIGIBLE_MESSAGES: Record<ReminderIneligibleReason, { error: string; status: number }> = {
+  invoice_not_open: { error: "U zaplacené nebo stornované faktury nelze upomínku odeslat.", status: 409 },
+  reminders_paused: { error: "Nejprve u této faktury znovu zapněte automatické upomínky.", status: 409 },
+  policy_inactive: { error: "Automatické upomínky jsou pro celou firmu pozastavené.", status: 409 },
+  suppressed: { error: "Na tuto adresu nelze odesílat. Opravte kontaktní e-mail odběratele a zkuste to znovu.", status: 409 },
+  schedule_stale: { error: "Tato upomínka už neodpovídá aktuálnímu plánu. Vyčkejte na další naplánovaný krok.", status: 409 },
+};
 type Context = { params: Promise<{ id: string; reminderId: string }> };
 
 export async function POST(request: Request, { params }: Context) {
@@ -39,19 +45,11 @@ export async function POST(request: Request, { params }: Context) {
     .eq("id", id).eq("organization_id", organizationId).maybeSingle();
   if (invoiceError) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
   if (!invoice) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
-  if (!['pending', 'overdue'].includes(invoice.status)) {
-    return NextResponse.json({ error: "U zaplacené nebo stornované faktury nelze upomínku odeslat." }, { status: 409 });
-  }
-  if (invoice.reminders_paused) {
-    return NextResponse.json({ error: "Nejprve u této faktury znovu zapněte automatické upomínky." }, { status: 409 });
-  }
+
   const { data: suppression, error: suppressionError } = await identity.service.from("email_suppressions")
     .select("reason").eq("organization_id", organizationId)
     .eq("email", invoice.counterparty_email.toLowerCase()).maybeSingle();
   if (suppressionError) return NextResponse.json({ error: "Stav e-mailové adresy se nepodařilo ověřit." }, { status: 500 });
-  if (suppression) {
-    return NextResponse.json({ error: "Na tuto adresu nelze odesílat. Opravte kontaktní e-mail odběratele a zkuste to znovu." }, { status: 409 });
-  }
 
   let policyQuery = identity.service.from("reminder_policies").select("is_active")
     .eq("organization_id", organizationId);
@@ -60,15 +58,20 @@ export async function POST(request: Request, { params }: Context) {
     : policyQuery.eq("is_default", true);
   const { data: policy, error: policyError } = await policyQuery.maybeSingle();
   if (policyError) return NextResponse.json({ error: "Nastavení upomínek se nepodařilo ověřit." }, { status: 500 });
-  if (policy?.is_active === false) {
-    return NextResponse.json({ error: "Automatické upomínky jsou pro celou firmu pozastavené." }, { status: 409 });
-  }
 
   const today = todayInTimeZone();
-  const schedule = buildEffectiveReminderSchedule(invoice.due_date, invoice.reminder_days_snapshot ?? DEFAULT_THRESHOLDS, invoice.reminder_plan_effective_from);
-  if (!isLatestEligibleReminder(schedule, today, log.scheduled_for, log.stage as ReminderStage)) {
-    return NextResponse.json({ error: "Tato upomínka už neodpovídá aktuálnímu plánu. Vyčkejte na další naplánovaný krok." }, { status: 409 });
+  const eligibility = evaluateReminderEligibility({
+    invoice: { ...invoice, reminder_policy: { is_active: policy?.is_active } },
+    suppressed: Boolean(suppression),
+    today,
+    scheduledFor: log.scheduled_for,
+    stage: log.stage as ReminderStage,
+  });
+  if (!eligibility.eligible) {
+    const { error, status } = REMINDER_INELIGIBLE_MESSAGES[eligibility.reason];
+    return NextResponse.json({ error }, { status });
   }
+  const schedule = eligibility.schedule;
   const nextFuture = schedule.find(item => compareDate(item.scheduledFor, today) > 0) ?? null;
   const { data: template, error: templateError } = await identity.service.from("email_templates")
     .select("subject, body, reply_to, cc").eq("organization_id", organizationId)

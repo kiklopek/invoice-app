@@ -5,6 +5,8 @@ import useSWR from "swr";
 import Link from "next/link";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { SettingsTabs } from "@/components/settings-tabs";
+import { EmailSuppressionsPanel } from "./email-suppressions-panel";
 import { interpolateReminderTemplateValues } from "@/lib/reminder-template";
 import { Icon } from "@/components/icons";
 import { isAutomationRunStale } from "@/lib/automation-run";
@@ -604,8 +606,9 @@ export function RemindersClient({
 
   return (
     <AppFrame>
-      <header className="section-header">
-        <div>
+      <SettingsTabs />
+      <header className="section-header reminders-hero">
+        <div className="reminders-hero-copy">
           <p>AUTOMATIZACE</p>
           <h1>Upomínky</h1>
           <span>
@@ -613,10 +616,14 @@ export function RemindersClient({
             odběratele.
           </span>
         </div>
-        {operations.can_run && (
-          <div className="section-actions">
+        <div className="section-actions reminders-hero-side">
+          <span className={`reminders-hero-status ${automationActive ? "is-active" : "is-paused"}`}>
+            <i aria-hidden="true" />
+            {automationActive ? "Automat je aktivní" : "Automat je pozastavený"}
+          </span>
+          {operations.can_run && (
             <button
-              className="btn secondary"
+              className="btn secondary reminders-hero-run"
               disabled={runningNow || loading || saving}
               onClick={runNow}
             >
@@ -629,8 +636,8 @@ export function RemindersClient({
                 </>
               )}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
       {!loading && !operations.can_run && (
         <p className="read-only-note">
@@ -653,7 +660,7 @@ export function RemindersClient({
         </p>
       )}
       <section
-        className={`page-panel automation-switch ${automationActive ? "active" : "paused"}`}
+        className={`page-panel automation-switch reminders-automation-card ${automationActive ? "active" : "paused"}`}
       >
         <div>
           <i>{automationActive ? "✓" : "Ⅱ"}</i>
@@ -691,24 +698,30 @@ export function RemindersClient({
         </button>
       </section>
       <section className="reminder-operations reminder-quick-stats">
-        <article className="page-panel">
-          <span>Naplánováno</span>
-          <strong>{operations.upcoming.length}</strong>
-          <small>nejbližších automatických akcí</small>
+        <article className="page-panel reminder-stat-card is-scheduled">
+          <span className="reminder-stat-icon"><Icon name="clock" /></span>
+          <div>
+            <span>Naplánováno</span>
+            <strong>{operations.upcoming.length}</strong>
+            <small>nejbližších automatických akcí</small>
+          </div>
         </article>
         <article
-          className={`page-panel ${operations.failed.length || automationRunProblem ? "has-failures" : ""}`}
+          className={`page-panel reminder-stat-card is-attention ${operations.failed.length || automationRunProblem ? "has-failures" : ""}`}
         >
-          <span>Vyžaduje kontrolu</span>
-          <strong>{operations.failed.length}</strong>
-          <small>
-            {automationRunProblem && !operations.failed.length
-              ? "poslední běh automatu vyžaduje kontrolu"
-              : "problémů s odesláním nebo doručením"}
-          </small>
+          <span className="reminder-stat-icon"><Icon name={operations.failed.length || automationRunProblem ? "alert" : "check"} /></span>
+          <div>
+            <span>Vyžaduje kontrolu</span>
+            <strong>{operations.failed.length}</strong>
+            <small>
+              {automationRunProblem && !operations.failed.length
+                ? "poslední běh automatu vyžaduje kontrolu"
+                : "problémů s odesláním nebo doručením"}
+            </small>
+          </div>
         </article>
       </section>
-      <section className="page-panel policy-toolbar">
+      <section className="page-panel policy-toolbar reminders-policy-toolbar">
         <div>
           <h2 id="reminder-policy-heading">Kategorie upomínek</h2>
           <div className="policy-select-wrap">
@@ -740,7 +753,7 @@ export function RemindersClient({
         </button>
       </section>
       <div className="reminders-layout">
-        <section className="page-panel rules-panel">
+        <section className="page-panel rules-panel reminders-rules-card">
           <header>
             <div>
               <h2>
@@ -890,7 +903,7 @@ export function RemindersClient({
           label="Jak bude proces probíhat"
           className="reminder-process-disclosure"
         >
-          <aside className="page-panel process-preview">
+          <aside className="page-panel process-preview reminders-process-card">
             <h2>Jak bude proces probíhat</h2>
             <p>Ukázka pro fakturu splatnou 20. srpna:</p>
             <div className="process-line">
@@ -1250,6 +1263,7 @@ export function RemindersClient({
           </section>
         </details>
       )}
+      <EmailSuppressionsPanel />
     </AppFrame>
   );
 }

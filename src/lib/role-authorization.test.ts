@@ -29,7 +29,7 @@ describe("role authorization", () => {
       expect(implementation, name).not.toContain("canAccessOperations(identity.membership.role)");
     }
     for (const path of [
-      "src/app/api/payments/route.ts",
+      "src/lib/payments-page-data.ts",
       "src/app/api/reminders/route.ts",
       "src/app/api/settings/reminders/route.ts",
     ]) {

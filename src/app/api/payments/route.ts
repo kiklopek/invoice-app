@@ -1,103 +1,18 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
-import { canAccessOperations } from "@/lib/role-access";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { canUseGpcImport } from "@/lib/gpc-feature";
+import { loadPaymentsPageData } from "@/lib/payments-page-data";
+import { PageDataError } from "@/lib/dashboard-page-data";
 
 export async function GET() {
   const identity = await getRequestIdentity();
-  if (!identity)
-    return NextResponse.json(
-      { error: "Nejste přihlášený uživatel." },
-      { status: 401 },
-    );
-  if (!canAccessOperations(identity.membership.role))
-    return NextResponse.json(
-      { error: "Čtenář nemá přístup ke správě bankovních plateb." },
-      { status: 403 },
-    );
-
-  const [{ data, error }, { data: openInvoices, error: invoiceError }] =
-    await Promise.all([
-      identity.service
-        .from("bank_payments")
-        .select(
-          "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
-        )
-        .eq("organization_id", identity.membership.organization_id)
-        .order("booked_on", { ascending: false })
-        .limit(100),
-      identity.service
-        .from("invoices")
-        .select(
-          "id, invoice_number, counterparty_name, amount, paid_amount, currency, variable_symbol",
-        )
-        .eq("organization_id", identity.membership.organization_id)
-        .in("status", ["pending", "overdue"])
-        .order("due_date", { ascending: true })
-        .limit(500),
-    ]);
-  if (error || invoiceError)
-    return NextResponse.json(
-      {
-        error:
-          "Bankovní platby se nepodařilo načíst. Zkontrolujte poslední databázovou migraci.",
-      },
-      { status: 500 },
-    );
-  const paymentIds = (data ?? []).map((payment) => payment.id);
-  const { data: allocations } = paymentIds.length
-    ? await identity.service
-        .from("bank_payment_allocations")
-        .select("bank_payment_id, invoice_id, amount")
-        .eq("organization_id", identity.membership.organization_id)
-        .eq("is_committed", true)
-        .in("bank_payment_id", paymentIds)
-    : { data: [] };
-  const allocationInvoiceIds = [
-    ...new Set((allocations ?? []).map((allocation) => allocation.invoice_id)),
-  ];
-  const { data: allocationInvoices } = allocationInvoiceIds.length
-    ? await identity.service
-        .from("invoices")
-        .select("id, invoice_number, counterparty_name")
-        .eq("organization_id", identity.membership.organization_id)
-        .in("id", allocationInvoiceIds)
-    : { data: [] };
-  const invoiceById = new Map(
-    (allocationInvoices ?? []).map((invoice) => [invoice.id, invoice]),
-  );
-  const allocationsByPayment = new Map<
-    string,
-    Array<{
-      invoice_id: string;
-      amount: number;
-      invoice_number: string;
-      counterparty_name: string;
-    }>
-  >();
-  for (const allocation of allocations ?? [])
-    allocationsByPayment.set(allocation.bank_payment_id!, [
-      ...(allocationsByPayment.get(allocation.bank_payment_id!) ?? []),
-      {
-        invoice_id: allocation.invoice_id,
-        amount: Number(allocation.amount),
-        invoice_number:
-          invoiceById.get(allocation.invoice_id)?.invoice_number ?? "Faktura",
-        counterparty_name:
-          invoiceById.get(allocation.invoice_id)?.counterparty_name ?? "",
-      },
-    ]);
-  return NextResponse.json({
-    payments: (data ?? []).map((payment) => ({
-      ...payment,
-      allocations: allocationsByPayment.get(payment.id) ?? [],
-    })),
-    open_invoices: openInvoices ?? [],
-    can_manage: canManageInvoices(identity.membership.role),
-    gpc_enabled: canUseGpcImport(identity.membership.role),
-    runtime_mode: "production-database",
-  });
+  try {
+    const data = await loadPaymentsPageData(identity);
+    return NextResponse.json(data);
+  } catch (cause) {
+    if (cause instanceof PageDataError) return NextResponse.json({ error: cause.message }, { status: cause.status });
+    return NextResponse.json({ error: "Bankovní platby se nepodařilo načíst. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request) {

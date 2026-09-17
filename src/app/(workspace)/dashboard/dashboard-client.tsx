@@ -49,7 +49,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const role = useAccessRole();
   const canManage = canManageInvoices(role);
   const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: false });
-  const loading = false;
   const error = loadError instanceof Error ? loadError.message : "";
 
   const activeCount = summary.active_count;
@@ -57,7 +56,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const upcoming = summary.upcoming;
 
   return (
-    <AppFrame invoiceCount={loading ? undefined : activeCount} className="content dashboard-page">
+    <AppFrame invoiceCount={activeCount} className="content dashboard-page">
         <header className="topbar">
           <div>
             <p>R. Hlavica s.r.o. · účetní oddělení</p>
@@ -119,8 +118,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
             </div>
             {error ? (
               <p className="state error-state">{error}</p>
-            ) : loading ? (
-              <p className="state">Načítám faktury…</p>
             ) : (
               <div className="table-wrap dashboard-invoice-table">
                 <table>

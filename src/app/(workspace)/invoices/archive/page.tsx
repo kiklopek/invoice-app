@@ -2,10 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import type { Invoice } from "@/types/invoice";
+
+type ArchivePageData = {
+  invoices: Invoice[];
+  total: number;
+  total_pages: number;
+  currencies: string[];
+  active_count: number;
+};
 
 const money = (value: number, currency: string) => new Intl.NumberFormat("cs-CZ", {
   style: "currency", currency, maximumFractionDigits: 0,
@@ -16,24 +25,19 @@ const date = (value: string | null) => value
 
 export default function InvoiceArchivePage() {
   const router = useRouter();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState("");
+  const [exportError, setExportError] = useState("");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [archiveStatus, setArchiveStatus] = useState<"closed" | "paid" | "cancelled">("closed");
   const [currency, setCurrency] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [currencies, setCurrencies] = useState<string[]>([]);
-  const [activeCount, setActiveCount] = useState(0);
 
-  function requestParams(requestedPage = page, format?: "xlsx") {
+  function requestParams(requestedPage = page, format?: "xlsx", searchQuery = debouncedQuery) {
     const params = new URLSearchParams({ paged: "1", page: String(requestedPage), status: archiveStatus });
-    if (query.trim()) params.set("q", query.trim());
+    if (searchQuery.trim()) params.set("q", searchQuery.trim());
     if (currency !== "all") params.set("currency", currency);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
@@ -42,36 +46,19 @@ export default function InvoiceArchivePage() {
   }
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      setLoading(true);
-      setError("");
-      fetch(`/api/invoices?${requestParams().toString()}`, { signal: controller.signal })
-        .then(async (response) => {
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error);
-          return data;
-        })
-        .then((data) => {
-          setInvoices(data.invoices ?? []);
-          setTotal(Number(data.total) || 0);
-          setTotalPages(Number(data.total_pages) || 1);
-          setCurrencies(data.currencies ?? []);
-          setActiveCount(Number(data.active_count) || 0);
-        })
-        .catch((cause) => {
-          if (cause instanceof Error && cause.name !== "AbortError") setError(cause.message);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }, query ? 250 : 0);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, archiveStatus, currency, from, to, page]);
+    const timer = window.setTimeout(() => setDebouncedQuery(query), query ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const listKey = `/api/invoices?${requestParams().toString()}`;
+  const { data, error: loadError, isLoading } = useSWR<ArchivePageData>(listKey);
+  const invoices = data?.invoices ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.total_pages ?? 1;
+  const currencies = data?.currencies ?? [];
+  const activeCount = data?.active_count ?? 0;
+  const loading = isLoading && !data;
+  const error = exportError || (loadError instanceof Error ? loadError.message : "");
 
   function changeFilter(change: () => void) {
     setPage(1);
@@ -80,7 +67,7 @@ export default function InvoiceArchivePage() {
 
   async function exportExcel() {
     setExporting(true);
-    setError("");
+    setExportError("");
     try {
       const response = await fetch(`/api/invoices?${requestParams(1, "xlsx").toString()}`);
       if (!response.ok) {
@@ -94,7 +81,7 @@ export default function InvoiceArchivePage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Export archivu se nepodařilo připravit.");
+      setExportError(cause instanceof Error ? cause.message : "Export archivu se nepodařilo připravit.");
     } finally {
       setExporting(false);
     }

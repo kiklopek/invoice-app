@@ -1,5 +1,11 @@
 export type AccessRole = "viewer" | "accounting" | "admin";
 
+export const roleNames: Record<AccessRole, string> = {
+  admin: "Administrátor",
+  accounting: "Účetní",
+  viewer: "Čtenář",
+};
+
 export function canManageInvoices(role: AccessRole | null) {
   return role === "accounting" || role === "admin";
 }

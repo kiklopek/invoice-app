@@ -1717,8 +1717,7 @@ begin
     end if;
   end if;
 
-  if new.source = 'ocr'
-    and normalized_ico ~ '^[0-9]{8}$'
+  if normalized_ico ~ '^[0-9]{8}$'
     and new.reminder_policy_id is not null then
     insert into public.counterparty_reminder_preferences (
       organization_id, counterparty_ico, reminder_policy_id, last_invoice_id, updated_by

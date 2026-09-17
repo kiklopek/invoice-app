@@ -36,13 +36,13 @@ function OcrSourceNote({ source }: { source?: OcrFieldSource }) {
 
 export function InvoiceForm({
   initial,
-  ocrPolicyAssignment,
+  policyAssignment: externalPolicyAssignment,
   ocrFieldSources,
   submitLabel = "Uložit fakturu",
   onSubmit,
 }: {
   initial?: InvoiceInput;
-  ocrPolicyAssignment?: OcrReminderPolicyAssignment;
+  policyAssignment?: OcrReminderPolicyAssignment;
   ocrFieldSources?: Partial<Record<OcrFieldName, OcrFieldSource>>;
   submitLabel?: string;
   onSubmit: (value: InvoiceInput) => Promise<void>;
@@ -56,6 +56,14 @@ export function InvoiceForm({
   const [policies, setPolicies] = useState<ReminderPolicySummary[]>([]);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const [policiesError, setPoliciesError] = useState("");
+  const [resolvedPolicyAssignment, setResolvedPolicyAssignment] = useState<OcrReminderPolicyAssignment | null>(null);
+  const lastResolvedIcoRef = useRef<string | null>(null);
+  const policyManuallyChangedRef = useRef(false);
+  // The IČO (and whatever reminder_policy_id it already carries) as loaded,
+  // before the user touches anything -- used so opening an existing invoice to
+  // fix something unrelated never silently swaps its already-chosen category,
+  // only actively changing the IČO (or starting a brand new invoice) does.
+  const initialIcoRef = useRef(normalizeCounterpartyIco(initial?.counterparty_ico));
   const discardingDraft = useRef(false);
   const discardDraft = useCallback(() => {
     discardingDraft.current = true;
@@ -104,6 +112,37 @@ export function InvoiceForm({
 
   useEffect(() => { loadPolicies(); }, [loadPolicies]);
 
+  // OCR import already resolves this server-side at extract-time (externalPolicyAssignment).
+  // For manual creation/editing there's no such prop, so resolve it live here as the
+  // accountant types/has an IČO, reusing the same remembered-per-IČO preference.
+  useEffect(() => {
+    if (externalPolicyAssignment || policiesLoading || !policies.length) return;
+    const normalizedIco = normalizeCounterpartyIco(form.counterparty_ico);
+    if (normalizedIco !== lastResolvedIcoRef.current) policyManuallyChangedRef.current = false;
+    if (!normalizedIco) {
+      setResolvedPolicyAssignment(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      fetch(`/api/invoices/reminder-policy-preference?ico=${normalizedIco}`)
+        .then(response => (response.ok ? response.json() : null))
+        .then((data: { assignment?: OcrReminderPolicyAssignment | null } | null) => {
+          if (!data?.assignment) return;
+          lastResolvedIcoRef.current = normalizedIco;
+          setResolvedPolicyAssignment(data.assignment);
+          const icoUnchangedSinceLoad = initial && normalizedIco === initialIcoRef.current;
+          if (!policyManuallyChangedRef.current && !icoUnchangedSinceLoad) {
+            setForm(current => current.reminder_policy_id === data.assignment!.policy_id
+              ? current
+              : { ...current, reminder_policy_id: data.assignment!.policy_id });
+          }
+        })
+        .catch(() => undefined);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [externalPolicyAssignment, form.counterparty_ico, policies.length, policiesLoading, initial]);
+
+  const ocrPolicyAssignment = externalPolicyAssignment ?? resolvedPolicyAssignment ?? undefined;
   const selectedPolicy = policies.find(policy => policy.id === form.reminder_policy_id);
   const policyChanged = Boolean(initial?.reminder_policy_id && selectedPolicy && selectedPolicy.id !== initial.reminder_policy_id);
   const assignmentMatchesIco = Boolean(
@@ -137,7 +176,7 @@ export function InvoiceForm({
       <label><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)}/><OcrSourceNote source={source("due_date")}/></label>
       <label className="wide reminder-policy-field">
         <span>Kategorie upomínek *</span>
-        <select required value={form.reminder_policy_id ?? ""} disabled={policiesLoading || Boolean(policiesError)} onChange={e => field("reminder_policy_id", e.target.value)}>
+        <select required value={form.reminder_policy_id ?? ""} disabled={policiesLoading || Boolean(policiesError)} onChange={e => { policyManuallyChangedRef.current = true; field("reminder_policy_id", e.target.value); }}>
           <option value="" disabled>{policiesLoading ? "Načítám kategorie…" : "Vyberte kategorii"}</option>
           {policies.map(policy => <option key={policy.id} value={policy.id}>{policy.name}{policy.is_default ? " (výchozí)" : ""}{policy.archived_at ? " (archivovaná)" : ""}</option>)}
         </select>
@@ -149,7 +188,7 @@ export function InvoiceForm({
                 : ocrPolicyAssignment.status === "remembered"
                   ? `K této firmě je nastavena kategorie upomínek: ${ocrPolicyAssignment.policy_name}.`
                   : ocrPolicyAssignment.status === "missing_ico"
-                    ? "OCR nerozpoznalo platné IČO."
+                    ? "Nerozpoznáno platné IČO."
                     : "Pro toto IČO zatím není nastavená kategorie upomínek."}
             </strong>
             <span>
@@ -157,7 +196,7 @@ export function InvoiceForm({
                 ? `Po uložení se pro tuto firmu zapamatuje kategorie ${selectedPolicy.name}.`
                 : ocrPolicyAssignment.status === "remembered" && assignmentMatchesIco
                   ? "Kategorie byla vybrána automaticky podle IČO."
-                  : `Nyní je vybrána kategorie ${selectedPolicy.name}. Zkontrolujte ji; po uložení OCR faktury se pro zadané IČO zapamatuje.`}
+                  : `Nyní je vybrána kategorie ${selectedPolicy.name}. Zkontrolujte ji; po uložení faktury se pro zadané IČO zapamatuje.`}
             </span>
           </span>
         )}

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
+import { SettingsTabs } from "@/components/settings-tabs";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { useAccessProfile } from "@/lib/use-access-role";
-import { canEditCompanySettings } from "@/lib/role-access";
+import { canEditCompanySettings, roleNames } from "@/lib/role-access";
 import { confirmAction } from "@/lib/confirm-action";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import type {
@@ -20,11 +21,6 @@ type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
 type Member = SettingsMember;
 type AccessEvent = SettingsAccessEvent;
-const roleNames: Record<Role, string> = {
-  admin: "Administrátor",
-  accounting: "Účetní",
-  viewer: "Čtenář",
-};
 const accessAction = (event: AccessEvent) =>
   event.event_type === "added"
     ? `přidal přístup · ${roleNames[event.new_role!]}`
@@ -234,6 +230,7 @@ export function SettingsClient({
 
   return (
     <AppFrame>
+      <SettingsTabs />
       <header className="section-header">
         <div>
           <p>SPRÁVA APLIKACE</p>
@@ -273,7 +270,7 @@ export function SettingsClient({
         <section className="page-panel company-settings">
           <header>
             <div>
-              <h2>R. Hlavica s.r.o.</h2>
+              <h2>{company.name}</h2>
               <p>Údaje použité v e-mailových šablonách a exportech.</p>
             </div>
           </header>

@@ -106,6 +106,21 @@ function normalizeComparable(value: string | null | undefined) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+// Every label regex below is written unaccented and matched against this
+// stripped/lowercased form of each line, not the original text. Invoices from
+// outside this app's own template use endless label wording variants
+// ("Vystaveno dne" vs "Datum vystaven\u00ed" vs "Issue date"...), and OCR itself
+// frequently mangles Czech diacritics first -- matching case/diacritic
+// -insensitively is the single highest-leverage way to keep recognizing
+// labels across unfamiliar layouts, without needing to enumerate every
+// accented spelling separately. The actual value (an invoice number, a name,
+// an amount...) is still always read out of the original, unstripped line --
+// see labeledRemainder/findSection below -- so accents and letter case in the
+// extracted value itself are never lost.
+function stripDiacritics(value: string) {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 export function normalizeOcrText(value: string) {
   return value
     .normalize("NFKC")
@@ -202,11 +217,26 @@ function findVatSummary(lines: string[]) {
   };
 }
 
-function findFirstLabeledAmount(lines: string[], labels: RegExp[]) {
+// Labels are matched against the diacritic-stripped `strippedLines` array so
+// broadened, unaccented label vocabulary works regardless of OCR/PDF accent
+// fidelity; the remainder text used to extract the actual value always comes
+// from the corresponding *original* `lines` entry (sliced at the label
+// match's end offset -- diacritic stripping never changes Czech character
+// count, so the offsets line up) so amount currency symbols like "Kč" and
+// any accented characters in the value itself are never corrupted.
+function labeledRemainder(lines: string[], strippedLines: string[], label: RegExp, index: number): string | null {
+  const match = strippedLines[index]?.match(label);
+  if (!match) return null;
+  const offset = (match.index ?? 0) + match[0].length;
+  return lines[index].slice(offset);
+}
+
+function findFirstLabeledAmount(lines: string[], strippedLines: string[], labels: RegExp[]) {
   for (const label of labels) {
     for (let index = 0; index < lines.length; index += 1) {
-      if (!label.test(lines[index])) continue;
-      const sameLine = firstAmountFromLine(lines[index].replace(label, ""));
+      const remainder = labeledRemainder(lines, strippedLines, label, index);
+      if (remainder === null) continue;
+      const sameLine = firstAmountFromLine(remainder);
       if (sameLine) return sameLine;
       const nextLine = lines[index + 1] ? firstAmountFromLine(lines[index + 1]) : null;
       if (nextLine) return nextLine;
@@ -215,11 +245,12 @@ function findFirstLabeledAmount(lines: string[], labels: RegExp[]) {
   return null;
 }
 
-function findLabeledAmount(lines: string[], labels: RegExp[]) {
+function findLabeledAmount(lines: string[], strippedLines: string[], labels: RegExp[]) {
   for (const label of labels) {
     for (let index = 0; index < lines.length; index += 1) {
-      if (!label.test(lines[index])) continue;
-      const sameLine = amountFromLine(lines[index].replace(label, ""));
+      const remainder = labeledRemainder(lines, strippedLines, label, index);
+      if (remainder === null) continue;
+      const sameLine = amountFromLine(remainder);
       if (sameLine) return sameLine;
       const nextLine = lines[index + 1] ? amountFromLine(lines[index + 1]) : null;
       if (nextLine) return nextLine;
@@ -237,11 +268,12 @@ function parseDate(value: string) {
   return isIsoDate(result) ? result : "";
 }
 
-function findLabeledDate(lines: string[], labels: RegExp[]) {
+function findLabeledDate(lines: string[], strippedLines: string[], labels: RegExp[]) {
   for (const label of labels) {
     for (let index = 0; index < lines.length; index += 1) {
-      if (!label.test(lines[index])) continue;
-      const sameLine = parseDate(lines[index].replace(label, ""));
+      const remainder = labeledRemainder(lines, strippedLines, label, index);
+      if (remainder === null) continue;
+      const sameLine = parseDate(remainder);
       if (sameLine) return sameLine;
       const nextLine = parseDate(lines[index + 1] ?? "");
       if (nextLine) return nextLine;
@@ -250,30 +282,45 @@ function findLabeledDate(lines: string[], labels: RegExp[]) {
   return "";
 }
 
-function findValue(lines: string[], labels: RegExp[], valuePattern: RegExp) {
+function findValue(lines: string[], strippedLines: string[], labels: RegExp[], valuePattern: RegExp, requireDigit = false) {
+  const globalPattern = new RegExp(valuePattern.source, valuePattern.flags.includes("g") ? valuePattern.flags : `${valuePattern.flags}g`);
+  const firstValidMatch = (text: string) => {
+    for (const match of text.matchAll(globalPattern)) {
+      const candidate = match[1];
+      if (candidate && (!requireDigit || /\d/.test(candidate))) return candidate;
+    }
+    return undefined;
+  };
   for (const label of labels) {
     for (let index = 0; index < lines.length; index += 1) {
-      if (!label.test(lines[index])) continue;
-      const sameLine = lines[index].replace(label, "").match(valuePattern)?.[1];
+      const remainder = labeledRemainder(lines, strippedLines, label, index);
+      if (remainder === null) continue;
+      const sameLine = firstValidMatch(remainder);
       if (sameLine) return sameLine;
-      const nextLine = (lines[index + 1] ?? "").match(valuePattern)?.[1];
+      const nextLine = firstValidMatch(lines[index + 1] ?? "");
       if (nextLine) return nextLine;
     }
   }
   return "";
 }
 
-function findSection(lines: string[], heading: RegExp) {
-  const start = lines.findIndex(line => heading.test(line));
+// Section headings and their "stop" boundaries are detected against the
+// diacritic-stripped/lowercased line (strippedLines), so wording variants and
+// OCR-mangled accents both still match; the actual text pushed into the
+// result comes from the original `lines` array at the same index, so names,
+// addresses etc. keep their real accents.
+const SECTION_STOP = /^(dodavatel|vystavitel|supplier|seller|vendor|issuer|prodejce|platebni\s+udaje|bankovni\s+spojeni|platba|doprava|datum|produkt|polozky|popis|rekapitulace|celkem|iban|swift|bic)\b/;
+
+function findSection(lines: string[], strippedLines: string[], heading: RegExp, stop: RegExp = SECTION_STOP) {
+  const start = strippedLines.findIndex(line => heading.test(line));
   if (start < 0) return [];
-  const stop = /^(dodavatel|vystavitel|supplier|platební údaje|bankovní spojení|platba|doprava|datum|produkt|položky|popis|rekapitulace|celkem)\b/i;
   const result: string[] = [];
-  const headingMatch = lines[start].match(heading);
+  const headingMatch = strippedLines[start].match(heading);
   const headingTail = headingMatch?.index === undefined ? "" : lines[start].slice(headingMatch.index + headingMatch[0].length).replace(/^[\s:.-]+/, "");
   if (headingTail) result.push(headingTail);
-  for (const line of lines.slice(start + 1, start + 10)) {
-    if (stop.test(line)) break;
-    result.push(line);
+  for (let index = start + 1; index < Math.min(lines.length, start + 10); index += 1) {
+    if (stop.test(strippedLines[index])) break;
+    result.push(lines[index]);
   }
   return result;
 }
@@ -282,11 +329,19 @@ function uniqueMatches(text: string, pattern: RegExp, normalize: (value: string)
   return [...new Set([...text.matchAll(pattern)].map(match => normalize(match[1])).filter(Boolean))];
 }
 
-function findCounterparty(lines: string[], text: string, organization: InvoiceOcrOrganization) {
-  const detailStart = lines.findIndex(line => /^ODBĚRATEL DETAIL$/i.test(line));
+// Unaccented, matched against strippedLines. Broad on purpose: invoices
+// outside this app's own template label the customer section as anything
+// from "Odběratel" to "Klient", "Kupující" or plain English "Bill to"/"Sold
+// to"/"Customer".
+const COUNTERPARTY_HEADING = /(odberatel|zakaznik|customer|bill\s*to|sold\s*to|invoice\s*to|klient|kupujici|purchaser|objednatel)\b/;
+const IGNORED_NAME_LINE = /^(?:(?:odberatel|zakaznik|customer|bill\s*to|sold\s*to|invoice\s*to|klient|kupujici|purchaser|objednatel)\s*:?[\s.-]*$|(?:ico|dic|vat|ulice|adresa|street|address|tel|telefon|phone|e-?mail)(?=\s|:|$))/;
+
+function findCounterparty(lines: string[], strippedLines: string[], text: string, organization: InvoiceOcrOrganization) {
+  const detailStart = strippedLines.findIndex(line => /^odberatel\s+detail$/.test(line));
   const detailLines = detailStart >= 0 ? lines.slice(detailStart + 1) : [];
-  const detailSection = detailLines.length ? findSection(detailLines, /(odb[ěé]ratel|zákazník|customer|bill to)\b/i) : [];
-  const section = detailSection.length ? detailSection : findSection(lines, /(odb[ěé]ratel|zákazník|customer|bill to)\b/i);
+  const detailStrippedLines = detailStart >= 0 ? strippedLines.slice(detailStart + 1) : [];
+  const detailSection = detailLines.length ? findSection(detailLines, detailStrippedLines, COUNTERPARTY_HEADING) : [];
+  const section = detailSection.length ? detailSection : findSection(lines, strippedLines, COUNTERPARTY_HEADING);
   const sectionText = section.join("\n");
   const organizationIco = digits(organization.ico);
   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
@@ -297,10 +352,10 @@ function findCounterparty(lines: string[], text: string, organization: InvoiceOc
     .filter(value => value !== organizationDic);
   const emailCandidates = uniqueMatches(sectionText || text, /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/giu, value => value.toLowerCase());
 
-  const ignoredName = /^(?:(?:odb[ěé]ratel|zákazník|customer|bill to)\s*:?[\s.-]*$|(?:ičo|ico|dič|dic|ulice|adresa|tel|telefon|e-mail|email)(?=\s|:|$))/i;
   const name = section.find(line => {
+    const strippedLine = stripDiacritics(line);
     const normalized = normalizeComparable(line);
-    return line.length >= 3 && !ignoredName.test(line) && !/@/.test(line) && !/^\d/.test(line) && normalized !== normalizeComparable(organization.name);
+    return line.length >= 3 && !IGNORED_NAME_LINE.test(strippedLine) && !/@/.test(line) && !/^\d/.test(line) && normalized !== normalizeComparable(organization.name);
   }) ?? "";
 
   return {
@@ -311,10 +366,10 @@ function findCounterparty(lines: string[], text: string, organization: InvoiceOc
   };
 }
 
-function documentKind(text: string): OcrDocumentKind {
-  if (/dobropis|opravný\s+daňový\s+doklad/i.test(text)) return "credit_note";
-  if (/proforma|zálohov[áý]\s+faktura/i.test(text)) return "proforma";
-  if (/faktura|f\s+a\s+k\s+t\s+u\s+r\s+a|daňový\s+doklad/i.test(text)) return "issued_invoice";
+function documentKind(strippedText: string): OcrDocumentKind {
+  if (/dobropis|opravny\s+danovy\s+doklad|credit\s+note/.test(strippedText)) return "credit_note";
+  if (/proforma|zalohov[ay]\s+faktura|pro\s*forma/.test(strippedText)) return "proforma";
+  if (/faktura|f\s+a\s+k\s+t\s+u\s+r\s+a|danovy\s+doklad|invoice|tax\s+document/.test(strippedText)) return "issued_invoice";
   return "other";
 }
 
@@ -371,7 +426,7 @@ function bestSource(
   let selected: { line: OcrLayoutLine; score: number } | null = null;
 
   for (const line of lines) {
-    let score = options.labels?.test(line.text) ? 40 : 0;
+    let score = options.labels?.test(stripDiacritics(line.text)) ? 40 : 0;
     if (kind === "date") score += parseDate(line.text) === value ? 80 : 0;
     else if (kind === "amount" && numeric !== null) {
       score += amountsFromLine(line.text).some(amount => Math.abs(amount.value - numeric) < 0.011) ? 80 : 0;
@@ -396,33 +451,60 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
 }): InvoiceOcrResult {
   const text = normalizeOcrText(sourceText);
   const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+  // Label matching runs against this diacritic-stripped, lowercased parallel
+  // array (see stripDiacritics above) so wording variants and OCR-mangled
+  // accents both still match; values (digits, amounts, dates) are read from
+  // the same stripped line since none of them are accent-sensitive.
+  const strippedLines = lines.map(stripDiacritics);
+  const strippedText = strippedLines.join("\n");
   const warnings = [...extraWarnings];
-  const kind = documentKind(text);
+  const kind = documentKind(strippedText);
   const issuerMatch = issuerMatches(text, organization);
 
-  const invoiceNumber = findValue(lines,
+  const invoiceNumber = findValue(lines, strippedLines,
     [
-      /číslo\s+(?:faktury|dokladu)/i,
-      /^faktura\s*[:#.-]+\s*(?=[A-Z0-9./_-]*\d)/i,
-      /faktura\s*[-–—]?\s*(?:daňový\s+doklad\s*)?(?:č(?:íslo)?\.?|no\.?|number)\s*[:#.-]?/i,
-      /faktura\s*[-–—]?\s*(?:danovy\s+doklad\s*)?(?:c\.?|cislo|no\.?|number)\s*[:#.-]?/i,
-      /invoice\s*(?:no|number)/i,
+      /cislo\s+(?:faktury|dokladu|dd)/,
+      /^faktura\s*[:#.-]+\s*(?=[a-z0-9./_-]*\d)/,
+      /\bfa\.?\s*(?:c\.?|cislo)\s*[:#.-]?/,
+      /\bfaktura\b\s*[-–—]?\s*(?:danovy\s+doklad\s*)?(?:c(?:islo)?\.?|no\.?|number|#)\s*[:#.-]?/,
+      /\bdanovy\s+doklad\b\s*(?:c(?:islo)?\.?|no\.?)?\s*[:#.-]?/,
+      /\bdoklad\b\s*(?:c(?:islo)?\.?|no\.?)\s*[:#.-]?/,
+      /\binvoice\b\s*(?:no\.?|number|#)/,
+      /\binv\.?\s*(?:no\.?|#)\b/,
     ],
-    /([A-Z0-9][A-Z0-9./_-]{2,})/i);
-  const variableSymbol = findValue(lines, [/variabilní\s+symbol/i, /var\.?\s*symbol/i, /^VS\b/i], /(\d{3,20})/);
-  const issueDate = findLabeledDate(lines, [/datum\s+vystavení/i, /vystaven[oa]/i, /issue\s+date/i]);
-  let dueDate = findLabeledDate(lines, [/datum\s+splatnosti/i, /splatnost/i, /due\s+date/i]);
+    /([A-Z0-9][A-Z0-9./_-]{2,})/i,
+    // A real invoice number always has at least one digit. Without this, a
+    // label match on a line whose actual number lives elsewhere (e.g. two
+    // PDF columns collapsed onto one text line by layout reconstruction)
+    // could pick up a neighboring plain word instead -- e.g. "Dodavatel"
+    // ("Supplier") on an invoice layout that isn't this app's own template.
+    true);
+  const variableSymbol = findValue(lines, strippedLines, [/variabilni\s+symbol/, /\bvar\.?\s*symbol/, /^vs\b/, /\bv\.?s\.?\s*[:#.-]/], /(\d{3,20})/);
+  const issueDate = findLabeledDate(lines, strippedLines, [
+    /datum\s+vystaveni/, /den\s+vystaveni/, /vystaveno\s+dne/, /vystaven[oa]/, /vydano\s+dne/,
+    /issue\s*date/, /date\s+of\s+issue/, /invoice\s+date/,
+  ]);
+  let dueDate = findLabeledDate(lines, strippedLines, [
+    /datum\s+splatnosti/, /splatnost/, /splatn[ae]\s+dne/, /uhradte\s+do/, /splatit\s+do/,
+    /due\s*date/, /payment\s+due/, /maturity\s+date/,
+  ]);
   if (dueDate && issueDate && dueDate < issueDate) {
     warnings.push("Datum splatnosti je dřívější než datum vystavení a nebylo předvyplněno.");
     dueDate = "";
   }
 
   const vatSummary = findVatSummary(lines);
-  const gross = findLabeledAmount(lines, [/celkem\s+k\s+[úu]hrad[ěe]/i, /částka\s+k\s+[úu]hrad[ěe]/i, /k\s+[úu]hrad[ěe]/i, /celkem\s+s\s+dph/i, /grand\s+total/i, /total\s+due/i])
-    ?? vatSummary?.gross ?? null;
+  const gross = findLabeledAmount(lines, strippedLines, [
+    /celkem\s+k\s+uhrad[ae]/, /castka\s+k\s+uhrad[ae]/, /k\s+uhrad[ae]/, /celkem\s+s\s+dph/,
+    /celkem\s+k\s+platb[ae]/, /k\s+proplaceni/, /celkem\s+kc/,
+    /grand\s+total/, /total\s+due/, /total\s+amount/, /amount\s+due/, /balance\s+due/,
+  ]) ?? vatSummary?.gross ?? null;
   const net = vatSummary?.net
-    ?? findLabeledAmount(lines, [/celkem\s+bez\s+dph/i, /částka\s+bez\s+dph/i, /základ\s+daně/i, /základ\s+dph/i, /tax\s+base/i, /subtotal/i])
-    ?? findFirstLabeledAmount(lines, [/součet\s+položek/i, /souhrn\s+položek/i])
+    ?? findLabeledAmount(lines, strippedLines, [
+      /celkem\s+bez\s+dph/, /castka\s+bez\s+dph/, /cena\s+bez\s+dph/, /zaklad\s+dane/, /zaklad\s+dph/,
+      /tax\s+base/, /subtotal/, /net\s+amount/, /mezisoucet/,
+    ])
+    ?? findFirstLabeledAmount(lines, strippedLines, [/soucet\s+polozek/, /souhrn\s+polozek/])
     ?? null;
   const explicitVatRates = uniqueMatches(text, /(?:sazba\s+dph|dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%/giu, value => String(parseMoney(value) ?? ""));
   const vatRecap = text.split(/rekapitulace\s+dph/i)[1] ?? "";
@@ -435,13 +517,22 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   let amountWithoutVat = net?.value ?? 0;
   let vatRate = distinctVatRates.length === 1 ? distinctVatRates[0] : 0;
   if (amount && amountWithoutVat) {
-    const effectiveRate = amount >= amountWithoutVat && amountWithoutVat > 0
-      ? roundMoney((amount / amountWithoutVat - 1) * 100)
-      : 0;
-    if (distinctVatRates.length > 1) {
+    const effectiveRate = amountWithoutVat > 0 ? roundMoney((amount / amountWithoutVat - 1) * 100) : -1;
+    // A real Czech VAT rate never exceeds ~30%. If the captured "net" total
+    // implies anything wildly outside that, it almost certainly isn't the
+    // real subtotal at all (e.g. a quantity or item count picked up from an
+    // unfamiliar invoice layout) rather than a genuine multi-rate invoice --
+    // trust the (more specifically labeled) gross total instead of silently
+    // showing a nonsensical net/rate pair.
+    const plausible = effectiveRate >= 0 && effectiveRate <= 100;
+    if (!plausible) {
+      amountWithoutVat = amount;
+      vatRate = distinctVatRates.length === 1 ? distinctVatRates[0] : 0;
+      warnings.push("Základ bez DPH nebyl spolehlivě rozpoznán (nalezená hodnota neodpovídala celkové částce). Zkontrolujte a doplňte správnou částku bez DPH.");
+    } else if (distinctVatRates.length > 1) {
       vatRate = effectiveRate;
       warnings.push("Faktura obsahuje více sazeb DPH. Předvyplněna je efektivní sazba z celkových částek.");
-    } else if (!vatAmountsMatch(amountWithoutVat, vatRate, amount) && effectiveRate >= 0 && effectiveRate <= 100) {
+    } else if (!vatAmountsMatch(amountWithoutVat, vatRate, amount)) {
       vatRate = effectiveRate;
       warnings.push("Sazba DPH byla dopočítána z celkových částek; před uložením ji zkontrolujte.");
     }
@@ -457,7 +548,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     warnings.push("Celková částka nebyla jednoznačně nalezena. Byla použita částka bez DPH.");
   }
 
-  const counterparty = findCounterparty(lines, text, organization);
+  const counterparty = findCounterparty(lines, strippedLines, text, organization);
   const currency = gross?.currency ?? net?.currency
     ?? currencyCode(text.match(/(?:^|[\s(])(CZK|Kč|EUR|USD|GBP|PLN|CHF)(?=$|[\s):])/m)?.[1])
     ?? "CZK";
@@ -475,17 +566,17 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const fieldConfidence = required.filter(Boolean).length / required.length;
   const confidence = Math.max(0, Math.min(1, roundMoney(ocrConfidence === null ? fieldConfidence : fieldConfidence * 0.75 + ocrConfidence / 100 * 0.25)));
   const documentLayout = layout ?? fallbackLayout(text);
-  const grossSource = bestSource(documentLayout, amount, { kind: "amount", labels: /k\s+[úu]hrad[ěe]|celkem\s+s\s+dph|grand\s+total|total\s+due/i });
-  const netSource = bestSource(documentLayout, amountWithoutVat, { kind: "amount", labels: /bez\s+dph|základ|subtotal|součet\s+položek/i });
-  const vatSource = bestSource(documentLayout, vatRate, { kind: "amount", labels: /dph|vat/i });
+  const grossSource = bestSource(documentLayout, amount, { kind: "amount", labels: /k\s+uhrad[ae]|celkem\s+s\s+dph|k\s+platb[ae]|k\s+proplaceni|grand\s+total|total\s+due|total\s+amount|amount\s+due|balance\s+due/ });
+  const netSource = bestSource(documentLayout, amountWithoutVat, { kind: "amount", labels: /bez\s+dph|zaklad|subtotal|soucet\s+polozek|tax\s+base|net\s+amount/ });
+  const vatSource = bestSource(documentLayout, vatRate, { kind: "amount", labels: /dph|vat/ });
   const fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>> = {
-    invoice_number: bestSource(documentLayout, invoiceNumber, { labels: /číslo\s+(?:faktury|dokladu)|invoice\s*(?:no|number)|faktura/i }) ?? undefined,
-    variable_symbol: bestSource(documentLayout, variableSymbol, { kind: "digits", labels: /variabilní\s+symbol|var\.?\s*symbol|^VS\b/i }) ?? undefined,
-    issue_date: bestSource(documentLayout, issueDate, { kind: "date", labels: /datum\s+vystavení|vystaven[oa]|issue\s+date/i }) ?? undefined,
-    due_date: bestSource(documentLayout, dueDate, { kind: "date", labels: /splatnost|due\s+date/i }) ?? undefined,
-    counterparty_name: bestSource(documentLayout, counterparty.name, { labels: /odb[ěé]ratel|zákazník|customer|bill\s+to/i }) ?? undefined,
-    counterparty_ico: bestSource(documentLayout, counterparty.ico, { kind: "digits", labels: /i[čc]o?|ico|ID/i }) ?? undefined,
-    counterparty_dic: bestSource(documentLayout, counterparty.dic, { labels: /di[čc]|vat/i }) ?? undefined,
+    invoice_number: bestSource(documentLayout, invoiceNumber, { labels: /cislo\s+(?:faktury|dokladu)|invoice\s*(?:no|number)|faktura|danovy\s+doklad/ }) ?? undefined,
+    variable_symbol: bestSource(documentLayout, variableSymbol, { kind: "digits", labels: /variabilni\s+symbol|var\.?\s*symbol|^vs\b/ }) ?? undefined,
+    issue_date: bestSource(documentLayout, issueDate, { kind: "date", labels: /datum\s+vystaveni|vystaven[oa]|issue\s*date|invoice\s+date/ }) ?? undefined,
+    due_date: bestSource(documentLayout, dueDate, { kind: "date", labels: /splatnost|due\s*date|maturity\s+date/ }) ?? undefined,
+    counterparty_name: bestSource(documentLayout, counterparty.name, { labels: COUNTERPARTY_HEADING }) ?? undefined,
+    counterparty_ico: bestSource(documentLayout, counterparty.ico, { kind: "digits", labels: /ico|i[0o]{2}|id/ }) ?? undefined,
+    counterparty_dic: bestSource(documentLayout, counterparty.dic, { labels: /dic|vat/ }) ?? undefined,
     counterparty_email: bestSource(documentLayout, counterparty.email) ?? undefined,
     amount_without_vat: netSource ?? (grossSource ? { ...grossSource, method: "derived" } : undefined),
     vat_rate: vatSource ?? (grossSource ? { ...grossSource, method: "derived" } : undefined),

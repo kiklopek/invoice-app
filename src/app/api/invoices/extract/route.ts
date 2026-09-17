@@ -4,7 +4,7 @@ import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document
 import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, parseInvoiceText } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { normalizeCounterpartyIco, resolveOcrReminderPolicy } from "@/lib/counterparty-reminder-preferences";
+import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
   if (preferenceError || policiesError) {
     return fail("Kategorii upomínek podle IČO se nepodařilo načíst. Zkontrolujte databázovou migraci.", 503, "reminder_preference_load_failed");
   }
-  const reminderPolicyAssignment = resolveOcrReminderPolicy({
+  const reminderPolicyAssignment = resolveReminderPolicyPreference({
     counterpartyIco: normalizedIco,
     preferredPolicyId: preference?.reminder_policy_id,
     policies: policies ?? [],

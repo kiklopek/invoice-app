@@ -158,6 +158,18 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
     1,
     ...(report?.aging.map((bucket) => Number(bucket.amount)) ?? []),
   );
+  const maxMonthly = Math.max(
+    1,
+    ...(report?.monthly.flatMap((month) => [Number(month.issued), Number(month.paid)]) ?? []),
+  );
+  const monthLabel = (key: string) => {
+    const [year, month] = key.split("-").map(Number);
+    return new Intl.DateTimeFormat("cs-CZ", { month: "long", year: "numeric" }).format(new Date(year, (month || 1) - 1, 1));
+  };
+  const monthAxisLabel = (key: string) => {
+    const [year, month] = key.split("-").map(Number);
+    return new Intl.DateTimeFormat("cs-CZ", { month: "short" }).format(new Date(year, (month || 1) - 1, 1)) + " " + String(year).slice(2);
+  };
   const companyName = profile?.companyName || "R. Hlavica s.r.o.";
   const selectedStatus = status === "all" ? "Všechny stavy" : statusNames[status];
   const selectedCustomer = customer === "all" ? "Všichni odběratelé" : customer;
@@ -380,6 +392,34 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
                 ))}
               </div>
             </section>
+            {report.monthly.length > 0 && (
+              <section className="page-panel analytics-card report-monthly-card">
+                <header>
+                  <div>
+                    <h2>Vystaveno a uhrazeno podle měsíce</h2>
+                    <p>Srovnání vystavených a uhrazených částek v období</p>
+                  </div>
+                </header>
+                <div className="monthly-chart">
+                  {report.monthly.map((month) => (
+                    <div key={month.key}>
+                      <div
+                        className="month-bars"
+                        title={`${monthLabel(month.key)}: vystaveno ${money(Number(month.issued), currency)}, uhrazeno ${money(Number(month.paid), currency)}`}
+                      >
+                        <i className="issued" style={{ height: `${(Number(month.issued) / maxMonthly) * 100}%` }} />
+                        <i className="paid-bar" style={{ height: `${(Number(month.paid) / maxMonthly) * 100}%` }} />
+                      </div>
+                      <span>{monthAxisLabel(month.key)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="chart-legend">
+                  <span><i className="legend-issued" />Vystaveno</span>
+                  <span><i className="legend-paid" />Uhrazeno</span>
+                </div>
+              </section>
+            )}
             <section className="page-panel analytics-card full">
               <header>
                 <div>

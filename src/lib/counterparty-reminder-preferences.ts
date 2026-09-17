@@ -11,7 +11,11 @@ export function normalizeCounterpartyIco(value: string | null | undefined) {
   return /^\d{8}$/.test(normalized) ? normalized : null;
 }
 
-export function resolveOcrReminderPolicy({
+// Despite the "Ocr" in the payload type's name (kept for now to avoid a wider
+// rename), this resolver is source-agnostic: it's used both by the OCR
+// extract flow and by manual invoice creation/editing to look up whichever
+// reminder policy was last used for a given counterparty IČO.
+export function resolveReminderPolicyPreference({
   counterpartyIco,
   preferredPolicyId,
   policies,

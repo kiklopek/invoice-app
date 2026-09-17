@@ -16,7 +16,7 @@ import {
 import {
   buildEffectiveReminderSchedule,
   decideReminderAction,
-  isLatestEligibleReminder,
+  evaluateReminderEligibility,
   MAX_AUTOMATIC_REMINDER_ATTEMPTS,
   todayInTimeZone,
   type ExistingReminderLog,
@@ -349,13 +349,11 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
 
     const invoice = currentInvoice as (Invoice & InvoiceReminderPolicy) | null;
     const suppressed = invoice ? suppressedRecipients.has(`${job.organization_id}\0${invoice.counterparty_email.toLowerCase()}`) : false;
-    const schedule = invoice
-      ? buildEffectiveReminderSchedule(invoice.due_date, invoice.reminder_days_snapshot ?? DEFAULT_THRESHOLDS, invoice.reminder_plan_effective_from)
-      : [];
-    const valid = Boolean(invoice && ["pending", "overdue"].includes(invoice.status) && !invoice.reminders_paused
-      && invoice.reminder_policy?.is_active !== false && !suppressed
-      && isLatestEligibleReminder(schedule, today, job.scheduled_for, job.stage));
-    if (!valid || !invoice) {
+    const eligibility = invoice
+      ? evaluateReminderEligibility({ invoice, suppressed, today, scheduledFor: job.scheduled_for, stage: job.stage })
+      : { eligible: false as const, reason: "invoice_not_open" as const };
+    const schedule = eligibility.eligible ? eligibility.schedule : [];
+    if (!eligibility.eligible || !invoice) {
       await db.rpc("skip_claimed_reminder_job", { target_log_id: job.id, target_lease_token: job.lease_token, skipped_time: new Date().toISOString() });
       incrementOrganization(job.organization_id, "skipped");
       continue;

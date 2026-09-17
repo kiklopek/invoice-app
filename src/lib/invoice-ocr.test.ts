@@ -173,7 +173,196 @@ Email : kostihova@hlavica.cz, web : www.hlavica.cz
     expect(result.warnings.join(" ")).toContain("E-mail odběratele nebyl rozpoznán");
   });
 
+  it("skips a non-numeric label neighbor (e.g. a merged column header) and finds the real invoice number", () => {
+    // Layouts other than this app's own template can collapse a two-column
+    // header row ("Číslo faktury" on the left, a "Dodavatel"/"Odběratel"
+    // column heading on the right) onto one reconstructed text line. The
+    // actual number then only appears on the next line.
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Číslo faktury Dodavatel
+FV2026099
+Odběratel: Soukromá osoba s.r.o.
+E-mail: info@soukroma.cz
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 16. 9. 2026
+Celkem k úhradě 15 660,00 Kč
+`,
+      fileUrl: "org/other-template.pdf",
+      organization,
+    });
+    expect(result.invoice.invoice_number).toBe("FV2026099");
+    expect(result.invoice.invoice_number).not.toBe("Dodavatel");
+  });
+
+  it("discards an implausible net amount instead of silently pairing it with the wrong VAT rate", () => {
+    // On an unfamiliar layout, "Základ daně" can end up matched to an
+    // unrelated small number (e.g. a quantity column) rather than the real
+    // subtotal. Pairing that with the correct gross total would imply an
+    // absurd VAT rate (over 100 000%) -- the parser should recognize that as
+    // implausible and fall back to the gross amount instead of an invented
+    // near-zero net total.
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Číslo faktury: FV2026100
+Odběratel: Soukromá osoba
+E-mail: info@soukroma.cz
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 16. 9. 2026
+Základ daně 6 ks
+Celkem k úhradě 15 660,00 Kč
+`,
+      fileUrl: "org/other-template-2.pdf",
+      organization,
+    });
+    expect(result.invoice.amount).toBe(15660);
+    expect(result.invoice.amount_without_vat).toBe(15660);
+    expect(result.invoice.vat_rate).toBe(0);
+    expect(result.warnings.join(" ")).toContain("Základ bez DPH nebyl spolehlivě rozpoznán");
+  });
+
   it("normalizes Unicode, whitespace and Czech punctuation without losing diacritics", () => {
     expect(normalizeOcrText("  Částka\u00a0–\u00a010 000 Kč  \n\n\n Splatnost ")).toBe("Částka - 10 000 Kč\n\nSplatnost");
+  });
+
+  describe("robustness across unfamiliar invoice layouts", () => {
+    it("reads a fully unaccented Czech invoice (diacritics stripped by the source system, not OCR)", () => {
+      const result = parseInvoiceText({
+        text: `
+FAKTURA - DANOVY DOKLAD
+Cislo faktury: FV2026500
+Variabilni symbol: 2026500
+Datum vystaveni: 03.09.2026
+Datum splatnosti: 17.09.2026
+Odberatel: Bezdiakritika s.r.o.
+ICO: 11223344
+DIC: CZ11223344
+E-mail: info@bezdiakritika.cz
+Zaklad dane 5 000,00 Kc
+DPH 21 %
+Celkem k uhrade 6 050,00 Kc
+`,
+        fileUrl: "org/unaccented.pdf",
+        organization,
+      });
+      expect(result.invoice).toMatchObject({
+        invoice_number: "FV2026500",
+        counterparty_name: "Bezdiakritika s.r.o.",
+        counterparty_ico: "11223344",
+        counterparty_dic: "CZ11223344",
+        counterparty_email: "info@bezdiakritika.cz",
+        variable_symbol: "2026500",
+        amount_without_vat: 5000,
+        vat_rate: 21,
+        amount: 6050,
+        currency: "CZK",
+        issue_date: "2026-09-03",
+        due_date: "2026-09-17",
+      });
+    });
+
+    it("reads an English-labeled invoice with a differently ordered layout", () => {
+      const result = parseInvoiceText({
+        text: `
+TAX INVOICE
+Invoice number: INV-2026-042
+Issue date: 2026-09-01
+Due date: 2026-09-15
+Bill to: Global Buyer Ltd.
+ICO: 99887766
+VAT: CZ99887766
+Email: accounts@globalbuyer.com
+Subtotal 2 000,00 EUR
+VAT 21 %
+Total due 2 420,00 EUR
+`,
+        fileUrl: "org/english.pdf",
+        organization,
+      });
+      expect(result.invoice).toMatchObject({
+        invoice_number: "INV-2026-042",
+        counterparty_name: "Global Buyer Ltd.",
+        counterparty_ico: "99887766",
+        counterparty_dic: "CZ99887766",
+        counterparty_email: "accounts@globalbuyer.com",
+        amount_without_vat: 2000,
+        vat_rate: 21,
+        amount: 2420,
+        currency: "EUR",
+        issue_date: "2026-09-01",
+        due_date: "2026-09-15",
+      });
+    });
+
+    it("reads alternate Czech wording for dates, amounts and the customer heading", () => {
+      const result = parseInvoiceText({
+        text: `
+DAŇOVÝ DOKLAD č. 700321
+Objednatel: Alternativní zákazník a.s.
+IČO: 55667788
+DIČ: CZ55667788
+E-mail: fakturace@alt-zakaznik.cz
+Vystaveno dne: 10.9.2026
+Uhraďte do: 24.9.2026
+Cena bez DPH 8 000,00 Kč
+DPH 21 %
+Celkem k platbě 9 680,00 Kč
+`,
+        fileUrl: "org/alt-wording.pdf",
+        organization,
+      });
+      expect(result.invoice).toMatchObject({
+        invoice_number: "700321",
+        counterparty_name: "Alternativní zákazník a.s.",
+        counterparty_ico: "55667788",
+        counterparty_dic: "CZ55667788",
+        counterparty_email: "fakturace@alt-zakaznik.cz",
+        amount_without_vat: 8000,
+        vat_rate: 21,
+        amount: 9680,
+        issue_date: "2026-09-10",
+        due_date: "2026-09-24",
+      });
+    });
+
+    it("does not corrupt the Kč currency symbol when amount labels are diacritic-stripped for matching", () => {
+      const result = parseInvoiceText({
+        text: `
+FAKTURA
+Číslo faktury: FV2026600
+Odběratel: Test Zákazník s.r.o.
+E-mail: test@zakaznik.cz
+Datum vystavení: 1. 9. 2026
+Datum splatnosti: 15. 9. 2026
+Základ daně 1 000,00 Kč
+Celkem k úhradě 1 210,00 Kč
+`,
+        fileUrl: "org/kc-currency.pdf",
+        organization,
+      });
+      expect(result.invoice.currency).toBe("CZK");
+      expect(result.invoice.amount_without_vat).toBe(1000);
+      expect(result.invoice.amount).toBe(1210);
+    });
+
+    it("preserves the original invoice number's case and accented company name despite diacritic-insensitive label matching", () => {
+      const result = parseInvoiceText({
+        text: `
+FAKTURA
+Cislo dokladu: aB-2026/Rr
+Odberatel:Ářčšěžý s.r.o.
+E-mail: info@arcsezy.cz
+Datum vystaveni: 5. 9. 2026
+Datum splatnosti: 19. 9. 2026
+Celkem k uhrade 1 000,00 Kc
+`,
+        fileUrl: "org/case-preserving.pdf",
+        organization,
+      });
+      expect(result.invoice.invoice_number).toBe("aB-2026/Rr");
+      expect(result.invoice.counterparty_name).toBe("Ářčšěžý s.r.o.");
+    });
   });
 });

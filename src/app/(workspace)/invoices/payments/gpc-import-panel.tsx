@@ -110,6 +110,12 @@ export function GpcImportPanel({
   );
   const [archive, setArchive] = useState<ArchiveItem[]>([]);
   const [selectedFilename, setSelectedFilename] = useState("");
+  // Each statement file becomes its own separate import (own preview/review/
+  // commit) -- multi-file selection just queues them so the accountant can
+  // work through several statements back-to-back without re-opening the
+  // file picker each time, reusing this same single-import review flow.
+  const [fileQueue, setFileQueue] = useState<File[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
   const previewImportId = preview?.import.id;
 
   useEffect(() => {
@@ -266,6 +272,17 @@ export function GpcImportPanel({
     }
   }
 
+  function continueQueue() {
+    const nextIndex = queueIndex + 1;
+    if (nextIndex >= fileQueue.length) {
+      setFileQueue([]);
+      setQueueIndex(0);
+      return;
+    }
+    setQueueIndex(nextIndex);
+    void upload(fileQueue[nextIndex]);
+  }
+
   function allocationInfo(entry: PreviewEntry) {
     const ids = selected[entry.fingerprint] ?? [];
     const paymentAmount = Number(entry.amount ?? 0);
@@ -414,13 +431,21 @@ export function GpcImportPanel({
             <label className={`gpc-dropzone ${working ? "is-working" : ""}`}>
               <input
                 type="file"
+                multiple
                 accept=".gpc,.csv,application/octet-stream,text/plain,text/csv"
                 disabled={!canManage || working}
-                onChange={(event) => upload(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  if (!files.length) return;
+                  setFileQueue(files);
+                  setQueueIndex(0);
+                  void upload(files[0]);
+                }}
               />
               <span className="gpc-dropzone-icon"><Icon name="upload" /></span>
-              <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Vyberte soubor .gpc nebo .csv"}</strong>
+              <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Vyberte soubor (lze i více najednou)"}</strong>
               <small>{canManage ? "Klikněte a vyberte soubor z počítače" : "Import vyžaduje roli účetní nebo administrátor"}</small>
+              {fileQueue.length > 1 && <small className="gpc-queue-progress">Výpis {Math.min(queueIndex + 1, fileQueue.length)} z {fileQueue.length}</small>}
             </label>
           </div>
           <aside className="gpc-safety-card">
@@ -458,6 +483,11 @@ export function GpcImportPanel({
         </div>
         {error && <p className="form-error">{error}</p>}
         {done && <p className="form-success">{done}</p>}
+        {done && queueIndex + 1 < fileQueue.length && (
+          <button type="button" className="btn primary" onClick={continueQueue}>
+            Pokračovat dalším výpisem ({queueIndex + 2} z {fileQueue.length})
+          </button>
+        )}
         {preview && (
           <div className="gpc-preview">
             {preview.import.duplicate && (

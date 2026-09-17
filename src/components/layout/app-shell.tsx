@@ -7,7 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
 import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
-import { canAccessPage, landingPageForRole } from "@/lib/role-access";
+import { canAccessPage, landingPageForRole, roleNames } from "@/lib/role-access";
 import { AccessProfileProvider, useAccessProfile, type AccessProfile } from "@/lib/use-access-role";
 import { profileInitials } from "@/lib/user-display";
 import "./mobile-navigation.css";
@@ -77,7 +77,7 @@ export function AppSidebar({ invoiceCount, initialProfile }: { invoiceCount?: nu
         <div className="mobile-account-popover">
           <div>
             <strong>{profile?.name ?? "Uživatel"}</strong>
-            <small>{profile?.companyName ?? ""}</small>
+            <small>{profile?.companyName ?? ""}{profile && role ? ` · ${roleNames[role]}` : ""}</small>
           </div>
           {logoutError && <p role="alert">{logoutError}</p>}
           <button type="button" onClick={signOut} disabled={signingOut}>
@@ -92,7 +92,7 @@ export function AppSidebar({ invoiceCount, initialProfile }: { invoiceCount?: nu
           <div className="avatar">{profile ? profileInitials(profile.name, profile.email) : "…"}</div>
           <div className="user-card-details" title={profile ? `${profile.name}\n${profile.companyName}` : undefined}>
             <strong>{profile?.name ?? "Načítám uživatele…"}</strong>
-            <small>{profile?.companyName ?? ""}</small>
+            <small>{profile?.companyName ?? ""}{profile && role ? ` · ${roleNames[role]}` : ""}</small>
           </div>
           <button type="button" onClick={signOut} disabled={signingOut} aria-label={signingOut ? "Odhlašuji" : "Odhlásit se"} title={signingOut ? "Odhlašuji…" : "Odhlásit se"}>
             <Icon name="logout"/><span>{signingOut ? "Odhlašuji…" : "Odhlásit"}</span>

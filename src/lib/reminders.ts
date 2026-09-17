@@ -126,3 +126,46 @@ export function isLatestEligibleReminder(
   const latest = schedule.filter(entry => compareDate(entry.scheduledFor, today) <= 0).at(-1);
   return latest?.scheduledFor === scheduledFor && latest.stage === stage;
 }
+
+export const DEFAULT_REMINDER_THRESHOLDS = [-3, 0, 7, 14];
+
+export type ReminderIneligibleReason =
+  | "invoice_not_open"
+  | "reminders_paused"
+  | "policy_inactive"
+  | "suppressed"
+  | "schedule_stale";
+
+export interface ReminderEligibilityInvoice {
+  status: string;
+  reminders_paused: boolean;
+  due_date: string;
+  reminder_days_snapshot?: number[] | null;
+  reminder_plan_effective_from?: string | null;
+  reminder_policy?: { is_active?: boolean | null } | null;
+}
+
+// Shared by the cron worker (src/app/api/cron/check-due/route.ts) and the manual
+// retry route (src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts) so
+// the two places that decide "is this reminder still safe to send" can't drift
+// apart and silently reintroduce a double-send or a permanently-stuck reminder.
+export function evaluateReminderEligibility(params: {
+  invoice: ReminderEligibilityInvoice;
+  suppressed: boolean;
+  today: string;
+  scheduledFor: string;
+  stage: ReminderStage;
+}): { eligible: true; schedule: ReminderScheduleEntry[] } | { eligible: false; reason: ReminderIneligibleReason } {
+  const { invoice, suppressed, today, scheduledFor, stage } = params;
+  if (!["pending", "overdue"].includes(invoice.status)) return { eligible: false, reason: "invoice_not_open" };
+  if (invoice.reminders_paused) return { eligible: false, reason: "reminders_paused" };
+  if (invoice.reminder_policy?.is_active === false) return { eligible: false, reason: "policy_inactive" };
+  if (suppressed) return { eligible: false, reason: "suppressed" };
+  const schedule = buildEffectiveReminderSchedule(
+    invoice.due_date,
+    invoice.reminder_days_snapshot ?? DEFAULT_REMINDER_THRESHOLDS,
+    invoice.reminder_plan_effective_from,
+  );
+  if (!isLatestEligibleReminder(schedule, today, scheduledFor, stage)) return { eligible: false, reason: "schedule_stale" };
+  return { eligible: true, schedule };
+}

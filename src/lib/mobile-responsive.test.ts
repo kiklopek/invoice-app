@@ -33,6 +33,7 @@ describe("mobile application layout", () => {
     expect(source("src/components/layout/app-shell.tsx").match(/href: "\//g)).toHaveLength(7);
     expect(source("src/components/layout/app-shell.tsx")).toContain('className="mobile-account-trigger"');
     expect(source("src/components/layout/app-shell.tsx")).toContain("Odhlásit se");
+    expect(css).toContain(".mobile-account-popover > div strong { color: var(--ink);");
     expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/invoices/payments"] { grid-column: 3 / 5; }');
     expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/reminders"] { grid-column: 10 / 12; }');
     expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/settings"] { grid-column: 12 / 14; }');
@@ -71,12 +72,19 @@ describe("mobile application layout", () => {
 
   it("keeps the reminders overview calm with accessible progressive disclosure", () => {
     expect(remindersPage).toContain('className="reminder-operations reminder-quick-stats"');
+    expect(remindersPage).toContain('className="section-header reminders-hero"');
+    expect(remindersPage).toContain("reminders-automation-card");
+    expect(remindersPage).toContain("reminder-stat-card is-scheduled");
+    expect(remindersPage).toContain("reminders-process-card");
     expect(remindersPage.match(/<details className=/g)).toHaveLength(2);
     expect(remindersPage).toContain("Provozní přehled a historie");
     expect(remindersPage).toContain("Texty e-mailů pro všechny kategorie");
     expect(remindersPage).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/);
     expect(css).toContain(".reminder-section-disclosure > summary:focus-visible");
     expect(css).toContain(".reminder-operations.reminder-quick-stats");
+    expect(css).toContain(".reminders-hero::after");
+    expect(css).not.toContain(".reminders-hero::before");
+    expect(css).not.toContain(".reminders-process-card::after");
     expect(css).toContain("grid-template-columns: 1fr");
   });
 
@@ -96,7 +104,7 @@ describe("mobile application layout", () => {
   it("turns operational wide tables into labeled mobile cards", () => {
     for (const path of [
       "src/app/(workspace)/invoices/import/page.tsx",
-      "src/app/(workspace)/invoices/payments/page.tsx",
+      "src/app/(workspace)/invoices/payments/payments-client.tsx",
       "src/app/(workspace)/reports/reports-client.tsx",
     ]) {
       expect(source(path)).toContain("data-label=");
@@ -104,6 +112,7 @@ describe("mobile application layout", () => {
     expect(css).toContain(".payment-preview-table table");
     expect(css).toContain(".debtor-table table");
     expect(css).toContain(".invoice-import-preview table");
+    expect(css).toContain(".payments-page .gpc-safety-card { display: none; }");
   });
 
   it("keeps Czech UI sources free of common mojibake sequences", () => {

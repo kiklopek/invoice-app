@@ -28,7 +28,7 @@ const nextConfig = {
   devIndicators: false,
   allowedDevOrigins: ["127.0.0.1"],
   outputFileTracingRoot: path.join(__dirname),
-  serverExternalPackages: ["@napi-rs/canvas", "sharp"],
+  serverExternalPackages: ["@napi-rs/canvas", "sharp", "tesseract.js", "pdfjs-dist"],
   outputFileTracingIncludes: {
     "/api/invoices/extract": ocrRuntimeFiles,
   },
