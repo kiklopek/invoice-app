@@ -40,6 +40,20 @@ describe("authentication flow", () => {
     expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false, requireLoginSession: false })");
   });
 
+  it("slides the remember-me window forward on every authenticated request instead of a fixed 30-day expiry", () => {
+    const proxy = source("src/proxy.ts");
+    expect(proxy).toContain("isRememberedLogin(request.cookies");
+    expect(proxy).toContain("createLoginSessionToken({");
+    expect(proxy).toContain("REMEMBER_LOGIN_COOKIE,");
+    expect(proxy).toContain("rememberedCookieOptions");
+    expect(proxy).toContain("maxAge: REMEMBER_LOGIN_TTL_SECONDS");
+    // The MFA-verified cookie must slide alongside it, otherwise a
+    // "remembered" user would still get bounced back to /mfa once the
+    // MFA cookie's own fixed 30-day stamp (set at login time) expired.
+    expect(proxy).toContain("createEmailMfaToken({");
+    expect(proxy).toContain("if (hasMfa && mfaSecret");
+  });
+
   it("confirms role changes and removals from the membership table", () => {
     const membersRoute = source("src/app/api/settings/members/route.ts");
     expect(membersRoute).toContain('console.error("Member role confirmation failed"');
@@ -53,7 +67,7 @@ describe("authentication flow", () => {
     const accessRoute = source("src/app/api/auth/access/route.ts");
     expect(login).toContain('window.location.assign(access.mfaBypassed ? "/dashboard" : "/mfa")');
     expect(login).toContain('fetch("/api/auth/session-preference"');
-    expect(login).toContain("Zapamatovat si mě na 30 dní");
+    expect(login).toContain("Zapamatovat si mě");
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
     expect(source("src/app/auth/callback/route.ts")).toContain("email: identity.membership.email");

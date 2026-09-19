@@ -3,15 +3,28 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedCorporateEmail } from "@/lib/auth-policy";
 import {
   EMAIL_MFA_COOKIE,
+  createEmailMfaToken,
   isEmailMfaBypassed,
   verifyEmailMfaToken,
 } from "@/lib/email-mfa-core";
 import {
   LOGIN_SESSION_COOKIE,
   REMEMBER_LOGIN_COOKIE,
+  REMEMBER_LOGIN_TTL_SECONDS,
+  createLoginSessionToken,
   hasActiveLoginSession,
+  isRememberedLogin,
 } from "@/lib/login-session";
 import type { Database } from "@/types/database";
+
+const rememberedCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  path: "/",
+  maxAge: REMEMBER_LOGIN_TTL_SECONDS,
+  priority: "high" as const,
+};
 
 function redirectWithCookies(url: URL, source: NextResponse) {
   const redirect = NextResponse.redirect(url);
@@ -130,6 +143,47 @@ export async function proxy(request: NextRequest) {
     }
 
     return redirectWithCookies(new URL("/login", request.url), response);
+  }
+
+  // "Zapamatovat si mě" dřív razítkovalo pevnou 30denní expiraci k okamžiku
+  // přihlášení, takže uživatel, co appku nepoužívá denně, "vypadl" dřív, než
+  // by od průběžně používaného "remember me" čekal. Místo toho posouváme
+  // okno na každém autentizovaném requestu od poslední aktivity -- stejně tak
+  // MFA cookie, pokud právě ona díky remember-login dostala 30denní platnost
+  // (jinak by po pár dnech nutila znovu projít MFA, i když si appka "pamatuje").
+  if (
+    user &&
+    sessionId &&
+    isRememberedLogin(request.cookies, {
+      userId: user.id,
+      sessionId,
+      secret: process.env.EMAIL_MFA_SECRET,
+    })
+  ) {
+    response.cookies.set(
+      REMEMBER_LOGIN_COOKIE,
+      createLoginSessionToken({
+        userId: user.id,
+        sessionId,
+        remember: true,
+        secret: process.env.EMAIL_MFA_SECRET,
+      }),
+      rememberedCookieOptions,
+    );
+
+    const mfaSecret = process.env.EMAIL_MFA_SECRET;
+    if (hasMfa && mfaSecret && mfaSecret.length >= 32) {
+      response.cookies.set(
+        EMAIL_MFA_COOKIE,
+        createEmailMfaToken({
+          userId: user.id,
+          sessionId,
+          secret: mfaSecret,
+          ttlSeconds: REMEMBER_LOGIN_TTL_SECONDS,
+        }),
+        rememberedCookieOptions,
+      );
+    }
   }
 
   // Veřejné stránky necháme být

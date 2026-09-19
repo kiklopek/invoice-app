@@ -105,7 +105,7 @@ export default function LoginPage() {
                 <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
                 <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
                 <div className="auth-login-options">
-                  <label className="auth-remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span>Zapamatovat si mě na 30 dní</span></label>
+                  <label className="auth-remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span>Zapamatovat si mě</span></label>
                   <Link href="/forgot-password">Obnovit heslo</Link>
                 </div>
                 <button type="submit" className="btn primary" disabled={submitting || !supabaseConfigured}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
