@@ -1392,6 +1392,82 @@ grant execute on function invoice_report_summary(uuid, uuid, date, date, text, t
 revoke all on function invoice_report_rows_page(uuid, uuid, date, date, text, text, text, text, integer, integer) from public, anon, authenticated;
 grant execute on function invoice_report_rows_page(uuid, uuid, date, date, text, text, text, text, integer, integer) to service_role;
 
+-- Payment-matching quality and import history for the reports page.
+-- proposal_confidence reflects the system's original proposal only (never
+-- updated by the later manual-review step), so this is an honest "how good
+-- was the automatic suggestion" metric, not "what did the accountant change".
+create or replace function payment_reconciliation_summary(
+  target_org uuid, actor_user uuid, report_from date, report_to date
+) returns jsonb language plpgsql security definer set search_path = public
+as $$
+declare result jsonb;
+begin
+  if not exists (select 1 from organization_members where organization_id = target_org and user_id = actor_user) then raise exception 'insufficient_permission'; end if;
+  if report_from > report_to then raise exception 'invalid_period'; end if;
+
+  with committed_imports as materialized (
+    select * from bank_statement_imports
+    where organization_id = target_org and status = 'committed'
+      and committed_at is not null
+      and (committed_at at time zone 'Europe/Prague')::date between report_from and report_to
+  ), entry_stats as (
+    select
+      bse.import_id,
+      count(*) filter (where bse.disposition = 'accepted') as accepted,
+      count(*) filter (where bse.disposition = 'accepted' and bse.proposal_confidence = 'safe') as auto_matched,
+      count(*) filter (where bse.disposition = 'accepted' and (bse.proposal_confidence = 'review' or bse.proposal_confidence is null)) as needs_review
+    from bank_statement_entries bse
+    where bse.organization_id = target_org
+      and bse.import_id in (select id from committed_imports)
+    group by bse.import_id
+  ), per_import as (
+    select ci.id, ci.original_filename, ci.committed_at, ci.accepted_count, ci.ignored_count, ci.error_count,
+      coalesce(es.auto_matched, 0) as auto_matched, coalesce(es.needs_review, 0) as needs_review
+    from committed_imports ci
+    left join entry_stats es on es.import_id = ci.id
+  ), monthly_values as (
+    select to_char(committed_at at time zone 'Europe/Prague', 'YYYY-MM') as month_key,
+      count(distinct id) as imports,
+      sum(accepted_count) as accepted,
+      sum(auto_matched) as auto_matched,
+      sum(needs_review) as needs_review
+    from per_import group by 1
+  )
+  select jsonb_build_object(
+    'totals', jsonb_build_object(
+      'imports', (select count(*) from per_import),
+      'accepted', coalesce((select sum(accepted_count) from per_import), 0),
+      'auto_matched', coalesce((select sum(auto_matched) from per_import), 0),
+      'needs_review', coalesce((select sum(needs_review) from per_import), 0),
+      'unmatched_payments', coalesce((
+        select count(*) from bank_payments
+        where organization_id = target_org and match_status = 'unmatched'
+          and booked_on between report_from and report_to
+      ), 0)
+    ),
+    'monthly', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'key', month_key, 'imports', imports, 'accepted', accepted,
+        'auto_matched', auto_matched, 'needs_review', needs_review
+      ) order by month_key)
+      from monthly_values
+    ), '[]'::jsonb),
+    'recent_imports', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', id, 'filename', original_filename, 'committed_at', committed_at,
+        'accepted_count', accepted_count, 'ignored_count', ignored_count, 'error_count', error_count,
+        'auto_matched', auto_matched, 'needs_review', needs_review
+      ) order by committed_at desc)
+      from (select * from per_import order by committed_at desc limit 10) r
+    ), '[]'::jsonb)
+  ) into result;
+  return result;
+end;
+$$;
+
+revoke all on function payment_reconciliation_summary(uuid, uuid, date, date) from public, anon, authenticated;
+grant execute on function payment_reconciliation_summary(uuid, uuid, date, date) to service_role;
+
 -- Bounded dashboard payload: aggregates plus only the visible recent and upcoming rows.
 create index if not exists invoices_org_created on invoices (organization_id, created_at desc, id desc);
 create index if not exists invoices_org_next_reminder on invoices (organization_id, next_reminder_at, id)
@@ -1742,6 +1818,82 @@ grant execute on function remember_ocr_reminder_policy() to service_role;
 create trigger remember_ocr_invoice_reminder_policy
 after insert or update of reminder_policy_id, counterparty_ico on invoices
 for each row execute function remember_ocr_reminder_policy();
+
+-- Durable customer/debtor registry keyed by IČO, kept in sync with invoices
+-- via a BEFORE trigger (unlike the AFTER-trigger remember_ocr_reminder_policy
+-- above, this must set NEW.customer_id on the row being written).
+create table customers (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references organizations(id) on delete cascade,
+  name text not null,
+  ico text check (ico is null or ico ~ '^[0-9]{8}$'),
+  dic text,
+  email text,
+  phone text,
+  notes text,
+  created_by uuid references auth.users(id) on delete set null,
+  updated_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (organization_id, ico)
+);
+
+create index customers_org_name_idx on customers (organization_id, name);
+
+alter table customers enable row level security;
+revoke all on table customers from public, anon, authenticated;
+grant select, insert, update, delete on table customers to service_role;
+
+comment on table customers is
+  'Durable customer/debtor registry keyed by normalized Czech ICO, kept in sync from invoices via remember_customer_from_invoice().';
+
+alter table invoices add column if not exists customer_id uuid references customers(id) on delete set null;
+create index invoices_org_customer_idx on invoices (organization_id, customer_id);
+
+create or replace function remember_customer_from_invoice()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  normalized_ico text := regexp_replace(coalesce(new.counterparty_ico, ''), '[^0-9]', '', 'g');
+  matched_customer_id uuid;
+begin
+  if normalized_ico ~ '^[0-9]{8}$' then
+    insert into public.customers (
+      organization_id, ico, name, dic, email, created_by, updated_by
+    ) values (
+      new.organization_id, normalized_ico, new.counterparty_name, new.counterparty_dic, new.counterparty_email,
+      coalesce(new.created_by, new.updated_by), coalesce(new.updated_by, new.created_by)
+    )
+    on conflict (organization_id, ico) do update
+    set name = excluded.name,
+        dic = excluded.dic,
+        email = excluded.email,
+        updated_by = excluded.updated_by,
+        updated_at = now()
+    returning id into matched_customer_id;
+    new.customer_id := matched_customer_id;
+  else
+    new.customer_id := null;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function remember_customer_from_invoice() from public, anon, authenticated;
+grant execute on function remember_customer_from_invoice() to service_role;
+
+create trigger remember_customer_from_invoice_trigger
+before insert or update on invoices
+for each row execute function remember_customer_from_invoice();
+
+-- One-time backfill: touch existing rows so the new BEFORE trigger runs
+-- against them and populates customer_id from their existing IČO.
+update invoices set counterparty_name = counterparty_name
+where customer_id is null and counterparty_ico ~ '^[0-9]{8}$';
 
 -- Supporting indexes for foreign keys used by cascades, joins and organization filters.
 create index bank_payments_imported_by_idx on bank_payments (imported_by);
