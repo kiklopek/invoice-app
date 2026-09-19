@@ -799,7 +799,7 @@ tr:hover td { background: #fafbf9; }
 .detail-page-grid { grid-template-columns: minmax(0, 1fr) minmax(310px, 380px); gap: 16px; }
 .detail-page-grid > div, .detail-page-grid > aside { gap: 12px; }
 .info-section { padding: 0 20px 20px; }
-.info-section > header { padding: 16px 20px; margin: 0 -20px 18px; }
+.info-section > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; margin: 0 -20px 18px; }
 .invoice-reminder-control { background: var(--green-soft); border: 1px solid #d3e1d7; border-radius: 8px; }
 .email-suppression {
   margin-bottom: 10px;
@@ -2818,6 +2818,18 @@ th,
 .customer-phone-edit button svg { width: 14px; height: 14px; }
 .customer-billing-cell strong { font-size: 10px; }
 .customer-billing-cell small { margin-top: 3px; color: var(--muted); font-size: 8px; }
+.customer-invoices-link { display: block; color: inherit; }
+.customer-invoices-link:hover strong { color: var(--green); text-decoration: underline; }
+/* Arriving from an invoice's "Karta zákazníka" link -- fades out on its own
+   so it never looks like a permanent status marker on the row. */
+.customer-row-highlight { animation: customer-row-highlight-fade 2.4s ease-out; }
+@keyframes customer-row-highlight-fade {
+  0% { background: var(--green-soft); }
+  100% { background: transparent; }
+}
+.info-section-link { font-size: 10px; font-weight: 700; color: var(--green); }
+.info-section-link:hover { text-decoration: underline; }
+.info-section-note { margin: 12px 0 0; color: var(--muted); font-size: 9px; }
 .outstanding-badge {
   display: inline-flex;
   padding: 3px 9px;

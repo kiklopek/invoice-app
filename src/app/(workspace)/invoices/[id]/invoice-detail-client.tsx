@@ -658,6 +658,11 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
               <section className="page-panel info-section">
                 <header>
                   <h2>Odběratel a kontakt</h2>
+                  {invoice.customer_id ? (
+                    <Link href={`/customers?highlight=${invoice.customer_id}`} className="info-section-link">
+                      Karta zákazníka →
+                    </Link>
+                  ) : null}
                 </header>
                 <div className="info-grid">
                   <div>
@@ -676,6 +681,11 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                     <strong>{invoice.counterparty_email}</strong>
                   </div>
                 </div>
+                {!invoice.customer_id && invoice.counterparty_ico ? (
+                  <p className="info-section-note">
+                    Toto IČO nemá platný záznam v adresáři Zákazníků (musí mít přesně 8 číslic).
+                  </p>
+                ) : null}
               </section>
               {payments.length > 0 && (
                 <section className="page-panel info-section">

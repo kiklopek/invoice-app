@@ -6,6 +6,11 @@ export interface Invoice {
   money_evidence?: InvoiceInput["money_evidence"] | null;
   id: string;
   organization_id: string;
+  // Set by the remember_customer_from_invoice trigger whenever
+  // counterparty_ico is a valid 8-digit IČO; null otherwise (no match, or
+  // the IČO belongs to the organization itself). Selected via `*` today so
+  // this was already coming back from the API -- just never typed.
+  customer_id?: string | null;
   reminder_policy_id?: string | null;
   reminder_days_snapshot: number[];
   reminder_plan_effective_from: string | null;

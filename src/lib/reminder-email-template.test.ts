@@ -96,4 +96,33 @@ describe("branded reminder email", () => {
       expect(result.html).not.toMatch(/class="detail-box"[^>]*padding:/);
     },
   );
+
+  it("refuses to render rather than fall back to a hardcoded brand when the company name is missing", () => {
+    // This used to silently substitute "R. Hlavica s.r.o." -- fine while it
+    // is the only tenant, but the day a second company's data hits this path
+    // it would put OUR name on THEIR customer's debt-collection e-mail.
+    // Failing loudly is the only safe default once that stops being true.
+    expect(() => renderReminderEmail({
+      stage: "before_due",
+      subject: "Test",
+      message: "Test",
+      company: { ...company, name: "  " },
+      values,
+      logoUrl: null,
+    })).toThrow(/název firmy/i);
+  });
+
+  it("shows this company's own name in the fallback logo, not a hardcoded brand", () => {
+    const result = renderReminderEmail({
+      stage: "before_due",
+      subject: "Test",
+      message: "Test",
+      company: { ...company, name: "Jiná firma s.r.o." },
+      values,
+      logoUrl: null,
+    });
+    expect(result.html).toContain("Jiná firma s.r.o.");
+    expect(result.html).not.toContain("R. Hlavica");
+    expect(result.html).not.toContain("DŘEVO");
+  });
 });

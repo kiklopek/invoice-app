@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
@@ -32,6 +33,19 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
   });
   const customers = data?.customers ?? initialData.customers;
   const canManage = data?.can_manage ?? initialData.can_manage;
+  // Arriving here from an invoice's "Karta zákazníka" link (?highlight=<id>)
+  // -- scroll the matching row into view and mark it, since with sorting and
+  // no default filter the row could be anywhere in a long list. Read via
+  // window.location rather than useSearchParams, which would force a
+  // Suspense boundary this page (a plain server component) does not have.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  useEffect(() => {
+    setHighlightId(new URLSearchParams(window.location.search).get("highlight"));
+  }, []);
+  const highlightRef = useRef<HTMLTableRowElement>(null);
+  useEffect(() => {
+    if (highlightId) highlightRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [highlightId]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "outstanding", dir: "desc" });
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
@@ -179,7 +193,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
               </thead>
               <tbody>
                 {filtered.map((customer: CustomerSummary) => (
-                  <tr key={customer.id}>
+                  <tr key={customer.id} ref={customer.id === highlightId ? highlightRef : null} className={customer.id === highlightId ? "customer-row-highlight" : ""}>
                     <td data-label="Zákazník" className="customer-identity-cell">
                       <div className="customer-identity">
                         <span className="customer-avatar" aria-hidden="true">{customer.name.trim().charAt(0).toUpperCase() || "?"}</span>
@@ -211,8 +225,10 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                       {phoneError && editingPhoneId === customer.id && <small className="red-text">{phoneError}</small>}
                     </td>
                     <td data-label="Fakturace" className="customer-billing-cell">
-                      <strong>{money(customer.total_invoiced)}</strong>
-                      <small>{customer.invoice_count} {customer.invoice_count === 1 ? "faktura" : customer.invoice_count > 1 && customer.invoice_count < 5 ? "faktury" : "faktur"}</small>
+                      <Link href={`/invoices?q=${encodeURIComponent(customer.name)}`} className="customer-invoices-link">
+                        <strong>{money(customer.total_invoiced)}</strong>
+                        <small>{customer.invoice_count} {customer.invoice_count === 1 ? "faktura" : customer.invoice_count > 1 && customer.invoice_count < 5 ? "faktury" : "faktur"} →</small>
+                      </Link>
                     </td>
                     <td data-label="Neuhrazeno">
                       {customer.outstanding > 0 ? (

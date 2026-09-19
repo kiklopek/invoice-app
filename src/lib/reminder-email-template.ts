@@ -109,7 +109,15 @@ function companyContactLines(company: ReminderEmailCompany) {
 
 export function renderReminderEmail(params: RenderReminderEmailParams) {
   const presentation = stagePresentation[params.stage];
-  const companyName = params.company.name.trim() || "R. Hlavica s.r.o.";
+  const companyName = params.company.name.trim();
+  // A missing company name used to silently fall back to "R. Hlavica
+  // s.r.o." -- harmless while this is the only organization, but the moment
+  // a second one exists (the planned move to a multi-tenant product), that
+  // fallback would put OUR name on a debt-collection e-mail belonging to a
+  // different company's customer. Failing loudly here delays one reminder
+  // (retried next cron run, or visible in the manual-send error) instead of
+  // ever sending an e-mail branded as the wrong company.
+  if (!companyName) throw new Error("Chybí název firmy pro upomínkový e-mail.");
   const logoUrl = safeLogoUrl(params.logoUrl);
   const replyAddress = safeReplyAddress(params.replyTo) ?? safeReplyAddress(params.company.email);
   const bankAccount = params.values.currency === "EUR"
@@ -126,9 +134,12 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   const replyHref = replyAddress
     ? `mailto:${replyAddress}?subject=${encodeURIComponent(`Faktura ${params.values.invoice_number}`)}`
     : null;
+  // Same reasoning as the companyName guard above: when no logo image is
+  // configured, the text fallback must show THIS company's real name, not a
+  // hardcoded brand that only happens to be correct for a single tenant.
   const logo = logoUrl
     ? `<img src="${escapeHtml(logoUrl)}" width="91" height="85" alt="${escapeHtml(companyName)}" style="display:block;width:91px;height:85px;border:0;outline:none;text-decoration:none;object-fit:contain;">`
-    : `<div style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:700;line-height:1.2;">R. Hlavica</div><div style="margin-top:4px;color:#a9cbb5;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:2px;">DŘEVO &amp; LES</div>`;
+    : `<div style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;line-height:1.3;">${escapeHtml(companyName)}</div>`;
   const cta = replyHref ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:6px 0 24px;">
       <tr><td>
