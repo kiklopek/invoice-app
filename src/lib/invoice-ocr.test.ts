@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, normalizeOcrText, parseInvoiceText } from "./invoice-ocr";
+import type { InvoiceInput } from "@/types/invoice";
+import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, normalizeOcrText, type OcrDocumentLayout, parseInvoiceText, relevantOcrWarnings } from "./invoice-ocr";
 
 const organization = { name: "R. Hlavica s.r.o.", ico: "05829309", dic: "CZ05829309" };
 
@@ -223,6 +224,231 @@ Celkem k úhradě 15 660,00 Kč
     expect(result.warnings.join(" ")).toContain("Základ bez DPH nebyl spolehlivě rozpoznán");
   });
 
+  it("never takes the total from an item-table column heading, nor a digit fragment of a year in prose", () => {
+    // Exactly the real layout that produced a 6 CZK invoice: "Celkem s DPH"
+    // is a COLUMN HEADING here, the line under it is a sentence, and the
+    // amount pattern used to chop "2026" into "202" + "6" -- so the last
+    // "amount" on that line was a stray 6 that outranked "K úhradě".
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Číslo faktury: 260610
+Odběratel: C.S.CARGO a.s.
+E-mail: fakturace@cscargo.cz
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 16. 9. 2026
+Text Množství DPH Cena Celkem bez DPH Celkem s DPH*
+Fakturuji Vám tímto na základě smlouvy o nájmu nebytových prostor nájem a ostrahu v měsíci září 2026:
+Základ daně: 12 942,00
+DPH: 21 %
+K úhradě : 15 660,00 Kč
+`,
+      fileUrl: "org/column-heading.pdf",
+      organization,
+    });
+    expect(result.invoice.amount).toBe(15660);
+    expect(result.invoice.amount_without_vat).toBe(12942);
+    expect(result.invoice.vat_rate).toBe(21);
+  });
+
+  it("never adopts the supplier's own e-mail as the customer's when the document has no customer block", () => {
+    // The e-mail was the one counterparty field with no supplier guard: with no
+    // recognizable customer heading it fell back to the first address ANYWHERE,
+    // which on a supplier-first layout is ours. That address then rode the
+    // invoice trigger into the customer registry and showed up as a duplicate
+    // "customer" that was really us. Finding nothing is the correct answer --
+    // the caller already warns that the e-mail has to be filled in by hand.
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Dodavatel
+R. Hlavica s.r.o.
+IČO: 05829309
+DIČ: CZ05829309
+E-mail: adam@hlavica.cz
+Číslo faktury: 260700
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 16. 9. 2026
+K úhradě: 9 680,00 Kč
+`,
+      fileUrl: "org/no-customer-block.pdf",
+      organization,
+    });
+    expect(result.invoice.counterparty_email).toBe("");
+  });
+
+  it("reads a whole number as one amount instead of splitting it into fragments", () => {
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Číslo faktury: 2026001
+Odběratel: Firma s.r.o.
+E-mail: firma@example.cz
+IČO: 66151023
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 16. 9. 2026
+Celkem bez DPH 10 000,00 Kč
+DPH: 21 %
+Celkem k úhradě 12 100,00 Kč
+`,
+      fileUrl: "org/whole-numbers.pdf",
+      organization,
+    });
+    expect(result.invoice.amount).toBe(12100);
+    expect(result.invoice.amount_without_vat).toBe(10000);
+  });
+
+  it("prefers a VAT-plausible net amount when a merged multi-column tax breakdown line has several numbers", () => {
+    // Same root cause as the two-column Dodavatel/Odběratel mix-up elsewhere
+    // in this file, just applied to a numeric table instead of a
+    // counterparty section: a multi-rate VAT breakdown row (Není předmětem
+    // DPH | Osvobozeno 0% | Snížená | Základní 21%) that gets merged onto one
+    // text line leaves several numbers on the "Celkem bez DPH" line. Blindly
+    // trusting a fixed position would pick the tiny 0,18 Kč rounding
+    // remainder instead of the real 10 000,00 Kč base.
+    const result = parseInvoiceText({
+      text: issuedInvoice.replace("Celkem bez DPH 10 000,00 Kč", "Celkem bez DPH 0,18 0,00 0,00 10 000,00 Kč"),
+      fileUrl: "org/merged-vat-table.pdf",
+      organization,
+    });
+    expect(result.invoice.amount_without_vat).toBe(10000);
+    expect(result.invoice.vat_rate).toBe(21);
+    expect(result.invoice.amount).toBe(12100);
+    expect(result.warnings.join(" ")).not.toContain("Základ bez DPH nebyl spolehlivě rozpoznán");
+  });
+
+  it("reconstructs a merged VAT recap table from real column geometry instead of guessing a position (dominant 21% column)", () => {
+    // Coordinates below are the *actual* geometry pdfjs produced for the real
+    // "260610" (C.S.CARGO) sample invoice PDF -- captured by running the real
+    // extraction pipeline (extractInvoiceDocumentText -> layoutPdfPage)
+    // against the file directly, not invented. They prove right-edge
+    // matching is needed: a numeric cell's left edge drifts under a wide
+    // header like "Není předmětem", but its right edge (x + width) lines up
+    // almost exactly with its own column header's right edge in both real
+    // sample invoices.
+    const layout: OcrDocumentLayout = {
+      pages: [{
+        page: 1, width: 1000, height: 1000,
+        lines: [
+          {
+            page: 1, line: 1, source: "pdf_text", confidence: null, bounds: null,
+            text: "Sazba DPH: Není předmětem Osvobozeno (0% ) Snížená Základní (21%) Celkem",
+            blocks: [
+              { text: "Sazba DPH:", confidence: null, x: 0.074, y: 0.494, width: 0.071, height: 0.01 },
+              { text: "Není předmětem", confidence: null, x: 0.222, y: 0.494, width: 0.096, height: 0.01 },
+              { text: "Osvobozeno (0% )", confidence: null, x: 0.336, y: 0.494, width: 0.105, height: 0.01 },
+              { text: "Snížená", confidence: null, x: 0.649, y: 0.494, width: 0.045, height: 0.01 },
+              { text: "Základní (21%)", confidence: null, x: 0.729, y: 0.494, width: 0.091, height: 0.01 },
+              { text: "Celkem", confidence: null, x: 0.907, y: 0.494, width: 0.044, height: 0.01 },
+            ],
+          },
+          {
+            // A stray wrapped-header fragment ("DPH", the second line of a
+            // two-line "Není předmětem / DPH" header) lands on this row due
+            // to the same Y-clustering imprecision -- it must be ignored
+            // rather than misread as a value, which happens for free since
+            // it isn't a parseable amount.
+            page: 1, line: 2, source: "pdf_text", confidence: null, bounds: null,
+            text: "Daň: DPH 0,00 2 717,82 2 717,82",
+            blocks: [
+              { text: "Daň:", confidence: null, x: 0.074, y: 0.504, width: 0.028, height: 0.01 },
+              { text: "DPH", confidence: null, x: 0.289, y: 0.504, width: 0.028, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.67, y: 0.504, width: 0.024, height: 0.01 },
+              { text: "2 717,82", confidence: null, x: 0.773, y: 0.504, width: 0.047, height: 0.01 },
+              { text: "2 717,82", confidence: null, x: 0.904, y: 0.504, width: 0.047, height: 0.01 },
+            ],
+          },
+          {
+            page: 1, line: 3, source: "pdf_text", confidence: null, bounds: null,
+            text: "Základ daně: 0,18 0,00 0,00 12 942,00 12 942,18",
+            blocks: [
+              { text: "Základ daně:", confidence: null, x: 0.074, y: 0.519, width: 0.077, height: 0.01 },
+              { text: "0,18", confidence: null, x: 0.294, y: 0.519, width: 0.024, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.417, y: 0.519, width: 0.024, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.67, y: 0.519, width: 0.024, height: 0.01 },
+              { text: "12 942,00", confidence: null, x: 0.766, y: 0.519, width: 0.054, height: 0.01 },
+              { text: "12 942,18", confidence: null, x: 0.897, y: 0.519, width: 0.054, height: 0.01 },
+            ],
+          },
+        ],
+      }],
+    };
+    const result = parseInvoiceText({
+      text: issuedInvoice.replace("Celkem bez DPH 10 000,00 Kč\nDPH: 21 %\nCelkem k úhradě 12 100,00 Kč", "K úhradě : 15 660,00"),
+      fileUrl: "org/vat-table-geometry-260610.pdf",
+      organization,
+      layout,
+    });
+    // The document's own base total: 12 942,00 taxed at 21 % plus the 0,18
+    // sitting in "Není předmětem DPH" = 12 942,18, which is what the invoice
+    // prints in its "Celkem" column and what adds up with the 2 717,82 tax to
+    // the stated 15 660,00. Taking the 21 % column alone would quietly drop
+    // those haléře; 0,18 alone would be the rounding column by itself.
+    expect(result.invoice.amount_without_vat).toBe(12942.18);
+    expect(result.invoice.vat_rate).toBe(21);
+    expect(result.warnings.join(" ")).not.toContain("Základ bez DPH nebyl spolehlivě rozpoznán");
+  });
+
+  it("reconstructs a merged VAT recap table where the real amount sits in the exempt (Osvobozeno 0%) column, not Základní", () => {
+    // Same real geometry pattern, this time from the real "260627" (Tetiana
+    // Bahyrian) sample invoice, which is fully exempt: the whole amount sits
+    // in the "Osvobozeno (0%)" column and "Základní (21%)" is genuinely 0 --
+    // confirms the table reconstruction doesn't just default to whichever
+    // column states a non-zero percentage.
+    const layout: OcrDocumentLayout = {
+      pages: [{
+        page: 1, width: 1000, height: 1000,
+        lines: [
+          {
+            page: 1, line: 1, source: "pdf_text", confidence: null, bounds: null,
+            text: "Sazba DPH: Není předmětem Osvobozeno (0% ) Snížená Základní (21%) Celkem",
+            blocks: [
+              { text: "Sazba DPH:", confidence: null, x: 0.074, y: 0.477, width: 0.071, height: 0.01 },
+              { text: "Není předmětem", confidence: null, x: 0.222, y: 0.477, width: 0.096, height: 0.01 },
+              { text: "Osvobozeno (0% )", confidence: null, x: 0.336, y: 0.477, width: 0.105, height: 0.01 },
+              { text: "Snížená", confidence: null, x: 0.649, y: 0.477, width: 0.045, height: 0.01 },
+              { text: "Základní (21%)", confidence: null, x: 0.729, y: 0.477, width: 0.091, height: 0.01 },
+              { text: "Celkem", confidence: null, x: 0.907, y: 0.477, width: 0.044, height: 0.01 },
+            ],
+          },
+          {
+            page: 1, line: 2, source: "pdf_text", confidence: null, bounds: null,
+            text: "Daň: DPH 0,00 0,00 0,00",
+            blocks: [
+              { text: "Daň:", confidence: null, x: 0.074, y: 0.488, width: 0.028, height: 0.01 },
+              { text: "DPH", confidence: null, x: 0.289, y: 0.488, width: 0.028, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.67, y: 0.488, width: 0.024, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.796, y: 0.488, width: 0.024, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.928, y: 0.488, width: 0.024, height: 0.01 },
+            ],
+          },
+          {
+            page: 1, line: 3, source: "pdf_text", confidence: null, bounds: null,
+            text: "Základ daně: 0,00 3 750,00 0,00 0,00 3 750,00",
+            blocks: [
+              { text: "Základ daně:", confidence: null, x: 0.074, y: 0.503, width: 0.077, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.294, y: 0.503, width: 0.024, height: 0.01 },
+              { text: "3 750,00", confidence: null, x: 0.394, y: 0.503, width: 0.047, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.67, y: 0.503, width: 0.024, height: 0.01 },
+              { text: "0,00", confidence: null, x: 0.796, y: 0.503, width: 0.024, height: 0.01 },
+              { text: "3 750,00", confidence: null, x: 0.904, y: 0.503, width: 0.047, height: 0.01 },
+            ],
+          },
+        ],
+      }],
+    };
+    const result = parseInvoiceText({
+      text: issuedInvoice.replace("Celkem bez DPH 10 000,00 Kč\nDPH: 21 %\nCelkem k úhradě 12 100,00 Kč", "K úhradě : 3 750,00"),
+      fileUrl: "org/vat-table-geometry-260627.pdf",
+      organization,
+      layout,
+    });
+    expect(result.invoice.amount_without_vat).toBe(3750);
+    expect(result.invoice.vat_rate).toBe(0);
+    expect(result.invoice.amount).toBe(3750);
+    expect(result.warnings.join(" ")).not.toContain("Základ bez DPH nebyl spolehlivě rozpoznán");
+  });
+
   it("normalizes Unicode, whitespace and Czech punctuation without losing diacritics", () => {
     expect(normalizeOcrText("  Částka\u00a0–\u00a010 000 Kč  \n\n\n Splatnost ")).toBe("Částka - 10 000 Kč\n\nSplatnost");
   });
@@ -347,6 +573,128 @@ Celkem k úhradě 1 210,00 Kč
       expect(result.invoice.amount).toBe(1210);
     });
 
+    it("resolves the counterparty correctly when the invoice issuer is a different legal identity of the same business (FO) than the one configured in Settings", () => {
+      // R. Hlavica issues invoices under more than one real legal identity --
+      // a sole trader (FO) for some, one or more s.r.o. companies for others.
+      // Settings only has one configured `organization` (the s.r.o.), so an
+      // invoice actually issued by the FO identity must still be parsed
+      // correctly: the FO's own IČO/name must not leak into the counterparty
+      // fields just because it doesn't match the configured organization.
+      const result = parseInvoiceText({
+        text: `
+FAKTURA
+Dodavatel
+Robert Hlavica
+IČO: 74185296
+Odběratel
+Cargo a.s.
+IČO: 12312312
+DIČ: CZ12312312
+E-mail: fakturace@cargo.cz
+Číslo faktury: 2026321
+Datum vystavení: 3. 9. 2026
+Datum splatnosti: 17. 9. 2026
+Celkem k úhradě 5 000,00 Kč
+`,
+        fileUrl: "org/fo-issuer.pdf",
+        organization,
+      });
+      expect(result.invoice.counterparty_name).toBe("Cargo a.s.");
+      expect(result.invoice.counterparty_ico).toBe("12312312");
+      expect(result.invoice.counterparty_dic).toBe("CZ12312312");
+      expect(result.invoice.counterparty_email).toBe("fakturace@cargo.cz");
+      expect(result.issuer_matches_organization).toBe(false);
+      // Still flagged for a quick human double-check, but no longer implies
+      // the document is necessarily wrong -- this business legitimately
+      // issues under more than one identity.
+      expect(result.warnings.join(" ")).toContain("může to být v pořádku");
+      expect(result.warnings.join(" ")).not.toContain("neodpovídá nastavené firmě.");
+    });
+
+    it("does not swap the issuer's own IČO/DIČ into the counterparty when a two-column layout merges both columns onto shared text lines", () => {
+      // Real-world PDF bug: `layoutPdfPage` reconstructs reading order by
+      // grouping PDF text items into rows purely by Y position. When the
+      // Dodavatel (left) and Odběratel (right) boxes drift out of vertical
+      // sync -- a longer name, an extra registry line -- a row ends up
+      // pairing the ISSUER's own IČ/DIČ with the COUNTERPARTY's address on
+      // one merged text line, e.g. "IČ: 66151023 Hradecká 1116". Because the
+      // issuer's real IČ/DIČ then sit past where the "Odběratel" heading
+      // already closed the issuer-section scan, plain text/line heuristics
+      // can't exclude them -- only the underlying x-position (still tracked
+      // per token in `layout`, independent of which merged line it landed
+      // on) can tell the two columns apart.
+      const text = `
+Dodavatel:
+Odběratel: C.S.CARGO a.s.
+DIČ: CZ7311145842
+IČ: 66151023 Hradecká 1116
+50601 Jičín
+DIČ: CZ64259374
+IČ: 64259374
+Robert Hlavica
+Číslo faktury: 260610
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 16. 9. 2026
+Celkem k úhradě 15 660,00 Kč
+`;
+      const layout: OcrDocumentLayout = {
+        pages: [{
+          page: 1,
+          width: 1000,
+          height: 1000,
+          lines: [
+            { page: 1, line: 1, text: "Dodavatel:", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "Dodavatel:", confidence: null, x: 0.08, y: 0.9, width: 0.1, height: 0.02 }] },
+            { page: 1, line: 2, text: "Odběratel: C.S.CARGO a.s.", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "Odběratel: C.S.CARGO a.s.", confidence: null, x: 0.55, y: 0.88, width: 0.3, height: 0.02 }] },
+            { page: 1, line: 3, text: "DIČ: CZ7311145842", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "DIČ: CZ7311145842", confidence: null, x: 0.08, y: 0.8, width: 0.2, height: 0.02 }] },
+            {
+              page: 1, line: 4, text: "IČ: 66151023 Hradecká 1116", source: "pdf_text", confidence: null, bounds: null,
+              blocks: [
+                { text: "IČ: 66151023", confidence: null, x: 0.08, y: 0.78, width: 0.15, height: 0.02 },
+                { text: "Hradecká 1116", confidence: null, x: 0.6, y: 0.78, width: 0.2, height: 0.02 },
+              ],
+            },
+            { page: 1, line: 5, text: "50601 Jičín", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "50601 Jičín", confidence: null, x: 0.6, y: 0.76, width: 0.15, height: 0.02 }] },
+            { page: 1, line: 6, text: "DIČ: CZ64259374", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "DIČ: CZ64259374", confidence: null, x: 0.6, y: 0.74, width: 0.2, height: 0.02 }] },
+            { page: 1, line: 7, text: "IČ: 64259374", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "IČ: 64259374", confidence: null, x: 0.6, y: 0.72, width: 0.15, height: 0.02 }] },
+            { page: 1, line: 8, text: "Robert Hlavica", source: "pdf_text", confidence: null, bounds: null, blocks: [{ text: "Robert Hlavica", confidence: null, x: 0.08, y: 0.7, width: 0.15, height: 0.02 }] },
+          ],
+        }],
+      };
+
+      const result = parseInvoiceText({ text, fileUrl: "org/two-column.pdf", organization, layout });
+      expect(result.invoice.counterparty_name).toBe("C.S.CARGO a.s.");
+      expect(result.invoice.counterparty_ico).toBe("64259374");
+      expect(result.invoice.counterparty_dic).toBe("CZ64259374");
+    });
+
+    it("warns and lowers confidence when the counterparty IČO can't be recognized", () => {
+      // Unlike name/e-mail/amount/dates, a missing IČO used to pass through
+      // completely silently -- no warning, and it didn't affect the reported
+      // confidence either, so a wrong or absent IČO could hide behind a
+      // seemingly high score.
+      const withIco = parseInvoiceText({ text: issuedInvoice, fileUrl: "org/with-ico.pdf", organization, ocrConfidence: 92 });
+      const withoutIco = parseInvoiceText({
+        text: issuedInvoice.replace("IČO: 12345678\n", ""),
+        fileUrl: "org/missing-ico.pdf",
+        organization,
+        ocrConfidence: 92,
+      });
+      expect(withoutIco.invoice.counterparty_ico).toBe("");
+      expect(withoutIco.warnings).toContain("IČO odběratele nebylo rozpoznáno.");
+      expect(withoutIco.confidence).toBeLessThan(withIco.confidence);
+    });
+
+    it("does not warn about a missing DIČ -- plenty of legitimate counterparties (non-VAT-payers, individuals) have none", () => {
+      const result = parseInvoiceText({
+        text: issuedInvoice.replace("DIČ: CZ12345678\n", ""),
+        fileUrl: "org/no-dic.pdf",
+        organization,
+      });
+      expect(result.invoice.counterparty_dic).toBe("");
+      expect(result.invoice.counterparty_ico).toBe("12345678");
+      expect(result.warnings.join(" ")).not.toMatch(/DIČ/);
+    });
+
     it("preserves the original invoice number's case and accented company name despite diacritic-insensitive label matching", () => {
       const result = parseInvoiceText({
         text: `
@@ -364,5 +712,29 @@ Celkem k uhrade 1 000,00 Kc
       expect(result.invoice.invoice_number).toBe("aB-2026/Rr");
       expect(result.invoice.counterparty_name).toBe("Ářčšěžý s.r.o.");
     });
+  });
+});
+
+describe("relevantOcrWarnings", () => {
+  const blankInvoice: InvoiceInput = {
+    invoice_number: "", counterparty_name: "", counterparty_email: "",
+    amount_without_vat: 0, vat_rate: 0, amount: 0, currency: "CZK", issue_date: "", due_date: "",
+  };
+
+  it("drops a 'field not recognized' warning once the accountant has filled that field in by hand", () => {
+    const warnings = ["Číslo faktury nebylo rozpoznáno.", "IČO odběratele nebylo rozpoznáno."];
+    const filledIn: InvoiceInput = { ...blankInvoice, invoice_number: "FV-2026-100", counterparty_ico: "12345678" };
+    expect(relevantOcrWarnings(warnings, filledIn)).toEqual([]);
+  });
+
+  it("keeps a 'field not recognized' warning while that field is still empty", () => {
+    const warnings = ["Číslo faktury nebylo rozpoznáno."];
+    expect(relevantOcrWarnings(warnings, blankInvoice)).toEqual(warnings);
+  });
+
+  it("never drops warnings that aren't about a specific missing field, regardless of form state", () => {
+    const warnings = ["Faktura obsahuje více sazeb DPH. Předvyplněna je efektivní sazba z celkových částek."];
+    const filledIn: InvoiceInput = { ...blankInvoice, invoice_number: "FV-2026-100" };
+    expect(relevantOcrWarnings(warnings, filledIn)).toEqual(warnings);
   });
 });
