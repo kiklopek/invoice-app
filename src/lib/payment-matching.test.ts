@@ -43,6 +43,34 @@ describe("payment matching", () => {
     ).toBe("review");
   });
 
+  it("matches a payment's VS against the invoice NUMBER when the invoice has no variable_symbol of its own", () => {
+    // Real case: a template that never surfaces a "Variabilní symbol" field
+    // leaves invoice.variable_symbol empty, but the payer still pays with a
+    // VS -- they just use the (purely numeric) invoice number instead.
+    const result = proposePaymentMatch(
+      { amount: 15660, currency: "CZK", variable_symbol: "0000260610" },
+      [invoice("260610", 15660, { variable_symbol: undefined })],
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ kind: "exact", confidence: "safe", invoiceIds: ["260610"] }),
+    );
+  });
+
+  it("never double-counts an invoice reachable via both its VS and its invoice number", () => {
+    // Defensive: if upstream code (see invoicesByVs in the imports route)
+    // ever hands the same invoice to proposePaymentMatch twice -- once found
+    // by variable_symbol, once by invoice_number -- it must still resolve
+    // to a single exact match, not a false "ambiguous".
+    const duplicated = invoice("260610", 15660, { variable_symbol: "260610" });
+    const result = proposePaymentMatch(
+      { amount: 15660, currency: "CZK", variable_symbol: "260610" },
+      [duplicated, duplicated],
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ kind: "exact", confidence: "safe", invoiceIds: ["260610"] }),
+    );
+  });
+
   it.each([2, 4, 10])(
     "suggests one exact combination of %i whole invoices",
     (count) => {

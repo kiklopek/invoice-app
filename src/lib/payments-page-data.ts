@@ -39,20 +39,31 @@ export type PaymentsPageData = {
 // Shared by the initial server-rendered page load (avoids the client-side
 // "loading…" flash before the import panel appears) and GET /api/payments
 // (used for refetching after a mutation).
-export async function loadPaymentsPageData(identity: RequestIdentity | null): Promise<PaymentsPageData> {
+// `includePayments: false` je pro nahrávací podstránku /invoices/payments,
+// která zobrazuje jen import výpisu -- historii plateb ani jejich alokace
+// nepotřebuje, takže se ty dotazy vůbec neposílají. Seznam plateb a archiv
+// žije na /invoices/payments/archive.
+export async function loadPaymentsPageData(
+  identity: RequestIdentity | null,
+  options: { includePayments?: boolean } = {},
+): Promise<PaymentsPageData> {
   if (!identity) throw new PageDataError("Nejste přihlášený uživatel.", 401);
   if (!canAccessOperations(identity.membership.role)) throw new PageDataError("Čtenář nemá přístup ke správě bankovních plateb.", 403);
 
+  const includePayments = options.includePayments !== false;
   const organizationId = identity.membership.organization_id;
-  const [{ data, error }, { data: openInvoices, error: invoiceError }] = await Promise.all([
-    identity.service
-      .from("bank_payments")
-      .select(
-        "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
-      )
-      .eq("organization_id", organizationId)
-      .order("booked_on", { ascending: false })
-      .limit(100),
+  // Dotaz se jen sestaví; odešle se až jeho awaitem níž, takže při
+  // includePayments === false neproběhne vůbec.
+  const paymentsQuery = identity.service
+    .from("bank_payments")
+    .select(
+      "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
+    )
+    .eq("organization_id", organizationId)
+    .order("booked_on", { ascending: false })
+    .limit(100);
+  const [paymentsResult, { data: openInvoices, error: invoiceError }] = await Promise.all([
+    includePayments ? paymentsQuery : null,
     identity.service
       .from("invoices")
       .select("id, invoice_number, counterparty_name, amount, paid_amount, currency, variable_symbol")
@@ -61,6 +72,8 @@ export async function loadPaymentsPageData(identity: RequestIdentity | null): Pr
       .order("due_date", { ascending: true })
       .limit(500),
   ]);
+  const data = paymentsResult?.data ?? [];
+  const error = paymentsResult?.error ?? null;
   if (error || invoiceError) throw new PageDataError("Bankovní platby se nepodařilo načíst. Zkontrolujte poslední databázovou migraci.", 500);
 
   const paymentIds = (data ?? []).map((payment) => payment.id);

@@ -4,7 +4,7 @@ import { parseGpc } from "./gpc-parser";
 function transaction(
   overrides: {
     code?: string;
-    currency?: string;
+    bankCode?: string;
     amount?: string;
     vs?: string;
     date?: string;
@@ -24,7 +24,12 @@ function transaction(
     "000000",
     (overrides.name ?? "Zakaznik s.r.o.").padEnd(20, " ").slice(0, 20),
     "0",
-    overrides.currency ?? "0203",
+    // Real GPC exports carry the counterparty's bank code here (e.g. "0100"
+    // for Komerční banka), not a currency code -- GPC ("tuzemský platební
+    // styk") is a Czech domestic-only clearing format with no currency field
+    // at all. This is unused by the parser today; kept only so the fixture's
+    // byte layout matches a real 128-byte record.
+    overrides.bankCode ?? "0100",
     overrides.date ?? "140926",
   ].join("");
 }
@@ -49,22 +54,37 @@ describe("GPC parser", () => {
     expect(parsed.fileHash).toHaveLength(64);
   });
 
-  it("keeps debits, reversals and foreign currencies visible as ignored", () => {
+  it("keeps debits and reversals visible as ignored", () => {
     const parsed = parseGpc(
       file(
         transaction({ code: "1" }),
         transaction({ code: "5" }),
-        transaction({ currency: "0978" }),
       ),
     );
     expect(parsed.payments).toHaveLength(0);
-    expect(parsed.totals).toEqual({ accepted: 0, ignored: 3, errors: 0 });
+    expect(parsed.totals).toEqual({ accepted: 0, ignored: 2, errors: 0 });
+  });
+
+  it("always reads incoming GPC payments as CZK -- GPC is a Czech domestic-only clearing format with no currency field", () => {
+    // Regression test for a real bug: bytes 118-121 were previously misread
+    // as an ISO 4217 numeric currency code. A real bank export puts the
+    // counterparty's bank code there instead (see the `transaction` fixture
+    // above) -- treating it as currency rejected every real transaction as
+    // an "unsupported currency", since it's never actually "0203" (CZK).
+    const parsed = parseGpc(file(transaction({ bankCode: "0170" })));
+    expect(parsed.totals).toEqual({ accepted: 1, ignored: 0, errors: 0 });
+    expect(parsed.payments[0].currency).toBe("CZK");
   });
 
   it("reports malformed and duplicate rows without losing the preview", () => {
     const row = transaction();
     const parsed = parseGpc(file(row, row, row.slice(0, -1)));
     expect(parsed.totals).toEqual({ accepted: 1, ignored: 1, errors: 1 });
+    expect(parsed.entries.map((entry) => entry.disposition)).toEqual([
+      "accepted",
+      "duplicate",
+      "error",
+    ]);
   });
 
   it("accepts LF line endings", () => {
@@ -96,5 +116,46 @@ describe("GPC parser", () => {
     const parsed = parseGpc(file(...rows));
     expect(parsed.payments).toHaveLength(10_000);
     expect(parsed.totals.errors).toBe(0);
+  });
+});
+
+describe("KB internal account format", () => {
+  // KB+ exports account numbers permuted ("klientský formát KM"). Read raw they
+  // are not accounts at all, which silently poisoned both the account-mismatch
+  // check and every payer identity the ledger learned.
+  const pad = (value: string, width: number) => value.padEnd(width, " ").slice(0, width);
+  const digits = (value: string, width: number) => value.padStart(width, "0").slice(-width);
+
+  // Positions follow KB's spec: IBAN prefix at 115-122, channel at 123-124.
+  const header = (own: string, ibanPrefix: string, channel: string) =>
+    "074" + own + pad("HLAVICA ROBERT", 20) + "140926" +
+    pad("", 114 - 45) + pad(ibanPrefix, 8) + pad(channel, 2) + pad("", 4);
+
+  const row = (counterparty: string, constantSymbolField: string) =>
+    "075" + "7252678640000000" + counterparty + digits("1", 13) + digits("100000", 12) +
+    "2" + digits("260610", 10) + constantSymbolField + digits("", 10) + "000000" +
+    pad("C.S.CARGO A.S.", 20) + "0" + "0000" + "150926";
+
+  const parse = (own: string, counterparty: string, ks: string, iban: string, channel: string) =>
+    parseGpc(new TextEncoder().encode([header(own, iban, channel), row(counterparty, ks)].join("\r\n")));
+
+  it("decodes the statement's own account to the number printed on the invoices", () => {
+    const parsed = parse("7252678640000000", "3514011780000000", "0003000000", "CZ340100", "MB");
+    expect(parsed.accountNumber).toBe("6786420257/0100");
+  });
+
+  it("decodes a counterparty account and attaches its bank code", () => {
+    const parsed = parse("7252678640000000", "3514011780000000", "0003000000", "CZ340100", "MB");
+    // Bank 0300 is what this customer's invoice states, which is the
+    // independent confirmation that the permutation is read correctly.
+    expect(parsed.payments[0].counterparty_account).toBe("117840513/0300");
+  });
+
+  it("leaves a plain edition-format GPC from another bank untouched", () => {
+    // No channel and no IBAN prefix: permuting here would scramble digits that
+    // were already correct.
+    const parsed = parse("0000006786420257", "0000000117840513", "0000000000", "", "");
+    expect(parsed.accountNumber).toBe("6786420257");
+    expect(parsed.payments[0].counterparty_account).toBe("117840513");
   });
 });

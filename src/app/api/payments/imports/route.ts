@@ -4,21 +4,16 @@ import { parseGpc } from "@/lib/gpc-parser";
 import { parseCsvStatement } from "@/lib/csv-statement-parser";
 import {
   proposePaymentMatch,
+  resolveBatchConflicts,
   type MatchableInvoice,
 } from "@/lib/payment-matching";
-import { normalizeVariableSymbol } from "@/lib/payment-import";
+import { assignStatementPayments } from "@/lib/statement-assignment";
+import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
 import { canUseGpcImport } from "@/lib/gpc-feature";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
-
-function digits(value: string | null | undefined) {
-  return (value ?? "")
-    .split("/")[0]
-    .replace(/\D/g, "")
-    .replace(/^0+(?=\d)/, "");
-}
 
 function requestId() {
   return crypto.randomUUID();
@@ -115,7 +110,7 @@ export async function POST(request: Request) {
     ] = await Promise.all([
       identity.service
         .from("organizations")
-        .select("bank_account_czk")
+        .select("bank_account_czk, bank_account_eur")
         .eq("id", org)
         .single(),
       identity.service
@@ -127,17 +122,18 @@ export async function POST(request: Request) {
       throw new Error("Databázová konfigurace plateb není dostupná.");
 
     const invoices: MatchableInvoice[] = [];
-    for (let from = 0; from < 10_000; from += 1000) {
+    for (let from = 0; from <= 10_000; from += 1000) {
       const { data, error } = await identity.service
         .from("invoices")
         .select(
-          "id, invoice_number, counterparty_name, counterparty_ico, variable_symbol, currency, amount, paid_amount, due_date",
+          "id, invoice_number, counterparty_name, counterparty_ico, variable_symbol, currency, amount, paid_amount, due_date, issue_date",
         )
         .eq("organization_id", org)
         .in("status", ["pending", "overdue"])
         .order("id")
         .range(from, from + 999);
       if (error) throw new Error("Otevřené faktury se nepodařilo načíst.");
+      if (from === 10_000 && data?.length) throw new Error("Organizace má přes 10 000 otevřených faktur. Automatické návrhy nelze bezpečně sestavit z neúplného seznamu.");
       invoices.push(
         ...(data ?? []).map((invoice) => ({
           ...invoice,
@@ -159,6 +155,16 @@ export async function POST(request: Request) {
       const vsKey = `${invoice.currency}:${normalizeVariableSymbol(invoice.variable_symbol)}`;
       if (normalizeVariableSymbol(invoice.variable_symbol))
         invoicesByVs.set(vsKey, [...(invoicesByVs.get(vsKey) ?? []), invoice]);
+      // A payer often writes the invoice NUMBER into the payment's VS when
+      // the invoice itself has no separate variable_symbol -- e.g. a
+      // template that never surfaces a "Variabilní symbol" field at all, so
+      // it's never captured and stays empty. Registering the invoice under
+      // this second key too is what lets proposePaymentMatch (which already
+      // checks both fields) actually see it as a candidate in the first
+      // place; see matchesVariableSymbol in payment-matching.ts.
+      const numberKey = `${invoice.currency}:${normalizeVariableSymbol(invoice.invoice_number)}`;
+      if (!normalizeVariableSymbol(invoice.variable_symbol) && /^\d+$/.test(invoice.invoice_number.trim()))
+        invoicesByVs.set(numberKey, [...(invoicesByVs.get(numberKey) ?? []), invoice]);
       const counterpartyKey =
         invoice.counterparty_ico || invoice.counterparty_name;
       invoicesByCounterparty.set(counterpartyKey, [
@@ -166,17 +172,62 @@ export async function POST(request: Request) {
         invoice,
       ]);
     }
-    const entries = parsed.entries.map((entry) => {
+    // Decide the statement as a whole first: one payment pays one invoice, and
+    // no invoice is claimed twice. Only what this pass declines to judge falls
+    // through to the row-by-row matcher below (partial payments, and one
+    // payment covering a combination of invoices).
+    // Invoices this statement's symbols point at but which are already settled.
+    // Fetched by the symbols actually present in the file, so the query stays
+    // bounded by the statement rather than by the size of the paid ledger.
+    const quotedSymbols = [
+      ...new Set(
+        parsed.payments.flatMap((payment) => {
+          const normalized = normalizeVariableSymbol(payment.variable_symbol);
+          return normalized ? [normalized, payment.variable_symbol] : [];
+        }),
+      ),
+    ].filter((value): value is string => Boolean(value));
+    const settledInvoices: MatchableInvoice[] = [];
+    if (quotedSymbols.length > 0 && quotedSymbols.length <= 500) {
+      const columns =
+        "id, invoice_number, counterparty_name, counterparty_ico, variable_symbol, currency, amount, paid_amount, due_date, issue_date";
+      const [bySymbol, byNumber] = await Promise.all([
+        identity.service.from("invoices").select(columns)
+          .eq("organization_id", org).eq("status", "paid")
+          .in("variable_symbol", quotedSymbols).limit(500),
+        identity.service.from("invoices").select(columns)
+          .eq("organization_id", org).eq("status", "paid")
+          .in("invoice_number", quotedSymbols).limit(500),
+      ]);
+      for (const invoice of [...(bySymbol.data ?? []), ...(byNumber.data ?? [])])
+        settledInvoices.push({
+          ...invoice,
+          amount: Number(invoice.amount),
+          paid_amount: Number(invoice.paid_amount),
+        });
+    }
+    const assignments = assignStatementPayments(
+      parsed.entries.flatMap((entry) =>
+        entry.payment && entry.disposition === "accepted"
+          ? [{ key: entry.fingerprint, ...entry.payment }]
+          : [],
+      ),
+      invoices,
+      icoByAccount,
+      settledInvoices,
+    );
+    const entries = resolveBatchConflicts(parsed.entries.map((entry) => {
       const historyIcos = entry.payment
         ? (icoByAccount.get(entry.payment.counterparty_account ?? "") ?? [])
         : [];
+      const assigned = assignments.get(entry.fingerprint)?.proposal ?? null;
       const vsMatches = entry.payment
         ? (invoicesByVs.get(
             `${entry.payment.currency}:${normalizeVariableSymbol(entry.payment.variable_symbol)}`,
           ) ?? [])
         : [];
       const directProposal = entry.payment
-        ? proposePaymentMatch(entry.payment, vsMatches)
+        ? proposePaymentMatch(entry.payment, vsMatches, historyIcos)
         : null;
       const relevant = new Map<string, MatchableInvoice>();
       for (const invoice of vsMatches) {
@@ -190,7 +241,8 @@ export async function POST(request: Request) {
         for (const grouped of invoicesByCounterparty.get(ico) ?? [])
           relevant.set(grouped.id, grouped);
       const proposal =
-        directProposal?.kind === "exact" || directProposal?.kind === "ambiguous"
+        assigned ??
+        (directProposal?.kind === "exact" || directProposal?.kind === "ambiguous"
           ? directProposal
           : entry.payment
             ? proposePaymentMatch(
@@ -198,7 +250,7 @@ export async function POST(request: Request) {
                 [...relevant.values()],
                 historyIcos,
               )
-            : null;
+            : null);
       return {
         line_number: entry.line,
         record_type: entry.recordType,
@@ -218,12 +270,14 @@ export async function POST(request: Request) {
         proposal_reason: proposal?.reason ?? null,
         proposed_invoice_ids: proposal?.invoiceIds ?? [],
       };
+    }));
+    const paymentCurrencies = parsed.payments.map((payment) => payment.currency);
+    const accountMismatch = detectStatementAccountMismatch({
+      statementAccountNumber: parsed.accountNumber,
+      paymentCurrencies,
+      company,
     });
-    const accountMismatch = Boolean(
-      digits(parsed.accountNumber) &&
-      digits(company.bank_account_czk) &&
-      digits(parsed.accountNumber) !== digits(company.bank_account_czk),
-    );
+    const expectedAccount = resolveConfiguredAccountForCurrencies(paymentCurrencies, company);
     const storagePath = `${org}/${parsed.fileHash}.${sourceFormat}`;
     const { error: storageError } = await identity.service.storage
       .from("bank-statements")
@@ -235,7 +289,6 @@ export async function POST(request: Request) {
       throw new Error(
         "Originální GPC soubor se nepodařilo uložit do soukromého archivu.",
       );
-    const uploadedNewFile = !storageError;
     const { data, error } = await identity.service.rpc(
       "create_bank_statement_preview",
       {
@@ -251,15 +304,14 @@ export async function POST(request: Request) {
           accepted_count: parsed.totals.accepted,
           ignored_count: parsed.totals.ignored,
           error_count: parsed.totals.errors,
+          automation_mode: process.env.PAYMENT_RECONCILIATION_MODE === "automatic" ? "automatic" : "shadow",
         },
         entry_rows: entries as unknown as Json,
       },
     );
     if (error) {
-      if (uploadedNewFile)
-        await identity.service.storage
-          .from("bank-statements")
-          .remove([storagePath]);
+      // Content-addressed paths are shared by concurrent imports. A failed
+      // request must not delete the original another request just committed.
       throw new Error(
         error.message.includes("invalid")
           ? "Výpis obsahuje neplatná data."
@@ -271,8 +323,37 @@ export async function POST(request: Request) {
       revision: number;
       duplicate: boolean;
       status: string;
+      totals?: typeof parsed.totals;
+      total_entries?: number;
+      entries?: typeof entries;
     };
-    const previewEntries = entries.slice(0, 50);
+    // Book the safe rows now, rather than leaving them for the cron.
+    //
+    // The unattended worker runs only from the Vercel cron, so on any other
+    // deployment -- a local dev server included -- a statement full of decided
+    // rows simply sat there looking like it was waiting for a human. Running it
+    // here makes the import itself the trigger; the cron stays as the retry for
+    // whatever this pass could not finish. A failure must never fail the import:
+    // the preview is already stored and the worker will come back to it.
+    // Deliberately NOT gated on `!result.duplicate`: re-uploading the same file
+    // is the normal way to retry, and the second upload is exactly when a
+    // statement that never got booked most needs to be. The RPC skips entries
+    // that already carry a payment, so running it again is harmless.
+    if (process.env.PAYMENT_RECONCILIATION_MODE === "automatic" && result.status === "review") {
+      const { error: bookingError } = await identity.service.rpc("reconcile_bank_statement", {
+        target_org: org,
+        actor_user: identity.user.id,
+        target_import: result.id,
+        expected_revision: result.revision,
+        automatic_only: true,
+      });
+      if (bookingError)
+        console.warn(
+          JSON.stringify({ event: "import_autobook_failed", request_id: id, import_id: result.id, message: bookingError.message }),
+        );
+    }
+
+    const previewEntries = result.entries ?? entries.slice(0, 50);
     const previewInvoiceIds = new Set(
       previewEntries.flatMap((entry) => entry.proposed_invoice_ids),
     );
@@ -280,12 +361,16 @@ export async function POST(request: Request) {
       {
         import: result,
         account_mismatch: accountMismatch,
-        totals: parsed.totals,
+        statement_account: parsed.accountNumber,
+        expected_account: expectedAccount,
+        totals: result.totals ?? parsed.totals,
         entries: previewEntries,
-        proposal_invoices: invoices.filter((invoice) =>
-          previewInvoiceIds.has(invoice.id),
+        // Settled invoices are included so a "this is already paid" proposal can
+        // name the invoice it is warning about instead of showing a bare id.
+        proposal_invoices: [...invoices, ...settledInvoices].filter(
+          (invoice) => previewInvoiceIds.has(invoice.id),
         ),
-        total_entries: entries.length,
+        total_entries: result.total_entries ?? entries.length,
         request_id: id,
       },
       { status: result.duplicate ? 200 : 201 },

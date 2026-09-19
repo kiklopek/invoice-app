@@ -128,6 +128,7 @@ export async function POST(request: Request) {
     ocr_model: LOCAL_OCR_MODEL,
     ocr_provider_response_id: null,
     ocr_field_sources: extraction.field_sources,
+    ocr_money_snapshot: extraction.invoice.money_evidence ?? null,
     ocr_error: null,
     ocr_completed_at: new Date().toISOString(),
   }).eq("id", upload.id).eq("ocr_status", "processing");

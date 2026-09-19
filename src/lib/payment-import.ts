@@ -1,6 +1,52 @@
 export const MAX_PAYMENT_IMPORT_ROWS = 500;
 export const MAX_GPC_IMPORT_ROWS = 10_000;
 
+// Which organization field holds the account number for a given currency.
+// Settings only has dedicated fields for CZK/EUR today -- for any other
+// currency a statement can carry (USD/GBP/PLN/CHF) there is nothing
+// configured to compare against.
+export const ACCOUNT_FIELD_BY_CURRENCY: Record<string, "bank_account_czk" | "bank_account_eur"> = {
+  CZK: "bank_account_czk",
+  EUR: "bank_account_eur",
+};
+
+function digitsOnlyAccount(value: string | null | undefined) {
+  return (value ?? "")
+    .split("/")[0]
+    .replace(/\D/g, "")
+    .replace(/^0+(?=\d)/, "");
+}
+
+// A statement (GPC today) carries one account number for the whole file but
+// currency per transaction. This picks which of the org's configured
+// accounts to compare that number against -- returning null when there's no
+// single, unambiguous currency to check against a configured account (a
+// mixed-currency statement, one with no accepted entries, or a currency the
+// org hasn't configured an account for yet).
+export function resolveConfiguredAccountForCurrencies(
+  paymentCurrencies: string[],
+  company: { bank_account_czk?: string | null; bank_account_eur?: string | null },
+): string | null {
+  const distinctCurrencies = new Set(paymentCurrencies);
+  const statementCurrency = distinctCurrencies.size === 1 ? [...distinctCurrencies][0] : null;
+  const accountField = statementCurrency ? ACCOUNT_FIELD_BY_CURRENCY[statementCurrency] : undefined;
+  return (accountField ? company[accountField] : null) ?? null;
+}
+
+export function detectStatementAccountMismatch(params: {
+  statementAccountNumber: string | null;
+  paymentCurrencies: string[];
+  company: { bank_account_czk?: string | null; bank_account_eur?: string | null };
+}): boolean {
+  const configuredAccount = resolveConfiguredAccountForCurrencies(params.paymentCurrencies, params.company);
+  return Boolean(
+    configuredAccount &&
+    digitsOnlyAccount(params.statementAccountNumber) &&
+    digitsOnlyAccount(configuredAccount) &&
+    digitsOnlyAccount(params.statementAccountNumber) !== digitsOnlyAccount(configuredAccount),
+  );
+}
+
 export interface PaymentImportRow {
   external_id: string;
   booked_on: string;

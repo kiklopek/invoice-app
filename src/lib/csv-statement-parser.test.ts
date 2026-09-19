@@ -38,6 +38,25 @@ describe("parseCsvStatement", () => {
     expect(() => parseCsvStatement(new Uint8Array())).toThrow();
   });
 
+  it("falls back to Windows-1250 when the file isn't valid UTF-8 (a common Czech bank CSV export encoding)", () => {
+    const ascii = [
+      "transaction id,date,amount,currency,counterparty name",
+      "BANK-1,2026-09-10,1000,CZK,Zlutoucky kun",
+    ].join("\n");
+    const encoded = bytes(ascii);
+    const position = ascii.indexOf("Zlutoucky kun");
+    // Same byte-injection technique as the GPC parser's Windows-1250 test:
+    // these bytes are "Žluťoučký kůň" encoded as CP1250, which are not a
+    // valid UTF-8 sequence, so decodeCsv should detect that and re-decode
+    // the whole file as Windows-1250 instead of keeping the mojibake.
+    encoded.set(
+      [0x8e, 0x6c, 0x75, 0x9d, 0x6f, 0x75, 0xe8, 0x6b, 0xfd, 0x20, 0x6b, 0xf9, 0xf2],
+      position,
+    );
+    const result = parseCsvStatement(encoded);
+    expect(result.entries[0].payment?.counterparty_name).toBe("Žluťoučký kůň");
+  });
+
   it("propagates the underlying CSV validation error for malformed rows", () => {
     const invalid = ["ID transakce,Datum,Částka,Měna", "BANK-1,not-a-date,1000,CZK"].join("\n");
     expect(() => parseCsvStatement(bytes(invalid))).toThrow();

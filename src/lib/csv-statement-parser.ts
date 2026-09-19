@@ -7,10 +7,21 @@ function sha256(value: Uint8Array | string) {
 }
 
 function decodeCsv(bytes: Uint8Array) {
+  let utf8: string;
   try {
-    return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    utf8 = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
   } catch {
     throw new Error("Soubor CSV nelze přečíst.");
+  }
+  // A replacement character means the bytes weren't valid UTF-8 in the first
+  // place -- rather than silently keep that mojibake, fall back to
+  // Windows-1250 (CP1250), the encoding Czech banks' CSV exports commonly
+  // use instead of UTF-8 (same encoding already handled for GPC files).
+  if (!utf8.includes("�")) return utf8.replace(/^﻿/, "");
+  try {
+    return new TextDecoder("windows-1250", { fatal: true }).decode(bytes).replace(/^﻿/, "");
+  } catch {
+    return utf8.replace(/^﻿/, "");
   }
 }
 

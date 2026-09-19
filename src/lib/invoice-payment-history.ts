@@ -14,6 +14,8 @@ export type InvoicePaymentHistoryEntry = {
   matched_at: string | null;
   source: "bank_import" | "manual";
   match_status: "matched" | "split" | "unmatched" | "ambiguous";
+  /** Why an unattended run booked this payment; null when a person confirmed it. */
+  match_reason: string | null;
   allocation_amount: number;
 };
 
@@ -30,7 +32,7 @@ export async function loadInvoicePaymentHistory(
   const { data, error } = await service
     .from("bank_payment_allocations")
     .select(
-      "amount, committed_at, bank_payment:bank_payments!bank_payment_allocations_payment_same_org(id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, counterparty_account, note, matched_at, source, match_status)",
+      "amount, committed_at, bank_payment:bank_payments!bank_payment_allocations_payment_same_org(id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, counterparty_account, note, matched_at, source, match_status, match_reason)",
     )
     .eq("organization_id", organizationId)
     .eq("invoice_id", invoiceId)

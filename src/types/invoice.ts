@@ -3,6 +3,7 @@ export type InvoiceSource = "manual" | "ocr" | "email" | "accounting_api";
 export type ReminderStage = "before_due" | "on_due" | "overdue" | "escalation";
 
 export interface Invoice {
+  money_evidence?: InvoiceInput["money_evidence"] | null;
   id: string;
   organization_id: string;
   reminder_policy_id?: string | null;
@@ -39,6 +40,17 @@ export interface Invoice {
 }
 
 export interface InvoiceInput {
+  money_evidence?: {
+    [key: string]: import("./database").Json | undefined;
+    original_total: number;
+    total_source: "read" | "derived" | "manual";
+    adjustment: number;
+    adjustment_reason: string;
+    adjustment_confirmed: boolean;
+    initial_paid: number;
+    initial_paid_confirmed: boolean;
+    multi_rate: boolean;
+  };
   reminder_policy_id?: string;
   invoice_number: string;
   counterparty_name: string;

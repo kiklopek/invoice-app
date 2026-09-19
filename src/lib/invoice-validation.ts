@@ -1,5 +1,6 @@
 import type { InvoiceInput } from "@/types/invoice";
-import { MAX_VAT_RATE, grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
+import { MAX_VAT_RATE, netFromGross, roundMoney, grossFromNet } from "./vat";
+import { minorUnits } from "./money";
 
 const MAX_AMOUNT = 999_999_999_999.99;
 
@@ -28,6 +29,9 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
   const hasNetAmount = body.amount_without_vat !== undefined && body.amount_without_vat !== null && body.amount_without_vat !== "";
   const hasVatRate = body.vat_rate !== undefined && body.vat_rate !== null && body.vat_rate !== "";
   const vatRate = hasVatRate ? Number(body.vat_rate) : 0;
+  // Reject malformed inputs before invoking exact arithmetic (which deliberately throws).
+  if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT ||
+      !Number.isFinite(vatRate) || vatRate < 0 || vatRate > MAX_VAT_RATE) return null;
   const amountWithoutVat = hasNetAmount ? Number(body.amount_without_vat) : netFromGross(amount, vatRate);
 
   if (
@@ -37,10 +41,21 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     !Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT ||
     !Number.isFinite(amountWithoutVat) || amountWithoutVat <= 0 || amountWithoutVat > MAX_AMOUNT ||
     !Number.isFinite(vatRate) || vatRate < 0 || vatRate > MAX_VAT_RATE ||
-    !vatAmountsMatch(amountWithoutVat, vatRate, amount) ||
     !/^[A-Z]{3}$/.test(currency) ||
     !isIsoDate(issueDate) || !isIsoDate(dueDate) || dueDate < issueDate
   ) return null;
+
+  const difference = minorUnits(amount) - minorUnits(grossFromNet(amountWithoutVat, vatRate));
+  const evidence = (body.money_evidence ?? undefined) as InvoiceInput["money_evidence"];
+  if (evidence !== undefined && (!evidence || typeof evidence !== "object" || Array.isArray(evidence))) return null;
+  if (evidence && (
+    !Number.isFinite(evidence.original_total) || evidence.original_total < 0 || evidence.original_total > MAX_AMOUNT ||
+    !["read", "derived", "manual"].includes(evidence.total_source) ||
+    !Number.isFinite(evidence.initial_paid) || evidence.initial_paid < 0 || evidence.initial_paid > amount ||
+    (evidence.initial_paid > 0 && evidence.initial_paid_confirmed !== true)
+  )) return null;
+  if (difference !== 0 && (!evidence || evidence.adjustment_confirmed !== true ||
+    typeof evidence.adjustment_reason !== "string" || !evidence.adjustment_reason.trim())) return null;
 
   const optional = (key: string, maxLength: number) => {
     const result = text(body, key, maxLength);
@@ -71,7 +86,16 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     variable_symbol: variableSymbol,
     amount_without_vat: roundMoney(amountWithoutVat),
     vat_rate: roundMoney(vatRate),
-    amount: grossFromNet(amountWithoutVat, vatRate),
+    // Preserve the submitted document total; every nonzero difference needs
+    // explicit evidence above, rather than an implicit monetary tolerance.
+    amount: roundMoney(amount),
+    ...(evidence ? { money_evidence: {
+      original_total: roundMoney(evidence.original_total), total_source: evidence.total_source,
+      adjustment: difference / 100, adjustment_reason: String(evidence.adjustment_reason ?? "").trim().slice(0, 500),
+      adjustment_confirmed: evidence.adjustment_confirmed === true,
+      initial_paid: roundMoney(evidence.initial_paid), initial_paid_confirmed: evidence.initial_paid_confirmed === true,
+      multi_rate: evidence.multi_rate === true,
+    } } : {}),
     currency,
     issue_date: issueDate,
     due_date: dueDate,

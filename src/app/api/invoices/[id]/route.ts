@@ -8,10 +8,11 @@ import { isSameOriginMutation } from "@/lib/request-security";
 import { loadInvoicePaymentHistory } from "@/lib/invoice-payment-history";
 import { nullableRpcString } from "@/lib/supabase-server";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
+import { minorUnits } from "@/lib/money";
 
 type Context = { params: Promise<{ id: string }> };
 const allowedStatus: InvoiceStatus[] = ["pending", "paid", "overdue", "cancelled"];
-const editableFields = ["invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date", "notes"] as const;
+const editableFields = ["invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date", "notes", "money_evidence", "reminder_policy_id"] as const;
 
 export async function GET(_: Request, { params }: Context) {
   const { id } = await params;
@@ -28,12 +29,7 @@ export async function GET(_: Request, { params }: Context) {
   } catch {
     return NextResponse.json({ error: "Historii plateb se nepodařilo načíst." }, { status: 500 });
   }
-  let documentUrl: string | null = null;
-  if (data.file_url) {
-    const { data: signed } = await identity.service.storage.from("invoice-documents").createSignedUrl(data.file_url, 300);
-    documentUrl = signed?.signedUrl ?? null;
-  }
-  return NextResponse.json({ invoice: data, document_url: documentUrl, payments, can_manage: canManageInvoices(identity.membership.role) });
+  return NextResponse.json({ invoice: data, payments, can_manage: canManageInvoices(identity.membership.role) });
 }
 
 export async function PATCH(request: Request, { params }: Context) {
@@ -60,8 +56,23 @@ export async function PATCH(request: Request, { params }: Context) {
 
   const merged = { ...existing } as Record<string, unknown>;
   for (const key of editableFields) if (key in body) merged[key] = body[key];
+  if (!("money_evidence" in body) && existing.money_evidence &&
+      (["amount", "amount_without_vat", "vat_rate"] as const).some(key => key in body && Number(body[key]) !== Number(existing[key]))) {
+    merged.money_evidence = { ...existing.money_evidence, adjustment_confirmed: false };
+  }
   const input = parseInvoiceInput(merged);
   if (!input) return NextResponse.json({ error: "Zkontrolujte povinné údaje, částku, měnu, e-mail a data faktury." }, { status: 400 });
+  if (minorUnits(input.money_evidence?.initial_paid ?? 0) !== minorUnits(existing.money_evidence?.initial_paid ?? 0)) {
+    return NextResponse.json({ error: "Počáteční úhradu nelze změnit editací faktury. Opravte ji v evidenci plateb." }, { status: 409 });
+  }
+  if (input.money_evidence && existing.money_evidence) {
+    input.money_evidence.original_total = existing.money_evidence.original_total;
+    input.money_evidence.total_source = minorUnits(input.amount) === minorUnits(existing.amount)
+      ? existing.money_evidence.total_source : "manual";
+  }
+  if (existing.status === "paid" && minorUnits(input.amount) !== minorUnits(existing.amount)) {
+    return NextResponse.json({ error: "Před změnou částky uhrazené faktury nejprve opravte její úhrady. Úprava faktury nesmí vytvářet platby." }, { status: 409 });
+  }
   if (Number(existing.paid_amount) > 0 && input.currency !== existing.currency) {
     return NextResponse.json({ error: "Měnu faktury s evidovanou úhradou nelze změnit. Nejprve uvolněte přiřazené platby." }, { status: 409 });
   }
@@ -142,7 +153,7 @@ export async function PATCH(request: Request, { params }: Context) {
       return NextResponse.json({ error: fieldError.code === "23505" ? "Faktura s tímto číslem už existuje." : "Fakturu se nepodařilo uložit." }, { status: fieldError.code === "23505" ? 409 : 500 });
     }
 
-    const remaining = Number(input.amount) - Number(existing.paid_amount);
+    const remaining = (minorUnits(input.amount) - minorUnits(existing.paid_amount)) / 100;
     const { error: confirmError } = await identity.service.rpc("confirm_manual_payment", {
       target_org: identity.membership.organization_id,
       target_invoice: id,
@@ -199,7 +210,6 @@ export async function PATCH(request: Request, { params }: Context) {
     file_url: existing.file_url,
     source: existing.source,
     status,
-    paid_amount: status === "paid" ? Number(input.amount) : status === "cancelled" ? 0 : Number(existing.paid_amount),
     paid_at: status === "paid"
       ? paymentDateToTimestamp(requestedPaidOn ?? existing.paid_at?.slice(0, 10) ?? today)
       : null,

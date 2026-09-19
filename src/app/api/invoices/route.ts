@@ -306,5 +306,13 @@ export async function POST(request: Request) {
       .eq("id", verifiedUploadId)
       .eq("status", "verified");
   }
+  // AFTER INSERT records confirmed initial payments in the ledger. INSERT
+  // RETURNING itself can still contain the pre-trigger balance/status.
+  if ((input.money_evidence?.initial_paid ?? 0) > 0) {
+    const { data: refreshed, error: refreshError } = await identity.service.from("invoices")
+      .select("*").eq("id", data.id).eq("organization_id", organizationId).single();
+    if (refreshError) return NextResponse.json({ invoice: data, refresh_required: true }, { status: 201 });
+    return NextResponse.json({ invoice: refreshed }, { status: 201 });
+  }
   return NextResponse.json({ invoice: data }, { status: 201 });
 }

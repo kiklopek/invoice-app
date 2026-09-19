@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePaymentCsv, validatePaymentRows } from "./payment-import";
+import { detectStatementAccountMismatch, parsePaymentCsv, resolveConfiguredAccountForCurrencies, validatePaymentRows } from "./payment-import";
 
 describe("payment import", () => {
   it("parses Czech semicolon CSV and Czech dates", () => {
@@ -21,5 +21,82 @@ describe("payment import", () => {
 
   it("rejects impossible dates and negative amounts", () => {
     expect(validatePaymentRows([{ external_id: "TX", booked_on: "2026-02-30", amount: -1, currency: "CZK", variable_symbol: "1" }])).toBeNull();
+  });
+
+  describe("resolveConfiguredAccountForCurrencies", () => {
+    const company = { bank_account_czk: "123456789/0100", bank_account_eur: "987654321/0100" };
+
+    it("returns the CZK account for a CZK-only statement", () => {
+      expect(resolveConfiguredAccountForCurrencies(["CZK", "CZK"], company)).toBe("123456789/0100");
+    });
+
+    it("returns the EUR account for a EUR-only statement", () => {
+      expect(resolveConfiguredAccountForCurrencies(["EUR"], company)).toBe("987654321/0100");
+    });
+
+    it("returns null for a mixed-currency statement -- no single account applies", () => {
+      expect(resolveConfiguredAccountForCurrencies(["CZK", "EUR"], company)).toBeNull();
+    });
+
+    it("returns null when the org has no configured account for that currency", () => {
+      expect(resolveConfiguredAccountForCurrencies(["USD"], company)).toBeNull();
+    });
+  });
+
+  describe("detectStatementAccountMismatch", () => {
+    const company = { bank_account_czk: "123456789/0100", bank_account_eur: "987654321/0100" };
+
+    it("flags a CZK statement against the wrong CZK account", () => {
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "111111111",
+        paymentCurrencies: ["CZK", "CZK"],
+        company,
+      })).toBe(true);
+    });
+
+    it("does not flag a CZK statement matching the configured CZK account", () => {
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "123456789",
+        paymentCurrencies: ["CZK"],
+        company,
+      })).toBe(false);
+    });
+
+    it("checks against the EUR account when the statement's payments are all EUR", () => {
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "123456789", // matches CZK, not EUR
+        paymentCurrencies: ["EUR", "EUR"],
+        company,
+      })).toBe(true);
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "987654321",
+        paymentCurrencies: ["EUR"],
+        company,
+      })).toBe(false);
+    });
+
+    it("skips the check for a mixed-currency statement -- there is no single account to compare against", () => {
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "111111111",
+        paymentCurrencies: ["CZK", "EUR"],
+        company,
+      })).toBe(false);
+    });
+
+    it("skips the check when the org has no configured account for the statement's currency", () => {
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "111111111",
+        paymentCurrencies: ["USD"],
+        company,
+      })).toBe(false);
+    });
+
+    it("skips the check when there are no accepted payments at all", () => {
+      expect(detectStatementAccountMismatch({
+        statementAccountNumber: "111111111",
+        paymentCurrencies: [],
+        company,
+      })).toBe(false);
+    });
   });
 });

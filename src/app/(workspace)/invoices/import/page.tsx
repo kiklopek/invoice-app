@@ -81,6 +81,7 @@ export default function ImportInvoicesPage() {
   const active = queue[activeIndex];
   const uploaded = active?.invoice ?? null;
   const ocrInfo = active?.ocrInfo ?? null;
+  const savedInvoiceCount = queue.filter(item => item.status === "saved").length;
 
   async function requestExtraction(path: string) {
     const response = await fetch("/api/invoices/extract", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path }) });
@@ -173,11 +174,21 @@ export default function ImportInvoicesPage() {
 
   return <AppFrame>
     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
-    <div className="page-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
+    <div className="page-tabs invoice-import-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
+    <div className="invoice-import-workspace">
     {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong></div>}
     {mode === "document" ? (
       queue.length === 0 ? (
-        <section className="page-panel import-panel"><div className="import-drop"><span className="large-import-icon"><Icon name="document"/></span><h2>Vyberte dokumenty faktur</h2><p>Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB na soubor. Vybrat lze i více souborů najednou. Údaje rozpozná lokální OCR bez odesílání do externí AI služby.</p><input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/></div></section>
+        <section className="page-panel import-panel invoice-document-import">
+          <label className="import-drop invoice-document-dropzone">
+            <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
+            <span className="large-import-icon"><Icon name="document"/></span>
+            <h2>Vyberte dokumenty faktur</h2>
+            <p>Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB na soubor. Vybrat lze i více souborů najednou. Údaje rozpozná lokální OCR bez odesílání do externí AI služby.</p>
+            <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
+            <small>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
+          </label>
+        </section>
       ) : !queue.some(item => item.status !== "pending") ? (
         <section className="page-panel import-panel">
           <div className="import-drop">
@@ -194,22 +205,37 @@ export default function ImportInvoicesPage() {
       ) : (
         <>
           {queue.length > 1 && (
-            <div className="import-queue-tabs" role="tablist" aria-label="Fronta dokumentů">
-              {queue.map((item, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  role="tab"
-                  aria-selected={index === activeIndex}
-                  className={`import-queue-tab ${item.status}${index === activeIndex ? " active" : ""}`}
-                  disabled={item.status === "pending" || item.status === "processing"}
-                  onClick={() => setActiveIndex(index)}
+            <>
+              <div className="import-queue-summary" role="status" aria-live="polite">
+                <strong>Potvrzeno {savedInvoiceCount}/{queue.length} faktur</strong>
+                <div
+                  className="import-queue-progress-track"
+                  role="progressbar"
+                  aria-label="Průběh potvrzování faktur"
+                  aria-valuemin={0}
+                  aria-valuemax={queue.length}
+                  aria-valuenow={savedInvoiceCount}
                 >
-                  <span>{item.file.name}</span>
-                  <small>{item.status === "pending" ? "Čeká" : item.status === "processing" ? "Zpracovávám…" : item.status === "ready" ? "Ke kontrole" : item.status === "saved" ? "Uloženo" : "Chyba"}</small>
-                </button>
-              ))}
-            </div>
+                  <span style={{ width: `${(savedInvoiceCount / queue.length) * 100}%` }}/>
+                </div>
+              </div>
+              <div className="import-queue-tabs" role="tablist" aria-label="Fronta dokumentů">
+                {queue.map((item, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    role="tab"
+                    aria-selected={index === activeIndex}
+                    className={`import-queue-tab ${item.status}${index === activeIndex ? " active" : ""}`}
+                    disabled={item.status === "pending" || item.status === "processing"}
+                    onClick={() => setActiveIndex(index)}
+                  >
+                    <span>{item.file.name}</span>
+                    <small>{item.status === "pending" ? "Čeká" : item.status === "processing" ? "Zpracovávám…" : item.status === "ready" ? "Ke kontrole" : item.status === "saved" ? "Potvrzeno" : "Chyba"}</small>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           {active?.status === "error" ? (
             <section className="page-panel"><p className="form-error">{active.error}</p></section>
@@ -220,12 +246,12 @@ export default function ImportInvoicesPage() {
               <div><strong>{ocrInfo ? "Údaje byly předvyplněny z dokumentu" : "Dokument je bezpečně uložený"}</strong><span>{ocrInfo ? `Spolehlivost rozpoznání přibližně ${Math.round(ocrInfo.confidence * 100)} %. Každý údaj před uložením zkontrolujte.` : "Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>
               {!ocrInfo && <div className="ocr-manual-actions"><button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button><a className="btn secondary compact" href="#manual-invoice-form">Vyplnit ručně</a></div>}
             </div>
-            {ocrInfo?.warnings.length ? <div className="ocr-warnings"><strong>Co je potřeba ověřit</strong><ul>{ocrInfo.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div> : null}
-            <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
+            <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} ocrWarnings={ocrInfo?.warnings} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
           </> : null}
         </>
       )
     ) : <section className="page-panel import-panel"><div className="csv-help"><h2>Hromadný import faktur</h2><p>CSV musí obsahovat sloupce: Číslo faktury, Odběratel, E-mail, Částka bez DPH, Sazba DPH, Částka s DPH, Měna, Vystavení a Splatnost. Starší soubor s jediným sloupcem Částka zůstává podporovaný jako konečná částka s DPH. Data používejte ve formátu RRRR-MM-DD. Jeden import může obsahovat nejvýše 250 faktur a uloží se vždy celý, nebo vůbec.</p><div className="csv-actions"><input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/><button type="button" className="btn secondary" onClick={downloadTemplate}><Icon name="download"/>Stáhnout vzor CSV</button></div></div>{rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><button className="btn primary import-confirm" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></>}</section>}
     {message && <p className="form-error">{message}</p>}
+    </div>
   </AppFrame>;
 }

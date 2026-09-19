@@ -77,9 +77,6 @@ export function InvoicesClient({
   const [currencies, setCurrencies] = useState<string[]>(
     initialData.currencies,
   );
-  const [openTotals, setOpenTotals] = useState<Record<string, number>>(
-    initialData.open_totals,
-  );
   const [activeCount, setActiveCount] = useState(initialData.active_count);
   const shouldSyncUrl = useRef(false);
 
@@ -151,7 +148,6 @@ export function InvoicesClient({
     setTotal(Number(loadedData.total) || 0);
     setTotalPages(Number(loadedData.total_pages) || 1);
     setCurrencies(loadedData.currencies ?? []);
-    setOpenTotals(loadedData.open_totals ?? {});
     setActiveCount(Number(loadedData.active_count) || 0);
     setCanManage(Boolean(loadedData.can_manage));
   }, [loadedData]);
@@ -211,10 +207,6 @@ export function InvoicesClient({
       if (!response.ok)
         throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
 
-      const remaining = Math.max(
-        0,
-        Number(paymentCandidate.amount) - Number(paymentCandidate.paid_amount),
-      );
       setInvoices((current) =>
         status === "pending" || status === "overdue"
           ? current.filter((item) => item.id !== paymentCandidate.id)
@@ -222,16 +214,6 @@ export function InvoicesClient({
               item.id === paymentCandidate.id ? data.invoice : item,
             ),
       );
-      setOpenTotals((current) => {
-        const next = { ...current };
-        next[paymentCandidate.currency] = Math.max(
-          0,
-          Number(next[paymentCandidate.currency] || 0) - remaining,
-        );
-        if (!next[paymentCandidate.currency])
-          delete next[paymentCandidate.currency];
-        return next;
-      });
       setActiveCount((current) => Math.max(0, current - 1));
       if (status === "pending" || status === "overdue") {
         const nextTotal = Math.max(0, total - 1);
@@ -253,12 +235,6 @@ export function InvoicesClient({
       setConfirmingPayment(false);
     }
   }
-
-  const firstShown = total ? (page - 1) * PAGE_SIZE + 1 : 0;
-  const lastShown = Math.min(total, page * PAGE_SIZE);
-  const outstanding = Object.entries(openTotals).sort(([a], [b]) =>
-    a.localeCompare(b),
-  );
 
   return (
     <AppFrame invoiceCount={loading ? undefined : activeCount}>
@@ -290,26 +266,6 @@ export function InvoicesClient({
         </div>
       </header>
       {notice && <p className="form-success">{notice}</p>}
-      <section className="list-summary">
-        <div>
-          <span>Výsledek filtru</span>
-          <strong>{total}</strong>
-          <small>
-            {total ? `zobrazeno ${firstShown}–${lastShown}` : "žádné faktury"}
-          </small>
-        </div>
-        <div>
-          <span>Otevřené ve výběru</span>
-          <strong>
-            {outstanding.length
-              ? outstanding
-                  .map(([code, amount]) => money(Number(amount), code))
-                  .join(" + ")
-              : money(0, currency === "all" ? "CZK" : currency)}
-          </strong>
-          <small>každá měna je počítána samostatně</small>
-        </div>
-      </section>
       <MobileDisclosure
         label="Filtry a export"
         className="mobile-filter-disclosure"

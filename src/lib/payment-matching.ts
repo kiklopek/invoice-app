@@ -1,4 +1,5 @@
 import { normalizeVariableSymbol } from "./payment-import";
+import { minorUnits } from "./money";
 
 export interface MatchableInvoice {
   id: string;
@@ -10,6 +11,7 @@ export interface MatchableInvoice {
   amount: number;
   paid_amount: number;
   due_date?: string;
+  issue_date?: string;
 }
 
 export interface MatchablePayment {
@@ -26,11 +28,11 @@ export type MatchProposal = {
   reason: string;
 };
 
-const cents = (amount: number) => Math.round(amount * 100);
+const cents = minorUnits;
 const remaining = (invoice: MatchableInvoice) =>
-  cents(Number(invoice.amount) - Number(invoice.paid_amount));
+  cents(invoice.amount) - cents(invoice.paid_amount);
 
-function exactCombinations(
+export function exactCombinations(
   invoices: MatchableInvoice[],
   target: number,
   maximumInvoices = 12,
@@ -44,7 +46,10 @@ function exactCombinations(
   for (let index = ordered.length - 1; index >= 0; index -= 1)
     suffix[index] = suffix[index + 1] + remaining(ordered[index]);
   const results: string[][] = [];
+  let visited = 0;
+  let exhausted = false;
   const walk = (index: number, sum: number, selected: string[]) => {
+    if (++visited > 100_000) { exhausted = true; return; }
     if (results.length >= 2) return;
     if (sum === target) {
       if (selected.length > 0) results.push([...selected]);
@@ -63,14 +68,34 @@ function exactCombinations(
     walk(index + 1, sum, selected);
   };
   walk(0, 0, []);
-  return { combinations: results, complex: false };
+  return { combinations: exhausted ? [] : results, complex: exhausted };
+}
+
+// A payer routinely writes the invoice NUMBER into the payment's variable
+// symbol when the invoice itself doesn't specify a separate VS -- common for
+// invoice templates that never surface a "Variabilní symbol" field at all
+// (so it's never captured, stays empty), yet are still purely numeric and so
+// perfectly usable as a VS. Treating the invoice number as an equally valid
+// identifier here, alongside the invoice's own variable_symbol field, is
+// what actually lets a real payment like this get found at all.
+function matchesVariableSymbol(invoice: MatchableInvoice, normalizedVs: string) {
+  return (
+    normalizeVariableSymbol(invoice.variable_symbol) === normalizedVs ||
+    (!normalizeVariableSymbol(invoice.variable_symbol) && /^\d+$/.test(invoice.invoice_number.trim()) &&
+      normalizeVariableSymbol(invoice.invoice_number) === normalizedVs)
+  );
 }
 
 export function proposePaymentMatch(
   payment: MatchablePayment,
-  invoices: MatchableInvoice[],
+  rawInvoices: MatchableInvoice[],
   confirmedCounterpartyIcos: string[] = [],
 ): MatchProposal {
+  // An invoice can now be found via two different keys (its own VS or its
+  // invoice number) by whatever assembled this list upstream (see
+  // invoicesByVs in the payments-imports route) -- dedupe by id so the same
+  // invoice appearing twice never gets miscounted as two separate matches.
+  const invoices = [...new Map(rawInvoices.map((invoice) => [invoice.id, invoice])).values()];
   const target = cents(payment.amount);
   const open = invoices.filter(
     (invoice) =>
@@ -78,17 +103,17 @@ export function proposePaymentMatch(
   );
   const normalizedVs = normalizeVariableSymbol(payment.variable_symbol);
   if (normalizedVs) {
-    const vsMatches = open.filter(
-      (invoice) =>
-        normalizeVariableSymbol(invoice.variable_symbol) === normalizedVs,
-    );
+    const vsMatches = open.filter((invoice) => matchesVariableSymbol(invoice, normalizedVs));
     const exact = vsMatches.filter((invoice) => remaining(invoice) === target);
     if (exact.length === 1) {
+      if (confirmedCounterpartyIcos.length && !confirmedCounterpartyIcos.includes(exact[0].counterparty_ico ?? "")) {
+        return { kind: "ambiguous", confidence: "review", invoiceIds: [exact[0].id], reason: "Identifikátor odpovídá, ale potvrzená historie bankovního účtu patří jinému odběrateli." };
+      }
       return {
         kind: "exact",
         confidence: "safe",
         invoiceIds: [exact[0].id],
-        reason: "Jedinečný VS, měna a přesná zbývající částka.",
+        reason: "Jedinečná shoda VS nebo čísla faktury, měny a přesné zbývající částky.",
       };
     }
     if (exact.length > 1) {
@@ -136,6 +161,13 @@ export function proposePaymentMatch(
     }
   }
 
+  if (normalizedVs) {
+    const identified = open.filter(invoice => matchesVariableSymbol(invoice, normalizedVs));
+    if (identified.length === 1) return {
+      kind: "manual", confidence: "review", invoiceIds: [identified[0].id],
+      reason: target < remaining(identified[0]) ? "Shoda identifikátoru; částečná úhrada vyžaduje potvrzení." : "Shoda identifikátoru; přeplatek vyžaduje potvrzení a ponechání nepřiřazeného zůstatku.",
+    };
+  }
   const known = new Set(confirmedCounterpartyIcos.filter(Boolean));
   if (known.size > 0) {
     const group = open.filter((invoice) =>
@@ -166,6 +198,16 @@ export function proposePaymentMatch(
       ? "VS neodpovídá bezpečné úplné úhradě."
       : "Chybí VS a není k dispozici jednoznačný potvrzený návrh.",
   };
+}
+
+/** Demote every competing safe proposal, never choose a winner by row order. */
+export function resolveBatchConflicts<T extends { proposal_confidence: string | null; proposed_invoice_ids: string[]; proposal_kind: string | null; proposal_reason: string | null }>(entries: T[]): T[] {
+  const counts = new Map<string, number>();
+  for (const entry of entries) if (entry.proposal_confidence === "safe")
+    for (const id of entry.proposed_invoice_ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+  return entries.map(entry => entry.proposal_confidence === "safe" && entry.proposed_invoice_ids.some(id => (counts.get(id) ?? 0) > 1)
+    ? { ...entry, proposal_confidence: "review", proposal_kind: "ambiguous", proposal_reason: "Více plateb v tomto výpisu nárokuje stejnou fakturu. Zkontrolujte společné přiřazení." }
+    : entry);
 }
 
 export function validateAllocationTotal(

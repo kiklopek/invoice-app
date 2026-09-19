@@ -42,6 +42,21 @@ describe("parseInvoiceInput", () => {
     expect(parseInvoiceInput({ ...validInvoice, vat_rate: 101 })).toBeNull();
   });
 
+  it("uloží skutečně zadanou částku s DPH, ne dopočtenou net*sazba, když se drobně liší (např. haléřové zaokrouhlení mimo předmět DPH)", () => {
+    // Real invoice: základ 12 942 Kč při 21 % => net*rate dá 15 659,82 Kč,
+    // ale skutečná vytištěná i zaplacená částka je 15 660,00 Kč kvůli 0,18 Kč
+    // navíc mimo předmět DPH. vatAmountsMatch tohle už toleruje (viz vat.ts),
+    // ale uložená částka nesmí být ta tiše dopočtená -- jinak se pak faktura
+    // nikdy přesně neshoduje se skutečnou bankovní platbou.
+    expect(parseInvoiceInput({
+      ...validInvoice,
+      amount_without_vat: 12942,
+      vat_rate: 21,
+      amount: 15660,
+      money_evidence: { original_total: 15660, total_source: "read", adjustment: 0.18, adjustment_reason: "Zaokrouhlení na dokumentu", adjustment_confirmed: true, initial_paid: 0, initial_paid_confirmed: false, multi_rate: false },
+    })).toMatchObject({ amount_without_vat: 12942, vat_rate: 21, amount: 15660 });
+  });
+
   it("zachová kompatibilitu se starým vstupem obsahujícím pouze konečnou částku", () => {
     const { amount_without_vat: _net, vat_rate: _rate, ...legacyInvoice } = validInvoice;
     expect(parseInvoiceInput(legacyInvoice)).toMatchObject({ amount_without_vat: 1210, vat_rate: 0, amount: 1210 });

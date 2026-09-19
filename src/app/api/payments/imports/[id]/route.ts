@@ -3,6 +3,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
 import { canUseGpcImport } from "@/lib/gpc-feature";
+import { resolveConfiguredAccountForCurrencies } from "@/lib/payment-import";
 
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,7 +21,9 @@ export async function GET(request: Request, context: Context) {
     );
   const org = identity.membership.organization_id;
   const url = new URL(request.url);
-  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const page = Number(url.searchParams.get("page") ?? 1);
+  if (!Number.isSafeInteger(page) || page < 1 || page > 20000)
+    return NextResponse.json({ error: "Neplatná stránka." }, { status: 400 });
   const disposition = url.searchParams.get("status");
   const allowedDispositions = new Set(["accepted", "ignored", "error", "duplicate"]);
   if (disposition && !allowedDispositions.has(disposition))
@@ -37,6 +40,17 @@ export async function GET(request: Request, context: Context) {
       { error: "Import nebyl nalezen." },
       { status: 404 },
     );
+  let expectedAccount: string | null = null;
+  if (statement.account_mismatch) {
+    const [{ data: company }, { data: currencyRows }] = await Promise.all([
+      identity.service.from("organizations").select("bank_account_czk, bank_account_eur").eq("id", org).single(),
+      identity.service.from("bank_statement_entries").select("currency").eq("import_id", id).eq("disposition", "accepted"),
+    ]);
+    if (company) {
+      const currencies = [...new Set((currencyRows ?? []).map((row) => row.currency).filter((value): value is string => Boolean(value)))];
+      expectedAccount = resolveConfiguredAccountForCurrencies(currencies, company);
+    }
+  }
   if (url.searchParams.get("download") === "1") {
     if (!statement.storage_path)
       return NextResponse.json(
@@ -99,6 +113,22 @@ export async function GET(request: Request, context: Context) {
       { error: "Položky importu se nepodařilo načíst." },
       { status: 500 },
     );
+  // Why a booked row was booked. Lives on the payment, not the entry, and only
+  // an unattended run fills it -- so the review screen can tell the reader that
+  // nobody looked at this one, and on what grounds it went through.
+  const bookedPaymentIds = (entries ?? [])
+    .map((entry) => entry.bank_payment_id)
+    .filter((value): value is string => Boolean(value));
+  const matchReasons: Record<string, string> = {};
+  if (bookedPaymentIds.length > 0) {
+    const fetched = await identity.service
+      .from("bank_payments")
+      .select("id, match_reason")
+      .eq("organization_id", org)
+      .in("id", bookedPaymentIds);
+    for (const payment of fetched.data ?? [])
+      if (payment.match_reason) matchReasons[payment.id] = payment.match_reason;
+  }
   const invoiceIds = [
     ...new Set([
       ...(entries ?? []).flatMap((entry) => entry.proposed_invoice_ids ?? []),
@@ -129,8 +159,22 @@ export async function GET(request: Request, context: Context) {
       );
     proposalInvoices = fetched.data ?? [];
   }
+  const [booked, failed] = await Promise.all([
+    identity.service.from("bank_statement_entries").select("id", { count: "exact", head: true })
+      .eq("organization_id", org).eq("import_id", id).not("bank_payment_id", "is", null),
+    identity.service.from("bank_statement_entries").select("id", { count: "exact", head: true })
+      .eq("organization_id", org).eq("import_id", id).eq("disposition", "accepted")
+      .is("bank_payment_id", null).not("processing_error", "is", null),
+  ]);
+  if (booked.error || failed.error) return NextResponse.json({ error: "Průběh importu se nepodařilo načíst." }, { status: 500 });
   return NextResponse.json({
+    match_reasons: matchReasons,
     import: statement,
+    progress: { booked: booked.count ?? 0, errors: failed.count ?? 0,
+      remaining: Math.max(0, statement.accepted_count - (booked.count ?? 0)) },
+    totals: { accepted: statement.accepted_count, ignored: statement.ignored_count, errors: statement.error_count },
+    total_entries: statement.entry_count,
+    expected_account: expectedAccount,
     entries: entries ?? [],
     allocations: visibleAllocations,
     proposal_invoices: proposalInvoices,
@@ -138,7 +182,7 @@ export async function GET(request: Request, context: Context) {
     page_size: pageSize,
     total: count ?? 0,
     can_manage: canManageInvoices(identity.membership.role),
-  });
+  }, { headers: { "cache-control": "private, no-store" } });
 }
 
 export async function PATCH(request: Request, context: Context) {
