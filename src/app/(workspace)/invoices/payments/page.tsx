@@ -4,6 +4,6 @@ import { PaymentsClient } from "./payments-client";
 
 export default async function PaymentImportPage() {
   const identity = await getCachedRequestIdentity();
-  const initialData = await loadPaymentsPageData(identity);
+  const initialData = await loadPaymentsPageData(identity, { includePayments: false });
   return <PaymentsClient initialData={initialData} />;
 }

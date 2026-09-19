@@ -1,15 +1,33 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { canAccessPage } from "./role-access";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("role authorization", () => {
   it("shows readers dashboard, invoices and reports and redirects forbidden pages", () => {
     const sidebar = source("src/components/layout/app-shell.tsx");
-    expect(sidebar).toContain('["/dashboard", "/invoices", "/reports"].includes(item.href)');
+    const roleAccess = source("src/lib/role-access.ts");
+    // Nav visibility and page-load gating used to be two independently
+    // maintained allowlists that happened to agree by coincidence -- this
+    // pins them to the SAME source so a future nav item can't silently drift
+    // out of sync with what a reader is actually allowed to open.
+    expect(roleAccess).toContain('export const VIEWER_ALLOWED_PATHS = ["/dashboard", "/invoices", "/reports", "/customers"]');
+    expect(sidebar).toContain("canAccessPage(role, item.href)");
     expect(sidebar).toContain("router.replace(landingPageForRole(role))");
-    expect(sidebar).toContain('role === "viewer" ? viewerItems');
+  });
+
+  it("never renders a nav item or sub-item a reader would be bounced out of", () => {
+    // canAccessPage is the ONLY gate now (see the previous test) -- this walks
+    // every href the nav can produce and checks it against that same
+    // function, so a future nav entry a viewer cannot open fails here instead
+    // of shipping as a dead-end link discovered by a confused user.
+    const sidebar = source("src/components/layout/app-shell.tsx");
+    const hrefs = [...sidebar.matchAll(/href:\s*"([^"]+)"/g)].map(match => match[1]);
+    expect(hrefs.length).toBeGreaterThan(0);
+    const readerAllowed = hrefs.filter(href => canAccessPage("viewer", href));
+    expect(readerAllowed).toEqual(["/dashboard", "/invoices", "/customers", "/reports"]);
   });
 
   it("hides invoice creation actions for readers", () => {

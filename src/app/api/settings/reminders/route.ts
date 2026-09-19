@@ -248,7 +248,7 @@ export async function PUT(request: Request) {
       template_data: normalizedTemplates,
       new_active: active,
       actor_user: identity.user.id,
-      expected_event: typeof body.revision === "string" ? body.revision : null,
+      expected_event: typeof body.revision === "string" ? body.revision : undefined,
     },
   );
   if (error)

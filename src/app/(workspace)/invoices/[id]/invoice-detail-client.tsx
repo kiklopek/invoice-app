@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
@@ -96,7 +96,6 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
     useState<EmailSuppression | null>(initialData.suppression);
   const [activity, setActivity] = useState<ActivityRecord[]>(initialData.events);
   const [payments, setPayments] = useState<BankPayment[]>(initialData.payments);
-  const [documentUrl, setDocumentUrl] = useState<string | null>(initialData.document_url);
   const [canManage, setCanManage] = useState(initialData.can_manage);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -107,6 +106,8 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
   const [paymentDate, setPaymentDate] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState(false);
+  const actionsMenuRef = useRef<HTMLDetailsElement>(null);
 
   const { data: refreshedData, error: loadError, mutate: refreshDetail } = useSWR<InvoiceDetailPageData>(`/api/invoices/${id}/page-data`, {
     fallbackData: initialData,
@@ -124,7 +125,6 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
   useEffect(() => {
     if (!refreshedData) return;
     setInvoice(refreshedData.invoice);
-    setDocumentUrl(refreshedData.document_url);
     setCanManage(refreshedData.can_manage);
     setPayments(refreshedData.payments);
     setReminders(refreshedData.reminders);
@@ -258,6 +258,26 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       setUpdating(false);
     }
   }
+  async function sendInvoiceEmail() {
+    setSendingInvoice(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/invoices/${id}/send`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Fakturu se nepodařilo odeslat e-mailem.");
+      setNotice("Faktura byla odeslána e-mailem.");
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Fakturu se nepodařilo odeslat e-mailem.",
+      );
+    } finally {
+      setSendingInvoice(false);
+    }
+  }
   async function unassignPayment(payment: BankPayment) {
     if (
       !await confirmAction({
@@ -336,6 +356,7 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
   const paidAmount = Number(invoice.paid_amount);
   const remainingAmount = Math.max(0, Number(invoice.amount) - paidAmount);
   const initial: InvoiceInput = {
+    money_evidence: invoice.money_evidence ?? undefined,
     reminder_policy_id: invoice.reminder_policy_id ?? undefined,
     invoice_number: invoice.invoice_number,
     counterparty_name: invoice.counterparty_name,
@@ -354,6 +375,10 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
     file_url: invoice.file_url ?? undefined,
   };
 
+  function closeActionsMenu() {
+    if (actionsMenuRef.current) actionsMenuRef.current.open = false;
+  }
+
   return (
     <AppFrame>
       <header className="section-header detail-page-header">
@@ -365,53 +390,98 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
           <h1>{invoice.invoice_number}</h1>
           <span>{invoice.counterparty_name}</span>
         </div>
-        {canManage && (
-          <div className="section-actions">
-            {invoice.status === "paid" ? (
-              <>
-                <button
-                  className="btn secondary"
-                  disabled={updating}
-                  onClick={() => setRecordingPayment((value) => !value)}
-                >
-                  Upravit datum úhrady
-                </button>
-                <button
-                  className="btn secondary"
-                  disabled={updating}
-                  onClick={() => changeStatus("pending")}
-                >
-                  Vrátit mezi neuhrazené
-                </button>
-              </>
-            ) : invoice.status === "pending" || invoice.status === "overdue" ? (
-              <button
-                className="btn primary"
-                disabled={updating}
-                onClick={() => {
-                  setPaymentDate(todayInTimeZone());
-                  setRecordingPayment(true);
-                }}
+        <div className="section-actions invoice-detail-actions">
+          <details className="invoice-actions-menu" ref={actionsMenuRef}>
+            <summary aria-label="Další akce s fakturou" title="Další akce">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="1.8" />
+                <circle cx="12" cy="12" r="1.8" />
+                <circle cx="19" cy="12" r="1.8" />
+              </svg>
+            </summary>
+            <div className="invoice-actions-menu-popover">
+              <a
+                href={`/api/invoices/${id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={closeActionsMenu}
               >
-                Potvrdit úhradu
+                Stáhnout PDF
+              </a>
+              {canManage && invoice.status === "paid" ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => {
+                      closeActionsMenu();
+                      setRecordingPayment((value) => !value);
+                    }}
+                  >
+                    Upravit datum úhrady
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => {
+                      closeActionsMenu();
+                      void changeStatus("pending");
+                    }}
+                  >
+                    Vrátit mezi neuhrazené
+                  </button>
+                </>
+              ) : null}
+              {canManage ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeActionsMenu();
+                      setEditing((value) => !value);
+                    }}
+                  >
+                    {editing ? "Zavřít úpravy" : "Upravit údaje"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingInvoice}
+                    onClick={() => {
+                      closeActionsMenu();
+                      void sendInvoiceEmail();
+                    }}
+                  >
+                    {sendingInvoice ? "Odesílám…" : "Odeslat fakturu e-mailem"}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </details>
+          {canManage && (
+            <>
+              {invoice.status === "pending" || invoice.status === "overdue" ? (
+                <button
+                  className="btn primary"
+                  disabled={updating}
+                  onClick={() => {
+                    setPaymentDate(todayInTimeZone());
+                    setRecordingPayment(true);
+                  }}
+                >
+                  Potvrdit úhradu
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="btn danger invoice-delete-button"
+                disabled={updating || deleting}
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                Smazat fakturu
               </button>
-            ) : null}
-            <button
-              className="btn secondary"
-              onClick={() => setEditing((value) => !value)}
-            >
-              {editing ? "Zavřít úpravy" : "Upravit údaje"}
-            </button>
-            <button
-              type="button"
-              className="btn danger invoice-delete-button"
-              disabled={updating || deleting}
-              onClick={() => setDeleteConfirmOpen(true)}
-            >
-              Smazat fakturu
-            </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </header>
       {error && <p className="form-error">{error}</p>}
       {notice && <p className="form-success">{notice}</p>}
@@ -482,6 +552,7 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       </Modal>
       {editing ? (
         <InvoiceForm
+          editing
           key={invoice.updated_at}
           initial={initial}
           submitLabel="Uložit změny"
@@ -634,6 +705,14 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                               ? " · platba rozdělená na více faktur"
                               : ""}
                           </small>
+                          {/* Only an unattended run leaves a reason -- it is the
+                              only case where nobody saw the evidence at the time
+                              the money was booked. */}
+                          {payment.match_reason && (
+                            <small className="bank-payment-reason">
+                              Spárováno automaticky: {payment.match_reason}
+                            </small>
+                          )}
                         </div>
                         <div>
                           <small>ID {payment.external_id}</small>
@@ -827,16 +906,14 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                   <div className="document-card">
                     <strong>Originální dokument faktury</strong>
                     <span>Uložen v soukromém firemním úložišti.</span>
-                    {documentUrl ? (
-                      <a
-                        href={documentUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn secondary"
-                      >
-                        Otevřít dokument
-                      </a>
-                    ) : null}
+                    <a
+                      href={`/api/invoices/${id}/document`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn secondary"
+                    >
+                      Otevřít dokument
+                    </a>
                   </div>
                 ) : (
                   <p className="empty-box">

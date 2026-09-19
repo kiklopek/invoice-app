@@ -18,11 +18,17 @@ export type DashboardData = {
   reminders_sent: number;
   recent: DashboardInvoice[];
   upcoming: DashboardUpcoming[];
+  // "Co dělat dnes" -- each is a live count, not the length of a capped list,
+  // so it stays correct past whatever display limit a panel uses.
+  payments_needing_review: number;
+  ocr_pending_confirmation: number;
+  reminders_due_soon: number;
 };
 
 export const emptyDashboardData: DashboardData = {
   open_totals: {}, overdue_totals: {}, paid_totals: {}, active_count: 0,
   overdue_count: 0, reminders_sent: 0, recent: [], upcoming: [],
+  payments_needing_review: 0, ocr_pending_confirmation: 0, reminders_due_soon: 0,
 };
 
 const addAmount = (totals: Record<string, number>, invoice: Invoice, value: number) => {
@@ -52,16 +58,20 @@ export function buildDashboardSummary(invoices: Invoice[]): DashboardData {
 
   const recent = [...invoices]
     .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id))
-    .slice(0, 5)
+    .slice(0, 50)
     .map(({ id, invoice_number, variable_symbol, counterparty_name, counterparty_email, amount, paid_amount, currency, due_date, status, reminders_sent, created_at }) =>
       ({ id, invoice_number, variable_symbol, counterparty_name, counterparty_email, amount, paid_amount, currency, due_date, status, reminders_sent, created_at }));
   const upcoming = invoices
     .filter(invoice => invoice.next_reminder_at && (["pending", "overdue"] as InvoiceStatus[]).includes(invoice.status))
     .sort((a, b) => (a.next_reminder_at ?? "").localeCompare(b.next_reminder_at ?? "") || a.id.localeCompare(b.id))
-    .slice(0, 4)
+    .slice(0, 50)
     .map(({ id, invoice_number, counterparty_name, amount, paid_amount, currency, status, next_reminder_at }) =>
       ({ id, invoice_number, counterparty_name, amount, paid_amount, currency, status, next_reminder_at }));
 
   return { open_totals: openTotals, overdue_totals: overdueTotals, paid_totals: paidTotals,
-    active_count: activeCount, overdue_count: overdueCount, reminders_sent: remindersSent, recent, upcoming };
+    active_count: activeCount, overdue_count: overdueCount, reminders_sent: remindersSent, recent, upcoming,
+    // This function only ever sees invoices, never bank statement rows or OCR
+    // uploads -- the live dashboard reads those three counts straight off the
+    // dashboard_summary RPC instead, which this helper does not call.
+    payments_needing_review: 0, ocr_pending_confirmation: 0, reminders_due_soon: 0 };
 }

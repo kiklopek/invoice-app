@@ -23,7 +23,6 @@ export type ActivityRecord = {
 export type BankPayment = InvoicePaymentHistoryEntry;
 export type InvoiceDetailPageData = {
   invoice: Invoice;
-  document_url: string | null;
   payments: BankPayment[];
   can_manage: boolean;
   reminders: ReminderRecord[];
@@ -40,7 +39,7 @@ export async function loadInvoiceDetailPageData(identity: RequestIdentity | null
   if (invoiceError) throw new PageDataError("Fakturu se nepodařilo načíst.", 500);
   if (!invoice) throw new PageDataError("Faktura nebyla nalezena.", 404);
 
-  const [paymentsResult, historyResult, suppressionResult, eventsResult, signedResult] = await Promise.all([
+  const [paymentsResult, historyResult, suppressionResult, eventsResult] = await Promise.all([
     loadInvoicePaymentHistory(identity.service, organizationId, id).then(
       (value) => ({ data: value, error: null }),
       (error) => ({ data: null, error }),
@@ -51,9 +50,6 @@ export async function loadInvoiceDetailPageData(identity: RequestIdentity | null
       .eq("email", invoice.counterparty_email.toLowerCase()).maybeSingle(),
     identity.service.from("invoice_events").select("id, actor_user_id, event_type, details, created_at")
       .eq("invoice_id", id).eq("organization_id", organizationId).order("created_at", { ascending: false }).limit(100),
-    invoice.file_url
-      ? identity.service.storage.from("invoice-documents").createSignedUrl(invoice.file_url, 300)
-      : Promise.resolve({ data: null, error: null }),
   ]);
   if (paymentsResult.error || historyResult.error || suppressionResult.error || eventsResult.error) {
     throw new PageDataError("Údaje faktury se nepodařilo načíst.", 500);
@@ -76,7 +72,6 @@ export async function loadInvoiceDetailPageData(identity: RequestIdentity | null
 
   return {
     invoice: invoice as Invoice,
-    document_url: signedResult.data?.signedUrl ?? null,
     payments: paymentsResult.data ?? [],
     can_manage: canManageInvoices(identity.membership.role),
     reminders: (historyResult.data ?? []) as ReminderRecord[],

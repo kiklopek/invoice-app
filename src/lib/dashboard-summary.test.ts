@@ -19,4 +19,20 @@ describe("dashboard summary", () => {
     expect(summary.upcoming.map(invoice => invoice.id)).toEqual(["demo-2", "demo-1", "demo-4"]);
     expect(summary.upcoming.every(invoice => invoice.status !== "paid" && invoice.status !== "cancelled")).toBe(true);
   });
+
+  it("keeps growing dashboard lists bounded at fifty scrollable rows", () => {
+    const template = demoInvoices.find(invoice => invoice.status === "pending")!;
+    const invoices = Array.from({ length: 70 }, (_, index) => ({
+      ...template,
+      id: `scroll-${String(index).padStart(2, "0")}`,
+      invoice_number: `S-${index}`,
+      created_at: new Date(Date.UTC(2026, 8, 1, 0, index)).toISOString(),
+      next_reminder_at: new Date(Date.UTC(2026, 9, 1, 0, index)).toISOString(),
+    }));
+    const summary = buildDashboardSummary(invoices);
+    expect(summary.recent).toHaveLength(50);
+    expect(summary.upcoming).toHaveLength(50);
+    expect(summary.recent[0].id).toBe("scroll-69");
+    expect(summary.upcoming[0].id).toBe("scroll-00");
+  });
 });

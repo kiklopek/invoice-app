@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const css = source("src/app/minimal.css");
+const navigationCss = source("src/components/layout/mobile-navigation.css");
 const disclosure = source("src/components/mobile-disclosure.tsx");
 const remindersPage = source("src/app/(workspace)/reminders/reminders-client.tsx");
+const dashboardPage = source("src/app/(workspace)/dashboard/dashboard-client.tsx");
 
 const czechUiSources = [
   "src/components/layout/app-shell.tsx",
@@ -27,17 +29,38 @@ const czechUiSources = [
 ];
 
 describe("mobile application layout", () => {
-  it("keeps all seven navigation destinations balanced and account actions reachable on mobile", () => {
-    expect(css).toContain("grid-template-columns: repeat(6, minmax(0, 1fr))");
-    expect(css).toContain("env(safe-area-inset-bottom)");
-    expect(source("src/components/layout/app-shell.tsx").match(/href: "\//g)).toHaveLength(7);
-    expect(source("src/components/layout/app-shell.tsx")).toContain('className="mobile-account-trigger"');
-    expect(source("src/components/layout/app-shell.tsx")).toContain("Odhlásit se");
-    expect(css).toContain(".mobile-account-popover > div strong { color: var(--ink);");
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/invoices/payments"] { grid-column: 3 / 5; }');
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/reminders"] { grid-column: 10 / 12; }');
-    expect(source("src/components/layout/mobile-navigation.css")).toContain('a[href="/settings"] { grid-column: 12 / 14; }');
-    expect(source("src/components/layout/mobile-navigation.css")).not.toContain("nav-logout");
+  it("keeps the desktop dashboard in one viewport with independent list scrolling", () => {
+    expect(css).toContain("@media (min-width: 1181px)");
+    expect(css).toContain("height: 100dvh");
+    expect(css).toContain(".dashboard-invoice-table,");
+    expect(css).toContain("scrollbar-gutter: stable");
+    expect(css).toContain(".dashboard-invoice-table thead { position: sticky");
+    expect(css).toContain("grid-template-rows: minmax(0, 1fr)");
+  });
+
+  it("keeps the attention count in the compact header without a redundant list subtitle", () => {
+    expect(dashboardPage).toContain('className="dashboard-attention-count"');
+    expect(dashboardPage).not.toContain("Nejbližší upomínky");
+    expect(css).toContain(".dashboard-attention-count");
+    expect(css).not.toContain(".dashboard-timeline-title");
+  });
+
+  it("keeps all navigation destinations and account actions reachable from the mobile menu", () => {
+    const shell = source("src/components/layout/app-shell.tsx");
+    // 7 top-level destinations (Faktury and Platby grouped their old
+    // standalone "Archiv"/"Bankovní platby" siblings under themselves as
+    // sub-items) plus the 3 sub-items themselves.
+    expect(shell.match(/href: "\//g)).toHaveLength(10);
+    expect(shell).toContain("mobile-navigation-toggle");
+    expect(shell).toContain('aria-controls="mobile-navigation-panel"');
+    expect(shell).toContain('aria-label="Mobilní navigace"');
+    expect(shell).toContain("mobile-navigation-profile");
+    expect(shell).toContain("Odhlásit se");
+    expect(navigationCss).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(navigationCss).toContain("env(safe-area-inset-top)");
+    expect(navigationCss).toContain("env(safe-area-inset-bottom)");
+    expect(navigationCss).toContain(".mobile-navigation-backdrop");
+    expect(navigationCss).toContain(".mobile-navigation-links a.active");
   });
 
   it("uses the agreed mobile breakpoints and touch-safe controls", () => {
@@ -48,7 +71,8 @@ describe("mobile application layout", () => {
     expect(css).toContain("font-size: 16px");
     expect(css).toContain("overflow-x: clip");
     expect(css).toContain("min-height: 100dvh");
-    expect(css).toContain("overscroll-behavior: none");
+    expect(css).toContain("overscroll-behavior-x: none");
+    expect(css).toContain("overscroll-behavior-y: auto");
     expect(css).toContain("calc(82px + env(safe-area-inset-bottom))");
     expect(css).not.toContain("calc(94px + env(safe-area-inset-bottom))");
     const layout = source("src/app/layout.tsx");
@@ -104,8 +128,7 @@ describe("mobile application layout", () => {
   it("turns operational wide tables into labeled mobile cards", () => {
     for (const path of [
       "src/app/(workspace)/invoices/import/page.tsx",
-      "src/app/(workspace)/invoices/payments/payments-client.tsx",
-      "src/app/(workspace)/reports/reports-client.tsx",
+      "src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx",
     ]) {
       expect(source(path)).toContain("data-label=");
     }

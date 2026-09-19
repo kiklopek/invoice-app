@@ -4,6 +4,7 @@ import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { sendReminderEmail } from "@/lib/email";
 import type { ReminderEmailCompany } from "@/lib/reminder-email-template";
+import { generateInvoicePdf, invoicePdfFilename } from "@/lib/invoice-pdf";
 import {
   AUTOMATION_RUN_STALE_MINUTES,
   completedAutomationRunStatus,
@@ -173,6 +174,9 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
       if (!storageError) await db.from("invoice_uploads").delete().in("id", unattached.map(upload => upload.id));
     }
   }
+
+  // A review import may already contain committed payments. Preserve its raw
+  // statement and decisions; status alone is never a safe deletion criterion.
 
   const plannerStartedAt = Date.now();
   const { error: overdueError } = await db.from("invoices").update({
@@ -361,13 +365,16 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
 
     const nextFuture = schedule.find(entry => entry.scheduledFor > today) ?? null;
     try {
+      const company = companies.get(job.organization_id);
+      const attachment = company ? { filename: invoicePdfFilename(invoice), content: await generateInvoicePdf(invoice, company) } : null;
       const result = await sendReminderEmail({
         to: invoice.counterparty_email,
         invoice,
         stage: job.stage,
         idempotencyKey: `reminder-${job.id}`,
         template: templates.get(`${job.organization_id}\0${job.stage}`) ?? null,
-        company: companies.get(job.organization_id),
+        company,
+        attachment,
       });
       if (result.error) throw new Error(result.error.message);
       const sentAt = new Date().toISOString();

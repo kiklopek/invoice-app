@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
+import { generateInvoicePdf, invoicePdfFilename } from "@/lib/invoice-pdf";
 import { compareDate, evaluateReminderEligibility, hasReminderAttemptBudget, MAX_MANUAL_REMINDER_ATTEMPTS, todayInTimeZone, type ReminderIneligibleReason } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { nullableRpcString } from "@/lib/supabase-server";
@@ -118,12 +119,19 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   try {
+    const { data: company, error: companyError } = await identity.service.from("organizations")
+      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
+      .eq("id", organizationId).maybeSingle();
+    if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
+    const attachment = { filename: invoicePdfFilename(currentInvoice as Invoice), content: await generateInvoicePdf(currentInvoice as Invoice, company) };
     const result = await sendReminderEmail({
       to: currentInvoice.counterparty_email,
       invoice: currentInvoice as Invoice,
       stage: log.stage as ReminderStage,
       idempotencyKey: `reminder-${reminderId}`,
       template,
+      company,
+      attachment,
     });
     if (result.error) throw new Error(result.error.message);
     const sentAt = new Date().toISOString();

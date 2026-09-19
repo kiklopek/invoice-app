@@ -29,6 +29,7 @@ export async function sendReminderEmail(params: {
   idempotencyKey: string;
   template?: { subject: string; body: string; reply_to?: string | null; cc?: string[] | null } | null;
   company?: ReminderEmailCompany;
+  attachment?: { filename: string; content: Uint8Array } | null;
 }) {
   assertLocalEmailRecipientsAllowed([params.to, ...(params.template?.cc ?? [])]);
   const key = process.env.RESEND_API_KEY;
@@ -66,5 +67,6 @@ export async function sendReminderEmail(params: {
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
+    attachments: params.attachment ? [{ filename: params.attachment.filename, content: Buffer.from(params.attachment.content) }] : undefined,
   }, { idempotencyKey: params.idempotencyKey });
 }

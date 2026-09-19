@@ -7,7 +7,8 @@ import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { todayInTimeZone } from "@/lib/reminders";
-import type { InvoiceReport, ReportDateBasis } from "@/lib/report-query";
+import type { ReportDateBasis } from "@/lib/report-query";
+import type { ReportPageData } from "@/lib/report-page-data";
 import { useAccessProfile } from "@/lib/use-access-role";
 import type { InvoiceStatus } from "@/types/invoice";
 
@@ -46,24 +47,25 @@ const displayDateTime = (value: Date) =>
     timeStyle: "short",
   }).format(value);
 
-function PrintableStatusChart({ counts, total }: { counts: InvoiceReport["counts"]; total: number }) {
+function PrintableDonut({ segments, total, caption }: { segments: { key: string; value: number; color: string }[]; total: number; caption: string }) {
+  const sum = segments.reduce((acc, segment) => acc + segment.value, 0);
   let offset = 0;
   return (
     <svg className="donut-print-chart" viewBox="0 0 42 42" aria-hidden="true">
       <circle cx="21" cy="21" r="15.5" pathLength="100" fill="none" stroke="#d3dad5" strokeWidth="8" />
-      {total > 0 && statusChartOrder.map((status) => {
-        const percentage = counts[status] / total * 100;
+      {sum > 0 && segments.map((segment) => {
+        const percentage = (segment.value / sum) * 100;
         const dashOffset = -offset;
         offset += percentage;
         return percentage > 0 ? (
           <circle
-            key={status}
+            key={segment.key}
             cx="21"
             cy="21"
             r="15.5"
             pathLength="100"
             fill="none"
-            stroke={statusChartColors[status]}
+            stroke={segment.color}
             strokeWidth="8"
             strokeDasharray={`${percentage} ${100 - percentage}`}
             strokeDashoffset={dashOffset}
@@ -72,12 +74,12 @@ function PrintableStatusChart({ counts, total }: { counts: InvoiceReport["counts
         ) : null;
       })}
       <text x="21" y="20" textAnchor="middle" className="donut-print-total">{total}</text>
-      <text x="21" y="25" textAnchor="middle" className="donut-print-label">faktur</text>
+      <text x="21" y="25" textAnchor="middle" className="donut-print-label">{caption}</text>
     </svg>
   );
 }
 
-export function ReportsClient({ initialData, initialFrom, initialTo, initialGeneratedAt }: { initialData: InvoiceReport; initialFrom: string; initialTo: string; initialGeneratedAt: string }) {
+export function ReportsClient({ initialData, initialFrom, initialTo, initialGeneratedAt }: { initialData: ReportPageData; initialFrom: string; initialTo: string; initialGeneratedAt: string }) {
   const profile = useAccessProfile();
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
@@ -85,7 +87,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
   const [status, setStatus] = useState<"all" | InvoiceStatus>("all");
   const [customer, setCustomer] = useState("all");
   const [dateBasis, setDateBasis] = useState<ReportDateBasis>("issue_date");
-  const [report, setReport] = useState<InvoiceReport | null>(initialData);
+  const [report, setReport] = useState<ReportPageData | null>(initialData);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [generatedAt, setGeneratedAt] = useState(() => new Date(initialGeneratedAt));
@@ -105,7 +107,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
 
   const reportKey = `/api/reports?${requestParams().toString()}`;
   const initialKey = `/api/reports?${new URLSearchParams({ from: initialFrom, to: initialTo, date_basis: "issue_date", currency: "CZK" }).toString()}`;
-  const { data: refreshedReport, error: loadError, isLoading } = useSWR<InvoiceReport>(reportKey, {
+  const { data: refreshedReport, error: loadError, isLoading } = useSWR<ReportPageData>(reportKey, {
     fallbackData: reportKey === initialKey ? initialData : undefined,
     revalidateOnMount: reportKey !== initialKey,
   });
@@ -154,10 +156,6 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
 
   const currencies = report?.currencies ?? [];
   const customers = report?.customers ?? [];
-  const maxAge = Math.max(
-    1,
-    ...(report?.aging.map((bucket) => Number(bucket.amount)) ?? []),
-  );
   const maxMonthly = Math.max(
     1,
     ...(report?.monthly.flatMap((month) => [Number(month.issued), Number(month.paid)]) ?? []),
@@ -283,14 +281,6 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
         <p className="page-state">Připravuji report…</p>
       ) : (
         <>
-          <div className="report-print-running-header" aria-hidden="true">
-            <strong>{companyName}</strong>
-            <span>Report pohledávek · {printPeriod}</span>
-          </div>
-          <div className="report-print-footer" aria-hidden="true">
-            <span>Splatno · {companyName}</span>
-            <span>Vytvořeno {displayDateTime(generatedAt)}</span>
-          </div>
           <section className="report-print-cover" aria-hidden="true">
             <CompanyLogo className="report-print-logo" />
             <div className="report-print-title">
@@ -331,7 +321,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
               <small>{report.paid_rate} % z hodnoty faktur · včetně částečných</small>
             </article>
           </section>
-          <div className="analytics-grid">
+          <div className={`analytics-grid reports-chart-grid ${report.monthly.length ? "" : "single"}`}>
             <section className="page-panel analytics-card">
               <header>
                 <div>
@@ -340,7 +330,11 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
                 </div>
               </header>
               <div className="donut-wrap">
-                <PrintableStatusChart counts={report.counts} total={report.invoice_count} />
+                <PrintableDonut
+                  segments={statusChartOrder.map((key) => ({ key, value: report.counts[key], color: statusChartColors[key] }))}
+                  total={report.invoice_count}
+                  caption="faktur"
+                />
                 <div
                   className="donut"
                   style={{
@@ -362,34 +356,6 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
                     </div>
                   ))}
                 </div>
-              </div>
-            </section>
-            <section className="page-panel analytics-card report-aging-card">
-              <header>
-                <div>
-                  <h2>Stáří pohledávek</h2>
-                  <p>Otevřené částky podle prodlení</p>
-                </div>
-              </header>
-              <div className="aging-report">
-                {report.aging.map((bucket) => (
-                  <div key={bucket.label}>
-                    <div>
-                      <strong>{bucket.label}</strong>
-                      <span>
-                        {bucket.count} ·{" "}
-                        {money(Number(bucket.amount), currency)}
-                      </span>
-                    </div>
-                    <i>
-                      <b
-                        style={{
-                          width: `${(Number(bucket.amount) / maxAge) * 100}%`,
-                        }}
-                      />
-                    </i>
-                  </div>
-                ))}
               </div>
             </section>
             {report.monthly.length > 0 && (
@@ -420,52 +386,64 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
                 </div>
               </section>
             )}
-            <section className="page-panel analytics-card full">
+            <section className="page-panel analytics-card full reconciliation-card">
               <header>
                 <div>
-                  <h2>Odběratelé s otevřenými pohledávkami</h2>
-                  <p>Seřazeno podle celkové neuhrazené částky</p>
+                  <h2>Automatické párování plateb</h2>
+                  <p>Kolik z přijatých plateb systém spároval sám, kolik potřebovalo kontrolu</p>
                 </div>
               </header>
-              <div className="debtor-table">
-                <table>
-                  <thead>
-                    <tr className="report-print-table-spacer" aria-hidden="true"><th colSpan={5} /></tr>
-                    <tr>
-                      <th>Odběratel</th>
-                      <th>Otevřené faktury</th>
-                      <th>Celkem otevřeno</th>
-                      <th>Z toho po splatnosti</th>
-                      <th>Odeslané upomínky</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.debtors.map((row) => (
-                      <tr key={row.name}>
-                        <td data-label="Odběratel">
-                          <strong>{row.name}</strong>
-                        </td>
-                        <td data-label="Otevřené faktury">{row.count}</td>
-                        <td data-label="Celkem otevřeno">{money(Number(row.open), currency)}</td>
-                        <td data-label="Po splatnosti" className={Number(row.overdue) ? "red-text" : ""}>
-                          {money(Number(row.overdue), currency)}
-                        </td>
-                        <td data-label="Odeslané upomínky">{row.reminders}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="report-print-table-footer" aria-hidden="true">
-                    <tr><td colSpan={5} /></tr>
-                  </tfoot>
-                </table>
-                {!report.debtors.length && (
-                  <p className="empty-box">
-                    Ve výběru nejsou otevřené pohledávky.
-                  </p>
-                )}
-              </div>
+              {(() => {
+                const totals = report.payment_reconciliation.totals;
+                const reviewedTotal = totals.auto_matched + totals.needs_review;
+                return (
+                  <div className="donut-wrap">
+                    <PrintableDonut
+                      segments={[
+                        { key: "auto", value: totals.auto_matched, color: "#1f6844" },
+                        { key: "review", value: totals.needs_review, color: "#b56f00" },
+                      ]}
+                      total={totals.accepted}
+                      caption="plateb"
+                    />
+                    <div
+                      className="donut"
+                      style={{
+                        background: reviewedTotal
+                          ? `conic-gradient(#2f7650 0 ${(totals.auto_matched / reviewedTotal) * 100}%, #d69a3b 0)`
+                          : "#edf0ed",
+                      }}
+                    >
+                      <span>
+                        <strong>{totals.accepted}</strong>plateb
+                      </span>
+                    </div>
+                    <div className="donut-legend">
+                      <div><i className="paid" /><span>Spárováno automaticky</span><strong>{totals.auto_matched}</strong></div>
+                      <div><i className="pending" /><span>Vyžadovalo kontrolu</span><strong>{totals.needs_review}</strong></div>
+                      <div><i className="cancelled" /><span>Nespárované platby v období</span><strong>{totals.unmatched_payments}</strong></div>
+                    </div>
+                  </div>
+                );
+              })()}
+              {report.payment_reconciliation.recent_imports.length > 0 && (
+                <div className="reconciliation-imports">
+                  <small>Poslední potvrzené výpisy v období</small>
+                  {report.payment_reconciliation.recent_imports.map((item) => (
+                    <div key={item.id} className="reconciliation-import-row">
+                      <span className="reconciliation-import-name">{item.filename}</span>
+                      <span>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</span>
+                      <span>{item.auto_matched} auto · {item.needs_review} kontrola{item.error_count ? ` · ${item.error_count} chyb` : ""}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
+          <footer className="report-print-footer" aria-hidden="true">
+            <span>{companyName} · Report pohledávek · {printPeriod}</span>
+            <span>Vytvořeno {displayDateTime(generatedAt)}</span>
+          </footer>
         </>
       )}
     </AppFrame>

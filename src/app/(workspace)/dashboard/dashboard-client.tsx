@@ -55,6 +55,33 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const recent = summary.recent;
   const upcoming = summary.upcoming;
 
+  // What actually needs a click today, not just what the totals are. Each
+  // one only appears when it is non-zero -- an empty dashboard should look
+  // empty, not like three permanently-visible zero counters.
+  const actionItems = [
+    summary.payments_needing_review > 0 && {
+      key: "payments",
+      icon: "bank" as const,
+      count: summary.payments_needing_review,
+      label: summary.payments_needing_review === 1 ? "platba čeká na kontrolu" : "platby čekají na kontrolu",
+      href: "/invoices/payments/archive",
+    },
+    summary.ocr_pending_confirmation > 0 && {
+      key: "ocr",
+      icon: "document" as const,
+      count: summary.ocr_pending_confirmation,
+      label: summary.ocr_pending_confirmation === 1 ? "faktura z dokumentu čeká na potvrzení" : "faktury z dokumentu čekají na potvrzení",
+      href: "/invoices/import",
+    },
+    summary.reminders_due_soon > 0 && {
+      key: "reminders",
+      icon: "mail" as const,
+      count: summary.reminders_due_soon,
+      label: summary.reminders_due_soon === 1 ? "upomínka jde dnes nebo zítra" : "upomínky jdou dnes nebo zítra",
+      href: "/reminders",
+    },
+  ].filter((item): item is Exclude<typeof item, false> => item !== false);
+
   return (
     <AppFrame invoiceCount={activeCount} className="content dashboard-page">
         <header className="topbar">
@@ -107,6 +134,20 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
             </article>
           </div>
         </section>
+        {actionItems.length > 0 && (
+          <section className="dashboard-today" aria-label="Co dělat dnes">
+            <span className="dashboard-today-heading">CO DĚLAT DNES</span>
+            <div className="dashboard-today-list">
+              {actionItems.map(item => (
+                <Link key={item.key} href={item.href} className="dashboard-today-item">
+                  <span className="dashboard-today-icon"><Icon name={item.icon} /></span>
+                  <span><strong>{item.count}</strong> {item.label}</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
         <section className="workspace-grid dashboard-workspace">
           <div className="panel invoice-panel">
             <div className="panel-head">
@@ -190,57 +231,56 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
             )}
           </div>
           <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure">
-          <aside className="panel activity-panel dashboard-attention-panel">
-            <div className="panel-head">
-              <div>
-                <span className="dashboard-panel-eyebrow">PRIORITY</span>
-                <h2>Vyžaduje pozornost</h2>
-                <p>Co je potřeba řešit jako první</p>
+            <aside className="panel activity-panel dashboard-attention-panel">
+              <div className="panel-head">
+                <div>
+                  <span className="dashboard-panel-eyebrow">PRIORITY</span>
+                  <h2>Vyžaduje pozornost</h2>
+                  <p>Co je potřeba řešit jako první</p>
+                </div>
+                <span
+                  aria-label={`${upcoming.length} upozornění`}
+                  className="dashboard-attention-count"
+                >
+                  {upcoming.length}
+                </span>
               </div>
-            </div>
-            <Link href="/invoices?status=overdue" className={`dashboard-overdue-alert ${summary.overdue_count ? "has-items" : ""}`}>
-              <span><Icon name={summary.overdue_count ? "alert" : "check"} /></span>
-              <div>
-                <strong>{summary.overdue_count ? `${summary.overdue_count} po splatnosti` : "Vše je v pořádku"}</strong>
-                <small>{summary.overdue_count ? formatTotals(summary.overdue_totals) : "Žádná faktura není po splatnosti"}</small>
+              <div className="timeline">
+                {upcoming.length ? (
+                  upcoming.map((invoice) => (
+                    <Link
+                      className="dashboard-timeline-item"
+                      href={`/invoices/${invoice.id}`}
+                      key={invoice.id}
+                    >
+                      <span className="timeline-icon amber">
+                        <Icon name="mail" />
+                      </span>
+                      <section>
+                        <small>{shortDate(invoice.next_reminder_at!)}</small>
+                        {isToday(invoice.next_reminder_at!) ? <span className="today-task-tag">Dnešní úkol</span> : null}
+                        <strong>{invoice.counterparty_name}</strong>
+                        <p>
+                          {invoice.invoice_number} · zbývá{" "}
+                          {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
+                        </p>
+                        <em>
+                          {invoice.status === "overdue"
+                            ? "Faktura po splatnosti"
+                            : "Naplánováno"}
+                        </em>
+                      </section>
+                      <span className="dashboard-timeline-arrow" aria-hidden="true">→</span>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="empty-box">Žádné nadcházející upomínky.</p>
+                )}
               </div>
-              <b>→</b>
-            </Link>
-            <div className="dashboard-timeline-title">
-              <strong>Nejbližší upomínky</strong>
-              <span>{upcoming.length}</span>
-            </div>
-            <div className="timeline">
-              {upcoming.length ? (
-                upcoming.map((invoice) => (
-                  <div key={invoice.id}>
-                    <span className="timeline-icon amber">
-                      <Icon name="mail" />
-                    </span>
-                    <section>
-                      <small>{shortDate(invoice.next_reminder_at!)}</small>
-                      {isToday(invoice.next_reminder_at!) ? <span className="today-task-tag">Dnešní úkol</span> : null}
-                      <strong>{invoice.counterparty_name}</strong>
-                      <p>
-                        {invoice.invoice_number} · zbývá{" "}
-                        {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
-                      </p>
-                      <em>
-                        {invoice.status === "overdue"
-                          ? "Faktura po splatnosti"
-                          : "Naplánováno"}
-                      </em>
-                    </section>
-                  </div>
-                ))
-              ) : (
-                <p className="empty-box">Žádné nadcházející upomínky.</p>
-              )}
-            </div>
-            {canManage ? <Link className="full-link" href="/reminders">
-              Spravovat pravidla upomínek →
-            </Link> : null}
-          </aside>
+              {canManage ? <Link className="full-link" href="/reminders">
+                Spravovat pravidla upomínek →
+              </Link> : null}
+            </aside>
           </MobileDisclosure>
         </section>
     </AppFrame>
