@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
-import { SettingsTabs } from "@/components/settings-tabs";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { useAccessProfile } from "@/lib/use-access-role";
 import { canEditCompanySettings, roleNames } from "@/lib/role-access";
@@ -230,7 +229,6 @@ export function SettingsClient({
 
   return (
     <AppFrame>
-      <SettingsTabs />
       <header className="section-header">
         <div>
           <p>SPRÁVA APLIKACE</p>
@@ -266,7 +264,7 @@ export function SettingsClient({
           {message}
         </p>
       )}
-      <div className="settings-grid">
+      <div className="settings-grid company-settings-grid">
         <section className="page-panel company-settings">
           <header>
             <div>
@@ -356,132 +354,134 @@ export function SettingsClient({
             </fieldset>
           )}
         </section>
-        {canAdminister && (
-          <MobileDisclosure
-            label="Význam uživatelských rolí"
-            className="settings-roles-disclosure"
-          >
-            <aside className="settings-side">
-              <section className="page-panel access-card">
-                <h2>Význam rolí</h2>
-                <p>
-                  Role určují, kdo může pouze číst, pracovat s fakturami nebo
-                  měnit nastavení.
-                </p>
-                <div className="role-list">
-                  <span>
-                    <strong>Administrátor</strong>
-                    <small>Firma, uživatelé i veškerá agenda</small>
-                  </span>
-                  <span>
-                    <strong>Účetní</strong>
-                    <small>Faktury, platby, upomínky a reporty</small>
-                  </span>
-                  <span>
-                    <strong>Čtenář</strong>
-                    <small>Přehled, reporty a faktury pouze pro čtení</small>
-                  </span>
-                </div>
-              </section>
-            </aside>
-          </MobileDisclosure>
-        )}
       </div>
-      {canAdminister && <><section className="page-panel members-settings">
-            <header>
-              <div>
-                <h2>Přístupy účetního oddělení</h2>
-                <p>
-                  Povolené e-maily a jejich oprávnění. Aktivní znamená, že už se
-                  uživatel alespoň jednou přihlásil.
-                </p>
-              </div>
-            </header>
-            {loading ? (
-              <p className="page-state">Načítám přístupy…</p>
-            ) : (
-              <>
-                <div className="members-list">
-                  {members.map((member) => (
-                    <article key={member.id}>
-                      <span
-                        className={`member-state ${member.active ? "active" : "invited"}`}
-                      >
-                        {member.active ? "Aktivní" : "Připraven"}
-                      </span>
-                      <div>
-                        <strong>
-                          {member.email}
-                          {member.current ? " · váš účet" : ""}
-                        </strong>
-                        <small>{roleNames[member.role]}</small>
-                      </div>
-                      <select
-                        disabled={saving}
-                        value={member.role}
-                        onChange={(event) =>
-                          changeRole(member, event.target.value as Role)
-                        }
-                        aria-label={`Role uživatele ${member.email}`}
-                      >
-                        <option value="admin">Administrátor</option>
-                        <option value="accounting">Účetní</option>
-                        <option value="viewer">Čtenář</option>
-                      </select>
-                      <button
-                        type="button"
-                        disabled={saving || member.current}
-                        onClick={() => removeMember(member)}
-                      >
-                        Odebrat
-                      </button>
-                    </article>
-                  ))}
-                </div>
-                <form className="member-add" onSubmit={addMember}>
-                  <label>
-                    <span>E-mail nového uživatele</span>
-                    <input
-                      type="email"
-                      required
-                      value={newEmail}
-                      onChange={(event) => setNewEmail(event.target.value)}
-                      placeholder="ucetni@hlavica.cz"
-                    />
-                  </label>
-                  <label>
-                    <span>Role</span>
-                    <select
-                      value={newRole}
-                      onChange={(event) =>
-                        setNewRole(event.target.value as Role)
-                      }
-                    >
-                      <option value="accounting">Účetní</option>
-                      <option value="viewer">Čtenář</option>
-                      <option value="admin">Administrátor</option>
-                    </select>
-                  </label>
-                  <button className="btn primary" disabled={saving}>
-                    + Přidat přístup
-                  </button>
-                </form>
-              </>
-            )}
-          </section>
-          <MobileDisclosure
-            label="Historie změn přístupů"
-            className="access-history-disclosure"
-          >
-            <section className="page-panel access-history">
+      {canAdminister && (
+        <>
+          <div className="access-settings-grid">
+            <section className="page-panel members-settings">
               <header>
                 <div>
-                  <h2>Historie změn přístupů</h2>
+                  <h2>Přístupy účetního oddělení</h2>
                   <p>
-                    Neměnná auditní stopa posledních administrátorských zásahů.
+                    Povolené e-maily a jejich oprávnění. Aktivní znamená, že už
+                    se uživatel alespoň jednou přihlásil.
                   </p>
                 </div>
               </header>
+              {loading ? (
+                <p className="page-state">Načítám přístupy…</p>
+              ) : (
+                <>
+                  <div className="members-list">
+                    {members.map((member) => (
+                      <article key={member.id}>
+                        <span
+                          className={`member-state ${member.active ? "active" : "invited"}`}
+                        >
+                          {member.active ? "Aktivní" : "Připraven"}
+                        </span>
+                        <div>
+                          <strong>
+                            {member.email}
+                            {member.current ? " · váš účet" : ""}
+                          </strong>
+                          <small>{roleNames[member.role]}</small>
+                        </div>
+                        <select
+                          disabled={saving}
+                          value={member.role}
+                          onChange={(event) =>
+                            changeRole(member, event.target.value as Role)
+                          }
+                          aria-label={`Role uživatele ${member.email}`}
+                        >
+                          <option value="admin">Administrátor</option>
+                          <option value="accounting">Účetní</option>
+                          <option value="viewer">Čtenář</option>
+                        </select>
+                        <button
+                          type="button"
+                          disabled={saving || member.current}
+                          onClick={() => removeMember(member)}
+                        >
+                          Odebrat
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                  <form className="member-add" onSubmit={addMember}>
+                    <label>
+                      <span>E-mail nového uživatele</span>
+                      <input
+                        type="email"
+                        required
+                        value={newEmail}
+                        onChange={(event) => setNewEmail(event.target.value)}
+                        placeholder="ucetni@hlavica.cz"
+                      />
+                    </label>
+                    <label>
+                      <span>Role</span>
+                      <select
+                        value={newRole}
+                        onChange={(event) =>
+                          setNewRole(event.target.value as Role)
+                        }
+                      >
+                        <option value="accounting">Účetní</option>
+                        <option value="viewer">Čtenář</option>
+                        <option value="admin">Administrátor</option>
+                      </select>
+                    </label>
+                    <button className="btn primary" disabled={saving}>
+                      + Přidat přístup
+                    </button>
+                  </form>
+                </>
+              )}
+            </section>
+            <MobileDisclosure
+              label="Význam uživatelských rolí"
+              className="settings-roles-disclosure"
+            >
+              <aside className="settings-side">
+                <section className="page-panel access-card">
+                  <h2>Význam rolí</h2>
+                  <p>
+                    Role určují, kdo může pouze číst, pracovat s fakturami nebo
+                    měnit nastavení.
+                  </p>
+                  <div className="role-list">
+                    <span>
+                      <strong>Administrátor</strong>
+                      <small>Firma, uživatelé i veškerá agenda</small>
+                    </span>
+                    <span>
+                      <strong>Účetní</strong>
+                      <small>Faktury, platby, upomínky a reporty</small>
+                    </span>
+                    <span>
+                      <strong>Čtenář</strong>
+                      <small>Přehled, reporty a faktury pouze pro čtení</small>
+                    </span>
+                  </div>
+                </section>
+              </aside>
+            </MobileDisclosure>
+          </div>
+          <details className="page-panel access-history-disclosure">
+            <summary>
+              <span>
+                <strong>Historie změn přístupů</strong>
+                <small>
+                  Neměnná auditní stopa posledních administrátorských zásahů.
+                </small>
+              </span>
+              <span aria-hidden="true" className="access-history-chevron">
+                ⌄
+              </span>
+            </summary>
+            <section className="access-history">
               <div className="access-history-list">
                 {accessEvents.map((event) => (
                   <article key={event.id}>
@@ -504,8 +504,9 @@ export function SettingsClient({
                 )}
               </div>
             </section>
-          </MobileDisclosure>
-        </>}
+          </details>
+        </>
+      )}
     </AppFrame>
   );
 }

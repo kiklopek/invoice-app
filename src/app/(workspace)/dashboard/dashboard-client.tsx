@@ -55,33 +55,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const recent = summary.recent;
   const upcoming = summary.upcoming;
 
-  // What actually needs a click today, not just what the totals are. Each
-  // one only appears when it is non-zero -- an empty dashboard should look
-  // empty, not like three permanently-visible zero counters.
-  const actionItems = [
-    summary.payments_needing_review > 0 && {
-      key: "payments",
-      icon: "bank" as const,
-      count: summary.payments_needing_review,
-      label: summary.payments_needing_review === 1 ? "platba čeká na kontrolu" : "platby čekají na kontrolu",
-      href: "/invoices/payments/archive",
-    },
-    summary.ocr_pending_confirmation > 0 && {
-      key: "ocr",
-      icon: "document" as const,
-      count: summary.ocr_pending_confirmation,
-      label: summary.ocr_pending_confirmation === 1 ? "faktura z dokumentu čeká na potvrzení" : "faktury z dokumentu čekají na potvrzení",
-      href: "/invoices/import",
-    },
-    summary.reminders_due_soon > 0 && {
-      key: "reminders",
-      icon: "mail" as const,
-      count: summary.reminders_due_soon,
-      label: summary.reminders_due_soon === 1 ? "upomínka jde dnes nebo zítra" : "upomínky jdou dnes nebo zítra",
-      href: "/reminders",
-    },
-  ].filter((item): item is Exclude<typeof item, false> => item !== false);
-
   return (
     <AppFrame invoiceCount={activeCount} className="content dashboard-page">
         <header className="topbar">
@@ -134,20 +107,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
             </article>
           </div>
         </section>
-        {actionItems.length > 0 && (
-          <section className="dashboard-today" aria-label="Co dělat dnes">
-            <span className="dashboard-today-heading">CO DĚLAT DNES</span>
-            <div className="dashboard-today-list">
-              {actionItems.map(item => (
-                <Link key={item.key} href={item.href} className="dashboard-today-item">
-                  <span className="dashboard-today-icon"><Icon name={item.icon} /></span>
-                  <span><strong>{item.count}</strong> {item.label}</span>
-                  <span aria-hidden="true">→</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
         <section className="workspace-grid dashboard-workspace">
           <div className="panel invoice-panel">
             <div className="panel-head">

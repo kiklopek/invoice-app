@@ -52,7 +52,13 @@ export type OcrFieldSource = {
   page: number;
   line: number;
   text: string;
-  method: "pdf_text" | "ocr" | "derived";
+  // "ai" is honest provenance for a field an external AI model answered from
+  // its own reading of the document, as opposed to "pdf_text"/"ocr" which
+  // point at an exact line this app's own parser matched. Never relabel an
+  // AI answer as one of those -- the whole point of field_sources is letting
+  // a human reviewer tell "the document says X on this line" apart from
+  // "a model said X", and those carry different trust.
+  method: "pdf_text" | "ocr" | "derived" | "ai";
   confidence: number | null;
   bounds: OcrBoundingBox | null;
 };
@@ -100,7 +106,7 @@ const AMOUNT_SOURCE =
   "(?<!\\d)-?\\d{1,3}(?:[ .\u00a0]\\d{3})*(?:[,.]\\d{1,2})?(?!\\d)|(?<!\\d)-?\\d+(?:[,.]\\d{1,2})?(?!\\d)";
 const CURRENCY_SOURCE = "CZK|Kč|EUR|USD|GBP|PLN|CHF";
 
-function boundedText(value: string | null | undefined, max: number) {
+export function boundedText(value: string | null | undefined, max: number) {
   return (value ?? "").trim().slice(0, max);
 }
 
@@ -319,9 +325,17 @@ function labeledRemainder(lines: string[], strippedLines: string[], label: RegEx
 // having no digits at all while stacking several column words; a genuine
 // label line ("Celkem bez DPH" with its amount on the next line) has at most
 // a couple, so it keeps working.
-const TABLE_HEADING_WORDS = /\b(?:text|popis|mnozstvi|pocet|cena|sazba|dph|celkem|jednotka|mj|kus)\b/g;
+const TABLE_HEADING_WORDS = /\b(?:text|popis|polozka|mnozstvi|pocet|cena|sazba|zaklad|dph|celkem|jednotka|mj|kus)\b/g;
 function looksLikeTableHeading(strippedLine: string | undefined) {
-  if (!strippedLine || /\d/.test(strippedLine)) return false;
+  if (!strippedLine) return false;
+  // A column heading can bake its own rate into the label, e.g. "Základ DPH
+  // 21 % Celkem" -- the "21" there is describing the DPH column, not an
+  // amount on a label:amount line. Strip "N %" before the digit check so
+  // this still reads as digit-free, otherwise "zaklad dph" in it matches the
+  // net-amount label search, sees a lone "21" leaking through with no
+  // amount before it, and treats the RATE as if it were the net total.
+  const withoutRatePercent = strippedLine.replace(/\d+(?:[,.]\d+)?\s*%/g, "");
+  if (/\d/.test(withoutRatePercent)) return false;
   return (strippedLine.match(TABLE_HEADING_WORDS) ?? []).length >= 3;
 }
 

@@ -138,23 +138,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sidebar nav a em { background: #e8f1eb; color: #1c5035; }
 .nav-symbol, .nav-symbol svg { width: 20px; height: 20px; }
 .nav-item-group { display: flex; flex-direction: column; }
-/* Faktury/Platby show their sub-links only while you're inside that section --
-   no expand/collapse click needed, and the flat list never grows taller than
-   today's for anyone not in one of those two sections. */
-.nav-subitems { display: flex; flex-direction: column; margin: 2px 0 2px 32px; gap: 2px; }
+/* Pododkazy se ukazují jen v právě otevřené sekci, takže sidebar zůstává
+   krátký, ale související pracovní kroky jsou vždy po ruce. */
+.nav-subitems { display: flex; flex-direction: column; margin: 5px 0 7px 42px; gap: 3px; }
 .sidebar nav .nav-subitems a {
   position: relative;
   display: flex;
   align-items: center;
-  height: 34px;
-  padding: 0 12px;
+  min-height: 34px;
+  height: auto;
+  padding: 7px 10px 7px 22px;
   border-radius: 6px;
-  color: #9fbaa9;
+  color: #a9c2b2;
   font-size: 12px;
   font-weight: 600;
 }
-.sidebar nav .nav-subitems a:hover { background: #205238; color: #fff; }
-.sidebar nav .nav-subitems a.active { background: #244f38; color: #fff; }
+.sidebar nav .nav-subitems a::before { content: "›"; position: absolute; left: 8px; color: #789987; font-size: 16px; font-weight: 500; line-height: 1; }
+.sidebar nav .nav-subitems a:hover { background: rgba(255,255,255,.055); color: #fff; }
+.sidebar nav .nav-subitems a:hover::before { color: #c8ddce; transform: translateX(2px); }
+.sidebar nav .nav-subitems a.active { background: rgba(220,235,189,.11); color: #eff7e7; font-weight: 700; }
+.sidebar nav .nav-subitems a.active::before { inset: auto auto auto 8px; width: auto; height: auto; border: 0; border-radius: 0; background: transparent; color: #dcebbd; }
 .user-card { padding: 18px 8px 0; border-top: 1px solid #376249; }
 .avatar { width: 36px; height: 36px; background: #e8eee8; color: #244e38; }
 .user-card > button { width: 34px; height: 34px; border-radius: 7px; }
@@ -482,30 +485,6 @@ input:focus, select:focus, textarea:focus,
 .dashboard-balance-actions { position: relative; z-index: 1; display: flex; align-items: center; gap: 18px; margin-top: 28px; }
 .dashboard-balance-actions a { color: #dce9df; font-size: 10px; font-weight: 700; text-decoration: none; }
 .dashboard-balance-actions a:first-child { display: inline-flex; align-items: center; gap: 15px; padding: 10px 13px; border-radius: 9px; background: #fff; color: var(--green); }
-/* Co dělat dnes -- live counts (payments waiting, OCR unconfirmed, reminders
-   due), each a link straight to where it gets resolved. Renders nothing when
-   every count is zero, so an idle day shows an idle dashboard, not three
-   permanent zeros. */
-.dashboard-today { margin-bottom: 18px; }
-.dashboard-today-heading { display: block; margin-bottom: 8px; color: #7e8981; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
-.dashboard-today-list { display: flex; flex-wrap: wrap; gap: 10px; }
-.dashboard-today-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 12px 16px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: #fff;
-  color: #1c231e;
-  font-size: 11px;
-  font-weight: 600;
-  transition: border-color .15s, background-color .15s;
-}
-.dashboard-today-item:hover { border-color: #bfd5c6; background: #f6faf7; }
-.dashboard-today-item strong { font-size: 13px; margin-right: 3px; }
-.dashboard-today-icon { display: grid; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: #eef4ee; color: #2a6044; }
-.dashboard-today-item > span:last-child { margin-left: 2px; color: #7e8981; }
 .dashboard-signal-grid { display: grid; grid-template-rows: repeat(3,minmax(0,1fr)); gap: 10px; }
 .dashboard-signal { display: flex; min-width: 0; align-items: center; gap: 14px; padding: 17px 18px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
 .dashboard-signal-icon { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border-radius: 12px; }
@@ -541,7 +520,8 @@ input:focus, select:focus, textarea:focus,
 .dashboard-panel-eyebrow { display: block; margin-bottom: 8px; color: var(--green); font-size: 9px; font-weight: 800; letter-spacing: 1.5px; }
 .dashboard-attention-count { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 999px; background: #f0f3ef; color: var(--muted); font-size: 11px; font-weight: 750; }
 .dashboard-timeline-item:focus-visible { outline: 3px solid rgba(52,120,83,.18); outline-offset: 2px; }
-.dashboard-attention-panel .timeline { padding: 0 14px 18px; }
+.dashboard-attention-panel .timeline {
+  padding: 0 14px 18px; }
 .dashboard-timeline-item { position: relative; display: flex; align-items: flex-start; gap: 13px; padding: 14px 8px; border-radius: 12px; color: inherit; text-decoration: none; transition: background .18s ease; }
 .dashboard-timeline-item:hover { background: #f7f9f6; }
 .dashboard-timeline-item:not(:last-child)::after { content: ""; position: absolute; left: 24px; top: 52px; bottom: -6px; border-left: 1px dashed #d9ded9; }
@@ -799,7 +779,13 @@ tr:hover td { background: #fafbf9; }
 .detail-page-grid { grid-template-columns: minmax(0, 1fr) minmax(310px, 380px); gap: 16px; }
 .detail-page-grid > div, .detail-page-grid > aside { gap: 12px; }
 .info-section { padding: 0 20px 20px; }
-.info-section > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; margin: 0 -20px 18px; }
+.info-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  margin: 0 -20px 18px; }
 .invoice-reminder-control { background: var(--green-soft); border: 1px solid #d3e1d7; border-radius: 8px; }
 .email-suppression {
   margin-bottom: 10px;
@@ -1078,10 +1064,62 @@ tr:hover td { background: #fafbf9; }
 .analytics-card > header { padding: 16px 20px; margin: 0 -20px 16px; }
 .donut::after { background: #fff; }
 .settings-grid { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 16px; }
+.company-settings-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.access-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  align-items: start;
+  gap: 16px;
+  margin-top: 16px;
+}
 .settings-side { gap: 12px; }
 .settings-form { gap: 14px; padding: 20px; }
-.members-settings { margin-top: 16px; }
-.access-history { margin-top: 16px; overflow: hidden; }
+.members-settings { margin-top: 0; }
+.access-history { overflow: hidden; }
+.access-history-disclosure {
+  margin-top: 16px;
+  overflow: hidden;
+}
+.access-history-disclosure > summary {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+.access-history-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.access-history-disclosure > summary strong,
+.access-history-disclosure > summary small {
+  display: block;
+}
+.access-history-disclosure > summary strong {
+  font-size: 17px;
+}
+.access-history-disclosure > summary small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.access-history-chevron {
+  flex: none;
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+.access-history-disclosure[open] .access-history-chevron {
+  transform: rotate(180deg);
+}
+.access-history-disclosure[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
 .access-history > header { padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .access-history > header h2 { margin: 0; font-size: 17px; }
 .access-history > header p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
@@ -1559,7 +1597,8 @@ tr:hover td { background: #fafbf9; }
   line-height: 1.55;
 }
 
-.btn { font-size: 12px; }
+.btn {
+  font-size: 12px; }
 
 .metrics p,
 .notice strong { font-size: 12px; }
@@ -1567,7 +1606,8 @@ tr:hover td { background: #fafbf9; }
 .notice p,
 .notice > a { font-size: 11px; line-height: 1.5; }
 
-th { font-size: 10px; }
+th {
+  font-size: 10px; }
 td, td strong { font-size: 12px; }
 td small { font-size: 11px; line-height: 1.45; }
 .status { font-size: 10px; }
@@ -1659,7 +1699,8 @@ input, select, textarea,
 .template-delivery label > span small,
 .ocr-warnings li { font-size: 11px; line-height: 1.5; }
 .template-delivery label > span > span { font-size: 10px; }
-.delete-invoice-content p { font-size: 12px; }
+.delete-invoice-content p {
+  font-size: 12px; }
 .settings-audit,
 .login-security,
 .login-brand small,
@@ -1747,7 +1788,7 @@ input, select, textarea,
   .content { width: calc(100% - 208px); margin-left: 208px; padding: 30px 24px 48px; }
   .invoice-area-background { left: 208px; }
   .report-area-background { left: 208px; }
-  .workspace-grid, .detail-page-grid, .settings-grid { grid-template-columns: 1fr; }
+  .workspace-grid, .detail-page-grid, .settings-grid, .access-settings-grid { grid-template-columns: 1fr; }
   .filter-row { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
   .filter-row label.grow { grid-column: 1 / -1; }
   .report-filters { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
@@ -1989,7 +2030,8 @@ textarea {
   -webkit-font-smoothing: antialiased;
 }
 
-body { font-size: 15px; }
+body {
+  font-size: 15px; }
 .sidebar a,
 .btn,
 input,
@@ -2204,7 +2246,8 @@ th,
     overscroll-behavior-x: none;
     overscroll-behavior-y: auto;
   }
-  body { -webkit-text-size-adjust: 100%; }
+  body {
+    -webkit-text-size-adjust: 100%; }
   .app-shell, .content, .section-page, .content > *,
   .page-panel, .panel, .form-section, .data-panel,
   .analytics-card, .settings-grid > *, .detail-page-grid > * { min-width: 0; max-width: 100%; }
@@ -2214,7 +2257,9 @@ th,
     inset: auto 0 0;
     width: 100%;
     height: calc(72px + env(safe-area-inset-bottom));
-    padding: 5px max(4px, env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+    padding: 5px max(4px, env(safe-area-inset-right))
+      calc(5px + env(safe-area-inset-bottom))
+      max(4px, env(safe-area-inset-left));
     border-radius: 0;
   }
   .sidebar .sidebar-nav {
@@ -2243,12 +2288,18 @@ th,
     white-space: nowrap;
   }
   .sidebar nav a em { display: none; }
-  .nav-symbol, .nav-symbol svg { width: 20px; height: 20px; }
-  .content { padding: 22px 14px calc(82px + env(safe-area-inset-bottom)); }
+  .nav-symbol, .nav-symbol svg {
+    width: 20px;
+    height: 20px; }
+  .content {
+    padding: 22px 14px calc(82px + env(safe-area-inset-bottom)); }
 
-  .topbar, .section-header { margin-bottom: 20px; gap: 14px; }
+  .topbar, .section-header {
+    margin-bottom: 20px;
+    gap: 14px; }
   .topbar > div, .section-header > div { width: 100%; min-width: 0; }
-  .topbar h1, .section-header h1 { font-size: clamp(25px, 7vw, 29px); }
+  .topbar h1, .section-header h1 {
+    font-size: clamp(25px, 7vw, 29px); }
   .section-header > div > span { display: block; font-size: 13px; line-height: 1.55; }
   .top-actions, .section-header .section-actions {
     display: grid;
@@ -2270,7 +2321,8 @@ th,
     align-items: center;
     min-height: 44px;
   }
-  .top-actions .btn, .section-actions .btn { width: 100%; }
+  .top-actions .btn, .section-actions .btn {
+    width: 100%; }
   .invoice-list-actions .btn.primary {
     grid-column: 1 / -1;
     grid-row: 1;
@@ -2306,7 +2358,9 @@ th,
     gap: 9px;
   }
   .metrics article, .report-metrics article { min-width: 0; padding: 14px; }
-  .metrics article { display: flex; gap: 10px; }
+  .metrics article {
+    display: flex;
+    gap: 10px; }
   .metrics strong, .report-metrics strong { font-size: clamp(17px, 4.8vw, 21px); line-height: 1.2; overflow-wrap: anywhere; }
   .metric-icon { width: 34px; height: 34px; margin: 0; flex: 0 0 34px; }
 
@@ -2317,7 +2371,9 @@ th,
     width: calc(100% - 20px);
     background: #fff;
   }
-  .dashboard-invoice-table td, .invoice-list-table td { min-width: 0; overflow-wrap: anywhere; }
+  .dashboard-invoice-table td, .invoice-list-table td {
+    min-width: 0;
+    overflow-wrap: anywhere; }
   .dashboard-invoice-table td strong, .invoice-list-table td strong { white-space: normal; }
   .dashboard-upcoming-disclosure .activity-panel { display: block; }
   .dashboard-upcoming-disclosure .mobile-disclosure-content { padding-top: 8px; }
@@ -2404,16 +2460,21 @@ th,
     text-transform: uppercase;
   }
 
-  .detail-page-header .section-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .detail-page-header .section-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detail-page-header .section-actions .btn.primary { grid-column: 1 / -1; grid-row: 1; }
-  .invoice-hero { padding: 18px; gap: 12px; }
+  .invoice-hero {
+    padding: 18px;
+    gap: 12px; }
   .invoice-hero > div { min-width: 0; }
   .invoice-hero > div > strong { font-size: clamp(21px, 6vw, 25px); overflow-wrap: anywhere; }
   .info-section { padding-inline: 16px; }
   .info-section > header { margin-inline: -16px; padding-inline: 16px; }
   .bank-payment-list article { align-items: stretch; flex-direction: column; }
 
-  .automation-switch > button { min-height: 46px !important; padding-block: 10px; }
+  .automation-switch > button {
+    min-height: 46px !important;
+    padding-block: 10px; }
   .reminder-operations { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .monitor-row { min-width: 0; }
   .monitor-row > span { min-width: 0; }
@@ -2471,8 +2532,13 @@ th,
     background-position: right var(--select-chevron-offset) center;
     background-size: var(--select-chevron-size) auto;
   }
-  .rule-controls input { height: 48px !important; padding-block: 0 !important; line-height: normal; }
-  .remove-rule { width: 44px; height: 44px; }
+  .rule-controls input {
+    height: 48px !important;
+    padding-block: 0 !important;
+    line-height: normal; }
+  .remove-rule {
+    width: 44px;
+    height: 44px; }
   .reminder-process-disclosure { margin-top: 12px; }
   .reminder-process-disclosure .process-preview { margin-top: 0; }
   .friendly-tabs {
@@ -2483,7 +2549,10 @@ th,
     scroll-snap-type: x proximity;
   }
   .friendly-tabs button { flex: 0 0 min(210px, 76vw); scroll-snap-align: start; }
-  .template-header-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .template-header-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px; }
   .email-preview-disclosure { padding: 0 16px 16px; }
   .email-preview-disclosure .email-preview { margin: 0; }
   .email-preview-frame { min-height: 480px; }
@@ -2578,7 +2647,8 @@ th,
 
 @media (max-width: 520px) {
   .auth-login-options { align-items: flex-start; flex-direction: column; }
-  .content { padding-inline: 11px; }
+  .content {
+    padding-inline: 11px; }
   .top-actions, .section-header .section-actions { grid-template-columns: 1fr; }
   .invoice-list-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .invoice-list-actions .btn.primary { grid-column: 1 / -1; }
@@ -2586,7 +2656,9 @@ th,
   .filter-row, .report-filters { grid-template-columns: 1fr; }
   .filter-row label, .filter-row label.grow, .filter-row .export-button,
   .period-presets, .customer-filter { grid-column: 1; }
-  .period-presets { display: grid; grid-template-columns: 1fr; }
+  .period-presets {
+    display: grid;
+    grid-template-columns: 1fr; }
   .list-summary { grid-template-columns: 1fr; }
   .info-grid { grid-template-columns: 1fr; }
   .detail-page-header .section-actions { grid-template-columns: 1fr; }
@@ -2596,16 +2668,22 @@ th,
   .automation-switch { padding: 14px; }
   .email-preview-frame { min-height: 420px; }
   .payment-history-table td { grid-template-columns: minmax(95px, .75fr) minmax(0, 1fr); }
-  .login-header { align-items: start; }
+  .login-header {
+    align-items: start; }
 }
 
 @media (max-width: 360px) {
-  .content { padding-inline: 9px; }
-  .sidebar nav a { font-size: 8px; }
-  .nav-symbol, .nav-symbol svg { width: 19px; height: 19px; }
+  .content {
+    padding-inline: 9px; }
+  .sidebar nav a {
+    font-size: 8px; }
+  .nav-symbol, .nav-symbol svg {
+    width: 19px;
+    height: 19px; }
   .metrics, .report-metrics, .reminder-operations { grid-template-columns: 1fr; }
   .metrics article { min-height: 82px; }
-  .login-header { grid-template-columns: 1fr; }
+  .login-header {
+    grid-template-columns: 1fr; }
   .login-header .login-company-logo { width: 72px; }
   .payment-preview-table td, .payment-result-table td,
   .debtor-table td, .invoice-import-preview td { grid-template-columns: 1fr; gap: 2px; text-align: left; }
@@ -2818,18 +2896,17 @@ th,
 .customer-phone-edit button svg { width: 14px; height: 14px; }
 .customer-billing-cell strong { font-size: 10px; }
 .customer-billing-cell small { margin-top: 3px; color: var(--muted); font-size: 8px; }
-.customer-invoices-link { display: block; color: inherit; }
-.customer-invoices-link:hover strong { color: var(--green); text-decoration: underline; }
-/* Arriving from an invoice's "Karta zákazníka" link -- fades out on its own
-   so it never looks like a permanent status marker on the row. */
-.customer-row-highlight { animation: customer-row-highlight-fade 2.4s ease-out; }
-@keyframes customer-row-highlight-fade {
-  0% { background: var(--green-soft); }
-  100% { background: transparent; }
+.customer-invoices-link {
+  display: block;
+  color: inherit;
 }
-.info-section-link { font-size: 10px; font-weight: 700; color: var(--green); }
-.info-section-link:hover { text-decoration: underline; }
-.info-section-note { margin: 12px 0 0; color: var(--muted); font-size: 9px; }
+.customer-invoices-link:hover strong {
+  color: var(--green);
+  text-decoration: underline;
+}
+.customer-row-highlight {
+  animation: customer-row-highlight-fade 2.4s ease-out;
+}
 .outstanding-badge {
   display: inline-flex;
   padding: 3px 9px;
@@ -3344,4 +3421,25 @@ th,
     font-size: 8pt !important;
   }
   .red-text { color: #9f352d !important; }
+}
+@keyframes customer-row-highlight-fade {
+  0% {
+    background: var(--green-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.info-section-link {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+}
+.info-section-link:hover {
+  text-decoration: underline;
+}
+.info-section-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 9px;
 }

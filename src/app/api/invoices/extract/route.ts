@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
-import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, parseInvoiceText } from "@/lib/invoice-ocr";
+import { isOcrHourlyQuotaExceeded, parseInvoiceText } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
+import { extractInvoiceWithOpenRouter, OpenRouterOcrError } from "@/lib/invoice-ocr-openrouter";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
@@ -66,32 +67,48 @@ export async function POST(request: Request) {
     return fail("Obsah dokumentu už neodpovídá ověřenému souboru.", 415, "document_integrity_failed");
   }
 
+  // "openrouter" is opt-in only, and deliberately a separate code path
+  // rather than a fallback-on-failure: silently sending a document to a
+  // third party because local processing hiccuped would be exactly the kind
+  // of thing nobody agreed to. See invoice-ocr-openrouter.ts for the
+  // GDPR/data-processor reasoning behind keeping this explicit.
+  const useOpenRouter = process.env.OCR_PROVIDER === "openrouter";
+
   let extraction;
   try {
-    const documentText = await extractInvoiceDocumentText({ bytes, mime: upload.expected_mime });
-    if (!documentText.text.trim()) {
-      return fail("V dokumentu se nepodařilo najít žádný čitelný text. Zkuste kvalitnější sken nebo údaje doplňte ručně.", 422, "empty_ocr_text");
+    if (useOpenRouter) {
+      extraction = await extractInvoiceWithOpenRouter({ bytes, mime: upload.expected_mime, fileUrl: path, organization });
+    } else {
+      const documentText = await extractInvoiceDocumentText({ bytes, mime: upload.expected_mime });
+      if (!documentText.text.trim()) {
+        return fail("V dokumentu se nepodařilo najít žádný čitelný text. Zkuste kvalitnější sken nebo údaje doplňte ručně.", 422, "empty_ocr_text");
+      }
+      extraction = parseInvoiceText({
+        text: documentText.text,
+        fileUrl: path,
+        organization,
+        ocrConfidence: documentText.averageConfidence,
+        extraWarnings: documentText.warnings,
+        layout: documentText.layout,
+      });
     }
-    extraction = parseInvoiceText({
-      text: documentText.text,
-      fileUrl: path,
-      organization,
-      ocrConfidence: documentText.averageConfidence,
-      extraWarnings: documentText.warnings,
-      layout: documentText.layout,
-    });
   } catch (cause) {
     console.error("[invoice-ocr] extraction failed", {
       uploadId: upload.id,
       mime: upload.expected_mime,
-      code: cause instanceof LocalOcrError ? cause.code : "unexpected",
+      provider: useOpenRouter ? "openrouter" : "local",
+      code: cause instanceof LocalOcrError ? cause.code : cause instanceof OpenRouterOcrError ? cause.code : "unexpected",
       message: cause instanceof Error ? cause.message : String(cause),
     });
     if (cause instanceof LocalOcrError) {
       const status = cause.code === "pdf_too_long" || cause.code === "scan_too_long" ? 422 : cause.code === "timeout" ? 504 : 422;
       return fail(cause.message, status, `local_${cause.code}`);
     }
-    return fail("Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, "local_ocr_failed");
+    if (cause instanceof OpenRouterOcrError) {
+      const status = cause.code === "rate_limited" ? 429 : cause.code === "not_configured" ? 503 : cause.code === "timeout" ? 504 : 422;
+      return fail(cause.message, status, `openrouter_${cause.code}`);
+    }
+    return fail(useOpenRouter ? "AI OCR se nepodařilo zpracovat. Zkuste to znovu nebo údaje doplňte ručně." : "Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, useOpenRouter ? "openrouter_failed" : "local_ocr_failed");
   }
 
   const normalizedIco = normalizeCounterpartyIco(extraction.invoice.counterparty_ico);
@@ -125,8 +142,8 @@ export async function POST(request: Request) {
 
   const { error: completionError } = await identity.service.from("invoice_uploads").update({
     ocr_status: "succeeded",
-    ocr_model: LOCAL_OCR_MODEL,
-    ocr_provider_response_id: null,
+    ocr_model: extraction.model,
+    ocr_provider_response_id: extraction.response_id,
     ocr_field_sources: extraction.field_sources,
     ocr_money_snapshot: extraction.invoice.money_evidence ?? null,
     ocr_error: null,

@@ -224,6 +224,37 @@ Celkem k úhradě 15 660,00 Kč
     expect(result.warnings.join(" ")).toContain("Základ bez DPH nebyl spolehlivě rozpoznán");
   });
 
+  it("doesn't mistake a rate baked into a column heading for the net amount", () => {
+    // Real bug: "Základ DPH 21 % Celkem" as a one-row item table's heading
+    // contains a digit ("21"), so the table-heading detector (which bails
+    // out on any digit, to avoid treating a genuine "label: amount" line as
+    // a heading) didn't recognize it as a heading at all. The "zaklad dph"
+    // label then matched THIS row, found no amount on it, fell through to
+    // "21 %" -- and took the lone "21" as if it were the net amount, paired
+    // it with the real gross (12 100) and got a ~57 000 % implied VAT rate.
+    // The fix strips "N %" before the digit check, since a rate baked into a
+    // heading is not evidence of a real label:amount line.
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Číslo faktury / VS: 20260001
+Odběratel: Test Zákazník s.r.o.
+IČO: 12345678
+E-mail: info@test.cz
+Datum vystavení: 2. 9. 2026
+Datum splatnosti: 20. 9. 2026
+Položka Základ DPH 21 % Celkem
+Testovací předplatné - září 2026 10 000,00 Kč 2 100,00 Kč 12 100,00 Kč
+K úhradě: 12 100,00 Kč
+`,
+      fileUrl: "org/rate-in-heading.pdf",
+      organization,
+    });
+    expect(result.invoice.amount).toBe(12100);
+    expect(result.invoice.amount_without_vat).toBe(10000);
+    expect(result.invoice.vat_rate).toBe(21);
+  });
+
   it("never takes the total from an item-table column heading, nor a digit fragment of a year in prose", () => {
     // Exactly the real layout that produced a 6 CZK invoice: "Celkem s DPH"
     // is a COLUMN HEADING here, the line under it is a sentence, and the

@@ -5,7 +5,6 @@ import useSWR from "swr";
 import Link from "next/link";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
-import { SettingsTabs } from "@/components/settings-tabs";
 import { EmailSuppressionsPanel } from "./email-suppressions-panel";
 import { interpolateReminderTemplateValues } from "@/lib/reminder-template";
 import { Icon } from "@/components/icons";
@@ -606,7 +605,6 @@ export function RemindersClient({
 
   return (
     <AppFrame>
-      <SettingsTabs />
       <header className="section-header reminders-hero">
         <div className="reminders-hero-copy">
           <p>AUTOMATIZACE</p>

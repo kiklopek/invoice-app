@@ -13,6 +13,14 @@ import { Icon } from "@/components/icons";
 import type { InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 
+// Mirrors the server-side OCR_PROVIDER switch (extract/route.ts). Next.js
+// only exposes env vars prefixed NEXT_PUBLIC_ to client code, and this is a
+// deploy-wide setting (not per-request), so a build-time constant is
+// accurate here -- it must never silently drift from what the API route
+// actually does, since it's the one sentence telling a person their
+// document leaves the company.
+const USES_EXTERNAL_AI_OCR = process.env.NEXT_PUBLIC_OCR_PROVIDER === "openrouter";
+
 type DocumentStage = "idle" | "uploading" | "verifying" | "reading" | "recognizing" | "prefilling";
 
 const documentStageLabel: Record<DocumentStage, string> = {
@@ -184,7 +192,12 @@ export default function ImportInvoicesPage() {
             <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
             <span className="large-import-icon"><Icon name="document"/></span>
             <h2>Vyberte dokumenty faktur</h2>
-            <p>Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB na soubor. Vybrat lze i více souborů najednou. Údaje rozpozná lokální OCR bez odesílání do externí AI služby.</p>
+            <p>
+              Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB na soubor. Vybrat lze i více souborů najednou.{" "}
+              {USES_EXTERNAL_AI_OCR
+                ? "Údaje rozpozná externí AI služba (OpenRouter) -- dokument se jí kvůli tomu odešle."
+                : "Údaje rozpozná lokální OCR bez odesílání do externí AI služby."}
+            </p>
             <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
             <small>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
           </label>

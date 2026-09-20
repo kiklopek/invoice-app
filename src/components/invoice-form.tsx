@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { clearInvoiceDraft, readInvoiceDraft, saveInvoiceDraft } from "@/lib/invoice-drafts";
 import type { InvoiceInput } from "@/types/invoice";
 import { todayInTimeZone } from "@/lib/reminders";
-import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
+import { AMOUNT_ADJUSTMENT_TOLERANCE, DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 import { minorUnits } from "@/lib/money";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import type { ReminderPolicySummary } from "@/lib/reminder-policies";
@@ -117,7 +117,7 @@ export function InvoiceForm({
     } }));
   }
 
-  const needsAmountReview = amountDifference !== 0;
+  const needsAmountReview = Math.abs(amountDifference) > AMOUNT_ADJUSTMENT_TOLERANCE;
   const detectedPrepayment = (form.money_evidence?.initial_paid ?? 0) > 0;
 
   useEffect(() => {
@@ -239,7 +239,7 @@ export function InvoiceForm({
   if (form.issue_date && form.due_date && form.due_date < form.issue_date) submitBlockers.push("Datum splatnosti nemůže být dřív než datum vystavení.");
   if (!(form.amount_without_vat > 0)) submitBlockers.push("Částka bez DPH musí být větší než 0.");
   if (!(form.amount > 0)) submitBlockers.push("Částka s DPH musí být větší než 0.");
-  if (amountDifference !== 0 && (!form.money_evidence?.adjustment_confirmed || !form.money_evidence.adjustment_reason.trim())) submitBlockers.push("Vysvětlete a potvrďte rozdíl mezi celkovou částkou a výpočtem DPH.");
+  if (Math.abs(amountDifference) > AMOUNT_ADJUSTMENT_TOLERANCE && (!form.money_evidence?.adjustment_confirmed || !form.money_evidence.adjustment_reason.trim())) submitBlockers.push("Vysvětlete a potvrďte rozdíl mezi celkovou částkou a výpočtem DPH.");
   if ((form.money_evidence?.initial_paid ?? 0) > 0 && !form.money_evidence?.initial_paid_confirmed) submitBlockers.push("Potvrďte počáteční úhrady podle dokumentu.");
   if (form.vat_rate < 0 || form.vat_rate > 100) submitBlockers.push("Sazba DPH musí být mezi 0 a 100 %.");
   if (policiesLoading) submitBlockers.push("Načítají se kategorie upomínek…");
@@ -340,7 +340,7 @@ export function InvoiceForm({
       <label><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/><OcrSourceNote source={source("amount_without_vat")}/></label>
       <label><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small><OcrSourceNote source={source("vat_rate")}/></label>
       <label><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small><OcrSourceNote source={source("amount")}/></label>
-      {(needsAmountReview || detectedPrepayment || (!editing && Boolean(form.file_url))) && <div className="wide invoice-money-review">
+      {(needsAmountReview || detectedPrepayment) && <div className="wide invoice-money-review">
         {needsAmountReview && <p>Výpočet ze základu a sazby: {calculatedTotal.toFixed(2)} {form.currency}. Rozdíl: {amountDifference.toFixed(2)} {form.currency}.</p>}
         {needsAmountReview && <>
           {!form.money_evidence?.multi_rate && <button type="button" className="btn secondary compact" onClick={() => { setGrossAmount(calculatedTotal); }}>Přepočítat celkem na {calculatedTotal.toFixed(2)} {form.currency}</button>}
@@ -348,9 +348,9 @@ export function InvoiceForm({
           <label className="invoice-money-confirm"><input type="checkbox" required checked={form.money_evidence?.adjustment_confirmed ?? false} onChange={e => updateMoneyEvidence({ adjustment_confirmed: e.target.checked })}/>Potvrzuji celkovou hodnotu a rozdíl podle dokumentu.</label>
         </>}
         {editing && detectedPrepayment && <p>Počáteční úhrada při importu: {form.money_evidence?.initial_paid.toFixed(2)} {form.currency}. Opravy provádějte v evidenci plateb.</p>}
-        {!editing && Boolean(form.file_url) && <>
+        {!editing && detectedPrepayment && <>
           <label><span>Již uhrazené zálohy / úhrady před importem</span><input type="number" min="0" max={form.amount} step="0.01" value={form.money_evidence?.initial_paid ?? 0} onChange={e => updateMoneyEvidence({ initial_paid: Number(e.target.value), initial_paid_confirmed: false })}/><small>Zbývá k úhradě: {((minorUnits(form.amount) - minorUnits(form.money_evidence?.initial_paid ?? 0)) / 100).toFixed(2)} {form.currency}</small></label>
-          {detectedPrepayment && <label className="invoice-money-confirm"><input required type="checkbox" checked={form.money_evidence?.initial_paid_confirmed ?? false} onChange={e => updateMoneyEvidence({ initial_paid_confirmed: e.target.checked })}/>Potvrzuji, že tyto úhrady již proběhly. Budou zapsány do evidence úhrad.</label>}
+          <label className="invoice-money-confirm"><input required type="checkbox" checked={form.money_evidence?.initial_paid_confirmed ?? false} onChange={e => updateMoneyEvidence({ initial_paid_confirmed: e.target.checked })}/>Potvrzuji, že tyto úhrady již proběhly. Budou zapsány do evidence úhrad.</label>
         </>}
       </div>}
       <label><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option>CZK</option><option>EUR</option><option>USD</option></select><OcrSourceNote source={source("currency")}/></label>
