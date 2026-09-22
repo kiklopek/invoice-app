@@ -96,6 +96,24 @@ describe("statement assignment (one payment, one invoice)", () => {
     expect(withHistory.get("l8")?.tier).toBe("account");
   });
 
+  it("never lets an unverified account number (failed GPC checksum) reach the account tier, even with matching history", () => {
+    // Same setup as "prefers the confirmed account..." above, but this time
+    // the account number itself is flagged unverified (e.g. gpc-parser.ts
+    // couldn't confirm it against the mod-11 checksum on either reading) --
+    // it must never be trusted as evidence, no matter how well it happens to
+    // line up with a previously-confirmed account.
+    const unverifiedPayments = realPayments.map((p) =>
+      p.key === "l8" ? { ...p, counterparty_account_verified: false } : p,
+    );
+    const result = assignStatementPayments(
+      unverifiedPayments,
+      realInvoices,
+      new Map([["7214662570000107", ["09876543"]]]),
+    );
+    expect(result.get("l8")?.tier).not.toBe("account");
+    expect(result.get("l8")?.tier).toBe("name");
+  });
+
   it("only suggests when the payer is not the counterparty", () => {
     // Roman Bahyrian pays an invoice issued to Tetiana Bahyrian. The amount is
     // exact, but a different person's name is not enough to book money on.

@@ -7,6 +7,7 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import type { Invoice } from "@/types/invoice";
+import Link from "next/link";
 
 type ArchivePageData = {
   invoices: Invoice[];
@@ -152,8 +153,23 @@ export default function InvoiceArchivePage() {
                 </thead>
                 <tbody>
                   {invoices.map((invoice) => (
-                    <tr key={invoice.id} className="invoice-row" onClick={() => router.push(`/invoices/${invoice.id}`)}>
-                      <td data-label="Faktura"><strong>{invoice.invoice_number}</strong><small>VS {invoice.variable_symbol || "—"}</small></td>
+                    <tr
+                      key={invoice.id}
+                      className="invoice-row"
+                      onClick={(event) => {
+                        // Bez téhle podmínky by klik na odkaz v buňce spustil
+                        // navigaci dvakrát (odkaz i řádek). Stejný vzor jako
+                        // v seznamu faktur a na přehledu.
+                        const target = event.target;
+                        if (target instanceof HTMLElement && target.closest("a, button, input, select, textarea")) return;
+                        router.push(`/invoices/${invoice.id}`);
+                      }}
+                    >
+                      {/* Odkaz v první buňce, ne jen onClick na <tr>: řádek
+                          bez něj nebyl klávesnicí dosažitelný vůbec, takže
+                          archiv se dal ovládat výhradně myší. Klik na řádek
+                          zůstává jako vylepšení pro myš. */}
+                      <td data-label="Faktura"><Link href={`/invoices/${invoice.id}`}><strong>{invoice.invoice_number}</strong></Link><small>VS {invoice.variable_symbol || "—"}</small></td>
                       <td data-label="Odběratel"><strong>{invoice.counterparty_name}</strong><small>{invoice.counterparty_email}</small></td>
                       <td data-label="Částka"><strong>{money(Number(invoice.amount), invoice.currency)}</strong><small>Uhrazeno {money(Number(invoice.paid_amount), invoice.currency)}</small></td>
                       <td data-label="Vystavení">{date(invoice.issue_date)}</td>

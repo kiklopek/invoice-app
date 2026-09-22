@@ -1,3 +1,5 @@
+.today-task-tag { display: inline-flex; align-items: center; width: fit-content; margin: 4px 0 2px; padding: 3px 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: 10px; font-weight: 750; letter-spacing: .025em; text-transform: uppercase; }
+
 /* Plochý minimalistický vzhled bez dekorativních prostorových efektů. */
 :root {
   --ink: #17251d;
@@ -12,17 +14,20 @@
   --green-soft: #eaf2ec;
   --red: #a7473e;
   --red-soft: #f8eae7;
-  --amber: #95651f;
+  /* 4,45:1 na --amber-soft bylo těsně pod AA. */
+  --amber: #94641e;
   --amber-soft: #f8f0df;
   --blue: #3f6d62;
   --blue-soft: #e9f0ed;
 }
 
-.today-task-tag { display: inline-flex; align-items: center; width: fit-content; margin: 4px 0 2px; padding: 3px 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: 10px; font-weight: 750; letter-spacing: .025em; text-transform: uppercase; }
-
 *, *::before, *::after { box-sizing: border-box; box-shadow: none !important; }
 html, body { max-width: 100%; min-height: 100%; overflow-x: hidden; }
-html { background: var(--canvas); }
+/* Bez této deklarace vykreslí prohlížeč v systémovém tmavém režimu nativní
+   prvky (select, výběr data, posuvník, autofill) tmavě na světlém pozadí
+   aplikace. Plný tmavý režim se zatím nedělá; tohle jen říká prohlížeči,
+   jaké schéma stránka skutečně má. */
+html { background: var(--canvas); color-scheme: light; }
 body {
   margin: 0;
   background: var(--canvas);
@@ -539,10 +544,10 @@ input:focus, select:focus, textarea:focus,
    bottom edge and scroll inside their cards, so neither list moves the page. */
 @media (min-width: 1181px) {
   .dashboard-page {
-    display: flex;
+    display: flex !important;
     height: 100vh;
     height: 100dvh;
-    min-height: 0;
+    min-height: 0 !important;
     flex-direction: column;
     overflow: hidden;
     padding-bottom: clamp(24px, 2.5vh, 40px);
@@ -551,16 +556,16 @@ input:focus, select:focus, textarea:focus,
   .dashboard-page > .dashboard-command { flex: 0 0 auto; }
   .dashboard-workspace {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 0 !important;
     grid-template-rows: minmax(0, 1fr);
   }
   .dashboard-workspace > .invoice-panel,
   .dashboard-workspace .dashboard-attention-panel {
     height: 100%;
-    min-height: 0;
+    min-height: 0 !important;
   }
   .dashboard-workspace > .invoice-panel {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
   }
   .dashboard-workspace .invoice-panel > .panel-head,
@@ -569,7 +574,7 @@ input:focus, select:focus, textarea:focus,
   .dashboard-invoice-table,
   .dashboard-attention-panel .timeline {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 0 !important;
     max-height: none;
     overflow: auto;
     overscroll-behavior: contain;
@@ -624,7 +629,9 @@ input:focus, select:focus, textarea:focus,
 .large-table table { min-width: 760px; }
 .debtor-table table { min-width: 640px; }
 table { width: 100%; border-collapse: collapse; table-layout: auto; }
-th { height: 40px; padding: 0 12px; background: #f7f8f6; border-color: var(--line); color: #748078; }
+/* #748078 mělo na #f7f8f6 poměr 3,86:1 -- pod WCAG AA, a to na
+   uppercase písmu o 10-12 px. Ověřuje contrast.test.ts. */
+th { height: 40px; padding: 0 12px; background: #f7f8f6; border-color: var(--line); color: #69756d; }
 td { padding: 13px 12px; border-color: #e8ece8; white-space: normal; vertical-align: middle; }
 td:first-child, th:first-child { padding-left: 18px; }
 td:last-child, th:last-child { padding-right: 18px; }
@@ -636,7 +643,12 @@ tr:hover td { background: #fafbf9; }
 .list-summary { grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: 10px; }
 .list-summary > div { padding: 15px 17px; }
 .filter-panel { padding: 15px; }
-.filter-row { display: grid; grid-template-columns: minmax(220px, 1.7fr) repeat(4, minmax(120px, .8fr)) auto; align-items: end; gap: 10px; }
+/* Pevných šest sloupců na jedenáct filtrů znamenalo, že se do sloupce
+   o 120 px nevešlo "Všechny stavy" i se šipkou selectu -- popisek se ořízl
+   na "Všechny stav". auto-fit nechá sloupce růst podle dostupného místa
+   a vyhledávání dostane dvojnásobnou šířku, protože nese nejdelší text. */
+.filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; gap: 10px; }
+.filter-row label.grow { grid-column: span 2; }
 .filter-row label, .filter-row label.grow { min-width: 0; }
 .payments-history-toolbar { padding: 0 20px 14px; }
 .payments-unmatched-toggle { display: flex; align-items: center; gap: 6px; height: 34px; font-size: 11px; color: var(--muted); white-space: nowrap; }
@@ -740,6 +752,8 @@ tr:hover td { background: #fafbf9; }
   color: var(--green);
 }
 .import-progress strong { font-size: 12px; }
+/* Zastavit zpracování je vpravo, aby se do něj nekliklo omylem při sledování průběhu. */
+.import-cancel { margin-left: auto; }
 .import-progress-spinner { width: 18px; height: 18px; flex: none; border: 2px solid #cbd9cf; border-top-color: var(--green); border-radius: 50%; animation: import-spin .8s linear infinite; }
 @keyframes import-spin { to { transform: rotate(360deg); } }
 .ocr-warnings {
@@ -1194,7 +1208,7 @@ tr:hover td { background: #fafbf9; }
 .payments-page .gpc-safety-card li span { color: #6b7b71; }
 @media (min-width: 981px) {
   .payments-page .gpc-safety-card {
-    display: grid;
+    display: grid !important;
     grid-template-columns: 48px minmax(0, 1fr);
     align-content: center;
     column-gap: 16px;
@@ -1205,7 +1219,7 @@ tr:hover td { background: #fafbf9; }
   .payments-page .gpc-safety-card h3 {
     align-self: center;
     max-width: 330px;
-    margin: 0;
+    margin: 0 !important;
     font-size: clamp(18px, 1.3vw, 21px);
     line-height: 1.22;
     letter-spacing: -.015em;
@@ -1800,7 +1814,7 @@ input, select, textarea,
   body { font-size: 14px; }
   .sidebar {
     inset: auto 0 0;
-    width: 100%;
+    width: 100% !important;
     height: 70px;
     padding: 6px max(6px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
     background: #17462f;
@@ -1896,14 +1910,14 @@ input, select, textarea,
   .dashboard-invoice-table tr, .dashboard-invoice-table td,
   .invoice-list-table table, .invoice-list-table tbody,
   .invoice-list-table tr, .invoice-list-table td {
-    display: block;
-    min-width: 0;
-    width: 100%;
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
   }
   .dashboard-invoice-table thead, .invoice-list-table thead { display: none; }
   .dashboard-invoice-table tr, .invoice-list-table tr {
     position: relative;
-    display: grid;
+    display: grid !important;
     grid-template-columns: 1fr 1fr;
     gap: 12px 18px;
     padding: 16px;
@@ -1911,14 +1925,14 @@ input, select, textarea,
   }
   .dashboard-invoice-table tr:last-child, .invoice-list-table tr:last-child { border-bottom: 0; }
   .dashboard-invoice-table td, .invoice-list-table td {
-    padding: 0;
+    padding: 0 !important;
     border: 0;
     background: transparent !important;
-    white-space: normal;
+    white-space: normal !important;
   }
   .dashboard-invoice-table td::before, .invoice-list-table td::before {
     content: attr(data-label);
-    display: block;
+    display: block !important;
     margin-bottom: 4px;
     color: var(--muted);
     font-size: 9px;
@@ -1950,12 +1964,12 @@ input, select, textarea,
   .detail-page-header .section-actions.invoice-detail-actions { display: flex; }
   .invoice-detail-actions > .btn { min-width: min(100%, 150px); flex: 1 1 auto; }
   .section-header .section-actions.invoice-list-actions {
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
   }
   .section-header .section-actions.invoice-list-actions .btn {
-    width: 100%;
+    width: 100% !important;
     padding-inline: 6px;
     font-size: 10px;
   }
@@ -2177,8 +2191,8 @@ th,
   .analytics-card.wide,
   .analytics-card.full { min-width: 0; grid-column: 1; }
   .donut-wrap {
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     flex-direction: column;
     gap: 18px;
     padding-inline: 0;
@@ -2186,7 +2200,7 @@ th,
   .donut {
     width: min(150px, 48vw);
     height: min(150px, 48vw);
-    flex: none;
+    flex: none !important;
   }
   .donut-legend { width: 100%; min-width: 0; }
   .donut-legend > div { gap: 9px; }
@@ -2197,15 +2211,15 @@ th,
   .invoice-list-table .status { width: fit-content; max-width: 100%; white-space: normal; text-align: center; }
 
   .automation-switch {
-    display: grid;
+    display: grid !important;
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     gap: 15px;
     padding: 16px;
   }
   .automation-switch > div {
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     align-items: flex-start;
     gap: 11px;
   }
@@ -2216,7 +2230,7 @@ th,
   }
   .automation-switch > div > span { flex: 1; overflow-wrap: anywhere; }
   .automation-switch > button {
-    width: 100%;
+    width: 100% !important;
     min-height: 44px;
     justify-content: space-between;
     padding: 12px 0 0;
@@ -2240,8 +2254,8 @@ th,
 
 @media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
   html, body {
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     overflow-x: clip;
     overscroll-behavior-x: none;
     overscroll-behavior-y: auto;
@@ -2255,7 +2269,7 @@ th,
 
   .sidebar {
     inset: auto 0 0;
-    width: 100%;
+    width: 100% !important;
     height: calc(72px + env(safe-area-inset-bottom));
     padding: 5px max(4px, env(safe-area-inset-right))
       calc(5px + env(safe-area-inset-bottom))
@@ -2263,26 +2277,26 @@ th,
     border-radius: 0;
   }
   .sidebar .sidebar-nav {
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    width: 100%;
-    min-width: 0;
-    overflow: visible;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
   }
   .sidebar nav a {
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     min-height: 54px;
     height: 54px;
     padding: 4px 1px;
     gap: 2px;
     border-radius: 8px;
     font-size: 9px;
-    line-height: 1.1;
+    line-height: 1.1 !important;
     text-align: center;
   }
   .sidebar nav a > span:last-of-type {
-    width: 100%;
+    width: 100% !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2302,15 +2316,15 @@ th,
     font-size: clamp(25px, 7vw, 29px); }
   .section-header > div > span { display: block; font-size: 13px; line-height: 1.55; }
   .top-actions, .section-header .section-actions {
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
+    width: 100% !important;
     gap: 8px;
   }
   .top-actions .btn, .section-actions .btn, .btn {
-    min-width: 0;
+    min-width: 0 !important;
     min-height: 44px;
-    white-space: normal;
+    white-space: normal !important;
     line-height: 1.25;
     text-align: center;
   }
@@ -2331,15 +2345,15 @@ th,
 
   .mobile-disclosure { display: block; width: 100%; min-width: 0; margin-bottom: 12px; }
   .mobile-disclosure-toggle {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
-    min-height: 46px;
+    width: 100% !important;
+    min-height: 46px !important;
     padding: 11px 14px;
     border: 1px solid var(--line-strong);
     border-radius: 10px;
-    background: #fff;
+    background: #fff !important;
     color: var(--ink);
     font-size: 13px;
     font-weight: 750;
@@ -2359,7 +2373,7 @@ th,
   }
   .metrics article, .report-metrics article { min-width: 0; padding: 14px; }
   .metrics article {
-    display: flex;
+    display: flex !important;
     gap: 10px; }
   .metrics strong, .report-metrics strong { font-size: clamp(17px, 4.8vw, 21px); line-height: 1.2; overflow-wrap: anywhere; }
   .metric-icon { width: 34px; height: 34px; margin: 0; flex: 0 0 34px; }
@@ -2369,10 +2383,10 @@ th,
     border-radius: 10px;
     margin: 10px;
     width: calc(100% - 20px);
-    background: #fff;
+    background: #fff !important;
   }
   .dashboard-invoice-table td, .invoice-list-table td {
-    min-width: 0;
+    min-width: 0 !important;
     overflow-wrap: anywhere; }
   .dashboard-invoice-table td strong, .invoice-list-table td strong { white-space: normal; }
   .dashboard-upcoming-disclosure .activity-panel { display: block; }
@@ -2425,9 +2439,9 @@ th,
   .payment-history-table table, .payment-history-table tbody, .payment-history-table tr, .payment-history-table td,
   .debtor-table table, .debtor-table tbody, .debtor-table tr, .debtor-table td,
   .invoice-import-preview table, .invoice-import-preview tbody, .invoice-import-preview tr, .invoice-import-preview td {
-    display: block;
-    width: 100%;
-    min-width: 0;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
   }
   .payment-preview-table table, .payment-result-table table,
   .payment-history-table table, .debtor-table table,
@@ -2441,13 +2455,13 @@ th,
   }
   .payment-preview-table td, .payment-result-table td,
   .payment-history-table td, .debtor-table td, .invoice-import-preview td {
-    display: grid;
-    height: auto;
+    display: grid !important;
+    height: auto !important;
     grid-template-columns: minmax(105px, .8fr) minmax(0, 1fr);
     gap: 10px;
     padding: 5px 0;
     border: 0;
-    white-space: normal;
+    white-space: normal !important;
     text-align: right;
   }
   .payment-preview-table td::before, .payment-result-table td::before,
@@ -2494,15 +2508,15 @@ th,
     grid-column: 2;
     grid-row: 1;
     align-self: center;
-    min-width: 0;
+    min-width: 0 !important;
   }
   .rule-controls {
-    display: grid;
+    display: grid !important;
     grid-column: 1 / -1;
     grid-row: 2;
     grid-template-columns: minmax(0, 1fr);
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     margin-top: 2px;
     align-items: stretch;
   }
@@ -2510,17 +2524,17 @@ th,
   .rule-controls input,
   .rule-controls select {
     grid-column: 1;
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     max-width: 100%;
     box-sizing: border-box;
   }
   .rule-controls select {
-    display: block;
+    display: block !important;
     height: 48px !important;
     min-height: 48px;
     padding: 0 var(--select-chevron-padding) 0 12px !important;
-    font-size: 16px;
+    font-size: 1rem;
     line-height: normal;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -2542,7 +2556,7 @@ th,
   .reminder-process-disclosure { margin-top: 12px; }
   .reminder-process-disclosure .process-preview { margin-top: 0; }
   .friendly-tabs {
-    display: flex;
+    display: flex !important;
     gap: 6px;
     padding: 12px 14px 0;
     overflow-x: auto;
@@ -2550,7 +2564,7 @@ th,
   }
   .friendly-tabs button { flex: 0 0 min(210px, 76vw); scroll-snap-align: start; }
   .template-header-actions {
-    display: grid;
+    display: grid !important;
     grid-template-columns: 1fr;
     gap: 8px; }
   .email-preview-disclosure { padding: 0 16px 16px; }
@@ -2565,7 +2579,7 @@ th,
 
   .settings-grid { grid-template-columns: minmax(0, 1fr); }
   .members-list article {
-    display: grid;
+    display: grid !important;
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     align-items: stretch;
@@ -2576,14 +2590,14 @@ th,
   .members-list article > select,
   .members-list article > button {
     grid-column: 1;
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
     max-width: 100%;
     box-sizing: border-box;
   }
   .members-list article > select,
   .member-add select {
-    display: block;
+    display: block !important;
     height: 48px !important;
     min-height: 48px;
     padding: 0 var(--select-chevron-padding) 0 12px !important;
@@ -2600,7 +2614,7 @@ th,
     background-size: var(--select-chevron-size) auto;
   }
   .members-list article > button {
-    width: auto;
+    width: auto !important;
     min-height: 44px;
     padding: 0 4px;
     justify-self: start;
@@ -2610,7 +2624,7 @@ th,
 
   .modal-backdrop { align-items: end; padding: 8px; }
   .modal {
-    width: 100%;
+    width: 100% !important;
     max-width: 100%;
     max-height: calc(100dvh - 16px);
     border-radius: 14px 14px 10px 10px;
@@ -2620,7 +2634,7 @@ th,
   .modal header button { flex: 0 0 44px; width: 44px; height: 44px; }
   .modal form { padding-inline: 16px; }
   .modal footer, .detail-actions {
-    display: grid;
+    display: grid !important;
     grid-template-columns: 1fr;
     gap: 8px;
     padding-inline: 16px;
@@ -2657,7 +2671,7 @@ th,
   .filter-row label, .filter-row label.grow, .filter-row .export-button,
   .period-presets, .customer-filter { grid-column: 1; }
   .period-presets {
-    display: grid;
+    display: grid !important;
     grid-template-columns: 1fr; }
   .list-summary { grid-template-columns: 1fr; }
   .info-grid { grid-template-columns: 1fr; }
@@ -2700,10 +2714,66 @@ th,
   .form-submit { bottom: calc(68px + env(safe-area-inset-bottom)); }
 }
 
+/* Reporty: jediný autoritativní layout pracovní účetní plochy. */
+.report-screen-header{align-items:end;gap:20px;margin-bottom:18px}.report-screen-header>div:first-child>span{max-width:650px;line-height:1.5}.report-screen-header h1{letter-spacing:-.035em}
+.report-filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:end;gap:12px;margin-bottom:16px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:none}.report-filters label{min-width:0}.report-filters label>span{margin-bottom:6px;color:var(--muted);font-size:12px;font-weight:650}.report-filters input,.report-filters select{width:100%;min-width:0;min-height:42px;padding:9px 11px;border:1px solid var(--line-strong);border-radius:9px;background:#fff;box-shadow:none;font-size:13px}.report-filters input:focus,.report-filters select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(36,95,66,.1)}.report-filters .customer-filter select{min-width:0}.report-filters .period-presets{display:flex;grid-column:1/-1;width:auto;gap:6px;margin:0;padding-bottom:12px;border-bottom:1px solid var(--line)}.report-filters .period-presets button{flex:0 0 auto;min-width:0;min-height:34px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--green);box-shadow:none;font-size:12px;font-weight:650;white-space:nowrap}.report-filters .period-presets button:hover{border-color:var(--green);background:var(--green-soft)}
+.report-accounting-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+.report-accounting-summary article,.report-accounting-summary article.primary{position:relative;min-width:0;padding:17px 18px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);box-shadow:none}.report-accounting-summary article.primary{border-color:#bdd6c5;background:#f3f8f4}.report-accounting-summary article.warning{border-color:#eadad5}.report-accounting-summary article.warning:before{display:none}
+.report-accounting-summary span,.report-accounting-summary strong,.report-accounting-summary small{display:block}.report-accounting-summary span,.report-accounting-summary .primary span{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.02em;text-transform:none}.report-accounting-summary strong,.report-accounting-summary .primary strong{margin:9px 0 7px;color:var(--ink);font-size:clamp(19px,1.7vw,25px);font-weight:750;line-height:1.16;letter-spacing:-.035em;overflow-wrap:anywhere}.report-accounting-summary .primary strong{color:var(--green-dark)}.report-accounting-summary small,.report-accounting-summary .primary small{color:var(--muted);font-size:11px;line-height:1.4}
+.report-tabs{display:flex;gap:8px;margin-bottom:14px;padding:7px;overflow-x:auto;border:1px solid rgba(35,96,68,.1);border-radius:16px;background:rgba(239,241,235,.82);box-shadow:var(--inset);scrollbar-width:none}.report-tabs::-webkit-scrollbar{display:none}.report-tabs button{display:flex;flex:1 0 auto;min-height:46px;align-items:center;justify-content:center;gap:9px;padding:10px 18px;border:1px solid rgba(35,96,68,.12);border-radius:12px;background:rgba(255,255,255,.58);color:#526359;font-size:0.75rem;font-weight:760;letter-spacing:.01em;cursor:pointer;box-shadow:0 1px 2px rgba(36,63,46,.04);transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease}.report-tabs button svg{width:18px;height:18px}.report-tabs button:hover{border-color:rgba(35,96,68,.3);background:#fff;color:var(--green);box-shadow:var(--raised-small);transform:translateY(-1px)}.report-tabs button.active{border-color:var(--green);background:linear-gradient(145deg,#2b6d4b,#1d5338);color:#fff;box-shadow:0 7px 16px rgba(29,83,56,.2)}.report-tabs button.active:hover{background:linear-gradient(145deg,#307653,#215c3f);color:#fff}.report-tabs button:focus-visible{outline:3px solid rgba(52,120,83,.24);outline-offset:2px}
+.report-tab-panel{display:none}.report-tab-panel.active{display:block}.report-tab-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:0 2px 10px}.report-tab-intro>div{display:flex;align-items:center;gap:9px}.report-tab-intro>div>span{display:grid;width:27px;height:27px;place-items:center;border-radius:9px;background:var(--green-soft);color:var(--green);font-size:0.75rem;font-weight:800}.report-tab-intro h2{margin:0;font-size:1.0625rem}.report-tab-intro p{margin:0;color:var(--muted);font-size:0.75rem}
+.report-workspace-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));align-items:start;gap:12px}.report-span-4{grid-column:span 4}.report-span-5{grid-column:span 5}.report-span-7{grid-column:span 7}.report-span-8{grid-column:span 8}.report-span-12{grid-column:1/-1}
+.report-card{min-width:0;overflow:hidden;border-radius:16px}.report-card>header{display:flex;min-height:0;align-items:flex-start;justify-content:space-between;gap:16px;padding:15px 18px;border-bottom:1px solid var(--line)}.report-card>header h3{margin:0;font-size:0.875rem;letter-spacing:-.02em}.report-card>header p{margin:4px 0 0;color:var(--muted);font-size:0.75rem;line-height:1.4}.report-card>header>strong{font-size:0.75rem;white-space:nowrap}
+.report-chart-key{display:flex;gap:12px;color:var(--muted);font-size:0.75rem}.report-chart-key span{display:flex;align-items:center;gap:5px}.report-chart-key span:before{content:"";width:7px;height:7px;border-radius:2px}.report-chart-key .issued:before{background:#b5c9bc}.report-chart-key .paid:before,.report-chart-key .current:before{background:var(--green)}.report-chart-key .prior:before{background:#8fa79a}
+.report-column-chart{display:flex;height:245px;gap:10px;align-items:stretch;padding:20px 18px 14px;overflow-x:auto}.report-column-chart.compact{height:210px}.report-column-group{display:flex;flex:1 0 54px;min-width:0;flex-direction:column}.report-column-values{display:flex;min-height:27px;justify-content:center;gap:4px}.report-column-values small{max-width:58px;overflow:hidden;color:var(--muted);font-size:0.75rem;text-overflow:ellipsis;white-space:nowrap}.report-columns{display:flex;flex:1;align-items:flex-end;justify-content:center;gap:4px;border-bottom:1px solid var(--line)}.report-columns i{display:block;width:12px;min-height:2px;border-radius:4px 4px 0 0}.report-columns .issued{background:#b5c9bc}.report-columns .paid,.report-columns .current{background:var(--green)}.report-columns .prior{background:#8fa79a}.report-column-group>span{padding-top:6px;color:var(--muted);font-size:0.75rem;text-align:center}.report-column-chart.single-series .report-columns i{width:18px}
+.report-dso-card{display:flex;flex-direction:column;align-self:stretch}.report-dso-chart.report-dso-chart{height:auto;min-height:220px;flex:1 1 auto}.report-dso-chart .report-column-group{flex:1 0 76px}.report-dso-chart .report-column-values small{max-width:none;overflow:visible;text-overflow:clip}.report-dso-chart .report-columns i{width:min(48px,40%)}.report-dso-chart.is-single .report-column-values small{font-size:1rem;font-weight:700}.report-dso-chart.is-single .report-columns i{width:min(76px,24%)}
+.report-revenue-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(290px,.9fr);align-items:start;gap:12px}.report-revenue-main,.report-revenue-aside{display:grid;min-width:0;align-content:start;gap:12px}.report-revenue-card{min-width:0}.report-revenue-chart,.report-revenue-chart.compact{height:auto;min-height:0;gap:8px;padding:14px 16px 12px;overscroll-behavior-inline:contain;scrollbar-width:thin}.report-revenue-chart .report-column-group{flex:0 0 112px;min-width:0}.report-revenue-chart .report-column-values{display:grid;min-height:52px;align-content:start;gap:3px}.report-revenue-chart .report-column-values small{display:flex;max-width:none;align-items:center;gap:5px;overflow:visible;color:var(--ink);font-size:11px;font-weight:650;line-height:1.25;text-overflow:clip;overflow-wrap:anywhere}.report-revenue-chart .report-column-values small:before{content:"";flex:0 0 6px;width:6px;height:6px;border-radius:2px;background:#b5c9bc}.report-revenue-chart .report-column-values small.paid:before,.report-revenue-chart .report-column-values small.current:before{background:var(--green)}.report-revenue-chart .report-column-values small.prior:before{background:#8fa79a}.report-revenue-chart .report-columns{height:140px;flex:0 0 140px}.report-revenue-chart.compact .report-columns{height:112px;flex-basis:112px}.report-revenue-chart .report-column-group>span{font-size:11px;font-weight:650}.report-revenue-card .report-compact-table{max-height:none;max-width:100%;overflow-x:auto}.report-revenue-card .report-compact-table table{min-width:310px}.report-revenue-card .report-compact-table th,.report-revenue-card .report-compact-table td{padding:9px 12px;font-size:12px}.report-revenue-card .report-compact-table th:last-child,.report-revenue-card .report-compact-table td:last-child{text-align:right;white-space:nowrap}.report-revenue-card .report-ranking{gap:11px}.report-revenue-card .report-ranking span{white-space:normal;overflow-wrap:anywhere}.report-revenue-card .report-ranking small{font-size:12px}
+.report-revenue-empty{margin:0;padding:8px 2px;color:var(--muted);font-size:12px;line-height:1.5}.report-revenue-chart .report-revenue-empty{align-self:center;padding:20px 2px}
+.report-revenue-layout{align-items:stretch}.report-revenue-main,.report-revenue-aside{display:contents}.report-revenue-primary-card{grid-column:1;grid-row:1}.report-revenue-customers-card{grid-column:2;grid-row:1}.report-revenue-yoy-card{grid-column:1;grid-row:2}.report-revenue-average-card{grid-column:2;grid-row:2}.report-revenue-primary-card,.report-revenue-yoy-card,.report-revenue-average-card{display:flex;flex-direction:column}.report-revenue-chart.report-revenue-chart{flex:1 1 auto}.report-revenue-chart .report-columns{height:auto;min-height:140px;flex:1 1 140px}.report-revenue-chart.compact .report-columns{height:auto;min-height:112px;flex:1 1 112px}.report-revenue-chart.is-single .report-column-group{flex:1 0 100%}.report-revenue-chart.is-single .report-column-values{justify-items:center}.report-revenue-chart.is-single .report-columns i{width:min(72px,12%)}.report-revenue-average-hero{display:flex;min-height:115px;flex:1 1 auto;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:18px;border-bottom:1px solid var(--line);text-align:center}.report-revenue-average-hero span,.report-revenue-average-hero small{color:var(--muted);font-size:12px}.report-revenue-average-hero strong{color:var(--green-dark);font-size:clamp(22px,2.3vw,32px);line-height:1.2;font-variant-numeric:tabular-nums}
+.report-revenue-chart.is-single .report-column-values{display:grid;width:min(100%,176px);min-height:38px;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:stretch;align-self:center;gap:8px}.report-revenue-chart.is-single .report-column-values small{display:block;text-align:center}.report-revenue-chart.is-single .report-column-values small:before{display:none}.report-revenue-chart.is-single .report-columns{gap:8px}.report-revenue-chart.is-single .report-columns i{width:84px;max-width:calc((100% - 8px)/2)}.report-revenue-average-hero{border-bottom:0}.report-revenue-average-hero strong{font-size:clamp(28px,3vw,44px);overflow-wrap:anywhere}
+.report-revenue-average-card{border-color:#c7dccd;background:#fff}.report-revenue-average-card>header{border-bottom-color:#d6e7da}.report-average-icon{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:10px;background:#e7f1e9;color:var(--green)}.report-average-icon svg{width:18px;height:18px}.report-revenue-average-hero{margin:14px;border:1px solid #dcebe0;border-radius:12px;background:linear-gradient(120deg,#f0f7f2,#e8f3ea)}.report-revenue-average-hero strong{letter-spacing:-.035em}
+.report-ranking,.report-vat-bars,.report-aging-chart{display:grid;gap:13px;padding:16px 18px}.report-ranking>div>div,.report-vat-bars>div>div,.report-aging-row>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px}.report-ranking span,.report-vat-bars span,.report-aging-row span{min-width:0;overflow:hidden;font-size:0.75rem;font-weight:700;text-overflow:ellipsis;white-space:nowrap}.report-ranking strong,.report-vat-bars strong,.report-aging-row strong{font-size:0.75rem;white-space:nowrap}.report-ranking i,.report-vat-bars i,.report-aging-row>i{display:block;height:7px;margin:5px 0 4px;overflow:hidden;border-radius:999px;background:#edf0ed}.report-ranking b,.report-vat-bars b,.report-aging-row b{display:block;min-width:2px;height:100%;border-radius:inherit;background:var(--green)}.report-ranking small,.report-vat-bars small,.report-aging-row small{color:var(--muted);font-size:0.75rem}.report-aging-row.risk-1 b{background:#c89a4d}.report-aging-row.risk-2 b{background:#c77a42}.report-aging-row.risk-3 b{background:#bd5c49}.report-aging-row.risk-4 b{background:#9f332d}
+.report-vat-grid{align-items:stretch}.report-vat-structure-card{display:flex;flex-direction:column}.report-vat-structure-card .report-vat-bars{flex:1;align-content:space-evenly}
+.report-compact-table,.report-accounting-table{overflow:auto;scrollbar-width:thin}.report-compact-table{max-height:245px}.report-compact-table table,.report-accounting-table table{min-width:100%;font-variant-numeric:tabular-nums}.report-compact-table th,.report-compact-table td{padding:10px 13px;font-size:0.75rem}.report-accounting-table table{min-width:650px}.report-accounting-table th,.report-accounting-table td{padding:12px 16px;font-size:0.75rem}.report-accounting-table tbody tr{cursor:default}.top-debtors-table tbody tr{cursor:pointer}.top-debtors-table tbody tr:focus-visible{outline:2px solid var(--green);outline-offset:-2px}.report-accounting-table tbody tr:hover{background:var(--green-soft)}
+.report-status-card{margin-bottom:12px}.report-status-card>header{align-items:center}.report-segmented-bar,.report-payment-bar{display:flex;height:13px;margin:16px 18px 10px;overflow:hidden;border-radius:999px;background:#edf0ed}.report-segmented-bar i,.report-payment-bar i{display:block;height:100%}.report-segmented-bar .paid{background:#2f7650}.report-segmented-bar .overdue{background:#c45143}.report-segmented-bar .pending{background:#d69a3b}.report-segmented-bar .cancelled{background:#aab1ac}.report-segment-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 18px 16px}.report-segment-legend div{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;font-size:0.75rem}.report-segment-legend div>i,.report-payment-legend i{width:7px;height:7px;border-radius:50%}.report-segment-legend .paid{background:#2f7650}.report-segment-legend .overdue{background:#c45143}.report-segment-legend .pending{background:#d69a3b}.report-segment-legend .cancelled{background:#aab1ac}.report-segment-legend span{color:var(--muted)}
+.report-payment-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}.report-payment-metrics article{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff}.report-payment-metrics span,.report-payment-metrics strong,.report-payment-metrics small{display:block}.report-payment-metrics span{color:var(--muted);font-size:0.75rem}.report-payment-metrics strong{margin:6px 0 3px;font-size:1.375rem}.report-payment-metrics small{color:var(--muted);font-size:0.75rem}.report-payment-metrics .report-payment-alert{border-color:#ead3a4;background:#fff5df}.report-payment-metrics .report-payment-alert span,.report-payment-metrics .report-payment-alert small{color:#755817}.report-payment-metrics .report-payment-alert strong{color:var(--amber)}.report-payment-result{margin-bottom:12px}.report-payment-bar .auto{background:var(--green)}.report-payment-bar .review{background:var(--amber)}.report-payment-legend{display:flex;gap:20px;padding:0 18px 16px;color:var(--muted);font-size:0.75rem}.report-payment-legend span{display:flex;align-items:center;gap:6px}.report-payment-legend .auto{background:var(--green)}.report-payment-legend .review{background:var(--amber)}.report-import-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(220px,auto);gap:16px;padding:12px 18px;border-bottom:1px solid var(--line);font-size:0.75rem}.report-import-list>div:last-child{border-bottom:0}.report-import-list time{color:var(--muted)}.report-import-list strong{text-align:right}.report-imports-card>.empty-report{padding:18px}
+
+@media(max-width:1100px){.report-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.report-filters .period-presets{grid-column:1/-1}.report-accounting-summary{grid-template-columns:repeat(3,1fr)}.report-accounting-summary article:nth-child(3){border-right:0}.report-accounting-summary article:nth-child(n+4){border-top:1px solid var(--line)}.report-accounting-summary article:nth-child(4){grid-column:span 2}.report-span-8,.report-span-7{grid-column:span 12}.report-span-4,.report-span-5{grid-column:span 6}}
+@media(max-width:1100px){.report-vat-grid{align-items:start}.report-vat-grid .report-span-4{grid-column:span 12}.report-vat-structure-card{display:block}.report-vat-structure-card .report-vat-bars{align-content:start}}
+@media(max-width:1100px){.report-revenue-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1100px){.report-revenue-layout .report-revenue-card{grid-column:1;grid-row:auto}.report-revenue-primary-card{order:1}.report-revenue-customers-card{order:2}.report-revenue-yoy-card{order:3}.report-revenue-average-card{order:4}}
+@media(max-width:780px){.report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.report-filters .period-presets,.report-filters .customer-filter{grid-column:1/-1}.report-accounting-summary{grid-template-columns:repeat(2,1fr)}.report-accounting-summary article:nth-child(n){grid-column:auto;border-top:1px solid var(--line);border-right:1px solid var(--line)}.report-accounting-summary article:nth-child(-n+2){border-top:0}.report-accounting-summary article:nth-child(even){border-right:0}.report-accounting-summary article:last-child{grid-column:1/-1;border-right:0}.report-tab-intro{align-items:flex-start;flex-direction:column;gap:4px}.report-span-4,.report-span-5{grid-column:span 12}.report-payment-metrics{grid-template-columns:repeat(2,1fr)}.report-import-list>div{grid-template-columns:1fr auto}.report-import-list strong{grid-column:1/-1;text-align:left}}
+@media(max-width:780px){.report-dso-card{align-self:auto}.report-dso-chart.report-dso-chart{height:clamp(210px,48vw,300px);min-height:0;flex:none}}
+@media(max-width:520px){.report-filters{grid-template-columns:1fr}.report-filters .period-presets,.report-filters .customer-filter{grid-column:auto}.report-accounting-summary{grid-template-columns:1fr}.report-accounting-summary article:nth-child(n){grid-column:auto;border-top:1px solid var(--line);border-right:0}.report-accounting-summary article:first-child{border-top:0}.report-tabs button{padding-inline:13px}.report-workspace-grid{gap:10px}.report-card>header{padding:14px 15px}.report-chart-key{display:none}.report-column-chart{height:min(58vw,220px);padding-inline:12px}.report-column-values{display:none}.report-column-group{flex-basis:38px}.report-payment-metrics{grid-template-columns:1fr 1fr}.report-segment-legend{grid-template-columns:1fr 1fr}.report-accounting-table{width:100%;max-width:100%;margin:0;overflow-x:auto;overscroll-behavior-inline:contain}.report-accounting-table table{min-width:620px}.report-import-list>div{grid-template-columns:1fr}.report-import-list time,.report-import-list strong{text-align:left}.report-payment-legend{align-items:flex-start;flex-direction:column;gap:7px}}
+@media(max-width:520px){.report-dso-chart .report-column-values{display:flex}}
+@media(max-width:520px){.report-revenue-card .report-chart-key{display:flex;flex-wrap:wrap}.report-revenue-chart,.report-revenue-chart.compact{height:auto;padding-inline:12px}.report-revenue-chart .report-column-values{display:grid}.report-revenue-chart .report-column-group{flex-basis:112px}}
+@media(max-width:1100px){
+  .report-accounting-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .report-accounting-summary article:nth-child(n){grid-column:auto;border:1px solid var(--line)}
+  .report-accounting-summary article:last-child{grid-column:1/-1}
+  .report-accounting-summary article.primary:nth-child(n){border-color:#bdd6c5}
+  .report-accounting-summary article.warning:nth-child(n){border-color:#eadad5}
+}
+@media(max-width:600px){
+  .report-accounting-summary{grid-template-columns:minmax(0,1fr)}
+  .report-accounting-summary article:nth-child(n){grid-column:auto;border:1px solid var(--line)}
+  .report-accounting-summary article.primary:nth-child(n){border-color:#bdd6c5}
+  .report-accounting-summary article.warning:nth-child(n){border-color:#eadad5}
+  .report-filters .period-presets{display:flex !important;flex-wrap:wrap;padding-bottom:10px}
+  .report-filters .period-presets button{width:auto}
+}
+
+@keyframes customer-row-highlight-fade {
+  0% { background: var(--green-soft); }
+  100% { background: transparent; }
+}
+.info-section-link { font-size: 0.75rem; font-weight: 700; color: var(--green); }
+.info-section-link:hover { text-decoration: underline; }
+.info-section-note { margin: 12px 0 0; color: var(--muted); font-size: 0.75rem; }
+
 /* Profesionální vícestránkový tisk finančního reportu. */
 .report-print-cover,
-.report-print-footer,
-.donut-print-chart { display: none; }
+.report-print-footer { display: none; }
 
 @page {
   size: A4 portrait;
@@ -2769,9 +2839,9 @@ th,
   #manual-invoice-form .form-submit {
     position: static;
     z-index: auto;
-    margin: 0;
+    margin: 0 !important;
     padding: 0 16px 24px;
-    background: transparent;
+    background: transparent !important;
     backdrop-filter: none;
   }
 }
@@ -2932,7 +3002,9 @@ th,
 .customer-paid-state svg { width: 14px; height: 14px; }
 .customers-empty-state .btn { margin-top: 14px; }
 
-@media (max-width: 760px) {
+/* 780, ne 760: širší tabulku zákazníků zapíná blok s max-width 780px
+   (min-width: 940px), takže na 761 až 780 px se jinak vždy posouvá do stran. */
+@media (max-width: 780px) {
   .customers-hero { min-height: 0; align-items: flex-start; padding: 22px 20px; }
   .customers-hero::after { right: -60px; bottom: -115px; }
   .customers-hero .section-actions { width: 100%; }
@@ -2947,21 +3019,21 @@ th,
   .customers-list-table thead { display: none; }
   .customers-list-table tbody { display: grid; gap: 9px; }
   .customers-list-table tr {
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 16px;
     padding: 15px;
     border: 1px solid var(--line);
     border-radius: 13px;
-    background: #fff;
+    background: #fff !important;
   }
   .customers-list-table td,
   .customers-list-table .customer-contact-cell {
-    display: block;
-    min-width: 0;
+    display: block !important;
+    min-width: 0 !important;
     padding: 9px 0;
     border: 0;
-    white-space: normal;
+    white-space: normal !important;
   }
   .customers-list-table td::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--muted); font-size: 8px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
   .customers-list-table .customer-identity-cell { grid-column: 1 / -1; padding-top: 0; border-bottom: 1px solid #edf0ed; }
@@ -3061,6 +3133,60 @@ th,
 .payments-archive-page .import-archive { width: 100%; max-width: none; }
 .payments-archive-page .payment-history-table { max-height: none; overflow-y: visible; overscroll-behavior-y: auto; }
 .payments-archive-page .statement-archive-list { padding: 14px; }
+
+/* Historie plateb je seznam pracovnich radku, nikoli siroka tabulka. */
+.payments-archive-page .payments-history { min-width: 0; overflow: hidden; }
+.payments-archive-page .payments-history .panel-head { align-items: center; gap: 14px; padding: 20px 24px; background: #fff; }
+.payments-archive-page .payments-history .payments-section-heading > h2 { font-size: clamp(19px, 1.6vw, 24px); line-height: 1.2; }
+.payments-archive-page .payments-history .payments-section-heading > p { max-width: 68ch; margin-top: 6px; font-size: 12px; line-height: 1.5; }
+.payments-archive-page .payments-history-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 16px 24px; background: #f8faf7; }
+.payments-archive-page .payments-history-toolbar > label.grow { display: grid; flex: 1 1 320px; grid-column: auto; grid-template-columns: 1fr; gap: 6px; min-width: 0; }
+.payments-archive-page .payments-history-toolbar > label.grow > span { font-size: 12px; }
+.payments-archive-page .payments-history-toolbar input:not([type]) { width: 100%; min-width: 0; min-height: 44px; padding: 10px 13px; background: #fff; }
+.payments-archive-page .payments-unmatched-toggle { flex: 0 0 auto; min-height: 44px; padding-inline: 12px 16px; font-size: 12px; }
+.payments-archive-page .payment-history-table { display: grid; gap: 10px; max-width: 100%; max-height: none; padding: 16px; overflow: visible; }
+.payments-archive-page .payment-history-item { display: grid; grid-template-columns: minmax(0, 1fr) minmax(145px, .42fr) minmax(240px, .9fr); align-items: center; gap: 20px; min-width: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.payments-archive-page .payment-history-item:hover { border-color: #c9d9ce; background: #fbfdfa; }
+.payments-archive-page .payment-history-identity,
+.payments-archive-page .payment-history-summary,
+.payments-archive-page .payment-history-action { min-width: 0; }
+.payments-archive-page .payment-history-identity > strong { display: block; font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.payments-archive-page .payment-history-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 7px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.payments-archive-page .payment-history-summary { display: grid; justify-items: start; gap: 7px; }
+.payments-archive-page .payment-history-summary > strong { font-size: clamp(17px, 1.4vw, 21px); line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.payments-archive-page .payment-history-summary > small { color: var(--muted); font-size: 11px; }
+.payments-archive-page .payment-match { max-width: 100%; padding: 6px 10px; font-size: 11px; line-height: 1.25; white-space: normal; }
+.payments-archive-page .payment-history-action .payment-assignment { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.payments-archive-page .payment-history-action .payment-assignment select { width: 100%; min-width: 0; max-width: 100%; min-height: 42px; }
+.payments-archive-page .payment-history-action .payment-assignment .btn { min-height: 42px; padding: 9px 14px; font-size: 12px; }
+.payments-archive-page .payment-history-action .assignment-suggestion { grid-column: 1 / -1; margin: 0; }
+.payments-archive-page .payment-history-action .assignment-help { max-width: none; font-size: 12px; overflow-wrap: anywhere; }
+.payments-archive-page .payment-history-action .matched-payment { grid-template-columns: minmax(0, 1fr) minmax(112px, auto); gap: 8px; }
+.payments-archive-page .payment-history-action .matched-payment a { display: flex; grid-column: 1; flex-wrap: wrap; align-items: center; gap: 4px 7px; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
+.payments-archive-page .payment-history-action .matched-payment a strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.payments-archive-page .payment-history-action .matched-payment .btn { grid-column: 2; grid-row: 1; justify-self: end; width: auto; max-width: 132px; min-height: 38px; padding: 7px 12px; font-size: 11px; line-height: 1.25; white-space: normal; }
+@media (max-width: 1100px) {
+  .payments-archive-page .payment-history-item { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 18px; }
+  .payments-archive-page .payment-history-action { grid-column: 1 / -1; }
+  .payments-archive-page .payment-history-summary { justify-items: end; }
+}
+@media (max-width: 680px) {
+  .payments-archive-page .payments-history .panel-head { flex-wrap: wrap; padding: 18px; }
+  .payments-archive-page .payments-history .payments-section-number { display: none; }
+  .payments-archive-page .payments-record-count { display: inline-flex; margin-left: 0; }
+  .payments-archive-page .payments-history-toolbar { padding: 14px 18px; }
+  .payments-archive-page .payments-unmatched-toggle { width: auto; }
+  .payments-archive-page .payment-history-table { padding: 12px; }
+  .payments-archive-page .payment-history-item { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; }
+  .payments-archive-page .payment-history-summary { justify-items: start; }
+  .payments-archive-page .payment-history-action { grid-column: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+}
+@media (max-width: 420px) {
+  .payments-archive-page .payment-history-action .payment-assignment { grid-template-columns: minmax(0, 1fr); }
+  .payments-archive-page .payment-history-action .payment-assignment .btn { width: 100%; }
+  .payments-archive-page .payment-history-action .payment-assignment.matched-payment { grid-template-columns: minmax(0, 1fr) minmax(105px, auto); }
+  .payments-archive-page .payment-history-action .payment-assignment.matched-payment .btn { width: auto; }
+}
 @media (max-width: 760px) {
   .payments-switch { grid-template-columns: 42px minmax(0, 1fr) 26px; max-width: none; min-height: 76px; gap: 11px; padding: 13px 14px; border-radius: 15px; }
   .payments-switch .payments-switch-icon { width: 42px; height: 42px; }
@@ -3074,24 +3200,66 @@ th,
   .payments-switch .payments-switch-copy small { display: none; }
 }
 
-/* ==========================================================================
-   TISK — jediný autoritativní @media print blok celé aplikace.
-   Leží záměrně na konci souboru (minimal.css se importuje jako poslední),
-   aby ho nemohla přebít žádná pozdější media query. Pozor: při tisku A4
-   je šířka stránky ~700 CSS px, takže `max-width: 760px/780px` bloky
-   MATCHUJÍ — proto jsou tu !important resety mobilního layoutu.
-   ========================================================================== */
+/* Toast: jediná vrstva hlášek pro celý workspace. Dřív měl každý z deseti
+   klientů vlastní stav a vykresloval ho uvnitř stránky, takže se odpověď
+   objevila mimo viewport -- uživatel klikl uprostřed dlouhé tabulky
+   a hláška se vykreslila 800 px nad ním. Fixed pozice to řeší z principu. */
+.toast-region { position: fixed; z-index: 60; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+.toast-region > div { display: flex; flex-direction: column; gap: 8px; }
+.toast { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--line-strong); border-left-width: 3px; border-radius: 12px; background: #fff; pointer-events: auto; animation: toast-in .18s ease-out; }
+.toast-success { border-left-color: var(--green); }
+.toast-error { border-left-color: var(--red); }
+.toast-info { border-left-color: var(--blue); }
+.toast-body { min-width: 0; flex: 1 1 auto; }
+.toast-body strong { display: block; font-size: 0.75rem; letter-spacing: .02em; text-transform: uppercase; }
+.toast-success .toast-body strong { color: var(--green); }
+.toast-error .toast-body strong { color: var(--red); }
+.toast-info .toast-body strong { color: var(--blue); }
+.toast-body p { margin: 3px 0 0; font-size: 0.75rem; line-height: 1.45; overflow-wrap: anywhere; }
+.toast-body small { display: block; margin-top: 4px; color: var(--muted); font-size: 0.75rem; overflow-wrap: anywhere; }
+.toast-close { flex: 0 0 auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 1.125rem; line-height: 1; cursor: pointer; }
+.toast-close:hover { background: var(--canvas); color: var(--ink); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+/* Na mobilu nahoře: dole je navigační lišta a pod palcem by se toast
+   překrýval s ovládáním. */
+@media (max-width: 780px) {
+  .toast-region { right: 12px; left: 12px; bottom: auto; top: calc(12px + env(safe-area-inset-top)); width: auto; }
+}
+
+/* Skip-link: viditelný teprve při zaostření. Uživatel klávesnice dřív musel
+   na každé stránce protabovat celou navigaci, než se dostal k obsahu. */
+.skip-link { position: absolute; z-index: 70; top: -100px; left: 8px; padding: 10px 14px; border-radius: 10px; background: var(--green); color: #fff; font-size: 0.75rem; font-weight: 650; text-decoration: none; }
+.skip-link:focus-visible { top: 8px; }
+
+/* Uložení přímo u přepínače automatu. Dřív se dalo uložit jen tlačítkem
+   uvnitř sbalené sekce „Texty e-mailů“ jinde na stránce, takže uživatel
+   automat vypnul, odešel — a upomínky dál odcházely. */
+.reminders-switch-save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid #ead3a4; border-radius: 12px; background: #fff5df; }
+.reminders-switch-save span { flex: 1 1 200px; min-width: 0; color: #755817; font-size: 0.75rem; line-height: 1.45; }
+
+/* Chybný dokument v importní frontě nabízí, co dál. Dřív tu byla jen
+   chybová věta a z jednoho souboru se dalo dostat jen reloadem stránky. */
+.invoice-import-error-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+/* Plocha pro přetažení má při tažení reagovat, jinak uživatel neví,
+   jestli je soubor „nad" ní. Text to sliboval, chování chybělo. */
+.import-drop.is-dragging, .csv-dropzone.is-dragging { border-color: var(--green); background: var(--green-soft); }
+
+/* Akce v prázdném stavu seznamu faktur. */
+.invoice-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+
 @media print {
   html,
   body {
-    width: auto !important;
-    min-width: 0 !important;
+    width: auto;
+    min-width: 0;
     max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: #fff !important;
-    color: #17251d !important;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: #fff;
+    color: #17251d;
     color-scheme: light !important;
     font-size: 9pt !important;
     print-color-adjust: exact;
@@ -3108,6 +3276,7 @@ th,
   .mobile-filter-disclosure,
   .mobile-disclosure-toggle,
   .report-filters,
+  .report-tabs,
   .period-presets,
   .form-submit,
   .modal,
@@ -3123,15 +3292,15 @@ th,
   .content,
   .section-page,
   main {
-    display: block !important;
-    width: auto !important;
+    display: block;
+    width: auto;
     max-width: none !important;
-    min-width: 0 !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: transparent !important;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
   }
 
   /* 3. Žádné stíny, zaoblení ani tmavé plochy. */
@@ -3143,13 +3312,13 @@ th,
   .analytics-card {
     border-radius: 2mm !important;
     box-shadow: none !important;
-    background: #fff !important;
+    background: #fff;
     filter: none !important;
   }
 
   /* 4. Hlavička tištěného reportu. */
   .report-print-cover {
-    display: grid !important;
+    display: grid;
     grid-template-columns: 22mm minmax(0, 1fr);
     column-gap: 7mm;
     margin: 0 0 6mm !important;
@@ -3161,30 +3330,30 @@ th,
   .report-print-logo {
     grid-row: 1 / span 2;
     width: 20mm !important;
-    height: auto !important;
+    height: auto;
     object-fit: contain;
   }
   .report-print-title { align-self: center; min-width: 0; }
   .report-print-title > span {
-    display: block;
+    display: block !important;
     margin-bottom: 1.5mm;
     color: #236044;
-    font-size: 7.5pt;
+    font-size: 7.5pt !important;
     font-weight: 750;
     letter-spacing: 1.2pt;
   }
   .report-print-title h1 {
-    margin: 0;
-    color: #17251d;
+    margin: 0 !important;
+    color: #17251d !important;
     font-size: 21pt;
-    line-height: 1.1;
+    line-height: 1.1 !important;
     letter-spacing: -.4pt;
   }
   .report-print-title p { margin: 1.5mm 0 0; color: #56655c; font-size: 9pt; }
 
   .report-print-meta {
     grid-column: 1 / -1;
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 2mm 5mm;
     margin: 5mm 0 0;
@@ -3201,188 +3370,180 @@ th,
   .report-print-meta dd {
     margin: .7mm 0 0;
     overflow-wrap: anywhere;
-    color: #17251d;
+    color: #17251d !important;
     font-size: 8.5pt;
     font-weight: 650;
   }
 
   .report-print-footer {
-    display: flex !important;
+    display: flex;
     justify-content: space-between;
-    gap: 6mm;
+    gap: 6mm !important;
     margin: 6mm 0 0 !important;
     padding: 2mm 0 0 !important;
-    border-top: .25mm solid #c9d4cd;
+    border-top: .25mm solid #c9d4cd !important;
     color: #56655c;
-    font-size: 7.5pt;
+    font-size: 7.5pt !important;
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* 5. KPI dlaždice. */
-  .report-metrics {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 3mm !important;
-    margin: 0 0 5mm !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .report-metrics article {
-    min-height: 0 !important;
-    padding: 3.5mm !important;
-    border: .25mm solid #c9d4cd !important;
-    background: #fff !important;
-  }
-  .report-metrics span,
-  .report-metrics small { color: #56655c !important; font-size: 7pt !important; }
-  .report-metrics strong {
-    margin: 1.2mm 0 !important;
-    color: #17251d !important;
-    font-size: 13pt !important;
-    line-height: 1.1 !important;
-  }
-
-  /* 6. Karty grafů — jedna pod druhou, nikdy nezlomené přes stránku. */
-  .analytics-grid,
-  .reports-chart-grid {
-    display: block !important;
-    width: auto !important;
+  /* 5. Účetní souhrn a všechny záložky. */
+  .report-accounting-summary {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     gap: 0 !important;
-  }
-  .analytics-card,
-  .reports-chart-grid .analytics-card,
-  .analytics-card.full {
-    display: block !important;
-    width: auto !important;
-    min-height: 0 !important;
     margin: 0 0 5mm !important;
-    padding: 0 5mm 5mm !important;
-    overflow: visible !important;
     border: .25mm solid #c9d4cd !important;
+    border-radius: 2mm !important;
+    box-shadow: none !important;
     break-inside: avoid;
     page-break-inside: avoid;
   }
-  .analytics-card > header,
-  .reports-chart-grid .analytics-card > header {
-    min-height: 0 !important;
-    margin: 0 -5mm 4mm !important;
-    padding: 3.5mm 5mm !important;
-    border-bottom: .25mm solid #dce3de !important;
-    background: #fff !important;
+  .report-accounting-summary article,
+  .report-accounting-summary article.primary {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    min-height: 0;
+    padding: 3.5mm !important;
+    border: 0;
+    border-right: .25mm solid #c9d4cd !important;
+    background: #fff;
+    color: #17251d;
+  }
+  .report-accounting-summary article:last-child { border-right: 0 !important; }
+  .report-accounting-summary article.warning::before { display: none !important; }
+  .report-accounting-summary span,
+  .report-accounting-summary small { color: #56655c !important; font-size: 6.5pt !important; }
+  .report-accounting-summary strong {
+    margin: 1.2mm 0 !important;
+    color: #17251d;
+    font-size: 11pt !important;
+    line-height: 1.1;
+  }
+  .report-tab-panels,
+  .report-tab-panel {
+    display: block !important;
+    width: auto;
+    overflow: visible;
+  }
+  .report-tab-panel { margin: 0 0 6mm !important; }
+  .report-tab-intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5mm !important;
+    margin: 0 0 3mm !important;
+    padding-top: 2mm;
     break-after: avoid;
     page-break-after: avoid;
   }
-  .analytics-card h2 { color: #17251d !important; font-size: 12pt !important; }
-  .analytics-card header p { color: #56655c !important; font-size: 7.5pt !important; }
+  .report-tab-intro h2 { font-size: 14pt !important; }
+  .report-tab-intro p { color: #56655c !important; font-size: 7.5pt !important; }
 
-  /* 7. Koláčové grafy: conic-gradient se netiskne spolehlivě, jede SVG dvojník. */
-  .donut-wrap,
-  .reports-chart-grid .donut-wrap {
-    display: flex !important;
-    min-height: 0 !important;
-    flex: none !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 8mm !important;
-    padding: 2mm 0 !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .donut { display: none !important; }
-  .donut-print-chart {
-    display: block !important;
-    width: 34mm;
-    height: 34mm;
-    flex: 0 0 34mm;
-    overflow: visible;
-  }
-  .donut-print-total { fill: #14291d; font-size: 7px; font-weight: 800; }
-  .donut-print-label { fill: #364d40; font-size: 3.2px; font-weight: 650; }
-  .donut-legend {
-    width: auto !important;
-    min-width: 0 !important;
-    flex: 1 1 auto;
-  }
-  .donut-legend > div {
-    gap: 2mm !important;
-    padding: 1mm 0 !important;
-    color: #17251d !important;
-    font-size: 7.5pt !important;
-    font-weight: 650;
-  }
-  .donut-legend span { min-width: 0; overflow-wrap: anywhere; }
-  .donut-legend i {
-    width: 0 !important;
-    height: 0 !important;
-    flex: none;
-    border: 1.2mm solid #68736c;
-    border-radius: 50%;
-    background: transparent !important;
-  }
-  .donut-legend i.paid { border-color: #1f6844; }
-  .donut-legend i.overdue { border-color: #a92f28; }
-  .donut-legend i.pending { border-color: #b56f00; }
-  .donut-legend i.cancelled { border-color: #68736c; }
-
-  /* 8. Sloupcový graf po měsících. */
-  .monthly-chart,
-  .reports-chart-grid .monthly-chart {
-    display: flex !important;
-    height: 52mm !important;
-    min-width: 0 !important;
-    flex: none !important;
-    gap: 1.5mm !important;
-    padding: 2mm 0 0 !important;
-    overflow: visible !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .month-bars { gap: .8mm !important; border-bottom: .25mm solid #9faea6 !important; }
-  .month-bars i {
-    width: 2.6mm !important;
-    border-radius: .5mm .5mm 0 0 !important;
-  }
-  .month-bars .issued { border: .25mm solid #6f8f7c; background: #d5e5db !important; }
-  .month-bars .paid-bar { background: #1f6844 !important; }
-  .monthly-chart > div > span { margin-top: 1.5mm !important; color: #46564c !important; font-size: 6.5pt !important; }
-  .chart-legend {
-    margin-top: 2.5mm !important;
-    gap: 6mm !important;
-    break-inside: avoid;
-  }
-  .chart-legend span { color: #17251d !important; font-size: 7.5pt !important; font-weight: 650; }
-  .chart-legend i { width: 2.4mm !important; height: 2.4mm !important; }
-  .legend-issued { border: .25mm solid #6f8f7c; background: #d5e5db !important; }
-  .legend-paid { background: #1f6844 !important; }
-
-  /* 9. Seznam potvrzených výpisů pod párováním plateb. */
-  .reconciliation-imports {
-    margin-top: 4mm !important;
-    padding-top: 2.5mm !important;
-    border-top: .25mm solid #c9d4cd !important;
-  }
-  .reconciliation-imports > small { color: #56655c !important; font-size: 6.8pt !important; }
-  .reconciliation-import-row {
+  /* 6. Karty a grafy — kompaktní dvousloupcový tisk bez dělení karet. */
+  .report-workspace-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    align-items: start !important;
     gap: 4mm !important;
-    padding: 1.4mm 0 !important;
-    border-bottom: .2mm solid #e3e8e4 !important;
-    color: #17251d !important;
-    font-size: 7.5pt !important;
+  }
+  .report-revenue-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4mm;
+  }
+  .report-revenue-main,
+  .report-revenue-aside { display: contents; }
+  .report-revenue-layout .report-revenue-card {
+    grid-column: 1;
+    grid-row: auto;
+    order: 0;
+  }
+  .report-revenue-chart .report-column-group {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .report-revenue-chart .report-column-values small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 6pt;
+  }
+  .report-span-4 { grid-column: span 4 !important; }
+  .report-span-5 { grid-column: span 5 !important; }
+  .report-span-7 { grid-column: span 7 !important; }
+  .report-span-8 { grid-column: span 8 !important; }
+  .report-span-12 { grid-column: 1 / -1 !important; }
+  .report-card,
+  .report-payment-metrics,
+  .report-status-card {
     break-inside: avoid;
     page-break-inside: avoid;
   }
-  .reconciliation-import-name {
-    overflow: visible !important;
-    white-space: normal !important;
-    text-overflow: clip !important;
-    overflow-wrap: anywhere;
+  .report-card {
+    display: block !important;
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0 0 3mm !important;
+    overflow: visible;
+    border: .25mm solid #c9d4cd !important;
+    border-radius: 2mm !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+  .report-average-icon { display: none; }
+  .report-revenue-average-hero {
+    margin: 0;
+    border: 0;
+    background: #fff;
+  }
+  .report-card > header {
+    min-height: 0;
+    margin: 0 0 3mm !important;
+    padding: 3mm 4mm !important;
+    border-bottom: .25mm solid #dce3de !important;
+    background: #fff;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .report-card h3 { color: #17251d !important; font-size: 10pt !important; }
+  .report-card header p { color: #56655c !important; font-size: 6.8pt !important; }
+  .report-column-chart {
+    display: flex;
+    height: 45mm !important;
+    min-width: 0;
+    gap: 1.5mm !important;
+    padding: 2mm 3mm 0 !important;
+    overflow: visible;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .report-column-values { display: flex !important; }
+  .report-segmented-bar,
+  .report-payment-bar,
+  .report-ranking,
+  .report-vat-bars,
+  .report-aging-chart,
+  .report-import-list > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .report-payment-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+  }
+  .report-payment-metrics article {
+    padding: 3mm !important;
+    border: .25mm solid #c9d4cd !important;
+    background: #fff;
   }
 
-  /* 10. Obecná pravidla pro tabulky na kterékoli stránce. */
+  /* 7. Obecná pravidla pro tabulky na kterékoli stránce. */
   table {
-    width: 100% !important;
-    min-width: 0 !important;
+    width: 100%;
+    min-width: 0;
     border-collapse: collapse;
     table-layout: fixed;
     font-variant-numeric: tabular-nums;
@@ -3398,11 +3559,11 @@ th,
   th,
   td {
     display: table-cell !important;
-    width: auto !important;
+    width: auto;
     padding: 2mm !important;
     border: .25mm solid #b6c3bb !important;
-    background: #fff !important;
-    color: #17251d !important;
+    background: #fff;
+    color: #17251d;
     overflow-wrap: anywhere;
     font-size: 7.2pt !important;
     line-height: 1.3 !important;
@@ -3416,30 +3577,9 @@ th,
   .page-state { color: #17251d !important; font-size: 9pt !important; }
   .empty-box {
     border: .25mm solid #c9d4cd !important;
-    background: #fff !important;
-    color: #17251d !important;
+    background: #fff;
+    color: #17251d;
     font-size: 8pt !important;
   }
   .red-text { color: #9f352d !important; }
-}
-@keyframes customer-row-highlight-fade {
-  0% {
-    background: var(--green-soft);
-  }
-  100% {
-    background: transparent;
-  }
-}
-.info-section-link {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--green);
-}
-.info-section-link:hover {
-  text-decoration: underline;
-}
-.info-section-note {
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: 9px;
 }

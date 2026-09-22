@@ -20,6 +20,6 @@ export async function loadDashboardPageData(identity: RequestIdentity | null): P
     target_org: identity.membership.organization_id,
     actor_user: identity.user.id,
   });
-  if (error || !data) throw new PageDataError("Přehled se nepodařilo načíst. Zkontrolujte databázovou migraci.", 500);
+  if (error || !data) throw new PageDataError("Přehled se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500);
   return data as DashboardPageData;
 }

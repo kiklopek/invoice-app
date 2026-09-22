@@ -166,6 +166,11 @@ export function AppSidebar({
     }
   }
   return (
+    <>
+    {/* Uzivatel klavesnice drive musel na KAZDE strance protabovat deset
+        navigacnich odkazu a ucet, nez se dostal k obsahu. Odkaz je videt
+        az pri zaostreni, takze mysi uzivatele nijak neruší. */}
+    <a href="#obsah" className="skip-link">Přeskočit na obsah</a>
     <aside className="sidebar">
       <Link href={landingPageForRole(role)} className="brand">
         <CompanyLogo className="sidebar-company-logo" />
@@ -178,6 +183,7 @@ export function AppSidebar({
         <span className="nav-heading">Hlavní nabídka</span>
         {visibleItems.map((item) => {
           const active = isActive(item.href);
+          const selected = active && !item.children?.some((child) => isChildActive(child.href));
           return (
             <div key={item.href} className="nav-item-group">
               <Link
@@ -185,7 +191,7 @@ export function AppSidebar({
                 prefetch={true}
                 aria-current={pathname === item.href ? "page" : undefined}
                 className={[
-                  active ? "active" : "",
+                  selected ? "active" : "",
                   item.href === "/dashboard" ? "nav-primary" : "",
                 ]
                   .filter(Boolean)
@@ -275,6 +281,7 @@ export function AppSidebar({
               >
                 {visibleItems.map((item) => {
                   const active = isActive(item.href);
+                  const selected = active && !item.children?.some((child) => isChildActive(child.href));
                   return (
                     <Fragment key={item.href}>
                       <Link
@@ -283,7 +290,7 @@ export function AppSidebar({
                         aria-current={
                           pathname === item.href ? "page" : undefined
                         }
-                        className={active ? "active" : ""}
+                        className={selected ? "active" : ""}
                         onClick={() => setMobileNavOpen(false)}
                       >
                         <span className="nav-symbol">
@@ -386,6 +393,7 @@ export function AppSidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }
 
@@ -429,5 +437,5 @@ export function AppFrame({
   useEffect(() => {
     if (invoiceCount !== undefined) setInvoiceCount?.(invoiceCount);
   }, [invoiceCount, setInvoiceCount]);
-  return <main className={className}>{children}</main>;
+  return <main id="obsah" className={className}>{children}</main>;
 }

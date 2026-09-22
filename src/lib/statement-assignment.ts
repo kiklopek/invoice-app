@@ -23,6 +23,11 @@ export interface AssignablePayment {
   variable_symbol?: string | null;
   counterparty_name?: string | null;
   counterparty_account?: string | null;
+  /** undefined/null/true => trusted; explicit false => the account number
+   * failed its checksum on decode (see gpc-parser.ts readAccount) and must
+   * never be treated as a confirmed account for the "account" evidence tier
+   * or for detecting an account-confirmed-for-two-counterparties conflict. */
+  counterparty_account_verified?: boolean | null;
   booked_on?: string | null;
   /** Free-text payment message, where a payer may have written the invoice number. */
   note?: string | null;
@@ -339,7 +344,11 @@ export function assignStatementPayments(
     // A bank account that has been confirmed for two different customers no
     // longer identifies either of them. It stays useful for ranking a human's
     // choices, but on its own it must not carry an unattended booking.
-    const confirmed = [
+    // An account number whose checksum failed on decode (verified === false,
+    // e.g. a GPC line that didn't pass the mod-11 check on either reading)
+    // is worse than ambiguous -- it's not trustworthy at all, so it never
+    // even reaches the account-evidence lookup, let alone the "account" tier.
+    const confirmed = payment.counterparty_account_verified === false ? [] : [
       ...new Set(
         (confirmedIcosByAccount.get(payment.counterparty_account ?? "") ?? []).filter(Boolean),
       ),

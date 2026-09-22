@@ -9,6 +9,7 @@ export type PaymentReconciliationSummary = {
     auto_matched: number;
     needs_review: number;
     unmatched_payments: number;
+    unacknowledged_mismatch_imports: number;
   };
   monthly: { key: string; imports: number; accepted: number; auto_matched: number; needs_review: number }[];
   recent_imports: {

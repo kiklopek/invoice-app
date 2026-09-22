@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
-import { isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
@@ -23,7 +23,7 @@ export default function RegisterPage() {
     setError(null);
     const normalizedEmail = normalizeEmail(email);
     if (fullName.trim().length < 3) return setError("Zadejte celé jméno uživatele.");
-    if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? "Registrace je povolena pouze pro e-maily @hlavica.cz." : "Zadejte platnou e-mailovou adresu.");
+    if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? `Registrace je povolena pouze pro e-maily @${ALLOWED_EMAIL_DOMAIN}.` : "Zadejte platnou e-mailovou adresu.");
     const problem = passwordProblem(password);
     if (problem) return setError(problem);
     if (password !== confirmation) return setError("Zadaná hesla se neshodují.");
@@ -108,7 +108,7 @@ export default function RegisterPage() {
           ) : (
             <form onSubmit={register} className="auth-form">
               <label><span>Jméno a příjmení</span><input autoComplete="name" required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
-              <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+              <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label><span>Heslo</span><input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /><small>Alespoň 12 znaků, velké a malé písmeno a číslo.</small></label>
               <label><span>Heslo znovu</span><input type="password" autoComplete="new-password" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
               <button type="submit" className="btn primary" disabled={submitting}><Icon name="check"/>{submitting ? "Vytvářím účet…" : "Vytvořit účet"}</button>

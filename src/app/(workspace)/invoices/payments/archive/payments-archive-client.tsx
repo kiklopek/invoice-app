@@ -79,6 +79,14 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
   async function assign(payment: SavedPayment) {
     const invoiceId = assignments[payment.id];
     if (!invoiceId) return;
+    // Uvolnění platby potvrzení má, přiřazení ne -- přitom obojí mění
+    // uhrazenou částku faktury. Nekonzistence učí uživatele, že se
+    // nebezpečné akce někdy ptají a někdy ne.
+    if (!(await confirmAction({
+      title: "Přiřadit platbu k faktuře?",
+      description: "Platba se zapíše k vybrané faktuře a změní její uhrazenou částku. Vrátit to lze uvolněním platby.",
+      confirmLabel: "Přiřadit",
+    }))) return;
     setWorking(true);
     setMessage("");
     setNotice("");
@@ -206,7 +214,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
       <div className="payment-assignment">
         {suggested && (
           <small className="assignment-suggestion">
-            Nalezena shoda podle VS/čísla faktury a částky — zkontrolujte a potvrďte.
+            Navržená shoda podle VS a částky. Před potvrzením ji zkontrolujte.
           </small>
         )}
         <select
@@ -234,7 +242,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
         </select>
         <button
           type="button"
-          className="btn secondary compact"
+          className="btn primary compact"
           disabled={working || !assignments[payment.id]}
           onClick={() => assign(payment)}
         >
@@ -286,7 +294,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
             <input
               value={historyQuery}
               onChange={(event) => setHistoryQuery(event.target.value)}
-              placeholder="Protistrana, VS, faktura nebo ID transakce"
+              placeholder="Protistrana, VS nebo číslo faktury"
             />
           </label>
           <label className="payments-unmatched-toggle">
@@ -295,65 +303,37 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
           </label>
         </div>
         {filteredHistory.length ? (
-          <div className="large-table payment-history-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Datum</th>
-                  <th>Protistrana</th>
-                  <th>VS</th>
-                  <th>Částka</th>
-                  <th>Stav</th>
-                  <th>Faktura nebo ruční přiřazení</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHistory.map((payment) => (
-                  <tr key={payment.id}>
-                    <td data-label="Datum">{payment.booked_on}</td>
-                    <td data-label="Protistrana">
-                      {payment.counterparty_name || "—"}
-                      <small>{payment.external_id}</small>
-                    </td>
-                    <td data-label="Variabilní symbol">
-                      {payment.variable_symbol || "—"}
-                    </td>
-                    <td data-label="Částka">
-                      <strong>
-                        {money(Number(payment.amount), payment.currency)}
-                      </strong>
-                    </td>
-                    <td data-label="Stav">
-                      <span className={`payment-match ${payment.match_status}`}>
-                        {statusLabel[payment.match_status]}
-                      </span>
-                      {payment.source === "manual" && <small>Ručně potvrzeno</small>}
-                    </td>
-                    <td data-label="Přiřazení">
-                      {payment.invoice_id || payment.allocations?.length ? (
-                        <div className="payment-assignment matched-payment">
-                          {(payment.allocations?.length ? payment.allocations : payment.invoice_id ? [{ invoice_id: payment.invoice_id, invoice_number: payment.invoices?.invoice_number || "Detail", amount: Number(payment.amount), counterparty_name: payment.invoices?.counterparty_name || "" }] : []).map(allocation => <Link key={allocation.invoice_id} href={`/invoices/${allocation.invoice_id}`}>
-                            {allocation.invoice_number} · {money(Number(allocation.amount), payment.currency)} →
-                          </Link>)}
-                          {canManage && (
-                            <button
-                              type="button"
-                              className="btn secondary compact"
-                              disabled={working}
-                              onClick={() => unassign(payment)}
-                            >
-                              Uvolnit
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        assignmentControl(payment)
+          <div className="payment-history-table" role="list" aria-label="Importované platby">
+            {filteredHistory.map((payment) => (
+              <article className={`payment-history-item ${payment.match_status}`} role="listitem" key={payment.id}>
+                <div className="payment-history-identity">
+                  <strong>{payment.counterparty_name || "Neznámá protistrana"}</strong>
+                  <div className="payment-history-meta">
+                    <time dateTime={payment.booked_on}>{payment.booked_on}</time>
+                    {payment.variable_symbol && <span>VS {payment.variable_symbol}</span>}
+                  </div>
+                </div>
+                <div className="payment-history-summary">
+                  <strong>{money(Number(payment.amount), payment.currency)}</strong>
+                  <span className={`payment-match ${payment.match_status}`}>{statusLabel[payment.match_status]}</span>
+                  {payment.source === "manual" && <small>Ručně potvrzeno</small>}
+                </div>
+                <div className="payment-history-action">
+                  {payment.invoice_id || payment.allocations?.length ? (
+                    <div className="payment-assignment matched-payment">
+                      {(payment.allocations?.length ? payment.allocations : payment.invoice_id ? [{ invoice_id: payment.invoice_id, invoice_number: payment.invoices?.invoice_number || "Detail", amount: Number(payment.amount), counterparty_name: payment.invoices?.counterparty_name || "" }] : []).map(allocation => <Link key={allocation.invoice_id} href={`/invoices/${allocation.invoice_id}`}>
+                        <span>Faktura {allocation.invoice_number}</span><strong>{money(Number(allocation.amount), payment.currency)}</strong><span aria-hidden="true">→</span>
+                      </Link>)}
+                      {canManage && (
+                        <button type="button" className="btn secondary compact" disabled={working} onClick={() => unassign(payment)}>
+                          Uvolnit přiřazení
+                        </button>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  ) : assignmentControl(payment)}
+                </div>
+              </article>
+            ))}
           </div>
         ) : history.length ? (
           <div className="payments-empty-state">

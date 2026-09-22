@@ -55,6 +55,10 @@ export interface PaymentImportRow {
   variable_symbol: string;
   counterparty_name?: string;
   counterparty_account?: string;
+  // undefined => trusted (CSV/manual entry has no checksum concept to fail).
+  // Only GPC's readAccount() sets this explicitly, to false when a decoded
+  // account number failed the Czech mod-11 check on both candidate readings.
+  counterparty_account_verified?: boolean;
   note?: string;
 }
 

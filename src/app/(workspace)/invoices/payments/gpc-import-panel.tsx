@@ -28,6 +28,8 @@ type PreviewEntry = {
   booked_on: string | null;
   variable_symbol: string | null;
   counterparty_name: string | null;
+  counterparty_account: string | null;
+  counterparty_account_verified: boolean;
   proposal_kind:
     | "exact"
     | "combination"
@@ -221,10 +223,15 @@ export function GpcImportPanel({
                 import: touchedEntries.current.size > 0
                   ? current.import
                   : { ...current.import, ...detail.import },
-                totals: detail.totals,
-                progress: detail.progress,
-                total_entries: detail.total_entries,
-                proposal_invoices: detail.proposal_invoices,
+                // Chybějící pole v odpovědi detailu nesmí přepsat to, co už
+                // z nahrání víme. Dřív stačilo, aby API jedno pole vynechalo,
+                // a `preview.totals.accepted` shodilo CELOU stránku plateb
+                // do chybové hranice -- bílá obrazovka místo rozpracovaného
+                // importu. Nalezeno e2e testem, který se roky přeskakoval.
+                totals: detail.totals ?? current.totals,
+                progress: detail.progress ?? current.progress,
+                total_entries: detail.total_entries ?? current.total_entries,
+                proposal_invoices: detail.proposal_invoices ?? current.proposal_invoices,
               }
             : current,
         );
@@ -418,6 +425,20 @@ export function GpcImportPanel({
       );
       return;
     }
+    // Tohle zapisuje peníze na faktury a je to nevratné jinak než uvolněním
+    // po jedné. Mazání faktury přitom potvrzovací dialog má -- ta
+    // nekonzistence je horší než absence: uživatel si zvykne, že nebezpečné
+    // akce se ptají, a tady se nezeptá nic.
+    const bookedCount = reviewedEntries.filter(
+      (entry) => (selected[entry.fingerprint]?.length ?? 0) > 0,
+    ).length;
+    if (!(await confirmAction({
+      title: "Zaúčtovat platby k fakturám?",
+      description: bookedCount
+        ? `Potvrzením se ${bookedCount} platba(y) zapíše k vybraným fakturám a změní jejich uhrazenou částku. Vrátit to lze jen uvolněním jednotlivých plateb.`
+        : "Potvrzením se import uzavře. Vrátit to lze jen uvolněním jednotlivých plateb.",
+      confirmLabel: "Zaúčtovat",
+    }))) return;
     setWorking(true);
     setError("");
     setDone("");
@@ -756,6 +777,14 @@ export function GpcImportPanel({
                         entry.proposal_confidence,
                       ) ?? entry.reason}
                     </p>
+                    {entry.counterparty_account && (
+                      <p className={entry.counterparty_account_verified ? undefined : "gpc-account-unverified"}>
+                        Účet {entry.counterparty_account}
+                        {!entry.counterparty_account_verified && (
+                          <small> · kontrolní součet čísla účtu nesedí, ověřte ručně</small>
+                        )}
+                      </p>
+                    )}
                     {hasReviewableProposal ? (
                       <div className="gpc-proposal-row">
                         {entry.proposal_reason ? <small>{entry.proposal_reason}</small> : null}

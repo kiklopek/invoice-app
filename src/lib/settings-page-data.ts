@@ -97,7 +97,7 @@ export async function loadSettingsPageData(
   ]);
   if (companyResult.error)
     throw new PageDataError(
-      "Nastavení se nepodařilo načíst. Zkontrolujte databázovou migraci.",
+      "Nastavení se nepodařilo načíst. Zkuste to prosím znovu za chvíli.",
       500,
     );
   return {

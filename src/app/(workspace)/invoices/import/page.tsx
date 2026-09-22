@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppFrame } from "@/components/layout/app-shell";
 import { createEmptyInvoice, InvoiceForm } from "@/components/invoice-form";
 import type { InvoiceInput } from "@/types/invoice";
-import { createCsv } from "@/lib/csv";
 import { createClient } from "@/lib/supabase-browser";
 import { hasExpectedDocumentSignature, validateDocumentMetadata } from "@/lib/document-validation";
 import { Icon } from "@/components/icons";
@@ -18,8 +17,12 @@ import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 // deploy-wide setting (not per-request), so a build-time constant is
 // accurate here -- it must never silently drift from what the API route
 // actually does, since it's the one sentence telling a person their
-// document leaves the company.
-const USES_EXTERNAL_AI_OCR = process.env.NEXT_PUBLIC_OCR_PROVIDER === "openrouter";
+// document leaves the company. "hybrid" only sends a document to Gemini
+// conditionally (when the local parser's own confidence is low), which
+// isn't knowable before OCR actually runs -- the disclosure text for it
+// says "may", never a flat yes/no.
+const OCR_EXTERNAL_AI_DISCLOSURE: "always" | "never" | "maybe" =
+  process.env.NEXT_PUBLIC_OCR_PROVIDER === "gemini" ? "always" : process.env.NEXT_PUBLIC_OCR_PROVIDER === "hybrid" ? "maybe" : "never";
 
 type DocumentStage = "idle" | "uploading" | "verifying" | "reading" | "recognizing" | "prefilling";
 
@@ -83,9 +86,21 @@ export default function ImportInvoicesPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [rows, setRows] = useState<InvoiceInput[]>([]);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [working, setWorking] = useState(false);
   const [documentStage, setDocumentStage] = useState<DocumentStage>("idle");
   const [message, setMessage] = useState("");
+  // Fronta se cte i z asynchronnich callbacku, ktere drzi closure ze
+  // starsiho renderu. Driv kvuli tomu create() hledal dalsi nepotvrzenou
+  // fakturu ve zastaralem poli: mohl ji nenajit, odejit na /invoices
+  // a TISE zahodit zbyle rozpracovane dokumenty.
+  const queueRef = useRef<QueueItem[]>(queue);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+
+  // Zpracovani davky sel drive prerusit jen zavrenim panelu -- u dvaceti
+  // souboru a pomaleho OCR nebylo jak vystoupit.
+  const cancelRef = useRef<AbortController | null>(null);
+
   const active = queue[activeIndex];
   const uploaded = active?.invoice ?? null;
   const ocrInfo = active?.ocrInfo ?? null;
@@ -146,14 +161,62 @@ export default function ImportInvoicesPage() {
   }
   async function uploadQueue() {
     if (!queue.length) return;
+    const controller = new AbortController();
+    cancelRef.current = controller;
     setWorking(true); setMessage("");
     // Processed one at a time on purpose: OCR runs locally (CPU-bound Tesseract),
     // so racing several documents at once would just slow each of them down.
     for (let index = 0; index < queue.length; index += 1) {
+      if (controller.signal.aborted) break;
       await processOne(queue[index].file, index);
     }
+    cancelRef.current = null;
     setDocumentStage("idle"); setWorking(false);
+    if (controller.signal.aborted) {
+      // Uz zpracovane dokumenty zustavaji -- zrusit znamena "dal uz nepokracuj",
+      // ne "zahod, co je hotove".
+      const pending = queueRef.current.filter(item => item.status === "pending").length;
+      setMessage(pending ? `Zpracování zastaveno, ${pending} dokument(ů) zůstalo nenačtených.` : "Zpracování zastaveno.");
+    }
     setActiveIndex(0);
+  }
+
+  function cancelProcessing() {
+    cancelRef.current?.abort();
+  }
+
+  // Chybný dokument musí jít zkusit znovu nebo vynechat. Bez toho zbýval
+  // u jednoho souboru jen reload stránky, u fronty se z něj nedalo hnout.
+  async function retryDocument(index: number) {
+    const item = queueRef.current[index];
+    if (!item || working) return;
+    setWorking(true); setMessage("");
+    try {
+      await processOne(item.file, index);
+    } finally {
+      setWorking(false); setDocumentStage("idle");
+    }
+  }
+
+  // Text v ploše přetažení slibuje ("sem soubory přetáhněte"), ale žádný
+  // onDrop neexistoval -- fungoval jen nativní drop přímo na skrytý input,
+  // ne na okolní plochu. Uživatel to přečetl, zkusil a nic se nestalo.
+  const [dragActive, setDragActive] = useState(false);
+
+  function acceptDroppedFiles(event: React.DragEvent, onFiles: (files: File[]) => void) {
+    event.preventDefault();
+    setDragActive(false);
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (files.length) onFiles(files);
+  }
+
+  function skipDocument(index: number) {
+    const remaining = queueRef.current.filter((_, i) => i !== index);
+    queueRef.current = remaining;
+    setQueue(remaining);
+    // Zůstat na stejné pozici, pokud tam ještě něco je; jinak o jednu zpět.
+    setActiveIndex(current => Math.max(0, Math.min(current, remaining.length - 1)));
+    if (!remaining.length) setMessage("Fronta je prázdná, všechny dokumenty byly vyřízené nebo přeskočené.");
   }
   async function retryOcr() {
     if (!uploaded?.file_url) return;
@@ -170,33 +233,53 @@ export default function ImportInvoicesPage() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     const savedIndex = activeIndex;
-    setQueue(current => current.map((item, i) => i === savedIndex ? { ...item, status: "saved" } : item));
-    const nextReady = queue.findIndex((item, i) => i !== savedIndex && item.status === "ready");
-    if (nextReady >= 0) setActiveIndex(nextReady);
-    else if (queue.length <= 1) router.push(`/invoices/${data.invoice.id}`);
+    // Cerstvy stav z ref, ne ze zastarale closure -- jinak se muze stat, ze
+    // se dalsi pripravena faktura nenajde a zbytek fronty se tise zahodi.
+    const updated = queueRef.current.map((item, i) => i === savedIndex ? { ...item, status: "saved" as const } : item);
+    queueRef.current = updated;
+    setQueue(updated);
+    const nextReady = updated.findIndex((item, i) => i !== savedIndex && item.status === "ready");
+    if (nextReady >= 0) { setActiveIndex(nextReady); return; }
+    const unfinished = updated.filter(item => item.status === "pending" || item.status === "processing").length;
+    if (unfinished > 0) {
+      // Nikdy neodejit a nenechat rozpracovane dokumenty zmizet bez zminky.
+      setMessage(`Zbývá ${unfinished} nenačtený dokument(ů) ve frontě.`);
+      return;
+    }
+    if (updated.length <= 1) router.push(`/invoices/${data.invoice.id}`);
     else router.push("/invoices");
   }
-  async function loadCsv(selected: File | null) { if (!selected) return; setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
+  async function loadCsv(selected: File | null) { if (!selected) return; setCsvFile(selected); setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
   async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); router.push("/invoices"); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
-  function downloadTemplate() { const csv = createCsv([["Číslo faktury", "Odběratel", "IČO", "E-mail", "Částka bez DPH", "Sazba DPH", "Částka s DPH", "Měna", "Vystavení", "Splatnost", "Variabilní symbol"], ["FV-2026-001", "Ukázkový odběratel s.r.o.", "12345678", "fakturace@example.cz", 10000, 21, 12100, "CZK", "2026-08-01", "2026-08-15", "2026001"]]); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); const link = document.createElement("a"); link.href = url; link.download = "vzor-importu-faktur.csv"; link.click(); URL.revokeObjectURL(url); }
 
   return <AppFrame>
     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
     <div className="page-tabs invoice-import-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
     <div className="invoice-import-workspace">
-    {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong></div>}
+    {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong>{queue.length > 1 && <button type="button" className="btn secondary compact import-cancel" onClick={cancelProcessing}>Zastavit zpracování</button>}</div>}
     {mode === "document" ? (
       queue.length === 0 ? (
         <section className="page-panel import-panel invoice-document-import">
-          <label className="import-drop invoice-document-dropzone">
+          <label
+            className={`import-drop invoice-document-dropzone${dragActive ? " is-dragging" : ""}`}
+            onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(event) => acceptDroppedFiles(event, (files) => {
+              setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" })));
+              setActiveIndex(0);
+              setMessage("");
+            })}
+          >
             <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
             <span className="large-import-icon"><Icon name="document"/></span>
             <h2>Vyberte dokumenty faktur</h2>
             <p>
               Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB na soubor. Vybrat lze i více souborů najednou.{" "}
-              {USES_EXTERNAL_AI_OCR
-                ? "Údaje rozpozná externí AI služba (OpenRouter) -- dokument se jí kvůli tomu odešle."
-                : "Údaje rozpozná lokální OCR bez odesílání do externí AI služby."}
+              {OCR_EXTERNAL_AI_DISCLOSURE === "always"
+                ? "Údaje rozpozná externí AI služba -- dokument se jí kvůli tomu odešle."
+                : OCR_EXTERNAL_AI_DISCLOSURE === "maybe"
+                  ? "Údaje rozpozná lokální OCR; pokud si nebude jistý, dokument navíc pošleme ke kontrole externí AI službě."
+                  : "Údaje rozpozná lokální OCR bez odesílání do externí AI služby."}
             </p>
             <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
             <small>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
@@ -251,7 +334,23 @@ export default function ImportInvoicesPage() {
             </>
           )}
           {active?.status === "error" ? (
-            <section className="page-panel"><p className="form-error">{active.error}</p></section>
+            /* Dřív tu byla jen chybová věta a nic víc -- slepá ulička, ze
+               které se u jednoho souboru dalo dostat jen reloadem stránky.
+               Každá chyba teď nabízí, co s ní dál. */
+            <section className="page-panel invoice-import-error">
+              <p className="form-error">{active.error}</p>
+              <div className="invoice-import-error-actions">
+                <button type="button" className="btn primary" disabled={working} onClick={() => void retryDocument(activeIndex)}>
+                  Zkusit znovu
+                </button>
+                {queue.length > 1 && (
+                  <button type="button" className="btn secondary" disabled={working} onClick={() => skipDocument(activeIndex)}>
+                    Přeskočit dokument
+                  </button>
+                )}
+                <Link className="btn secondary" href="/invoices/new">Vyplnit ručně</Link>
+              </div>
+            </section>
           ) : active?.status === "processing" || active?.status === "pending" ? (
             <section className="page-panel"><p className="page-state">{documentStageLabel[documentStage] || "Čeká na zpracování…"}</p></section>
           ) : uploaded ? <>
@@ -263,7 +362,28 @@ export default function ImportInvoicesPage() {
           </> : null}
         </>
       )
-    ) : <section className="page-panel import-panel"><div className="csv-help"><h2>Hromadný import faktur</h2><p>CSV musí obsahovat sloupce: Číslo faktury, Odběratel, E-mail, Částka bez DPH, Sazba DPH, Částka s DPH, Měna, Vystavení a Splatnost. Starší soubor s jediným sloupcem Částka zůstává podporovaný jako konečná částka s DPH. Data používejte ve formátu RRRR-MM-DD. Jeden import může obsahovat nejvýše 250 faktur a uloží se vždy celý, nebo vůbec.</p><div className="csv-actions"><input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/><button type="button" className="btn secondary" onClick={downloadTemplate}><Icon name="download"/>Stáhnout vzor CSV</button></div></div>{rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><button className="btn primary import-confirm" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></>}</section>}
+    ) : <section className="page-panel import-panel csv-import-panel">
+      <div className="csv-import-grid">
+        <div className="csv-import-main">
+          <span className="csv-eyebrow">HROMADNÝ IMPORT</span>
+          <h2>Načtěte faktury z CSV</h2>
+          <p className="csv-lead">Nahrajte připravený soubor a před uložením zkontrolujte náhled. Import proběhne celý, nebo se neuloží nic.</p>
+          <label
+            className={`csv-dropzone${csvFile ? " has-file" : ""}${dragActive ? " is-dragging" : ""}`}
+            onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(event) => acceptDroppedFiles(event, (files) => void loadCsv(files[0] ?? null))}
+          >
+            <input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/>
+            <span className="csv-dropzone-icon"><Icon name={csvFile ? "check" : "upload"}/></span>
+            <strong>{csvFile ? csvFile.name : "Vyberte CSV soubor"}</strong>
+            <small>{csvFile ? `${(csvFile.size / 1024).toFixed(1)} kB · kliknutím můžete soubor změnit` : "Klikněte nebo soubor přetáhněte do této plochy"}</small>
+            {!csvFile && <span className="csv-file-button">Vybrat soubor</span>}
+          </label>
+        </div>
+      </div>
+      {rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><div className="csv-import-footer"><span><Icon name="check"/>Soubor je připravený k importu</span><button className="btn primary" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></div></>}
+    </section>}
     {message && <p className="form-error">{message}</p>}
     </div>
   </AppFrame>;

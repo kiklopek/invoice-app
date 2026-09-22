@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedCorporateEmail } from "@/lib/auth-policy";
+import { safeReturnPath } from "@/lib/safe-return-path";
 import {
   EMAIL_MFA_COOKIE,
   createEmailMfaToken,
@@ -212,8 +213,13 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Musi odpovidat adresarum ve (workspace) i matcheru dole -- hlida to
+  // proxy-route-coverage.test.ts. /customers tu drive chybelo, takze
+  // nepřihlaseny uzivatel nedostal redirect na /login, ale spadl az
+  // v page-data loaderu do obecne chybove stranky.
   const protectedRoute = [
     "/dashboard",
+    "/customers",
     "/invoices",
     "/reminders",
     "/reports",
@@ -227,7 +233,12 @@ export async function proxy(request: NextRequest) {
 
   // Není session
   if (!user) {
-    return redirectWithCookies(new URL("/login", request.url), response);
+    // Bez tohohle skoncil uzivatel po prihlaseni vzdy na /dashboard, i kdyz
+    // mířil jinam. api-client.ts uz returnTo posilal, ale nikdo ho necetl.
+    const login = new URL("/login", request.url);
+    const returnTo = safeReturnPath(`${pathname}${request.nextUrl.search}`, "");
+    if (returnTo) login.searchParams.set("returnTo", returnTo);
+    return redirectWithCookies(login, response);
   }
 
   // Firemní email kontrola
@@ -256,6 +267,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/customers/:path*",
     "/invoices/:path*",
     "/reminders/:path*",
     "/reports/:path*",

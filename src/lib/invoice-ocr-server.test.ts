@@ -88,7 +88,11 @@ describe("local OCR document reader", () => {
     expect(result.totalPages).toBe(1);
     expect(result.text).toContain("FV-2026-007");
     expect(result.layout.pages[0].lines[0]).toMatchObject({ page: 1, source: "pdf_text" });
-  });
+    // Vitest ma vychozi limit 5 s, ale tenhle test si sam povoluje 15 s. Pod
+    // paralelnim behem cele sady ho prekracoval a padal nahodile, samostatne
+    // prochazel -- vypadalo to jako regrese, byl to chybejici timeout.
+    // Sesterske testy nize drzi stejny vzor: vnitrni rozpocet + 5 s rezerva.
+  }, 20_000);
 
   it("recognizes a generated invoice image with bundled Czech and English data", async () => {
     const image = await sharp(Buffer.from('<svg width="1200" height="320" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><text x="50" y="120" font-size="62" font-family="Arial" fill="black">FAKTURA FV-2026-007</text><text x="50" y="220" font-size="52" font-family="Arial" fill="black">Celkem 12 100 CZK</text></svg>')).png().toBuffer();

@@ -70,12 +70,15 @@ describe("MFA and bank statement UI regressions", () => {
     expect(css).toContain("width: min(calc(100% - 40px), 720px)");
   });
 
-  it("keeps the imported-payment history compact and consistently aligned", () => {
-    expect(css).toContain(".payments-page .payments-history .panel-head");
-    expect(css).toContain(".payments-page .payments-history-toolbar > label.grow");
-    expect(css).toContain(".payments-page .payment-history-table th:nth-child(6)");
-    expect(css).toContain("table-layout: fixed");
-    expect(css).toContain(".payments-page .payment-history-table .matched-payment .btn");
+  it("lays out payment history without a wide table or visible transaction IDs", () => {
+    expect(paymentsArchivePage).toContain('className="payment-history-table" role="list"');
+    expect(paymentsArchivePage).toContain('className={`payment-history-item');
+    expect(paymentsArchivePage).not.toContain("<small>{payment.external_id}</small>");
+    expect(css).toContain(".payments-archive-page .payment-history-item { display: grid;");
+    expect(css).toContain(".payments-archive-page .payment-history-table { display: grid;");
+    expect(css).toContain(".payments-archive-page .payment-history-action .payment-assignment select { width: 100%; min-width: 0;");
+    expect(css).toContain(".payments-archive-page .payment-history-action .matched-payment { grid-template-columns: minmax(0, 1fr) minmax(112px, auto);");
+    expect(css).toContain(".payments-archive-page .payment-history-action .matched-payment .btn { grid-column: 2; grid-row: 1;");
   });
 
   it("orders settled payments first and keeps history above the archive", () => {
@@ -91,7 +94,7 @@ describe("MFA and bank statement UI regressions", () => {
     expect(gpcImport).toContain('<span className="payments-section-number">03</span>');
     expect(css).toContain(".payments-page .payments-history { order: 1; }");
     expect(css).toContain(".payments-page .import-archive { order: 2; }");
-    expect(css).toContain("max-height: min(54vh, 520px)");
+    expect(css).toContain(".payments-archive-page .payment-history-table { display: grid;");
   });
 
   it("uses distinct, accessible navigation cards between both payment pages", () => {

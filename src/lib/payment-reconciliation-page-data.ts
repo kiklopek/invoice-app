@@ -17,6 +17,6 @@ export async function loadPaymentReconciliationSummary(
     report_from: query.from,
     report_to: query.to,
   });
-  if (error || !data) throw new PageDataError("Přehled párování plateb se nepodařilo sestavit. Zkontrolujte databázovou migraci.", 500);
+  if (error || !data) throw new PageDataError("Přehled párování plateb se nepodařilo sestavit. Zkuste to prosím znovu za chvíli.", 500);
   return data as PaymentReconciliationSummary;
 }

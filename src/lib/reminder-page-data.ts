@@ -53,7 +53,7 @@ export async function loadReminderPageData(identity: RequestIdentity | null): Pr
     identity.service.from("reminder_automation_runs").select("id, status, trigger_source, triggered_by_email, started_at, finished_at, checked, queued, processed, remaining, planner_duration_ms, worker_duration_ms, sent, failed, skipped, disabled, paused, suppressed, exhausted, error_message").eq("organization_id", org).order("started_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const criticalResults = [defaultPolicy, templatesResult, companyResult, policiesResult];
-  if (criticalResults.some(result => result.error)) throw new PageDataError("Editor upomínek se nepodařilo načíst. Zkontrolujte databázovou migraci.", 500);
+  if (criticalResults.some(result => result.error)) throw new PageDataError("Editor upomínek se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500);
 
   const templates = defaultTemplates();
   for (const template of templatesResult.data ?? []) if (stages.includes(template.stage as ReminderStage)) {

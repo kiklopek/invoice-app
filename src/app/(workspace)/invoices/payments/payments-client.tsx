@@ -47,7 +47,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData 
           <div>
             <h2>Import bankovního výpisu není dostupný</h2>
             <p className="form-error" role="alert">Import bankovních výpisů není pro vaši roli nebo toto prostředí povolený.</p>
-            <p>Náhled ani potvrzení nezmění faktury, dokud není databázová migrace a oprávnění správně aktivní.</p>
+            <p>Náhled ani potvrzení fakturami nepohne, dokud kontrolu výslovně nepotvrdíte.</p>
           </div>
         </section>
       )}

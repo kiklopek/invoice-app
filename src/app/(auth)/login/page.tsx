@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { Icon } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
-import { isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
+import { safeReturnPath } from "@/lib/safe-return-path";
 
 export default function LoginPage() {
   const corporateEmailRequired = isCorporateEmailRequired();
@@ -21,7 +22,7 @@ export default function LoginPage() {
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("error");
     if (reason === "access") setError("Tento firemní účet nemá aktivní přístup. Obraťte se na administrátora.");
-    else if (reason === "domain") setError(corporateEmailRequired ? "Přihlášení je povoleno pouze pro e-maily @hlavica.cz." : "Zadejte platnou e-mailovou adresu.");
+    else if (reason === "domain") setError(corporateEmailRequired ? `Přihlášení je povoleno pouze pro e-maily @${ALLOWED_EMAIL_DOMAIN}.` : "Zadejte platnou e-mailovou adresu.");
     else if (reason === "callback") setError("Ověřovací odkaz je neplatný nebo už vypršel. Pošlete si nový.");
     else if (reason === "password-updated") setPasswordUpdated(true);
     else if (!supabaseConfigured) setError("Localhost není připojený ke skutečnému Supabase projektu. Doplňte povinné proměnné v .env.local a restartujte server.");
@@ -30,7 +31,7 @@ export default function LoginPage() {
   function validEmail() {
     const normalized = normalizeEmail(email);
     if (!isAllowedCorporateEmail(normalized)) {
-      setError(corporateEmailRequired ? "Použijte firemní e-mail ve tvaru jmeno@hlavica.cz." : "Zadejte platnou e-mailovou adresu.");
+      setError(corporateEmailRequired ? `Použijte firemní e-mail ve tvaru jmeno@${ALLOWED_EMAIL_DOMAIN}.` : "Zadejte platnou e-mailovou adresu.");
       return null;
     }
     return normalized;
@@ -87,7 +88,15 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
-    window.location.assign(access.mfaBypassed ? "/dashboard" : "/mfa");
+    // Kam uzivatel mířil, nez ho vyhodila vyprsena session. Proxy i
+    // api-client returnTo posilaji; drive ho tahle stranka ignorovala
+    // a kazdy skoncil na /dashboard. Hodnota jde z URL, takze prochazi
+    // safeReturnPath -- jinak by to byl otevreny redirect.
+    const returnTo = safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
+    // Pri MFA se cil nese dal, aby se neztratil behem overeni.
+    window.location.assign(
+      access.mfaBypassed ? returnTo : `/mfa?returnTo=${encodeURIComponent(returnTo)}`,
+    );
   }
 
   return (
@@ -95,14 +104,14 @@ export default function LoginPage() {
       <section className="login-card auth-card">
         <header className="login-header">
           <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
-          <div className="login-intro"><span>FIREMNÍ APLIKACE</span><h1>Přihlášení</h1><p>Správa faktur a pohledávek R. Hlavica.</p></div>
+          <div className="login-intro"><span>FIREMNÍ APLIKACE</span><h1>Přihlášení</h1><p>Správa faktur a pohledávek.</p></div>
         </header>
 
         <div className="login-body">
           <>
               {passwordUpdated && <p className="form-success">Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
               <form onSubmit={signIn} className="auth-form">
-                <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)}/></label>
+                <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)}/></label>
                 <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
                 <div className="auth-login-options">
                   <label className="auth-remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span>Zapamatovat si mě</span></label>

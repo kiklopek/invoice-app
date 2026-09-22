@@ -110,7 +110,7 @@ export function boundedText(value: string | null | undefined, max: number) {
   return (value ?? "").trim().slice(0, max);
 }
 
-function normalizeComparable(value: string | null | undefined) {
+export function normalizeComparable(value: string | null | undefined) {
   return (value ?? "")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -144,7 +144,7 @@ export function normalizeOcrText(value: string) {
     .trim();
 }
 
-function digits(value: string | null | undefined) {
+export function digits(value: string | null | undefined) {
   return (value ?? "").replace(/\D/g, "");
 }
 

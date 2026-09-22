@@ -47,15 +47,26 @@ describe("mobile application layout", () => {
 
   it("keeps all navigation destinations and account actions reachable from the mobile menu", () => {
     const shell = source("src/components/layout/app-shell.tsx");
-    // 7 top-level destinations (Faktury and Platby grouped their old
-    // standalone "Archiv"/"Bankovní platby" siblings under themselves as
-    // sub-items) plus the 3 sub-items themselves.
-    expect(shell.match(/href: "\//g)).toHaveLength(10);
+    // Navigace v case roste, takze pocet odkazu je nahodna vlastnost -- driv
+    // se tu porovnaval s pevnym cislem a test spadl pokazde, kdyz pribyla
+    // sekce. Invariant, na kterem skutecne zalezi, je opacny: zadny cil
+    // z mobilniho menu nesmi zmizet. Pridani noveho cile test nerozbije,
+    // odebrani stavajiciho ano.
+    const destinations = (shell.match(/href: "(\/[^"]*)"/g) ?? []).map(entry => entry.slice(7, -1));
+    for (const destination of [
+      "/dashboard", "/invoices", "/invoices/new", "/invoices/import", "/invoices/archive",
+      "/invoices/payments", "/invoices/payments/archive", "/customers", "/reports",
+      "/settings", "/reminders",
+    ]) {
+      expect(destinations).toContain(destination);
+    }
     expect(shell).toContain("mobile-navigation-toggle");
     expect(shell).toContain('aria-controls="mobile-navigation-panel"');
     expect(shell).toContain('aria-label="Mobilní navigace"');
     expect(shell).toContain("mobile-navigation-profile");
     expect(shell).toContain("Odhlásit se");
+    expect(shell.match(/const selected = active && !item\.children\?\.some\(\(child\) => isChildActive\(child\.href\)\);/g)).toHaveLength(2);
+    expect(shell).toContain("{active && item.children && item.children.length > 0 ? (");
     expect(navigationCss).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
     expect(navigationCss).toContain("env(safe-area-inset-top)");
     expect(navigationCss).toContain("env(safe-area-inset-bottom)");
@@ -126,12 +137,8 @@ describe("mobile application layout", () => {
   });
 
   it("turns operational wide tables into labeled mobile cards", () => {
-    for (const path of [
-      "src/app/(workspace)/invoices/import/page.tsx",
-      "src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx",
-    ]) {
-      expect(source(path)).toContain("data-label=");
-    }
+    expect(source("src/app/(workspace)/invoices/import/page.tsx")).toContain("data-label=");
+    expect(source("src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx")).toContain('role="listitem"');
     expect(css).toContain(".payment-preview-table table");
     expect(css).toContain(".debtor-table table");
     expect(css).toContain(".invoice-import-preview table");

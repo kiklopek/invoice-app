@@ -52,7 +52,7 @@ export async function loadInvoiceListPageData(
   > | null;
   if (error || !result)
     throw new PageDataError(
-      "Faktury se nepodařilo načíst. Zkontrolujte databázovou migraci.",
+      "Faktury se nepodařilo načíst. Zkuste to prosím znovu za chvíli.",
       500,
     );
   return {

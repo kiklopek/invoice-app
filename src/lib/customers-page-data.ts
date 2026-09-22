@@ -4,6 +4,11 @@ import type { RequestIdentity } from "@/lib/auth";
 import { canManageInvoices, canViewFinancialInsights } from "@/lib/role-access";
 import { PageDataError } from "@/lib/dashboard-page-data";
 
+// Stejny rad jako MAX_EXPORT_ROWS u ostatnich exportu. Az soucty faktur
+// bude pocitat databaze misto Node, muze strop zmizet.
+const MAX_CUSTOMER_ROWS = 20_000;
+const MAX_INVOICE_ROWS = 20_000;
+
 export type CustomerSummary = {
   id: string;
   name: string;
@@ -44,12 +49,14 @@ export async function loadCustomersPageData(identity: RequestIdentity | null): P
       .from("customers")
       .select("id, name, ico, dic, email, phone, notes")
       .eq("organization_id", organizationId)
-      .order("name", { ascending: true }),
+      .order("name", { ascending: true })
+      .limit(MAX_CUSTOMER_ROWS + 1),
     identity.service
       .from("invoices")
       .select("customer_id, amount, paid_amount, status, issue_date")
       .eq("organization_id", organizationId)
-      .not("customer_id", "is", null),
+      .not("customer_id", "is", null)
+      .limit(MAX_INVOICE_ROWS + 1),
     identity.service
       .from("counterparty_reminder_preferences")
       .select("counterparty_ico, reminder_policy_id")
@@ -60,7 +67,18 @@ export async function loadCustomersPageData(identity: RequestIdentity | null): P
       .eq("organization_id", organizationId),
   ]);
   if (customersError || invoicesError || preferencesError || policiesError) {
-    throw new PageDataError("Zákazníky se nepodařilo načíst. Zkontrolujte poslední databázovou migraci.", 500);
+    throw new PageDataError("Zákazníky se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500);
+  }
+  // Tahle funkce agreguje soucty faktur v Node, takze si do pameti tahne
+  // VSECHNY zakazniky i VSECHNY faktury organizace. Ostatni exporty maji
+  // strop a vraci 413; tady zadny nebyl, takze dost velka organizace by
+  // aplikaci polozila na pameti. Nez pribude agregace na strane databaze,
+  // je lepsi srozumitelne selhat nez spadnout.
+  if ((customers?.length ?? 0) > MAX_CUSTOMER_ROWS || (invoices?.length ?? 0) > MAX_INVOICE_ROWS) {
+    throw new PageDataError(
+      "Zákazníků je příliš mnoho na jedno zobrazení. Export prosím rozdělte podle období.",
+      413,
+    );
   }
 
   const policyNameById = new Map((policies ?? []).map((policy) => [policy.id, policy.name]));

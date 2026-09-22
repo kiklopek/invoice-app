@@ -149,6 +149,19 @@ describe("KB internal account format", () => {
     // Bank 0300 is what this customer's invoice states, which is the
     // independent confirmation that the permutation is read correctly.
     expect(parsed.payments[0].counterparty_account).toBe("117840513/0300");
+    expect(parsed.payments[0].counterparty_account_verified).toBe(true);
+  });
+
+  it("flags a counterparty account as unverified when it fails the Czech mod-11 checksum on BOTH readings, but still accepts the payment", () => {
+    // One digit off the known-good "3514011780000000" fixture above -- fails
+    // the checksum on the KM-permuted reading AND the raw reading.
+    const parsed = parse("7252678640000000", "0514011780000000", "0003000000", "CZ340100", "MB");
+    expect(parsed.entries[0].disposition).toBe("accepted");
+    expect(parsed.payments[0].counterparty_account_verified).toBe(false);
+    // Still a formatted account string, not null/blank -- an unverified guess
+    // is still shown (flagged) to a reviewer, never silently dropped.
+    expect(typeof parsed.payments[0].counterparty_account).toBe("string");
+    expect(parsed.payments[0].counterparty_account).not.toBe("");
   });
 
   it("leaves a plain edition-format GPC from another bank untouched", () => {

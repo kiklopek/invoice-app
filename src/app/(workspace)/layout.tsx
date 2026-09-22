@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { ToastProvider } from "@/components/toast";
 import { WorkspaceDataProvider } from "@/components/workspace-data-provider";
 import { getCachedRequestIdentity } from "@/lib/auth";
 import { displayName } from "@/lib/user-display";
@@ -21,5 +22,13 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     };
   }
 
-  return <WorkspaceDataProvider key={cacheKey}><AppShell initialProfile={initialProfile}>{children}</AppShell></WorkspaceDataProvider>;
+  // ToastProvider je jeden na celý workspace -- kdyby si ho připojovala každá
+  // stránka zvlášť, vznikl by jedenáctý ad-hoc mechanismus hlášek.
+  return (
+    <WorkspaceDataProvider key={cacheKey}>
+      <ToastProvider>
+        <AppShell initialProfile={initialProfile}>{children}</AppShell>
+      </ToastProvider>
+    </WorkspaceDataProvider>
+  );
 }

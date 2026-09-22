@@ -15,6 +15,7 @@ import type {
   SettingsPageData,
 } from "@/lib/settings-page-data";
 import { apiFetch } from "@/lib/api-client";
+import { validateCompanyFields } from "@/lib/company-validation";
 
 type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
@@ -50,7 +51,15 @@ export function SettingsClient({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [message, setMessage] = useState("");
+  // Barva hlasky se drive odvozovala z toho, jestli text obsahoval slova jako
+  // "ulozene" nebo "odebran". Uspesne odebrani clena konci na "byly smazany",
+  // takze se zobrazovalo CERVENE jako chyba. Vysledek akce zna volajici --
+  // nese se proto typem, ne hadanim z textu.
+  const [message, setMessage] = useState<{ text: string; variant: "success" | "error" } | null>(null);
+  // Chyba u konkretniho pole, ne jen jedna souhrnna hlaska nahore.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const notifyOk = (text: string) => setMessage({ text, variant: "success" });
+  const notifyError = (text: string) => setMessage({ text, variant: "error" });
   const profile = useAccessProfile();
   const currentRole = profile?.role ?? null;
   const canAdminister = canEditCompanySettings(currentRole);
@@ -68,7 +77,7 @@ export function SettingsClient({
       ) {
         setCompany(draft);
         setDirty(true);
-        setMessage("Neuložený koncept byl obnoven.");
+        notifyOk("Neuložený koncept byl obnoven.");
       } else sessionStorage.removeItem("splatno:company-settings-draft");
     } catch {
       sessionStorage.removeItem("splatno:company-settings-draft");
@@ -98,7 +107,7 @@ export function SettingsClient({
     revalidateOnMount: false,
   });
   useEffect(() => {
-    if (loadError instanceof Error) setMessage(loadError.message);
+    if (loadError instanceof Error) notifyError(loadError.message);
   }, [loadError]);
   useEffect(() => {
     if (!refreshedData || dirty) return;
@@ -113,8 +122,17 @@ export function SettingsClient({
     setCompany((current) => ({ ...current, [key]: value }));
   };
   async function save() {
+    // Chyba se ukaze hned u ulozeni, ne az po kole na server. Server to
+    // presto overuje znovu -- klientska validace je pohodli, ne ochrana.
+    const problems = validateCompanyFields(company);
+    if (problems.length) {
+      setFieldErrors(Object.fromEntries(problems.map((problem) => [problem.field, problem.message])));
+      notifyError(problems.map((problem) => problem.message).join(" "));
+      return;
+    }
+    setFieldErrors({});
     setSaving(true);
-    setMessage("");
+    setMessage(null);
     try {
       const data = await apiFetch<{ company: Company }>(
         "/api/settings/company",
@@ -130,9 +148,9 @@ export function SettingsClient({
       setCompany(data.company);
       setDirty(false);
       sessionStorage.removeItem("splatno:company-settings-draft");
-      setMessage("Firemní údaje jsou uložené.");
+      notifyOk("Firemní údaje jsou uložené.");
     } catch (cause) {
-      setMessage(
+      notifyError(
         cause instanceof Error ? cause.message : "Údaje se nepodařilo uložit.",
       );
     } finally {
@@ -142,7 +160,7 @@ export function SettingsClient({
   async function addMember(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
-    setMessage("");
+    setMessage(null);
     try {
       await apiFetch("/api/settings/members", {
         method: "POST",
@@ -154,11 +172,11 @@ export function SettingsClient({
       });
       await refreshMembers();
       setNewEmail("");
-      setMessage(
+      notifyOk(
         "Přístup je přidaný. Uživatel si nyní vytvoří nový účet a potvrdí ověřovací e-mail.",
       );
     } catch (cause) {
-      setMessage(
+      notifyError(
         cause instanceof Error
           ? cause.message
           : "Přístup se nepodařilo přidat.",
@@ -169,7 +187,7 @@ export function SettingsClient({
   }
   async function changeRole(member: Member, role: Role) {
     setSaving(true);
-    setMessage("");
+    setMessage(null);
     try {
       await apiFetch("/api/settings/members", {
         method: "PATCH",
@@ -180,10 +198,10 @@ export function SettingsClient({
         body: JSON.stringify({ id: member.id, role }),
       });
       await refreshMembers();
-      setMessage("Role uživatele je změněná.");
+      notifyOk("Role uživatele je změněná.");
     } catch (cause) {
       await refreshMembers().catch(() => undefined);
-      setMessage(
+      notifyError(
         cause instanceof Error ? cause.message : "Roli se nepodařilo změnit.",
       );
     } finally {
@@ -201,7 +219,7 @@ export function SettingsClient({
     )
       return;
     setSaving(true);
-    setMessage("");
+    setMessage(null);
     try {
       await apiFetch("/api/settings/members", {
         method: "DELETE",
@@ -212,12 +230,12 @@ export function SettingsClient({
         body: JSON.stringify({ id: member.id }),
       });
       await refreshMembers();
-      setMessage(
+      notifyOk(
         "Přístup i přihlašovací účet byly smazány. Po opětovném přidání si uživatel vytvoří nový účet.",
       );
     } catch (cause) {
       await refreshMembers().catch(() => undefined);
-      setMessage(
+      notifyError(
         cause instanceof Error
           ? cause.message
           : "Přístup se nepodařilo odebrat.",
@@ -241,9 +259,10 @@ export function SettingsClient({
         </div>
         {canAdminister && (
           <button
+            type="submit"
+            form="company-settings-form"
             className="btn primary"
             disabled={saving || loading}
-            onClick={save}
           >
             {saving ? "Ukládám…" : "Uložit firemní údaje"}
           </button>
@@ -252,16 +271,9 @@ export function SettingsClient({
       {message && (
         <p
           aria-live="polite"
-          className={
-            message.includes("uložené") ||
-            message.includes("přidaný") ||
-            message.includes("změněná") ||
-            message.includes("odebrán")
-              ? "success-message"
-              : "form-error"
-          }
+          className={message.variant === "success" ? "success-message" : "form-error"}
         >
-          {message}
+          {message.text}
         </p>
       )}
       <div className="settings-grid company-settings-grid">
@@ -275,28 +287,41 @@ export function SettingsClient({
           {loading ? (
             <p className="page-state">Načítám…</p>
           ) : (
+            /* Skutečný <form>, ne jen <div>: bez něj Enter v poli neudělal nic
+               a účetní musela pokaždé trefit tlačítko myší. Tlačítko leží
+               v hlavičce mimo tuhle sekci, takže je propojené atributem form. */
+            <form
+              id="company-settings-form"
+              onSubmit={(event) => { event.preventDefault(); void save(); }}
+            >
             <fieldset disabled={!canAdminister}>
               <div className="settings-form">
                 <label className="wide">
                   <span>Obchodní název</span>
                   <input
                     value={company.name}
+                    aria-invalid={fieldErrors.name ? true : undefined}
                     onChange={(e) => field("name", e.target.value)}
                   />
+                  {fieldErrors.name && <small className="field-error">{fieldErrors.name}</small>}
                 </label>
                 <label>
                   <span>IČO</span>
                   <input
                     value={company.ico}
+                    aria-invalid={fieldErrors.ico ? true : undefined}
                     onChange={(e) => field("ico", e.target.value)}
                   />
+                  {fieldErrors.ico && <small className="field-error">{fieldErrors.ico}</small>}
                 </label>
                 <label>
                   <span>DIČ</span>
                   <input
                     value={company.dic}
+                    aria-invalid={fieldErrors.dic ? true : undefined}
                     onChange={(e) => field("dic", e.target.value)}
                   />
+                  {fieldErrors.dic && <small className="field-error">{fieldErrors.dic}</small>}
                 </label>
                 <label className="wide">
                   <span>Sídlo a fakturační adresa</span>
@@ -333,25 +358,32 @@ export function SettingsClient({
                   <input
                     type="email"
                     value={company.email}
+                    aria-invalid={fieldErrors.email ? true : undefined}
                     onChange={(e) => field("email", e.target.value)}
                   />
+                  {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
                 </label>
                 <label>
                   <span>Bankovní účet CZK</span>
                   <input
                     value={company.bank_account_czk}
+                    aria-invalid={fieldErrors.bank_account_czk ? true : undefined}
                     onChange={(e) => field("bank_account_czk", e.target.value)}
                   />
+                  {fieldErrors.bank_account_czk && <small className="field-error">{fieldErrors.bank_account_czk}</small>}
                 </label>
                 <label>
                   <span>Bankovní účet EUR</span>
                   <input
                     value={company.bank_account_eur}
+                    aria-invalid={fieldErrors.bank_account_eur ? true : undefined}
                     onChange={(e) => field("bank_account_eur", e.target.value)}
                   />
+                  {fieldErrors.bank_account_eur && <small className="field-error">{fieldErrors.bank_account_eur}</small>}
                 </label>
               </div>
             </fieldset>
+            </form>
           )}
         </section>
       </div>

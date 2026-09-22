@@ -65,7 +65,12 @@ describe("role authorization", () => {
     const membersRoute = source("src/app/api/settings/members/route.ts");
     expect(settingsLoader).toContain("canManageMembers(identity.membership.role)");
     expect(settings).toContain("<fieldset disabled={!canAdminister}>");
-    expect(settings).toContain("{canAdminister && <><section");
+    // Prettier prelamuje JSX podle delky radku, takze doslovny retezec tady
+    // padal po kazdem zformatovani, aniz by se chovani zmenilo. Invariant je,
+    // ze sprava pristupu visi za podminkou canAdminister -- kontroluje se nad
+    // normalizovanym whitespace, ne na konkretnim zalomeni.
+    const compactSettings = settings.replace(/\s+/g, " ");
+    expect(compactSettings).toMatch(/\{canAdminister && \( <> <div className="access-settings-grid">/);
     expect(settings).toContain("Přehled, reporty a faktury pouze pro čtení");
     expect(companyRoute).toContain("canViewCompanySettings(identity.membership.role)");
     expect(companyRoute).toContain("canEditCompanySettings(identity.membership.role)");

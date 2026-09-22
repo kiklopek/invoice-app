@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
 import { signOutCurrentSession } from "@/lib/sign-out";
+import { safeReturnPath } from "@/lib/safe-return-path";
 
 export default function MfaPage() {
   const requested = useRef(false);
@@ -48,7 +49,9 @@ export default function MfaPage() {
         return;
       }
       if (data.verified) {
-        window.location.replace("/dashboard");
+        // Cil prenesený z prihlaseni pres ?returnTo -- bez toho by se
+        // uzivatel po MFA vzdy vratil na /dashboard misto tam, kam mířil.
+        window.location.replace(safeReturnPath(new URLSearchParams(window.location.search).get("returnTo")));
         return;
       }
       if (data.email) setEmail(data.email);
@@ -97,7 +100,9 @@ export default function MfaPage() {
       });
       const data = await response.json().catch(() => ({})) as { code?: string; error?: string; verified?: boolean };
       if (response.ok && data.verified) {
-        window.location.replace("/dashboard");
+        // Cil prenesený z prihlaseni pres ?returnTo -- bez toho by se
+        // uzivatel po MFA vzdy vratil na /dashboard misto tam, kam mířil.
+        window.location.replace(safeReturnPath(new URLSearchParams(window.location.search).get("returnTo")));
         return;
       }
       if (data.code === "challenge_expired" || data.code === "challenge_missing") setCodeAvailable(false);

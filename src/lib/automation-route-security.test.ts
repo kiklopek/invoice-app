@@ -17,9 +17,15 @@ describe("manual reminder automation security", () => {
   it("scopes a manual execution to the authenticated organization", () => {
     expect(route).toContain("executeReminderAutomation(identity.membership.organization_id,");
     expect(route).toContain('organizationsQuery.eq("id", targetOrganizationId)');
-    expect(route.match(/\.in\("organization_id", startedOrganizationIds\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
-    expect(route).toContain('db.from("invoice_uploads").select("id, path")');
-    expect(route).toContain('db.from("invoices").select("id, file_url")');
+    // Uklid nahravek se presunul do funkce cleanupExpiredUploads, ktera
+    // dostava startedOrganizationIds parametrem -- uvnitr se proto jmenuji
+    // organizationIds. Invariant zustava stejny: kazdy dotaz behu je omezeny
+    // na spustene organizace, at uz se promenna jmenuje jakkoli.
+    expect(route).toContain("cleanupExpiredUploads(db, startedOrganizationIds,");
+    const scopedQueries = route.match(/\.in\("organization_id", (startedOrganizationIds|organizationIds)\)/g) ?? [];
+    expect(scopedQueries.length).toBeGreaterThanOrEqual(4);
+    expect(route).toContain('.select("id, path")');
+    expect(route).toContain('.select("id, file_url")');
   });
 
   it("prevents two running workers for the same organization", () => {

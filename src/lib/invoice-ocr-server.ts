@@ -16,7 +16,7 @@ const MAX_INPUT_PIXELS = 50_000_000;
 const MIN_ENHANCED_PASS_TIME_MS = 12_000;
 
 export class LocalOcrError extends Error {
-  constructor(public readonly code: "timeout" | "pdf_too_long" | "scan_too_long" | "invalid_document" | "recognition_failed", message: string) {
+  constructor(public readonly code: "timeout" | "pdf_too_long" | "scan_too_long" | "invalid_document" | "recognition_failed" | "empty_ocr_text", message: string) {
     super(message);
     this.name = "LocalOcrError";
   }
@@ -414,6 +414,13 @@ async function extractPdf(bytes: Uint8Array, deadline: number): Promise<Extracte
   }
 }
 
+// pdfjs (via unpdf's getDocumentProxy, called from extractPdf below) takes
+// ownership of `bytes` and detaches its underlying buffer -- after this
+// call returns, the same Uint8Array reads back empty. Any caller that needs
+// the original bytes again afterward (e.g. to also send the document to an
+// AI OCR engine) MUST pass a copy in here (`bytes.slice()`), never the same
+// reference. Confirmed by direct testing 2026-09-20: reusing `bytes` for a
+// second call after this one silently sent an empty document body.
 export async function extractInvoiceDocumentText({ bytes, mime, timeoutMs = OCR_TIMEOUT_MS }: {
   bytes: Uint8Array;
   mime: string;

@@ -74,7 +74,7 @@ export async function loadPaymentsPageData(
   ]);
   const data = paymentsResult?.data ?? [];
   const error = paymentsResult?.error ?? null;
-  if (error || invoiceError) throw new PageDataError("Bankovní platby se nepodařilo načíst. Zkontrolujte poslední databázovou migraci.", 500);
+  if (error || invoiceError) throw new PageDataError("Bankovní platby se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500);
 
   const paymentIds = (data ?? []).map((payment) => payment.id);
   const { data: allocations } = paymentIds.length

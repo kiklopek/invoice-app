@@ -99,22 +99,31 @@ function formatAccount(edition: string, bankCode: string) {
     : local;
 }
 
+type ReadAccountResult = { value: string; verified: boolean };
+
 /**
  * The permutation is applied only to statements that identify themselves as
  * KB's KM format. Other banks' GPC exports carry the edition format directly,
  * and permuting those would scramble what is already correct. The modulo-11
  * check is the second opinion: a decode that fails it while the raw digits pass
  * means the guess about the format was wrong, so the raw digits win.
+ *
+ * When NEITHER reading passes the checksum, the permuted guess is still
+ * returned (rejecting the payment outright would block VS/reference-based
+ * matching that doesn't need a good account number at all) but flagged
+ * `verified: false` -- callers must never treat it as a trustworthy account
+ * number: not for the "account" auto-match tier, not shown to a reviewer as
+ * confirmed, and never learned into a future IČO<->account mapping.
  */
-function readAccount(raw: string, kmFormat: boolean, bankCode = "") {
+function readAccount(raw: string, kmFormat: boolean, bankCode = ""): ReadAccountResult {
   const digits = raw.replace(/\D/g, "");
-  if (digits.length !== 16) return normalizeAccount(raw);
-  if (Number(digits) === 0) return "0";
-  if (!kmFormat) return formatAccount(digits, bankCode);
+  if (digits.length !== 16) return { value: normalizeAccount(raw), verified: true };
+  if (Number(digits) === 0) return { value: "0", verified: true };
+  if (!kmFormat) return { value: formatAccount(digits, bankCode), verified: true };
   const edition = KM_EDITION_FROM_INTERNAL.map((position) => digits[position]).join("");
-  if (isPlausibleCzechAccount(edition)) return formatAccount(edition, bankCode);
-  if (isPlausibleCzechAccount(digits)) return formatAccount(digits, bankCode);
-  return formatAccount(edition, bankCode);
+  if (isPlausibleCzechAccount(edition)) return { value: formatAccount(edition, bankCode), verified: true };
+  if (isPlausibleCzechAccount(digits)) return { value: formatAccount(digits, bankCode), verified: true };
+  return { value: formatAccount(edition, bankCode), verified: false };
 }
 
 function decodeGpc(bytes: Uint8Array) {
@@ -156,9 +165,12 @@ export function parseGpc(bytes: Uint8Array): GpcParseResult {
   const kmFormat = Boolean(
     header && (header.slice(122, 124) === "MB" || ownBankCode),
   );
+  // The header's own account is only ever used for display/mismatch
+  // comparison, never for auto-matching, so its verification state isn't
+  // carried further -- unlike the counterparty account below.
   const accountNumber =
     header && header.length >= 19
-      ? readAccount(header.slice(3, 19), kmFormat, ownBankCode)
+      ? readAccount(header.slice(3, 19), kmFormat, ownBankCode).value
       : null;
   const entries: GpcPreviewEntry[] = [];
   const candidatePayments: PaymentImportRow[] = [];
@@ -216,7 +228,8 @@ export function parseGpc(bytes: Uint8Array): GpcParseResult {
       currency: "CZK",
       variable_symbol: normalizeVariableSymbol(line.slice(61, 71)),
       counterparty_name: line.slice(97, 117).trim() || undefined,
-      counterparty_account: counterpartyAccount,
+      counterparty_account: counterpartyAccount.value,
+      counterparty_account_verified: counterpartyAccount.verified,
       note: `GPC doklad ${line.slice(35, 48).trim()}`,
     };
     if (!validatePaymentRows([payment], 1)) {

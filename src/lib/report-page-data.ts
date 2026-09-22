@@ -24,6 +24,6 @@ export async function loadReportPageData(identity: RequestIdentity | null, query
     }),
     loadPaymentReconciliationSummary(identity, { from: query.from, to: query.to }),
   ]);
-  if (error || !data) throw new PageDataError("Report se nepodařilo sestavit. Zkontrolujte databázovou migraci.", 500);
+  if (error || !data) throw new PageDataError("Report se nepodařilo sestavit. Zkuste to prosím znovu za chvíli.", 500);
   return { ...(data as InvoiceReport), payment_reconciliation: paymentReconciliation };
 }

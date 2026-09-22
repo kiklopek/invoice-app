@@ -12,6 +12,7 @@ import { todayInTimeZone } from "@/lib/reminders";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import type { InvoiceListPageData } from "@/lib/invoice-list-page-data";
 import type { InvoiceListQuery } from "@/lib/invoice-list-query";
+import { useToast } from "@/components/toast";
 
 const PAGE_SIZE = 25;
 const money = (value: number, currency: string) =>
@@ -39,9 +40,9 @@ export function InvoicesClient({
   initialKey: string;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>(initialData.invoices);
   const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [canManage, setCanManage] = useState(initialData.can_manage);
   const [paymentCandidate, setPaymentCandidate] = useState<Invoice | null>(
@@ -139,8 +140,13 @@ export function InvoicesClient({
   const loading = isLoading && !loadedData;
 
   useEffect(() => {
-    if (loadError instanceof Error) setError(loadError.message);
-  }, [loadError]);
+    if (!(loadError instanceof Error)) return;
+    // Driv se chyba nacitani zkopirovala do stavu `error`, ktery schoval
+    // celou tabulku -- a nikdy se nemazala, takze vterinovy vypadek site
+    // znamenal prazdnou stranku az do reloadu. Ted je to oznameni vedle
+    // obsahu; uz nactena data zustavaji na obrazovce.
+    showToast({ variant: "error", message: loadError.message });
+  }, [loadError, showToast]);
 
   useEffect(() => {
     if (!loadedData) return;
@@ -151,6 +157,24 @@ export function InvoicesClient({
     setActiveCount(Number(loadedData.active_count) || 0);
     setCanManage(Boolean(loadedData.can_manage));
   }, [loadedData]);
+
+  // Prázdná data a prázdný výsledek filtru jsou dva různé stavy; bez tohohle
+  // rozlišení hláška nové organizaci tvrdila, že nic neodpovídá filtru,
+  // který vůbec nebyl nastavený.
+  const hasActiveFilter =
+    Boolean(query.trim()) || status !== "all" || currency !== "all" ||
+    Boolean(from) || Boolean(to) || Boolean(dueFrom) || Boolean(dueTo) ||
+    Boolean(amountMin) || Boolean(amountMax) ||
+    paymentState !== "all" || bankMatch !== "all";
+
+  function clearFilters() {
+    changeFilter(() => {
+      setQuery(""); setStatus("all"); setCurrency("all");
+      setFrom(""); setTo(""); setDueFrom(""); setDueTo("");
+      setAmountMin(""); setAmountMax("");
+      setPaymentState("all"); setBankMatch("all");
+    });
+  }
 
   function changeFilter(change: () => void) {
     shouldSyncUrl.current = true;
@@ -166,7 +190,6 @@ export function InvoicesClient({
   }
   async function exportExcel() {
     setExporting(true);
-    setError("");
     try {
       const response = await fetch(
         `/api/invoices?${requestParams(1, "xlsx").toString()}`,
@@ -182,11 +205,10 @@ export function InvoicesClient({
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Export se nepodařilo připravit.",
-      );
+      showToast({
+        variant: "error",
+        message: cause instanceof Error ? cause.message : "Export se nepodařilo připravit.",
+      });
     } finally {
       setExporting(false);
     }
@@ -195,7 +217,6 @@ export function InvoicesClient({
   async function confirmPayment() {
     if (!paymentCandidate) return;
     setConfirmingPayment(true);
-    setError("");
     setNotice("");
     try {
       const response = await fetch(`/api/invoices/${paymentCandidate.id}`, {
@@ -226,11 +247,10 @@ export function InvoicesClient({
       setPaymentCandidate(null);
       void refreshInvoices();
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Úhradu se nepodařilo potvrdit.",
-      );
+      showToast({
+        variant: "error",
+        message: cause instanceof Error ? cause.message : "Úhradu se nepodařilo potvrdit.",
+      });
     } finally {
       setConfirmingPayment(false);
     }
@@ -413,12 +433,31 @@ export function InvoicesClient({
         </section>
       </MobileDisclosure>
       <section className="page-panel data-panel">
-        {error ? (
-          <p className="page-state error-state">{error}</p>
-        ) : loading ? (
+        {loading ? (
           <p className="page-state">Načítám faktury…</p>
         ) : !invoices.length ? (
-          <p className="page-state">Tomuto filtru neodpovídá žádná faktura.</p>
+          /* Nová organizace dřív dostala "Tomuto filtru neodpovídá žádná
+             faktura", i když žádný filtr nastavený nebyl -- hláška tedy
+             lhala a navíc neřekla, co dělat dál. Prázdná data a prázdný
+             výsledek filtru jsou dva různé stavy. */
+          hasActiveFilter ? (
+            <div className="payments-empty-state">
+              <strong>Tomuto filtru neodpovídá žádná faktura</strong>
+              <p>Zkuste rozšířit období nebo zrušit některý z filtrů.</p>
+              <button type="button" className="btn secondary" onClick={clearFilters}>Zrušit filtry</button>
+            </div>
+          ) : (
+            <div className="payments-empty-state">
+              <strong>Zatím tu není žádná faktura</strong>
+              <p>Vystavte první fakturu ručně, nebo ji načtěte z PDF či fotografie.</p>
+              {canManage && (
+                <div className="invoice-empty-actions">
+                  <Link className="btn primary" href="/invoices/new">Přidat fakturu</Link>
+                  <Link className="btn secondary" href="/invoices/import">Importovat ze souboru</Link>
+                </div>
+              )}
+            </div>
+          )
         ) : (
           <div className="large-table invoice-list-table">
             <table>
@@ -523,7 +562,7 @@ export function InvoicesClient({
           </div>
         )}
       </section>
-      {!error && totalPages > 1 && (
+      {totalPages > 1 && (
         <nav className="invoice-pagination" aria-label="Stránkování faktur">
           <button
             className="btn secondary"

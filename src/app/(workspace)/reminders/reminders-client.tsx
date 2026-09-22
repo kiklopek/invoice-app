@@ -19,6 +19,7 @@ import type { ReminderStage } from "@/types/invoice";
 import { type ReminderPolicySummary } from "@/lib/reminder-policies";
 import { confirmAction } from "@/lib/confirm-action";
 import { apiFetch } from "@/lib/api-client";
+import { useToast } from "@/components/toast";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import type {
   ReminderPageData,
@@ -138,6 +139,7 @@ export function RemindersClient({
   const [company, setCompany] = useState<ReminderEmailCompany | null>(
     initialData.company,
   );
+  const { showToast } = useToast();
   const [sendingTest, setSendingTest] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
   const automationRunStale = operations.automation_run
@@ -242,8 +244,11 @@ export function RemindersClient({
     revalidateOnMount: false,
   });
   useEffect(() => {
-    if (loadError instanceof Error) setMessage(loadError.message);
-  }, [loadError]);
+    if (!(loadError instanceof Error)) return;
+    // Viz detail faktury: přechodný výpadek nemá zůstat viset jako hláška
+    // stránky. Výsledky akcí se dál zobrazují u nich.
+    showToast({ variant: "error", message: loadError.message });
+  }, [loadError, showToast]);
   useEffect(() => {
     if (!refreshedData || policyDirty || globalDirty || creatingPolicy) return;
     const refreshedPolicy =
@@ -576,6 +581,17 @@ export function RemindersClient({
     );
   }
   async function runNow() {
+    // Tohle rozešle skutečné e-maily zákazníkům a vzít zpět to nejde.
+    // Dřív stačilo jedno kliknutí bez jakéhokoli potvrzení -- na stránce,
+    // kde jsou vedle toho jen neškodné akce jako úprava šablony.
+    const waiting = operations.upcoming.length;
+    if (!(await confirmAction({
+      title: "Spustit kontrolu upomínek?",
+      description: waiting
+        ? `Naplánovaným fakturám se rozešlou upomínky e-mailem (aktuálně čeká ${waiting}). Odeslané e-maily nelze vzít zpět.`
+        : "Splatným fakturám se rozešlou upomínky e-mailem. Odeslané e-maily nelze vzít zpět.",
+      confirmLabel: "Spustit a odeslat",
+    }))) return;
     setRunningNow(true);
     setMessage("");
     try {
@@ -685,7 +701,7 @@ export function RemindersClient({
           type="button"
           role="switch"
           aria-checked={automationActive}
-          disabled={!operations.can_run}
+          disabled={!operations.can_run || saving}
           onClick={() => {
             setGlobalDirty(true);
             setAutomationActive((value) => !value);
@@ -694,6 +710,18 @@ export function RemindersClient({
           <b />
           <span>{automationActive ? "Zapnuto" : "Pozastaveno"}</span>
         </button>
+        {/* Přepínač se dřív dal uložit JEN tlačítkem schovaným uvnitř sbalené
+            sekce „Texty e-mailů“ někde jinde na stránce. Uživatel tedy
+            automat vypnul, odešel — a upomínky dál odcházely. Uložení je teď
+            přímo u přepínače, který se změnil. */}
+        {globalDirty && operations.can_run && (
+          <div className="reminders-switch-save" role="status">
+            <span>{automationActive ? "Automat bude zapnutý." : "Automat bude pozastavený."} Změna zatím není uložená.</span>
+            <button type="button" className="btn primary compact" disabled={saving || loading || runningNow} onClick={save}>
+              {saving ? "Ukládám…" : "Uložit změnu"}
+            </button>
+          </div>
+        )}
       </section>
       <section className="reminder-operations reminder-quick-stats">
         <article className="page-panel reminder-stat-card is-scheduled">

@@ -7,16 +7,10 @@ export type ExcelColumn = {
   numberFormat?: string;
 };
 
-type ExcelValue = string | number | Date | null | undefined;
+export type ExcelValue = string | number | Date | null | undefined;
+export type ExcelSheet = { name: string; columns: ExcelColumn[]; rows: Record<string, ExcelValue>[] };
 
-export async function createExcelWorkbook(
-  sheetName: string,
-  columns: ExcelColumn[],
-  rows: Record<string, ExcelValue>[],
-) {
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Splatno";
-  workbook.created = new Date();
+function addSheet(workbook: ExcelJS.Workbook, sheetName: string, columns: ExcelColumn[], rows: Record<string, ExcelValue>[]) {
   const sheet = workbook.addWorksheet(sheetName, {
     views: [{ state: "frozen", ySplit: 1 }],
     properties: { defaultRowHeight: 20 },
@@ -54,9 +48,22 @@ export async function createExcelWorkbook(
     for (const row of rows) longest = Math.max(longest, String(row[column.key] ?? "").length);
     sheet.getColumn(index + 1).width = Math.min(45, Math.max(11, longest + 2));
   });
+}
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  return new Uint8Array(buffer);
+export async function createExcelWorkbook(sheetName: string, columns: ExcelColumn[], rows: Record<string, ExcelValue>[]) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Splatno";
+  workbook.created = new Date();
+  addSheet(workbook, sheetName, columns, rows);
+  return new Uint8Array(await workbook.xlsx.writeBuffer());
+}
+
+export async function createMultiSheetExcelWorkbook(sheets: ExcelSheet[]) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Splatno";
+  workbook.created = new Date();
+  for (const sheet of sheets) addSheet(workbook, sheet.name, sheet.columns, sheet.rows);
+  return new Uint8Array(await workbook.xlsx.writeBuffer());
 }
 
 export function excelDate(value: string | null | undefined) {

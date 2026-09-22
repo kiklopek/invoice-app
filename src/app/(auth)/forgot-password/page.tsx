@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
-import { isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
 
 export default function ForgotPasswordPage() {
   const corporateEmailRequired = isCorporateEmailRequired();
@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     event.preventDefault();
     setError(null);
     const normalizedEmail = normalizeEmail(email);
-    if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? "Použijte firemní e-mail @hlavica.cz." : "Zadejte platnou e-mailovou adresu.");
+    if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? `Použijte firemní e-mail @${ALLOWED_EMAIL_DOMAIN}.` : "Zadejte platnou e-mailovou adresu.");
     setSubmitting(true);
     try {
       const response = await fetch("/api/auth/password-recovery", {
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
           <div className="login-sent"><Icon name="mail"/><div><strong>Zkontrolujte e-mail</strong><p>Pokud má adresa <b>{email}</b> aktivní účet, obdrží odkaz pro změnu hesla.</p><Link href="/login" className="auth-inline-link">Zpět na přihlášení</Link></div></div>
         ) : (
           <form onSubmit={requestReset} className="auth-form">
-            <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@hlavica.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+            <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
             <button type="submit" className="btn primary" disabled={submitting}><Icon name="mail"/>{submitting ? "Odesílám…" : "Poslat odkaz pro obnovu"}</button>
             {error && <p className="form-error">{error}</p>}
           </form>

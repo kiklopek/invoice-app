@@ -6,17 +6,18 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 const client = () => source("src/app/(workspace)/dashboard/dashboard-client.tsx");
 const rpc = () => source("supabase/migrations/20260919140000_dashboard_action_items.sql");
 
-describe("dashboard \"co dělat dnes\"", () => {
-  it("hides the section entirely when every count is zero", () => {
-    expect(client()).toContain("actionItems.length > 0 && (");
-    expect(client()).toContain(".filter((item): item is Exclude<typeof item, false> => item !== false)");
+describe("dashboard action counts", () => {
+  it("does not render the removed daily action cards", () => {
+    expect(client()).not.toContain("dashboard-today");
+    expect(client()).not.toContain("Platby ke kontrole");
+    expect(client()).not.toContain("Upomínky k odeslání");
   });
 
-  it("links each item straight to where it gets resolved", () => {
-    const source = client();
-    expect(source).toContain('href: "/invoices/payments/archive"');
-    expect(source).toContain('href: "/invoices/import"');
-    expect(source).toContain('href: "/reminders"');
+  it("keeps the main dashboard content directly below the summary", () => {
+    const dashboard = client();
+    expect(dashboard).toContain('className="dashboard-command"');
+    expect(dashboard).toContain('className="workspace-grid dashboard-workspace"');
+    expect(dashboard).not.toContain('aria-label="Co dělat dnes"');
   });
 
   it("counts payments needing review by proposal_confidence, not by whether a bank_payment row exists", () => {

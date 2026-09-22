@@ -72,6 +72,115 @@ describe("generateInvoicePdf", () => {
   });
 });
 
+describe("Czech text in the generated PDF", () => {
+  // Standardni fonty pdf-lib umi jen WinAnsi, kde chybi pismena s hackem
+  // a krouzkem. Generator je proto transliteroval: na fakture, kterou
+  // zakaznik posila svemu odberateli, stalo "Dvorak" misto "Dvořák"
+  // a "Kc" misto "Kč". Pro ceskou fakturacni aplikaci je to diskvalifikujici.
+  const czechInvoice: Invoice = {
+    ...fixtureInvoice,
+    counterparty_name: "Dvořák & Plzeň Příbram s.r.o.",
+    notes: "Děkujeme za spolupráci. Žádáme úhradu do data splatnosti.",
+  };
+  const czechCompany: InvoicePdfCompany = {
+    ...fixtureCompany,
+    name: "Hlavička Dřevo s.r.o.",
+    registered_address: "Náměstí Svobody 12, Říčany u Prahy",
+  };
+
+  it("keeps every Czech letter instead of transliterating it", async () => {
+    const bytes = await generateInvoicePdf(czechInvoice, czechCompany);
+    const pdf = await getDocumentProxy(bytes);
+    const { text } = await extractText(pdf, { mergePages: true });
+    const normalized = text.replace(/ /g, " ");
+    for (const word of ["Dvořák", "Plzeň", "Příbram", "Hlavička", "Dřevo", "Říčany", "Děkujeme", "spolupráci"]) {
+      expect(normalized, `chybí "${word}"`).toContain(word);
+    }
+    // Pevne popisky samotneho formulare faktury musi byt cesky taky --
+    // prave tyhle znaky (Č, č, ě) standardni WinAnsi font neumi.
+    // Pozn.: menu aplikace formatuje jako ISO kod ("12 100,00 CZK"),
+    // takze symbol "Kč" se v dokumentu nevyskytuje vubec.
+    for (const label of ["IČO", "Vyúčtování", "Odběratel", "Částka bez DPH", "Zbývá uhradit"]) {
+      expect(normalized, `chybí popisek "${label}"`).toContain(label);
+    }
+  });
+
+  it("never falls back to the transliterated spelling", async () => {
+    const bytes = await generateInvoicePdf(czechInvoice, czechCompany);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    for (const wrong of ["Dvorak", "Plzen", "Hlavicka", "Drevo", "Ricany", "Dekujeme"]) {
+      expect(text, `transliterováno na "${wrong}"`).not.toContain(wrong);
+    }
+  });
+
+  it("stays small enough to attach to every reminder e-mail", async () => {
+    // Font se musi vkladat jako podmnozina znaku; cely Liberation Sans ma
+    // stovky kB a pripojoval by se ke kazdemu odeslanemu e-mailu.
+    const bytes = await generateInvoicePdf(czechInvoice, czechCompany);
+    expect(bytes.length).toBeLessThan(300_000);
+  });
+});
+
+describe("QR platba", () => {
+  // Pozor: ucet ve fixtureCompany (123456789/0800) neprojde ceskou mod-11
+  // kontrolou, takze u nej se QR VEDOME nekresli. Testy nize proto pouzivaji
+  // skutecny ucet organizace z databaze.
+  const payableCompany: InvoicePdfCompany = { ...fixtureCompany, bank_account_czk: "6786420257/0100" };
+  const hasEmbeddedImage = (bytes: Uint8Array) =>
+    Buffer.from(bytes).toString("latin1").includes("/Subtype /Image");
+
+  it("embeds a QR code when the account can actually be paid to", async () => {
+    const bytes = await generateInvoicePdf(fixtureInvoice, payableCompany);
+    expect(hasEmbeddedImage(bytes)).toBe(true);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    expect(text).toContain("QR platba");
+  });
+
+  it("draws no QR code at all when the account fails the checksum", async () => {
+    // Vymysleny nebo poskozeny QR kod je horsi nez zadny: vypada funkcne
+    // a poslal by penize jinam.
+    const bytes = await generateInvoicePdf(fixtureInvoice, fixtureCompany);
+    expect(hasEmbeddedImage(bytes)).toBe(false);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    expect(text).not.toContain("QR platba");
+  });
+
+  it("asks for the amount that is still outstanding, not the full invoice", async () => {
+    // Faktura je castecne uhrazena (12 100 - 2 000), takze QR ma znit na 10 100.
+    const spaydAmount = (await import("./czech-payment")).buildSpayd({
+      account: payableCompany.bank_account_czk,
+      amount: Number(fixtureInvoice.amount) - Number(fixtureInvoice.paid_amount),
+      currency: fixtureInvoice.currency,
+      variableSymbol: fixtureInvoice.variable_symbol,
+    });
+    expect(spaydAmount).toContain("AM:10100.00");
+  });
+});
+
+describe("long invoices", () => {
+  // Generator kreslil na jednu pevnou A4 bez jakekoli kontroly, jestli se
+  // obsah vejde: dlouha poznamka se vykreslila pod spodni okraj a zmizela.
+  const longInvoice: Invoice = {
+    ...fixtureInvoice,
+    notes: Array.from({ length: 60 }, (_, index) =>
+      `Řádek poznámky číslo ${index + 1}: dodávka materiálu včetně dopravy a montáže na stavbě.`).join(" "),
+  };
+
+  it("adds pages instead of drawing past the bottom margin", async () => {
+    const bytes = await generateInvoicePdf(longInvoice, fixtureCompany);
+    const pdf = await getDocumentProxy(bytes);
+    expect(pdf.numPages).toBeGreaterThan(1);
+  });
+
+  it("keeps the overflowing text readable instead of dropping it", async () => {
+    const bytes = await generateInvoicePdf(longInvoice, fixtureCompany);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    // Prvni i posledni radek poznamky musi byt v dokumentu.
+    expect(text).toContain("Řádek poznámky číslo 1:");
+    expect(text).toContain("Řádek poznámky číslo 60:");
+  });
+});
+
 describe("invoicePdfFilename", () => {
   it("sanitizes the invoice number to a safe filename", () => {
     expect(invoicePdfFilename({ ...fixtureInvoice, invoice_number: "2026/0042 #x" })).toBe("Faktura-20260042x.pdf");
