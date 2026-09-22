@@ -4,7 +4,7 @@ import type { RequestIdentity } from "@/lib/auth";
 import { canManageInvoices } from "@/lib/role-access";
 import { PageDataError } from "@/lib/dashboard-page-data";
 import { loadInvoicePaymentHistory, type InvoicePaymentHistoryEntry } from "@/lib/invoice-payment-history";
-import type { Invoice, ReminderStage } from "@/types/invoice";
+import type { Invoice, InvoiceEventType, ReminderStage } from "@/types/invoice";
 
 export type ReminderRecord = {
   id: string; stage: ReminderStage; scheduled_for: string; sent_at: string | null; sent_to: string;
@@ -15,8 +15,8 @@ export type ReminderRecord = {
 export type EmailSuppression = { reason: "bounced" | "complained"; last_event_at: string };
 export type ActivityRecord = {
   id: string;
-  event_type: "created" | "updated" | "paid" | "reopened" | "cancelled" | "overdue" | "reminders_paused" | "reminders_resumed" | "payment_changed";
-  details: { fields?: string[]; paid_at?: string; corrected?: boolean; detached_payments?: number; from?: number; to?: number; remaining?: number };
+  event_type: InvoiceEventType;
+  details: { fields?: string[]; paid_at?: string; corrected?: boolean; detached_payments?: number; from?: number; to?: number; remaining?: number; sent_to?: string };
   actor_email: string | null;
   created_at: string;
 };

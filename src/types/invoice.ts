@@ -1,6 +1,14 @@
 export type InvoiceStatus = "pending" | "paid" | "overdue" | "cancelled";
 export type InvoiceSource = "manual" | "ocr" | "email" | "accounting_api";
 export type ReminderStage = "before_due" | "on_due" | "overdue" | "escalation";
+// Běhová konstanta, ne jen typ: výčet musí jít porovnat s CHECK constraintem
+// v migraci. Kdyby se rozešly, databáze by odmítla zápis až za běhu, nebo by
+// se v aktivitě faktury vykreslil řádek bez popisku.
+export const INVOICE_EVENT_TYPES = [
+  "created", "updated", "paid", "reopened", "cancelled", "overdue",
+  "reminders_paused", "reminders_resumed", "payment_changed", "emailed",
+] as const;
+export type InvoiceEventType = (typeof INVOICE_EVENT_TYPES)[number];
 
 export interface Invoice {
   money_evidence?: InvoiceInput["money_evidence"] | null;

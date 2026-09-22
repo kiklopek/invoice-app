@@ -1401,6 +1401,10 @@ export type Database = {
         Returns: Json
       }
       run_bank_reconciliation_jobs: { Args: Record<PropertyKey, never>; Returns: Json }
+      discard_bank_statement_import: {
+        Args: { target_org: string; actor_user: string; target_import: string; expected_revision: number; reason?: string | null }
+        Returns: Json
+      }
       release_statement_entry: {
         Args: { target_org: string; actor_user: string; target_entry: string }
         Returns: Json

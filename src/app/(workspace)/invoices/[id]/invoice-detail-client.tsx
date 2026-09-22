@@ -17,6 +17,7 @@ import type {
   ReminderStage,
 } from "@/types/invoice";
 import type { ActivityRecord, BankPayment, EmailSuppression, InvoiceDetailPageData, ReminderRecord } from "@/lib/invoice-detail-page-data";
+import { useToast } from "@/components/toast";
 
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("cs-CZ", { style: "currency", currency }).format(value);
@@ -55,6 +56,7 @@ const activityLabels: Record<ActivityRecord["event_type"], string> = {
   reminders_paused: "Upomínky této faktury byly pozastaveny",
   reminders_resumed: "Upomínky této faktury byly znovu zapnuté",
   payment_changed: "Změnila se uhrazená částka",
+  emailed: "Faktura byla odeslána e-mailem",
 };
 const fieldLabels: Record<string, string> = {
   invoice_number: "číslo faktury",
@@ -90,6 +92,7 @@ function reminderDescription(item: ReminderRecord) {
 
 export function InvoiceDetailClient({ id, initialData }: { id: string; initialData: InvoiceDetailPageData }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(initialData.invoice);
   const [reminders, setReminders] = useState<ReminderRecord[]>(initialData.reminders);
   const [emailSuppression, setEmailSuppression] =
@@ -119,8 +122,12 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
   }, [initialData.invoice.paid_at]);
 
   useEffect(() => {
-    if (loadError instanceof Error) setError(loadError.message);
-  }, [loadError]);
+    if (!(loadError instanceof Error)) return;
+    // Výpadek obnovovacího dotazu je přechodný stav, ne stav stránky.
+    // Jako `setError` by zůstal viset jako trvalá hláška i poté, co se
+    // připojení vrátilo.
+    showToast({ variant: "error", message: loadError.message });
+  }, [loadError, showToast]);
 
   useEffect(() => {
     if (!refreshedData) return;
@@ -154,6 +161,19 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
         title: "Vrátit fakturu mezi neuhrazené?",
         description: "Spárovaná bankovní platba se bezpečně uvolní zpět ke kontrole.",
         confirmLabel: "Vrátit mezi neuhrazené",
+      })
+    )
+      return;
+    // Storno je účetně správná operace pro fakturu, která se nemá platit --
+    // do teď v UI chybělo úplně, takže uživateli zbývalo jen nevratné
+    // smazání vydané faktury. Ptáme se, protože stav uvidí i odběratel
+    // a upomínky se tím zastaví.
+    if (
+      status === "cancelled" &&
+      !await confirmAction({
+        title: `Stornovat fakturu ${invoice?.invoice_number ?? ""}?`,
+        description: "Faktura zůstane v archivu jako stornovaná a přestanou se k ní odesílat upomínky. Na rozdíl od smazání zůstane dohledatelná.",
+        confirmLabel: "Stornovat fakturu",
       })
     )
       return;
@@ -259,6 +279,13 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
     }
   }
   async function sendInvoiceEmail() {
+    // Odchozí e-mail zákazníkovi je nevratný. Dřív stačilo jedno kliknutí
+    // v rozbalovacím menu, hned vedle neškodných položek jako "Upravit údaje".
+    if (!await confirmAction({
+      title: "Odeslat fakturu e-mailem?",
+      description: `Faktura ${invoice?.invoice_number ?? ""} se odešle na ${invoice?.counterparty_email ?? "e-mail odběratele"}. Odeslaný e-mail už nelze vzít zpět.`,
+      confirmLabel: "Odeslat",
+    })) return;
     setSendingInvoice(true);
     setError("");
     setNotice("");
@@ -453,6 +480,18 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                   >
                     {sendingInvoice ? "Odesílám…" : "Odeslat fakturu e-mailem"}
                   </button>
+                  {(invoice.status === "pending" || invoice.status === "overdue") ? (
+                    <button
+                      type="button"
+                      disabled={updating}
+                      onClick={() => {
+                        closeActionsMenu();
+                        void changeStatus("cancelled");
+                      }}
+                    >
+                      Stornovat fakturu
+                    </button>
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -787,6 +826,10 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                                 ? ` · uvolněno plateb: ${item.details.detached_payments}`
                                 : ""}
                             </span>
+                          ) : null}
+                          {item.event_type === "emailed" &&
+                          item.details.sent_to ? (
+                            <span>Příjemce: {item.details.sent_to}</span>
                           ) : null}
                           {item.event_type === "payment_changed" &&
                           typeof item.details.to === "number" ? (
