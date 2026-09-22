@@ -21,12 +21,17 @@ const ocrRuntimeFiles = [
 ];
 
 // Faktura v PDF vklada Liberation Sans, aby se cestina netransliterovala
-// ("Dvorak" misto "Dvořák"). Font se cte za behu z pdfjs-dist, ktery nic
-// staticky neimportuje, takze by ho trasovani nenaslo a generovani PDF by
-// v produkci spadlo. Musi byt u KAZDE routy, ktera PDF vytvari.
+// ("Dvorak" misto "Dvořák"). Cteni je dynamicke (process.cwd() za behu),
+// takze staticka analyza trasovani si ho samo nenajde -- musi byt u KAZDE
+// routy, ktera PDF vytvari.
+//
+// Font zil driv v node_modules/pdfjs-dist, kam pnpm klade jen symlink do
+// sveho store. To 22. 9. shodilo KAZDY produkcni deploy (Vercel odmitl
+// zabalit "invalid deployment package -- files in symlinked directories").
+// Vendorovan proto v assets/fonts/ jako obycejny soubor v repu.
 const invoicePdfFonts = [
-  "./node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf",
-  "./node_modules/pdfjs-dist/standard_fonts/LiberationSans-Bold.ttf",
+  "./assets/fonts/LiberationSans-Regular.ttf",
+  "./assets/fonts/LiberationSans-Bold.ttf",
 ];
 
 /** @type {import('next').NextConfig} */

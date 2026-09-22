@@ -1,8 +1,7 @@
 import "server-only";
 
-import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
@@ -30,18 +29,24 @@ const MARGIN = 50;
 // fakture, kterou zakaznik posila svemu odberateli, stalo "Dvorak" misto
 // "Dvořák" a "Kc" misto "Kč".
 //
-// Reseni je vlozit skutecny font s Latin Extended-A. Liberation Sans uz je
-// v projektu -- veze ho pdfjs-dist, ktery je primou zavislosti kvuli OCR --
-// takze nepribyva zadny binarni soubor do repa. Je metricky kompatibilni
-// s Helveticou, takze se rozvrzeni nemeni.
+// Reseni je vlozit skutecny font s Latin Extended-A. Liberation Sans je
+// metricky kompatibilni s Helveticou, takze se rozvrzeni nemeni.
 //
-// POZOR: soubor se cte za behu z node_modules, takze musi byt v
-// outputFileTracingIncludes v next.config.js pro kazdou routu, ktera PDF
-// generuje. Bez toho na Vercelu chybi a generovani spadne.
-const require_ = createRequire(import.meta.url);
-
+// Font byl puvodne cten za behu primo z pdfjs-dist v node_modules (uz tam
+// byl kvuli OCR, takze zadny novy binarni soubor). To ale 22. 9. shodilo
+// KAZDY produkcni deploy: pnpm ma node_modules/pdfjs-dist jako symlink do
+// .pnpm store a Vercel balicek se selhanim "invalid deployment package --
+// files in symlinked directories" odmitl zabalit. Font je proto vendorovany
+// v assets/fonts/ jako obycejne soubory v repu -- zadny symlink, zadne
+// hadani, jestli ho trasovani najde. Vyplati se to za cca 270 kB v repu.
+//
+// process.cwd(), ne cesta odvozena od import.meta.url: tenhle soubor projde
+// webpack bundlingem a fyzicky skonci jinde, nez lezi zdroj -- relativni
+// cesta by po zabaleni ukazovala nekam jinam. Stejny vzor uz pouziva
+// invoice-ocr-server.ts pro tutez tridu problemu. Next.js na Vercelu
+// spousti funkci s cwd nastavenym na koren projektu.
 function standardFontsDir() {
-  return join(dirname(require_.resolve("pdfjs-dist/package.json")), "standard_fonts");
+  return join(process.cwd(), "assets", "fonts");
 }
 
 // Cteni z disku je synchronni a drahe, proto jen jednou na proces.
