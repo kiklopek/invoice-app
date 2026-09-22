@@ -11,7 +11,7 @@ import { reconciliationError } from "./reconciliation-errors";
 // software je zničená auditní stopa horší než zaseknutý stav "Ke kontrole".
 
 const migration = readFileSync(
-  join(process.cwd(), "supabase", "migrations", "20260922100000_discard_bank_statement_import.sql"),
+  join(process.cwd(), "supabase", "migrations", "20260922175746_discard_bank_statement_import.sql"),
   "utf8",
 );
 
@@ -104,6 +104,6 @@ describe("migrace zůstávají konzistentní", () => {
     const definitions = readdirSync(dir)
       .filter(name => name.endsWith(".sql"))
       .filter(name => readFileSync(join(dir, name), "utf8").includes("function public.discard_bank_statement_import"));
-    expect(definitions).toEqual(["20260922100000_discard_bank_statement_import.sql"]);
+    expect(definitions).toEqual(["20260922175746_discard_bank_statement_import.sql"]);
   });
 });

@@ -42,6 +42,13 @@ Co z toho plyne konkrétně:
   Než tak učiníš, dohledej, **která migrace drží aktuální tělo funkce**;
   funkce tu bývají předefinované a přejmenované napříč historií
   (`reconcile_bank_statement` má v grafu čtyři různé definice).
+- **Po `apply_migration` přes Supabase MCP přejmenuj lokální soubor podle
+  skutečně zapsané verze.** Nástroj si časové razítko generuje sám podle
+  okamžiku spuštění, ne podle jména, které zvolíš v `supabase/migrations/`.
+  Rozejde-li se to, GitHubí check „Supabase Preview“ selže hlášením „Remote
+  migration versions not found in local migrations directory“ — přesně tenhle
+  incident nastal 22. 9. u pěti migrací. Oprav to hned (`mcp__claude_ai_Supabase__list_migrations`
+  a přejmenovat), ne až to někdo nahlásí.
 - **Bezpečnostní síť se píše PŘED změnou.** Test, který dnes selže a po změně
   projde. Bez něj neexistuje důkaz, že se změna povedla.
 - **Automatika nesmí tiše přepsat peněžní ani identitní údaj.** Při rozporu
