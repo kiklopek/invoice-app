@@ -3249,6 +3249,37 @@ th,
 /* Akce v prázdném stavu seznamu faktur. */
 .invoice-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
 
+/* Pět účetních sloupců reportu a čtyři sloupce blokovaných adres se na
+   telefonu četly přes vodorovný posuv o šířce 620 az 760 px. Čtou se proto
+   jako označené karty, stejně jako seznam faktur. */
+@media (max-width: 640px) {
+  .report-accounting-table { overflow: visible; }
+  .report-accounting-table table { min-width: 0; width: 100%; }
+  .report-accounting-table thead { display: none; }
+  .report-accounting-table tbody { display: grid; gap: 8px; padding: 12px; }
+  .report-accounting-table tr { display: grid; min-width: 0; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  .report-accounting-table td { display: flex; min-width: 0; justify-content: space-between; gap: 12px; padding: 3px 0; border: 0; white-space: normal; text-align: right; overflow-wrap: anywhere; }
+  .report-accounting-table td:first-child { margin-bottom: 4px; text-align: left; font-weight: 750; }
+  .report-accounting-table td::before { content: attr(data-label); flex: 0 0 42%; color: #6b7a70; font-weight: 700; text-align: left; }
+  .report-accounting-table td:first-child::before { content: none; }
+  .report-accounting-table tfoot { display: block; margin: 0 12px 12px; }
+  .report-accounting-table tfoot tr { background: var(--green-soft); }
+  /* Řádek dlužníka je klikatelný; bez tohohle si prohlížeč plete svislé
+     posouvání s klepnutím. */
+  .top-debtors-table tr[role="button"] { touch-action: pan-y; }
+
+  .email-suppressions-table { overflow: visible; }
+  .email-suppressions-table table { min-width: 0; }
+  .email-suppressions-table thead { display: none; }
+  .email-suppressions-table tbody { display: grid; gap: 8px; padding: 12px; }
+  .email-suppressions-table tr { display: grid; min-width: 0; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  .email-suppressions-table td { display: flex; min-width: 0; justify-content: space-between; gap: 12px; padding: 3px 0; border: 0; white-space: normal; overflow-wrap: anywhere; }
+  .email-suppressions-table td::before { content: attr(data-label); flex: 0 0 80px; color: #6b7a70; font-weight: 700; }
+  .email-suppressions-table td:last-child::before { content: none; }
+  .email-suppressions-table td:last-child { margin-top: 8px; }
+  .email-suppressions-table td:last-child .btn { width: 100%; }
+}
+
 @media print {
   html,
   body {

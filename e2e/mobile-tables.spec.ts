@@ -38,10 +38,15 @@ test.describe("tabulky na úzkém displeji", () => {
 
       const measured = await wrapper.evaluate((element) => {
         const inner = element.querySelector("table") as HTMLElement | null;
+        // V kartovém režimu má obal overflow: visible, takže scrollWidth
+        // větší než clientWidth NEZNAMENÁ posuvník -- obsah jen přesahuje
+        // rámeček a stránka se stejně neposouvá (hlídá smoke.spec.ts).
+        // Za selhání se proto bere jen obal, který je SKUTEČNĚ posouvatelný.
+        const overflowX = getComputedStyle(element).overflowX;
+        const scrollable = overflowX === "auto" || overflowX === "scroll";
         return {
-          // Posuv uvnitř obalu znamená, že se část sloupců schovala.
-          wrapperScrolls: element.scrollWidth > element.clientWidth + 1,
-          tableWider: inner ? inner.scrollWidth > element.clientWidth + 1 : false,
+          wrapperScrolls: scrollable && element.scrollWidth > element.clientWidth + 1,
+          tableWider: scrollable && inner ? inner.scrollWidth > element.clientWidth + 1 : false,
           headHidden: inner ? getComputedStyle(inner.querySelector("thead") as HTMLElement).display === "none" : false,
           labelled: inner ? Boolean(inner.querySelector("td[data-label]")) : false,
         };
