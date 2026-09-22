@@ -46,4 +46,28 @@ jobs:
           AUTH_EMAIL_FROM: Splatno CI <ci@example.com>
           AUTH_EMAIL_DELIVERY_ENABLED: "false"
       - run: pnpm exec playwright install --with-deps chromium
+      # Krok driv bezel uplne bez env, takze dev server nemel zadne pripojeni
+      # k Supabase a KAZDY workspace test se tise preskocil -- realne bezel
+      # jediny test a CI pritom svitilo zelene.
+      #
+      # E2E_ALLOW_UNAUTHENTICATED je vedomy, docasny ustupek: mezera je ted
+      # aspon videt tady v konfiguraci misto aby byla schovana v testech.
+      # ODSTRANIT, az budou v repository secrets E2E_EMAIL a E2E_PASSWORD
+      # (ucet test-admin@hlavica.cz, ktery obchazi MFA) plus skutecne
+      # Supabase udaje -- teprve pak zacne tahle sada neco overovat.
       - run: pnpm test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder' }}
+          EMAIL_MFA_SECRET: ci-placeholder-secret-with-at-least-32-characters
+          RESEND_API_KEY: re_ci-placeholder
+          RESEND_WEBHOOK_SECRET: whsec_ci-placeholder
+          CRON_SECRET: ci-placeholder-secret-with-at-least-32-characters
+          APP_BASE_URL: http://127.0.0.1:3000
+          REMINDER_EMAIL_FROM: Splatno CI <ci@example.com>
+          AUTH_EMAIL_FROM: Splatno CI <ci@example.com>
+          AUTH_EMAIL_DELIVERY_ENABLED: "false"
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_ALLOW_UNAUTHENTICATED: ${{ secrets.E2E_PASSWORD && 'false' || 'true' }}

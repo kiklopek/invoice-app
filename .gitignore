@@ -15,3 +15,6 @@ playwright-report/
 /agentdb.rvf
 /agentdb.rvf.lock
 /ruvector.db
+
+# graphify knowledge graph output (lokální, negenerovat do repa)
+graphify-out/
