@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+// Lokální proměnná v této routě se jmenuje logError, proto alias.
+import { logError as logFailure } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
 import { generateInvoicePdf, invoicePdfFilename } from "@/lib/invoice-pdf";
@@ -33,7 +36,10 @@ export async function POST(request: Request, { params }: Context) {
   const { data: log, error: logError } = await identity.service.from("reminder_log")
     .select("id, invoice_id, stage, scheduled_for, status, attempt_count, error_message")
     .eq("id", reminderId).eq("invoice_id", id).eq("organization_id", organizationId).maybeSingle();
-  if (logError) return NextResponse.json({ error: "Upomínku se nepodařilo načíst." }, { status: 500 });
+  if (logError) {
+    logFailure("Upomínku se nepodařilo načíst", logError, { invoice_id: id, reminder_id: reminderId });
+    return apiError(request, "Upomínku se nepodařilo načíst.", 500, "reminder_read_failed");
+  }
   if (!log) return NextResponse.json({ error: "Upomínka nebyla nalezena." }, { status: 404 });
   if (log.status !== "failed") {
     return NextResponse.json({ error: "Znovu lze odeslat pouze neúspěšnou upomínku." }, { status: 409 });
@@ -44,13 +50,19 @@ export async function POST(request: Request, { params }: Context) {
 
   const { data: invoice, error: invoiceError } = await identity.service.from("invoices").select("*")
     .eq("id", id).eq("organization_id", organizationId).maybeSingle();
-  if (invoiceError) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+  if (invoiceError) {
+    logFailure("Fakturu pro opakování upomínky se nepodařilo načíst", invoiceError, { invoice_id: id });
+    return apiError(request, "Fakturu se nepodařilo načíst.", 500, "invoice_read_failed");
+  }
   if (!invoice) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
   const { data: suppression, error: suppressionError } = await identity.service.from("email_suppressions")
     .select("reason").eq("organization_id", organizationId)
     .eq("email", invoice.counterparty_email.toLowerCase()).maybeSingle();
-  if (suppressionError) return NextResponse.json({ error: "Stav e-mailové adresy se nepodařilo ověřit." }, { status: 500 });
+  if (suppressionError) {
+    logFailure("Stav e-mailové adresy se nepodařilo ověřit", suppressionError, { invoice_id: id });
+    return apiError(request, "Stav e-mailové adresy se nepodařilo ověřit.", 500, "suppression_check_failed");
+  }
 
   let policyQuery = identity.service.from("reminder_policies").select("is_active")
     .eq("organization_id", organizationId);
@@ -58,7 +70,10 @@ export async function POST(request: Request, { params }: Context) {
     ? policyQuery.eq("id", invoice.reminder_policy_id)
     : policyQuery.eq("is_default", true);
   const { data: policy, error: policyError } = await policyQuery.maybeSingle();
-  if (policyError) return NextResponse.json({ error: "Nastavení upomínek se nepodařilo ověřit." }, { status: 500 });
+  if (policyError) {
+    logFailure("Nastavení upomínek se nepodařilo ověřit", policyError, { invoice_id: id });
+    return apiError(request, "Nastavení upomínek se nepodařilo ověřit.", 500, "reminder_policy_check_failed");
+  }
 
   const today = todayInTimeZone();
   const eligibility = evaluateReminderEligibility({
@@ -77,7 +92,10 @@ export async function POST(request: Request, { params }: Context) {
   const { data: template, error: templateError } = await identity.service.from("email_templates")
     .select("subject, body, reply_to, cc").eq("organization_id", organizationId)
     .eq("stage", log.stage).maybeSingle();
-  if (templateError) return NextResponse.json({ error: "E-mailovou šablonu se nepodařilo načíst." }, { status: 500 });
+  if (templateError) {
+    logFailure("E-mailovou šablonu se nepodařilo načíst", templateError, { invoice_id: id });
+    return apiError(request, "E-mailovou šablonu se nepodařilo načíst.", 500, "email_template_read_failed");
+  }
 
   const claimedAt = new Date().toISOString();
   const { data: claimed, error: claimError } = await identity.service.from("reminder_log").update({
@@ -87,17 +105,20 @@ export async function POST(request: Request, { params }: Context) {
     error_message: null,
     updated_at: claimedAt,
   }).eq("id", reminderId).eq("status", "failed").select("id, attempt_count").maybeSingle();
-  if (claimError) return NextResponse.json({ error: "Nový pokus se nepodařilo bezpečně zařadit." }, { status: 500 });
+  if (claimError) {
+    logFailure("Nový pokus o upomínku se nepodařilo zařadit", claimError, { invoice_id: id, reminder_id: reminderId });
+    return apiError(request, "Nový pokus se nepodařilo bezpečně zařadit.", 500, "reminder_claim_failed");
+  }
   if (!claimed) return NextResponse.json({ error: "Upomínku už zpracovává jiný požadavek." }, { status: 409 });
 
   const { data: currentInvoice, error: currentInvoiceError } = await identity.service.from("invoices").select(INVOICE_REMINDER_POLICY_STATE_SELECT)
     .eq("id", id).eq("organization_id", organizationId).maybeSingle();
   if (currentInvoiceError) {
     const failure = reminderDatabaseError(`Opětovné ověření faktury ${invoice.invoice_number}`, currentInvoiceError);
-    console.error("[reminder-retry] invoice recheck failed", failure);
+    logFailure("Opětovné ověření faktury před opakováním upomínky selhalo", currentInvoiceError, { invoice_id: id, reminder_id: reminderId });
     await identity.service.from("reminder_log").update({ status: "failed", error_message: failure, updated_at: new Date().toISOString() })
       .eq("id", reminderId).eq("status", "queued");
-    return NextResponse.json({ error: "Fakturu se nepodařilo znovu ověřit. Pokus zůstal připravený k opakování.", code: "REMINDER_INVOICE_RECHECK_FAILED" }, { status: 500 });
+    return apiError(request, "Fakturu se nepodařilo znovu ověřit. Pokus zůstal připravený k opakování.", 500, "REMINDER_INVOICE_RECHECK_FAILED");
   }
   if (!currentInvoice || !["pending", "overdue"].includes(currentInvoice.status) || currentInvoice.due_date !== invoice.due_date || currentInvoice.reminder_policy_id !== invoice.reminder_policy_id || JSON.stringify(currentInvoice.reminder_days_snapshot) !== JSON.stringify(invoice.reminder_days_snapshot)) {
     await identity.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() })
@@ -153,6 +174,7 @@ export async function POST(request: Request, { params }: Context) {
       error_message: cause instanceof Error ? cause.message.slice(0, 1000) : "Neznámá chyba",
       updated_at: failedAt,
     }).eq("id", reminderId).eq("status", "queued");
-    return NextResponse.json({ error: "E-mail se nepodařilo odeslat. Pokus zůstal bezpečně uložený v historii." }, { status: 502 });
+    logFailure("Opakované odeslání upomínky selhalo", cause, { invoice_id: id, reminder_id: reminderId });
+    return apiError(request, "E-mail se nepodařilo odeslat. Pokus zůstal bezpečně uložený v historii.", 502, "reminder_retry_send_failed");
   }
 }

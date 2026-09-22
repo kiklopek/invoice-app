@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { sendReminderEmail } from "@/lib/email";
 import { unsupportedTemplateVariables } from "@/lib/reminder-template";
@@ -86,7 +88,11 @@ export async function POST(request: Request) {
     });
     if (result.error) throw new Error(result.error.message);
     return NextResponse.json({ sent: true, recipient });
-  } catch {
-    return NextResponse.json({ error: "Testovací e-mail se nepodařilo odeslat. Zkontrolujte nastavení e-mailové služby." }, { status: 502 });
+  } catch (cause) {
+    // Dřív se chyba spolkla prázdným catch {}, takže selhání testovacího
+    // e-mailu nezanechalo jedinou stopu -- a právě tahle routa slouží
+    // k ověření, proč odesílání nefunguje. Adresa příjemce se nezapisuje.
+    logError("Testovací e-mail se nepodařilo odeslat", cause);
+    return apiError(request, "Testovací e-mail se nepodařilo odeslat. Zkontrolujte nastavení e-mailové služby.", 502, "test_email_failed");
   }
 }

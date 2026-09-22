@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError, requestId } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { canAccessOperations } from "@/lib/role-access";
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Čtenář nemá přístup k upomínkám." }, { status: 403 });
@@ -22,14 +24,15 @@ export async function GET() {
       .eq("organization_id", organizationId).order("started_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (upcomingResult.error || failedResult.error || deliveryIssueResult.error || recentResult.error || automationRunResult.error) {
-    console.error("[api/reminders] overview query failed", {
+    logError("Přehled upomínek se nepodařilo načíst", upcomingResult.error ?? failedResult.error ?? deliveryIssueResult.error ?? recentResult.error ?? automationRunResult.error, {
       upcoming: upcomingResult.error?.message,
       failed: failedResult.error?.message,
-      deliveryIssues: deliveryIssueResult.error?.message,
+      delivery_issues: deliveryIssueResult.error?.message,
       recent: recentResult.error?.message,
-      automationRun: automationRunResult.error?.message,
+      automation_run: automationRunResult.error?.message,
+      request_id: requestId(request),
     });
-    return NextResponse.json({ error: "Přehled upomínek se nepodařilo načíst." }, { status: 500 });
+    return apiError(request, "Přehled upomínek se nepodařilo načíst.", 500, "reminders_overview_read_failed");
   }
   const deliveryLabels: Record<string, string> = {
     delayed: "Doručení je odložené",

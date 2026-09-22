@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { documentTypes, validateDocumentMetadata } from "@/lib/document-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -20,7 +22,11 @@ export async function POST(request: Request) {
   const organizationId = identity.membership.organization_id;
   const path = `${organizationId}/${new Date().getUTCFullYear()}/${crypto.randomUUID()}.${extension}`;
   const { data: signed, error: signError } = await identity.service.storage.from("invoice-documents").createSignedUploadUrl(path);
-  if (signError || !signed?.token) return NextResponse.json({ error: "Nahrávání dokumentu se nepodařilo připravit." }, { status: 500 });
+  if (signError || !signed?.token) {
+    // Bez názvu souboru: ten může nést jméno odběratele i číslo faktury.
+    logError("Podepsaný odkaz pro nahrání dokumentu se nepodařilo vytvořit", signError);
+    return apiError(request, "Nahrávání dokumentu se nepodařilo připravit.", 500, "upload_sign_failed");
+  }
 
   const { error: recordError } = await identity.service.from("invoice_uploads").insert({
     organization_id: organizationId,
@@ -31,7 +37,10 @@ export async function POST(request: Request) {
     created_by: identity.user.id,
     expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
   });
-  if (recordError) return NextResponse.json({ error: "Nahrávání dokumentu se nepodařilo připravit." }, { status: 500 });
+  if (recordError) {
+    logError("Záznam o nahrávaném dokumentu se nepodařilo založit", recordError);
+    return apiError(request, "Nahrávání dokumentu se nepodařilo připravit.", 500, "upload_record_failed");
+  }
   return NextResponse.json({ path, token: signed.token }, { status: 201 });
 }
 

@@ -25,29 +25,35 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   const sessionId = typeof claimsData.claims.session_id === "string" ? claimsData.claims.session_id : null;
   if (!sessionId) return null;
 
-  if (requireLoginSession && !await hasServerLoginSession({ userId: data.user.id, sessionId })) return null;
-
-  if (requireMfa) {
-    const verified = await hasVerifiedEmailMfa({
-      email,
-      userId: data.user.id,
-      sessionId,
-    });
-    if (!verified) return null;
-  }
-
+  // Tyhle tři dotazy na sobě nezávisí -- stojí jen na userId, e-mailu a
+  // sessionId, které jsou známé už teď. Sériově to byla tři kola na server
+  // navíc před KAŽDÝM požadavkem, a getRequestIdentity() běží na všech
+  // routách i ve všech page-data loaderech.
+  //
+  // Co se NEMĚNÍ: obě kontroly musí dál projít a teprve potom se smí sáhnout
+  // na členství. Paralelně běží jen ČTENÍ; zápis, který přebírá pozvánku (a
+  // tedy váže identitu na organizaci), zůstává až za oběma kontrolami --
+  // jinak by si účet nepotvrzený přes MFA mohl tiše zabrat pozvánku.
+  //
   // Routine membership reads use the signed-in client so RLS remains the
   // primary organization boundary. Service role is only needed to claim a
   // previously invited row whose user_id is still null.
-  const { data: boundMembership } = await auth
-    .from("organization_members")
-    .select("id, organization_id, role, email")
-    .eq("user_id", data.user.id)
-    .eq("email", email)
-    .limit(1)
-    .maybeSingle();
+  const [hasLoginSession, hasMfa, boundMembershipResult] = await Promise.all([
+    requireLoginSession ? hasServerLoginSession({ userId: data.user.id, sessionId }) : Promise.resolve(true),
+    requireMfa ? hasVerifiedEmailMfa({ email, userId: data.user.id, sessionId }) : Promise.resolve(true),
+    auth
+      .from("organization_members")
+      .select("id, organization_id, role, email")
+      .eq("user_id", data.user.id)
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  let membership = boundMembership;
+  if (!hasLoginSession) return null;
+  if (!hasMfa) return null;
+
+  let membership = boundMembershipResult.data;
   const service = createServiceClient();
   if (!membership) {
     const { data: invitation } = await service

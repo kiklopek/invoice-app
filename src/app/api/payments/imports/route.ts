@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseGpc } from "@/lib/gpc-parser";
 import { parseCsvStatement } from "@/lib/csv-statement-parser";
@@ -40,11 +42,10 @@ export async function GET(request: Request) {
     .eq("organization_id", identity.membership.organization_id)
     .order("created_at", { ascending: false })
     .range(from, from + pageSize - 1);
-  if (error)
-    return NextResponse.json(
-      { error: "Archiv importů se nepodařilo načíst.", request_id: id },
-      { status: 500 },
-    );
+  if (error) {
+    logError("Archiv importů se nepodařilo načíst", error, { request_id: id });
+    return apiError(request, "Archiv importů se nepodařilo načíst.", 500, "statement_archive_read_failed");
+  }
   return NextResponse.json({
     imports: data ?? [],
     page,
@@ -264,6 +265,7 @@ export async function POST(request: Request) {
         variable_symbol: entry.payment?.variable_symbol ?? null,
         counterparty_name: entry.payment?.counterparty_name ?? null,
         counterparty_account: entry.payment?.counterparty_account ?? null,
+        counterparty_account_verified: entry.payment?.counterparty_account_verified ?? true,
         note: entry.payment?.note ?? null,
         proposal_kind: proposal?.kind ?? null,
         proposal_confidence: proposal?.confidence ?? null,

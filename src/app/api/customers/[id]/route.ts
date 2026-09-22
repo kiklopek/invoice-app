@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 
@@ -31,7 +33,10 @@ export async function PATCH(request: Request, { params }: Context) {
     .eq("organization_id", identity.membership.organization_id)
     .select("id, phone")
     .maybeSingle();
-  if (error) return NextResponse.json({ error: "Telefon se nepodařilo uložit." }, { status: 500 });
+  if (error) {
+    logError("Telefon zákazníka se nepodařilo uložit", error, { customer_id: id });
+    return apiError(request, "Telefon se nepodařilo uložit.", 500, "customer_phone_write_failed");
+  }
   if (!data) return NextResponse.json({ error: "Zákazník nebyl nalezen." }, { status: 404 });
   return NextResponse.json({ customer: data });
 }

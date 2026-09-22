@@ -59,4 +59,41 @@ describe("workspace navigation performance", () => {
     expect(invoices).toContain("onMouseEnter={() => prefetchInvoice(invoice.id)}");
     expect(invoices).toContain("onFocus={() => prefetchInvoice(invoice.id)}");
   });
+
+  // getRequestIdentity() běží před každým požadavkem na všech routách i ve
+  // všech page-data loaderech, takže každé kolo navíc se platí pokaždé.
+  // Kontrola session, kontrola MFA a načtení členství na sobě nezávisí.
+  it("ověřuje session, MFA a členství jedním kolem, ne třemi", () => {
+    const auth = source("src/lib/auth.ts");
+    const parallel = /await Promise\.all\(\[[\s\S]*?hasServerLoginSession[\s\S]*?hasVerifiedEmailMfa[\s\S]*?organization_members[\s\S]*?\]\)/;
+    expect(auth).toMatch(parallel);
+  });
+
+  // POZOR na zdánlivě stejné zrychlení o patro výš: getClaims() a getUser()
+  // vypadají taky jako dvě nezávislá kola, ale pustit je přes Promise.all
+  // je ZPOMALENÍ (změřeno na 60 vzorcích: medián 213 ms -> 262 ms). Supabase
+  // klient si volání auth serializuje vlastním zámkem, takže souběh nic
+  // neušetří a jen přidá režii. Nezkoušej to znovu.
+
+  // Křížová kontrola: samotný platně vypadající token nestačí, musí
+  // odpovídat skutečně načtenému uživateli.
+  it("drží křížovou kontrolu tokenu proti načtenému uživateli", () => {
+    const auth = source("src/lib/auth.ts");
+    expect(auth).toContain("claimsData.claims.sub !== data.user.id");
+  });
+
+  // Tohle je ta podstatnější půlka: zrychlení nesmí posunout zápis, který
+  // váže uživatele na organizaci, před dokončené kontroly. Jinak by si účet
+  // bez potvrzeného MFA mohl tiše zabrat pozvánku.
+  it("převzetí pozvánky zůstává až za kontrolou session i MFA", () => {
+    const auth = source("src/lib/auth.ts");
+    const sessionGuard = auth.indexOf("if (!hasLoginSession) return null;");
+    const mfaGuard = auth.indexOf("if (!hasMfa) return null;");
+    const claimWrite = auth.indexOf(".update({ user_id: data.user.id, email })");
+    expect(sessionGuard, "chybí kontrola přihlašovací session").toBeGreaterThan(-1);
+    expect(mfaGuard, "chybí kontrola MFA").toBeGreaterThan(-1);
+    expect(claimWrite, "chybí zápis přebírající pozvánku").toBeGreaterThan(-1);
+    expect(claimWrite).toBeGreaterThan(sessionGuard);
+    expect(claimWrite).toBeGreaterThan(mfaGuard);
+  });
 });

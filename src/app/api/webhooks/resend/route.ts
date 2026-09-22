@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/structured-log";
 import { Webhook } from "svix";
 import { parseResendDeliveryEvent } from "@/lib/resend-webhook";
 import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
@@ -8,7 +9,12 @@ const MAX_WEBHOOK_BYTES = 128 * 1024;
 
 export async function POST(request: Request) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (!secret) return NextResponse.json({ error: "Webhook není nakonfigurovaný." }, { status: 503 });
+  if (!secret) {
+    // Bez tajemství se webhook neověří a všechna hlášení o doručení e-mailů
+    // tiše propadnou. Odpověď zůstává 503, aby to Resend zkoušel dál.
+    logError("Webhook Resendu není nakonfigurovaný", null);
+    return NextResponse.json({ error: "Webhook není nakonfigurovaný." }, { status: 503 });
+  }
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(contentLength) && contentLength > MAX_WEBHOOK_BYTES) {
@@ -48,7 +54,16 @@ export async function POST(request: Request) {
     event_time: event.createdAt,
     event_error: nullableRpcString(event.error),
   });
-  if (error) return NextResponse.json({ error: "Událost se nepodařilo bezpečně uložit." }, { status: 500 });
+  if (error) {
+    // Stavový kód se schválně nemění: Resend podle něj rozhoduje o opakování.
+    // Přibyl jen zápis, protože jinak není z čeho zjistit, proč se hlášení
+    // o doručení neukládají.
+    logError("Událost z webhooku Resendu se nepodařilo uložit", error, {
+      webhook_event_id: svixId,
+      webhook_event_type: event.type,
+    });
+    return NextResponse.json({ error: "Událost se nepodařilo bezpečně uložit." }, { status: 500 });
+  }
   const result = data && typeof data === "object" ? data as { matched?: boolean; duplicate?: boolean } : null;
   // Webhook může předběhnout zápis provider_message_id po úspěšném sendu. Čerstvou
   // událost necháme zopakovat; databázové RPC znovu páruje i stejné svix-id.

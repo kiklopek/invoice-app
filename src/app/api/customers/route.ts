@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { loadCustomersPageData } from "@/lib/customers-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
@@ -38,6 +40,7 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   } catch (cause) {
     if (cause instanceof PageDataError) return NextResponse.json({ error: cause.message }, { status: cause.status });
-    return NextResponse.json({ error: "Zákazníky se nepodařilo načíst. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+    logError("Zákazníky se nepodařilo načíst", cause);
+    return apiError(request, "Zákazníky se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500, "customers_read_failed");
   }
 }

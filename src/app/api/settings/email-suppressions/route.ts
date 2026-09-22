@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageInvoices(identity.membership.role)) {
@@ -13,7 +15,10 @@ export async function GET() {
     .eq("organization_id", identity.membership.organization_id)
     .order("last_event_at", { ascending: false })
     .limit(200);
-  if (error) return NextResponse.json({ error: "Seznam blokovaných adres se nepodařilo načíst." }, { status: 500 });
+  if (error) {
+    logError("Seznam blokovaných adres se nepodařilo načíst", error);
+    return apiError(request, "Seznam blokovaných adres se nepodařilo načíst.", 500, "suppressions_read_failed");
+  }
   return NextResponse.json({ suppressions: data ?? [] });
 }
 
@@ -34,6 +39,9 @@ export async function DELETE(request: Request) {
   const { error } = await identity.service.from("email_suppressions").delete()
     .eq("organization_id", identity.membership.organization_id)
     .eq("email", email);
-  if (error) return NextResponse.json({ error: "Adresu se nepodařilo odblokovat." }, { status: 500 });
+  if (error) {
+    logError("Adresu se nepodařilo odblokovat", error);
+    return apiError(request, "Adresu se nepodařilo odblokovat.", 500, "suppression_delete_failed");
+  }
   return NextResponse.json({ removed: true });
 }

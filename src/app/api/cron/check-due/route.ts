@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
+import { logError } from "@/lib/structured-log";
 import { sendReminderEmail } from "@/lib/email";
 import type { ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { generateInvoicePdf, invoicePdfFilename } from "@/lib/invoice-pdf";
@@ -31,13 +32,75 @@ import {
 import type { Json } from "@/types/database";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 
+// Bez teto deklarace plati na Vercelu vychozi limit (10-15 s), zatimco worker
+// nize si sam povoluje 45 s -- funkce ho utla uprostred lease okna a zabrane
+// joby pak cekaly na vyprseni lease. 60 s je strop planu Hobby a je platne
+// i na Pro, takze tahle hodnota je bezpecna bez ohledu na plan. Rozpocet
+// workeru musi zustat pod nim; hlida to cron-runtime.test.ts.
+export const maxDuration = 60;
+
 const DEFAULT_THRESHOLDS = [-3, 0, 7, 14];
 const PLANNER_INVOICE_LIMIT = 1000;
+// 25 neni libovolne cislo: claim_reminder_jobs davku serverove orezava
+// (least(greatest(target_limit,1),25)), takze vyssi hodnota by tady nemela
+// zadny ucinek. Strop propustnosti (25 e-mailu na beh x 1 beh denne) je tim
+// padem omezeni platformy, ne tohoto souboru -- zvednout ho znamena zvysit
+// frekvenci cronu, coz Hobby nedovoluje. Zdokumentovano, nikoli obejito.
 const WORKER_BATCH_LIMIT = 25;
 const WORKER_MAX_RUNTIME_MS = 45_000;
 const WORKER_LEASE_SECONDS = 15 * 60;
 const HISTORY_BATCH_SIZE = 150;
 const atCronTime = (date: string) => `${date}T06:00:00.000Z`;
+
+// Vedlejsi udrzba, ne soucast doruceni upominek: cokoli se tu pokazi, se
+// zaloguje a beh pokracuje. Nikdy odsud nevolat finishRuns("failed") --
+// prave to driv shazovalo cely denni beh kvuli nesouvisejici chybe.
+async function cleanupExpiredUploads(
+  db: ReturnType<typeof createServiceClient>,
+  organizationIds: string[],
+  startedAt: string,
+) {
+  try {
+    const { data: expiredUploads, error: expiredUploadsError } = await db.from("invoice_uploads")
+      .select("id, path").in("organization_id", organizationIds).in("status", ["pending", "verified"])
+      .lt("expires_at", startedAt).limit(100);
+    if (expiredUploadsError) {
+      logError("Dočasné OCR soubory se nepodařilo načíst", expiredUploadsError);
+      return;
+    }
+    if (!expiredUploads?.length) return;
+
+    const paths = expiredUploads.map(upload => upload.path);
+    const { data: attachedInvoices, error: attachedInvoicesError } = await db.from("invoices")
+      .select("id, file_url").in("organization_id", organizationIds).in("file_url", paths);
+    if (attachedInvoicesError) {
+      logError("Vazby OCR souborů se nepodařilo ověřit", attachedInvoicesError);
+      return;
+    }
+
+    const attachedByPath = new Map((attachedInvoices ?? []).map(invoice => [invoice.file_url, invoice.id]));
+    const attached = expiredUploads.filter(upload => attachedByPath.has(upload.path));
+    const unattached = expiredUploads.filter(upload => !attachedByPath.has(upload.path));
+    // Nahravka uz visici na fakture se nemaze, jen prepne na "claimed" --
+    // smazat soubor, na ktery se odkazuje ulozena faktura, je ztrata dokladu.
+    if (attached.length) {
+      await Promise.all(attached.map(upload => db.from("invoice_uploads").update({
+        status: "claimed",
+        invoice_id: attachedByPath.get(upload.path),
+      }).eq("id", upload.id)));
+    }
+    if (unattached.length) {
+      // Nejdriv uloziste, teprve pak DB zaznam: kdyz mazani souboru selze,
+      // zaznam zustane a pristi beh to zkusi znovu. Opacne poradi by nechalo
+      // osirely soubor, o kterem uz nic nevi.
+      const { error: storageError } = await db.storage.from("invoice-documents").remove(unattached.map(upload => upload.path));
+      if (storageError) logError("Smazání expirovaných OCR souborů selhalo", storageError, { count: unattached.length });
+      else await db.from("invoice_uploads").delete().in("id", unattached.map(upload => upload.id));
+    }
+  } catch (cause) {
+    logError("Úklid expirovaných OCR nahrávek selhal", cause);
+  }
+}
 
 type QueueJob = {
   organization_id: string;
@@ -136,7 +199,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
     }
     if (startError) {
       await finishRuns("failed", "Další provozní záznam automatu se nepodařilo založit.");
-      return NextResponse.json({ error: "Provozní záznam automatu se nepodařilo založit. Zkontrolujte databázové migrace." }, { status: 500 });
+      return NextResponse.json({ error: "Provozní záznam automatu se nepodařilo založit. Zkuste to prosím znovu za chvíli." }, { status: 500 });
     }
     organizationCounters.set(organization.id, emptyAutomationRunCounters());
   }
@@ -144,36 +207,13 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   const startedOrganizationIds = [...organizationCounters.keys()];
   if (!startedOrganizationIds.length) return NextResponse.json({ ...emptyAutomationRunCounters(), busy_organizations: busyOrganizations });
 
-  // OCR cleanup remains bounded and outside the reminder worker phase.
-  const { data: expiredUploads, error: expiredUploadsError } = await db.from("invoice_uploads").select("id, path")
-    .in("organization_id", startedOrganizationIds).in("status", ["pending", "verified"])
-    .lt("expires_at", startedAt).limit(100);
-  if (expiredUploadsError) {
-    await finishRuns("failed", "Dočasné OCR soubory se nepodařilo načíst.");
-    return NextResponse.json({ error: "Dočasné OCR soubory se nepodařilo načíst." }, { status: 500 });
-  }
-  if (expiredUploads?.length) {
-    const paths = expiredUploads.map(upload => upload.path);
-    const { data: attachedInvoices, error: attachedInvoicesError } = await db.from("invoices").select("id, file_url")
-      .in("organization_id", startedOrganizationIds).in("file_url", paths);
-    if (attachedInvoicesError) {
-      await finishRuns("failed", "Vazby OCR souborů se nepodařilo ověřit.");
-      return NextResponse.json({ error: "Vazby OCR souborů se nepodařilo ověřit." }, { status: 500 });
-    }
-    const attachedByPath = new Map((attachedInvoices ?? []).map(invoice => [invoice.file_url, invoice.id]));
-    const unattached = expiredUploads.filter(upload => !attachedByPath.has(upload.path));
-    const attached = expiredUploads.filter(upload => attachedByPath.has(upload.path));
-    if (attached.length) {
-      await Promise.all(attached.map(upload => db.from("invoice_uploads").update({
-        status: "claimed",
-        invoice_id: attachedByPath.get(upload.path),
-      }).eq("id", upload.id)));
-    }
-    if (unattached.length) {
-      const { error: storageError } = await db.storage.from("invoice-documents").remove(unattached.map(upload => upload.path));
-      if (!storageError) await db.from("invoice_uploads").delete().in("id", unattached.map(upload => upload.id));
-    }
-  }
+  // Uklid expirovanych OCR nahravek. Driv kazda jeho chyba volala
+  // finishRuns("failed") a shodila CELY denni beh upominek kvuli problemu,
+  // ktery s upominkami nesouvisi -- ten den pak neodesla ani jedna. Uklid je
+  // vedlejsi udrzba, ne soucast doruceni, takze se jeho selhani uz jen
+  // zaloguje a pokracuje se dal. Samostatnou cron routu z toho delat nejde:
+  // plan Hobby povoluje nejvys dve a obe uz jsou obsazene.
+  await cleanupExpiredUploads(db, startedOrganizationIds, startedAt);
 
   // A review import may already contain committed payments. Preserve its raw
   // statement and decisions; status alone is never a safe deletion criterion.
@@ -291,7 +331,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   if (scheduleError) {
     const failure = reminderDatabaseError("Atomické naplánování upomínek", scheduleError);
     await finishRuns("failed", failure);
-    return NextResponse.json({ error: "Upomínky se nepodařilo zařadit do fronty. Zkontrolujte databázovou migraci." }, { status: 500 });
+    return NextResponse.json({ error: "Upomínky se nepodařilo zařadit do fronty. Zkuste to prosím znovu za chvíli." }, { status: 500 });
   }
   const plannerDurationMs = Date.now() - plannerStartedAt;
   for (const counters of organizationCounters.values()) counters.planner_duration_ms = plannerDurationMs;

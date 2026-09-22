@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { loadInvoiceDetailPageData } from "@/lib/invoice-detail-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const startedAt = performance.now();
   try {
     const { id } = await params;
@@ -17,6 +19,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return result;
   } catch (error) {
     if (error instanceof PageDataError) return NextResponse.json({ error: error.message }, { status: error.status });
-    return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+    logError("Data detailu faktury se nepodařilo načíst", error);
+    return apiError(request, "Fakturu se nepodařilo načíst.", 500, "invoice_page_data_failed");
   }
 }

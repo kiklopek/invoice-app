@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { PageDataError } from "@/lib/dashboard-page-data";
 import { loadReminderPageData } from "@/lib/reminder-page-data";
 
-export async function GET() {
+export async function GET(request: Request) {
   const startedAt = performance.now();
   try {
     const identity = await getRequestIdentity();
@@ -16,6 +18,7 @@ export async function GET() {
     return result;
   } catch (error) {
     if (error instanceof PageDataError) return NextResponse.json({ error: error.message }, { status: error.status });
-    return NextResponse.json({ error: "Upomínky se nepodařilo načíst." }, { status: 500 });
+    logError("Data stránky upomínek se nepodařilo načíst", error);
+    return apiError(request, "Upomínky se nepodařilo načíst.", 500, "reminders_page_data_failed");
   }
 }

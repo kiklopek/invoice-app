@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { canViewFinancialInsights } from "@/lib/role-access";
 
@@ -22,7 +24,10 @@ export async function GET(request: Request, { params }: Context) {
 
   const { data: invoice, error } = await identity.service.from("invoices").select("file_url")
     .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
-  if (error) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+  if (error) {
+    logError("Fakturu se nepodařilo načíst pro stažení dokumentu", error);
+    return apiError(request, "Fakturu se nepodařilo načíst.", 500, "invoice_read_failed");
+  }
   if (!invoice) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
   if (!invoice.file_url) {
     return NextResponse.json({ error: "K této faktuře není přiložen dokument." }, { status: 404 });
@@ -33,7 +38,8 @@ export async function GET(request: Request, { params }: Context) {
     .from("invoice-documents")
     .createSignedUrl(invoice.file_url, 60, download ? { download: true } : undefined);
   if (signError || !signed?.signedUrl) {
-    return NextResponse.json({ error: "Dokument se nepodařilo otevřít." }, { status: 502 });
+    logError("Podepsaný odkaz na dokument faktury se nepodařilo vytvořit", signError);
+    return apiError(request, "Dokument se nepodařilo otevřít.", 502, "invoice_document_link_failed");
   }
 
   // 302 rather than 307: this is a plain GET hand-off to storage, and the short

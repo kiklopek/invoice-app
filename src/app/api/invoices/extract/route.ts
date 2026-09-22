@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
-import { isOcrHourlyQuotaExceeded, parseInvoiceText } from "@/lib/invoice-ocr";
+import { isOcrHourlyQuotaExceeded, parseInvoiceText, type InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
-import { extractInvoiceWithOpenRouter, OpenRouterOcrError } from "@/lib/invoice-ocr-openrouter";
+import { extractInvoiceWithGemini, GeminiOcrError } from "@/lib/invoice-ocr-gemini";
+import { parseConfidenceThreshold, reconcileExtractions } from "@/lib/invoice-ocr-reconcile";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
@@ -25,21 +28,30 @@ export async function POST(request: Request) {
   const { data: upload, error: uploadError } = await identity.service.from("invoice_uploads")
     .select("id, original_name, expected_mime, expected_size, status, expires_at")
     .eq("organization_id", organizationId).eq("path", path).eq("created_by", identity.user.id).maybeSingle();
-  if (uploadError) return NextResponse.json({ error: "Dokument se nepodařilo načíst." }, { status: 500 });
+  if (uploadError) {
+    logError("Nahraný dokument pro OCR se nepodařilo načíst", uploadError);
+    return apiError(request, "Dokument se nepodařilo načíst.", 500, "ocr_upload_read_failed");
+  }
   if (!upload || upload.status !== "verified" || upload.expires_at < new Date().toISOString()) {
     return NextResponse.json({ error: "Dokument není bezpečně ověřený nebo jeho nahrávání vypršelo." }, { status: 410 });
   }
 
   const { data: organization, error: organizationError } = await identity.service.from("organizations")
     .select("name, ico, dic, ocr_hourly_limit").eq("id", organizationId).single();
-  if (organizationError || !organization) return NextResponse.json({ error: "Firemní údaje se nepodařilo načíst." }, { status: 500 });
+  if (organizationError || !organization) {
+    logError("Firemní údaje pro OCR se nepodařilo načíst", organizationError);
+    return apiError(request, "Firemní údaje se nepodařilo načíst.", 500, "ocr_company_read_failed");
+  }
 
   if (organization.ocr_hourly_limit !== null) {
     const hourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
     const { data: recentOcr, error: rateError } = await identity.service.from("invoice_uploads")
       .select("ocr_attempt_count").eq("organization_id", organizationId).eq("created_by", identity.user.id)
       .gte("created_at", hourAgo).gt("ocr_attempt_count", 0).limit(100);
-    if (rateError) return NextResponse.json({ error: "Limit OCR se nepodařilo ověřit." }, { status: 500 });
+    if (rateError) {
+      logError("Limit OCR se nepodařilo ověřit", rateError);
+      return apiError(request, "Limit OCR se nepodařilo ověřit.", 500, "ocr_rate_check_failed");
+    }
     const attemptsThisHour = (recentOcr ?? []).reduce((sum, item) => sum + Number(item.ocr_attempt_count || 0), 0);
     if (isOcrHourlyQuotaExceeded(organization.ocr_hourly_limit, attemptsThisHour)) return NextResponse.json({ error: "Hodinový limit OCR byl vyčerpán. Zkuste to později." }, { status: 429 });
   }
@@ -48,7 +60,10 @@ export async function POST(request: Request) {
     target_upload_id: upload.id,
     target_user_id: identity.user.id,
   });
-  if (claimError) return NextResponse.json({ error: "OCR databázová migrace není připravená." }, { status: 503 });
+  if (claimError) {
+    logError("Převzetí dokumentu k OCR selhalo", claimError);
+    return apiError(request, "Načítání dokumentů není momentálně dostupné. Zkuste to prosím znovu za chvíli.", 503, "ocr_claim_failed");
+  }
   if (!claimed) return NextResponse.json({ error: "Dokument se už zpracovává nebo vyčerpal povolené pokusy." }, { status: 409 });
 
   const fail = async (message: string, status: number, storedError: string) => {
@@ -57,7 +72,11 @@ export async function POST(request: Request) {
       ocr_error: storedError.slice(0, 500),
       ocr_completed_at: new Date().toISOString(),
     }).eq("id", upload.id).eq("ocr_status", "processing");
-    return NextResponse.json({ error: message }, { status });
+    // 5xx znamená, že uživatel nemá co opravit -- dostane dohledatelné
+    // číslo. U 4xx (nečitelný nebo příliš dlouhý dokument) si poradí sám.
+    return status >= 500
+      ? apiError(request, message, status, storedError)
+      : NextResponse.json({ error: message }, { status });
   };
 
   const { data: blob, error: downloadError } = await identity.service.storage.from("invoice-documents").download(path);
@@ -67,48 +86,91 @@ export async function POST(request: Request) {
     return fail("Obsah dokumentu už neodpovídá ověřenému souboru.", 415, "document_integrity_failed");
   }
 
-  // "openrouter" is opt-in only, and deliberately a separate code path
-  // rather than a fallback-on-failure: silently sending a document to a
-  // third party because local processing hiccuped would be exactly the kind
-  // of thing nobody agreed to. See invoice-ocr-openrouter.ts for the
+  // "gemini" and "hybrid" are opt-in only, and deliberately a separate code
+  // path rather than a fallback-on-failure: silently sending a document to
+  // a third party because local processing hiccuped would be exactly the
+  // kind of thing nobody agreed to. See invoice-ocr-gemini.ts for the
   // GDPR/data-processor reasoning behind keeping this explicit.
-  const useOpenRouter = process.env.OCR_PROVIDER === "openrouter";
+  const ocrProvider = process.env.OCR_PROVIDER === "gemini" || process.env.OCR_PROVIDER === "hybrid" ? process.env.OCR_PROVIDER : "local";
+  const useGemini = ocrProvider === "gemini";
+  const useHybrid = ocrProvider === "hybrid";
 
-  let extraction;
+  // Provisional default, not derived from a large measured sample (only 4
+  // real invoices were available when this was written, and the local
+  // parser scored 0.86 confidence on all 4 -- not enough spread to fit a
+  // real threshold). Deliberately set high so hybrid mode only calls Gemini
+  // when the local parser is genuinely unsure, keeping the common case
+  // free/fast; override via env once more real-world outcomes are measured
+  // (see invoice-ocr-reconcile.ts / the OCR upgrade plan's Fáze 2).
+  const HYBRID_CONFIDENCE_THRESHOLD = parseConfidenceThreshold(process.env.OCR_HYBRID_CONFIDENCE_THRESHOLD);
+  const HYBRID_REQUIRED_FIELDS = ["amount", "counterparty_ico", "vat_rate"] as const;
+
+  const runLocal = async () => {
+    // pdfjs/unpdf detaches the buffer it's given (see the comment on
+    // extractInvoiceDocumentText) -- hybrid mode may still need the
+    // original bytes for a second, AI call afterward, so local always gets
+    // its own copy, never the shared reference.
+    const documentText = await extractInvoiceDocumentText({ bytes: bytes.slice(), mime: upload.expected_mime });
+    if (!documentText.text.trim()) {
+      throw new LocalOcrError("empty_ocr_text", "V dokumentu se nepodařilo najít žádný čitelný text. Zkuste kvalitnější sken nebo údaje doplňte ručně.");
+    }
+    return parseInvoiceText({
+      text: documentText.text,
+      fileUrl: path,
+      organization,
+      ocrConfidence: documentText.averageConfidence,
+      extraWarnings: documentText.warnings,
+      layout: documentText.layout,
+    });
+  };
+
+  let extraction: InvoiceOcrResult;
   try {
-    if (useOpenRouter) {
-      extraction = await extractInvoiceWithOpenRouter({ bytes, mime: upload.expected_mime, fileUrl: path, organization });
-    } else {
-      const documentText = await extractInvoiceDocumentText({ bytes, mime: upload.expected_mime });
-      if (!documentText.text.trim()) {
-        return fail("V dokumentu se nepodařilo najít žádný čitelný text. Zkuste kvalitnější sken nebo údaje doplňte ručně.", 422, "empty_ocr_text");
+    if (useGemini) {
+      extraction = await extractInvoiceWithGemini({ bytes, mime: upload.expected_mime, fileUrl: path, organization });
+    } else if (useHybrid) {
+      const local = await runLocal();
+      const missingRequiredField = HYBRID_REQUIRED_FIELDS.some(field => !local.invoice[field]);
+      const needsAiCrossCheck = local.confidence < HYBRID_CONFIDENCE_THRESHOLD || missingRequiredField;
+      if (!needsAiCrossCheck) {
+        extraction = local;
+      } else {
+        try {
+          const ai = await extractInvoiceWithGemini({ bytes: bytes.slice(), mime: upload.expected_mime, fileUrl: path, organization });
+          extraction = reconcileExtractions(local, ai);
+        } catch (aiCause) {
+          // The AI cross-check is a bonus, not a requirement -- a document
+          // that already produced a real local reading must not fail
+          // outright just because Gemini timed out or hit a rate limit.
+          // Fall back to the local-only result, same as plain "local" mode.
+          logError("Křížová kontrola OCR přes AI selhala, použije se lokální výsledek", aiCause, {
+            upload_id: upload.id,
+            // Text chyby doplní logError sám do pole "error"; klíč "message"
+            // by naopak přepsal popis výše.
+            code: aiCause instanceof GeminiOcrError ? aiCause.code : "unexpected",
+          });
+          extraction = local;
+        }
       }
-      extraction = parseInvoiceText({
-        text: documentText.text,
-        fileUrl: path,
-        organization,
-        ocrConfidence: documentText.averageConfidence,
-        extraWarnings: documentText.warnings,
-        layout: documentText.layout,
-      });
+    } else {
+      extraction = await runLocal();
     }
   } catch (cause) {
-    console.error("[invoice-ocr] extraction failed", {
-      uploadId: upload.id,
+    logError("OCR zpracování dokumentu selhalo", cause, {
+      upload_id: upload.id,
       mime: upload.expected_mime,
-      provider: useOpenRouter ? "openrouter" : "local",
-      code: cause instanceof LocalOcrError ? cause.code : cause instanceof OpenRouterOcrError ? cause.code : "unexpected",
-      message: cause instanceof Error ? cause.message : String(cause),
+      provider: ocrProvider,
+      code: cause instanceof LocalOcrError ? cause.code : cause instanceof GeminiOcrError ? cause.code : "unexpected",
     });
     if (cause instanceof LocalOcrError) {
       const status = cause.code === "pdf_too_long" || cause.code === "scan_too_long" ? 422 : cause.code === "timeout" ? 504 : 422;
       return fail(cause.message, status, `local_${cause.code}`);
     }
-    if (cause instanceof OpenRouterOcrError) {
-      const status = cause.code === "rate_limited" ? 429 : cause.code === "not_configured" ? 503 : cause.code === "timeout" ? 504 : 422;
-      return fail(cause.message, status, `openrouter_${cause.code}`);
+    if (cause instanceof GeminiOcrError) {
+      const status = cause.code === "rate_limited" ? 429 : cause.code === "not_configured" || cause.code === "invalid_key_format" ? 503 : cause.code === "timeout" ? 504 : 422;
+      return fail(cause.message, status, `gemini_${cause.code}`);
     }
-    return fail(useOpenRouter ? "AI OCR se nepodařilo zpracovat. Zkuste to znovu nebo údaje doplňte ručně." : "Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, useOpenRouter ? "openrouter_failed" : "local_ocr_failed");
+    return fail(useGemini ? "AI OCR se nepodařilo zpracovat. Zkuste to znovu nebo údaje doplňte ručně." : "Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, useGemini ? "gemini_failed" : "local_ocr_failed");
   }
 
   const normalizedIco = normalizeCounterpartyIco(extraction.invoice.counterparty_ico);
@@ -124,7 +186,7 @@ export async function POST(request: Request) {
     policiesPromise,
   ]);
   if (preferenceError || policiesError) {
-    return fail("Kategorii upomínek podle IČO se nepodařilo načíst. Zkontrolujte databázovou migraci.", 503, "reminder_preference_load_failed");
+    return fail("Kategorii upomínek podle IČO se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 503, "reminder_preference_load_failed");
   }
   const reminderPolicyAssignment = resolveReminderPolicyPreference({
     counterpartyIco: normalizedIco,
@@ -149,7 +211,10 @@ export async function POST(request: Request) {
     ocr_error: null,
     ocr_completed_at: new Date().toISOString(),
   }).eq("id", upload.id).eq("ocr_status", "processing");
-  if (completionError) return NextResponse.json({ error: "Výsledek OCR se nepodařilo bezpečně potvrdit." }, { status: 500 });
+  if (completionError) {
+    logError("Výsledek OCR se nepodařilo potvrdit", completionError, { upload_id: upload.id });
+    return apiError(request, "Výsledek OCR se nepodařilo bezpečně potvrdit.", 500, "ocr_completion_failed");
+  }
 
   return NextResponse.json({ extraction }, { headers: { "cache-control": "no-store" } });
 }

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { canAccessOperations } from "@/lib/role-access";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -8,7 +10,7 @@ function validName(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 && value.trim().length <= 100 ? value.trim() : null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canAccessOperations(identity.membership.role)) return NextResponse.json({ error: "Nemáte přístup ke kategoriím upomínek." }, { status: 403 });
@@ -16,7 +18,10 @@ export async function GET() {
     .select("id, name, is_default, days_from_due, archived_at")
     .eq("organization_id", identity.membership.organization_id)
     .order("is_default", { ascending: false }).order("name");
-  if (error) return NextResponse.json({ error: "Kategorie upomínek se nepodařilo načíst. Zkontrolujte databázovou migraci." }, { status: 500 });
+  if (error) {
+    logError("Kategorie upomínek se nepodařilo načíst", error);
+    return apiError(request, "Kategorie upomínek se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500, "reminder_policies_read_failed");
+  }
   return NextResponse.json({ policies: data ?? [] }, { headers: { "cache-control": "private, no-store" } });
 }
 
@@ -52,7 +57,10 @@ export async function PATCH(request: Request) {
   if (!existing) return NextResponse.json({ error: "Kategorie nebyla nalezena." }, { status: 404 });
   if (body.make_default && !existing.is_default) {
     const { error: defaultError } = await identity.service.rpc("set_default_reminder_policy", { target_org: org, target_policy: body.id });
-    if (defaultError) return NextResponse.json({ error: "Výchozí kategorii se nepodařilo změnit. Zkontrolujte databázovou migraci." }, { status: 500 });
+    if (defaultError) {
+      logError("Výchozí kategorii upomínek se nepodařilo změnit", defaultError, { policy_id: body.id });
+      return apiError(request, "Výchozí kategorii se nepodařilo změnit. Zkuste to prosím znovu za chvíli.", 500, "reminder_policy_default_failed");
+    }
   }
   const { data, error } = await identity.service.from("reminder_policies").update({ name, days_from_due: days, updated_at: new Date().toISOString() })
     .eq("organization_id", org).eq("id", body.id).is("archived_at", null).select("id, name, is_default, days_from_due, archived_at").maybeSingle();
@@ -73,7 +81,10 @@ export async function DELETE(request: Request) {
   if (!policy) return NextResponse.json({ error: "Kategorie nebyla nalezena." }, { status: 404 });
   if (policy.is_default) return NextResponse.json({ error: "Nejdříve nastavte jinou výchozí kategorii." }, { status: 409 });
   const { error } = await identity.service.from("reminder_policies").update({ archived_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("organization_id", org).eq("id", id);
-  if (error) return NextResponse.json({ error: "Kategorii se nepodařilo smazat." }, { status: 500 });
+  if (error) {
+    logError("Kategorii upomínek se nepodařilo smazat", error);
+    return apiError(request, "Kategorii se nepodařilo smazat.", 500, "reminder_policy_delete_failed");
+  }
   await identity.service.from("reminder_settings_events").insert({ organization_id: org, actor_user_id: identity.user.id, actor_email: identity.user.email?.toLowerCase() ?? "", is_active: true, days_from_due: [], template_data: { event: "category_archived", policy_id: id } });
   return NextResponse.json({ deleted: true });
 }

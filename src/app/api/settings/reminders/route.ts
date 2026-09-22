@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import type { ReminderStage } from "@/types/invoice";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -34,7 +36,7 @@ function templatesWithDeliveryDefaults() {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   if (!identity)
     return NextResponse.json(
@@ -68,14 +70,10 @@ export async function GET() {
       .limit(1)
       .maybeSingle(),
   ]);
-  if (policyResult.error || templatesResult.error || changeResult.error)
-    return NextResponse.json(
-      {
-        error:
-          "Nastavení upomínek se nepodařilo načíst. Zkontrolujte databázovou migraci.",
-      },
-      { status: 500 },
-    );
+  if (policyResult.error || templatesResult.error || changeResult.error) {
+    logError("Nastavení upomínek se nepodařilo načíst", policyResult.error ?? templatesResult.error ?? changeResult.error);
+    return apiError(request, "Nastavení upomínek se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500, "reminder_settings_read_failed");
+  }
   const policy = policyResult.data;
   const templates = templatesResult.data;
   const merged = templatesWithDeliveryDefaults();
@@ -256,7 +254,7 @@ export async function PUT(request: Request) {
       {
         error: error.message.includes("revision_conflict")
           ? "Nastavení mezitím změnil jiný uživatel. Načtěte stránku znovu a změny porovnejte."
-          : "Nastavení upomínek se nepodařilo uložit. Zkontrolujte databázovou migraci.",
+          : "Nastavení upomínek se nepodařilo uložit. Zkuste to prosím znovu za chvíli.",
       },
       { status: error.message.includes("revision_conflict") ? 409 : 500 },
     );

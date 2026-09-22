@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import type { Invoice } from "@/types/invoice";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
@@ -140,14 +142,10 @@ export async function GET(request: Request) {
   };
   if (wantsExcel) {
     const first = await loadPage(1, EXPORT_PAGE_SIZE);
-    if (first.error || !first.data)
-      return NextResponse.json(
-        {
-          error:
-            "Export se nepodařilo připravit. Zkontrolujte databázovou migraci.",
-        },
-        { status: 500 },
-      );
+    if (first.error || !first.data) {
+      logError("První stránku exportu faktur se nepodařilo načíst", first.error);
+      return apiError(request, "Export se nepodařilo připravit. Zkuste to prosím znovu za chvíli.", 500, "invoice_export_failed");
+    }
     if (first.data.total > MAX_EXPORT_ROWS)
       return NextResponse.json(
         {
@@ -159,11 +157,10 @@ export async function GET(request: Request) {
     const pages = Math.ceil(first.data.total / EXPORT_PAGE_SIZE);
     for (let page = 2; page <= pages; page++) {
       const next = await loadPage(page, EXPORT_PAGE_SIZE);
-      if (next.error || !next.data)
-        return NextResponse.json(
-          { error: "Export se nepodařilo dokončit." },
-          { status: 500 },
-        );
+      if (next.error || !next.data) {
+        logError("Další stránku exportu faktur se nepodařilo načíst", next.error, { page });
+        return apiError(request, "Export se nepodařilo dokončit.", 500, "invoice_export_failed");
+      }
       invoices.push(...next.data.invoices);
     }
     return excelResponse(await invoiceExcel(invoices), "faktury.xlsx");
@@ -186,10 +183,8 @@ export async function GET(request: Request) {
         { error: error.message },
         { status: error.status },
       );
-    return NextResponse.json(
-      { error: "Faktury se nepodařilo načíst." },
-      { status: 500 },
-    );
+    logError("Faktury se nepodařilo načíst", error);
+    return apiError(request, "Faktury se nepodařilo načíst.", 500, "invoices_read_failed");
   }
 }
 

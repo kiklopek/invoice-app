@@ -9,25 +9,38 @@ import { loadInvoicePaymentHistory } from "@/lib/invoice-payment-history";
 import { nullableRpcString } from "@/lib/supabase-server";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import { minorUnits } from "@/lib/money";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
+
+// Chyby 5xx tady znamenají, že uživatel nemá co opravit -- musí se ozvat.
+// Proto jdou přes apiError(), které vrátí request_id v těle i v hlavičce
+// (api-client.ts ho čte a ukáže), a současně se zapíší do logu pod stejným
+// id. Samotné id bez zápisu do logu je uživateli k ničemu, takže vždy obojí.
+// Validační 4xx se záměrně nemění: tam si uživatel poradí sám a odkaz na
+// podporu by jen zavazel.
 
 type Context = { params: Promise<{ id: string }> };
 const allowedStatus: InvoiceStatus[] = ["pending", "paid", "overdue", "cancelled"];
 const editableFields = ["invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email", "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date", "notes", "money_evidence", "reminder_policy_id"] as const;
 
-export async function GET(_: Request, { params }: Context) {
+export async function GET(request: Request, { params }: Context) {
   const { id } = await params;
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
 
   const { data, error } = await identity.service.from("invoices").select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)")
     .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
-  if (error) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+  if (error) {
+    logError("Detail faktury se nepodařilo načíst", error, { invoice_id: id });
+    return apiError(request, "Fakturu se nepodařilo načíst.", 500, "invoice_read_failed");
+  }
   if (!data) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
   let payments;
   try {
     payments = await loadInvoicePaymentHistory(identity.service, identity.membership.organization_id, id);
-  } catch {
-    return NextResponse.json({ error: "Historii plateb se nepodařilo načíst." }, { status: 500 });
+  } catch (cause) {
+    logError("Historii plateb se nepodařilo načíst", cause, { invoice_id: id });
+    return apiError(request, "Historii plateb se nepodařilo načíst.", 500, "payment_history_read_failed");
   }
   return NextResponse.json({ invoice: data, payments, can_manage: canManageInvoices(identity.membership.role) });
 }
@@ -50,7 +63,10 @@ export async function PATCH(request: Request, { params }: Context) {
 
   const { data: existingData, error: existingError } = await identity.service.from("invoices").select("*")
     .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
-  if (existingError) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+  if (existingError) {
+    logError("Fakturu se nepodařilo načíst před úpravou", existingError, { invoice_id: id });
+    return apiError(request, "Fakturu se nepodařilo načíst.", 500, "invoice_read_failed");
+  }
   const existing = existingData as Invoice | null;
   if (!existing) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
@@ -168,7 +184,8 @@ export async function PATCH(request: Request, { params }: Context) {
       if (confirmError.message.includes("payment_exceeds_remaining_amount") || confirmError.message.includes("invalid_payment_amount")) {
         return NextResponse.json({ error: "Uhrazovaná částka neodpovídá zbývajícímu zůstatku faktury." }, { status: 409 });
       }
-      return NextResponse.json({ error: "Úhradu se nepodařilo potvrdit. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+      logError("Potvrzení úhrady selhalo", confirmError, { invoice_id: id });
+      return apiError(request, "Úhradu se nepodařilo potvrdit. Zkuste to prosím znovu za chvíli.", 500, "payment_confirm_failed");
     }
 
     await identity.service.from("reminder_log").update({ status: "skipped", error_message: null, updated_at: new Date().toISOString() })
@@ -177,7 +194,10 @@ export async function PATCH(request: Request, { params }: Context) {
     const { data: refreshed, error: refreshError } = await identity.service.from("invoices")
       .select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)")
       .eq("id", id).eq("organization_id", identity.membership.organization_id).maybeSingle();
-    if (refreshError || !refreshed) return NextResponse.json({ error: "Fakturu se nepodařilo znovu načíst." }, { status: 500 });
+    if (refreshError || !refreshed) {
+      logError("Faktura po úhradě se nepodařilo znovu načíst", refreshError, { invoice_id: id });
+      return apiError(request, "Fakturu se nepodařilo znovu načíst.", 500, "invoice_reload_failed");
+    }
     return NextResponse.json({ invoice: refreshed });
   }
 
@@ -194,10 +214,14 @@ export async function PATCH(request: Request, { params }: Context) {
     if (reopenError) {
       if (reopenError.message.includes("invoice_not_found")) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
       if (reopenError.message.includes("invoice_not_paid")) return NextResponse.json({ error: "Stav faktury se mezitím změnil. Načtěte stránku znovu." }, { status: 409 });
-      return NextResponse.json({ error: "Fakturu se nepodařilo bezpečně znovu otevřít. Zkontrolujte databázovou migraci plateb." }, { status: 500 });
+      logError("Znovuotevření uhrazené faktury selhalo", reopenError, { invoice_id: id });
+      return apiError(request, "Fakturu se nepodařilo bezpečně znovu otevřít. Zkuste to prosím znovu za chvíli.", 500, "invoice_reopen_failed");
     }
     const result = reopened as { invoice?: Invoice; detached_payments?: number } | null;
-    if (!result?.invoice) return NextResponse.json({ error: "Fakturu se nepodařilo znovu načíst." }, { status: 500 });
+    if (!result?.invoice) {
+      logError("Znovuotevřená faktura se nevrátila z RPC", null, { invoice_id: id });
+      return apiError(request, "Fakturu se nepodařilo znovu načíst.", 500, "invoice_reload_failed");
+    }
     return NextResponse.json({ invoice: result.invoice, detached_payments: result.detached_payments ?? 0 });
   }
 
@@ -246,7 +270,10 @@ export async function DELETE(request: Request, { params }: Context) {
   const organizationId = identity.membership.organization_id;
   const { data: existing, error: lookupError } = await identity.service.from("invoices")
     .select("id, file_url").eq("id", id).eq("organization_id", organizationId).maybeSingle();
-  if (lookupError) return NextResponse.json({ error: "Fakturu se nepodařilo ověřit." }, { status: 500 });
+  if (lookupError) {
+    logError("Fakturu se nepodařilo ověřit před smazáním", lookupError, { invoice_id: id });
+    return apiError(request, "Fakturu se nepodařilo ověřit.", 500, "invoice_lookup_failed");
+  }
   if (!existing) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
   const { data: deleted, error: deleteError } = await identity.service.rpc("delete_invoice_safely", {
@@ -257,7 +284,8 @@ export async function DELETE(request: Request, { params }: Context) {
   if (deleteError) {
     if (deleteError.message.includes("invoice_not_found")) return NextResponse.json({ error: "Faktura již neexistuje." }, { status: 404 });
     if (deleteError.message.includes("insufficient_permission")) return NextResponse.json({ error: "Nemáte oprávnění fakturu smazat." }, { status: 403 });
-    return NextResponse.json({ error: "Fakturu se nepodařilo bezpečně smazat. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+    logError("Bezpečné smazání faktury selhalo", deleteError, { invoice_id: id });
+    return apiError(request, "Fakturu se nepodařilo bezpečně smazat. Zkuste to prosím znovu za chvíli.", 500, "invoice_delete_failed");
   }
 
   let documentCleanupPending = false;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
+import { logError, requestId } from "@/lib/structured-log";
 
 export const maxDuration = 60;
 export async function GET(request: Request) {
@@ -7,6 +8,12 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { data, error } = await createServiceClient().rpc("run_bank_reconciliation_jobs");
-  if (error) return NextResponse.json({ error: "Zpracování plateb selhalo." }, { status: 500 });
+  if (error) {
+    // Bezi kazdych 5 minut a zaucotvava penize. Driv se chyba RPC zahodila
+    // beze stopy, takze vypadek mohl trvat tydny, aniz by po nem cokoli
+    // zbylo -- navenek jen 500 bez detailu.
+    logError("Automatické párování plateb selhalo", error, { request_id: requestId(request) });
+    return NextResponse.json({ error: "Zpracování plateb selhalo." }, { status: 500 });
+  }
   return NextResponse.json({ results: data });
 }

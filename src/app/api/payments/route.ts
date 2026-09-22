@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { loadPaymentsPageData } from "@/lib/payments-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   try {
     const data = await loadPaymentsPageData(identity);
     return NextResponse.json(data);
   } catch (cause) {
     if (cause instanceof PageDataError) return NextResponse.json({ error: cause.message }, { status: cause.status });
-    return NextResponse.json({ error: "Bankovní platby se nepodařilo načíst. Zkontrolujte poslední databázovou migraci." }, { status: 500 });
+    logError("Bankovní platby se nepodařilo načíst", cause);
+    return apiError(request, "Bankovní platby se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500, "bank_payments_read_failed");
   }
 }
 
@@ -126,7 +129,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Platbu se nepodařilo bezpečně uvolnit. Zkontrolujte její stav a databázovou migraci.",
+          "Platbu se nepodařilo bezpečně uvolnit. Zkontrolujte její stav a zkuste to znovu.",
       },
       { status: 409 },
     );

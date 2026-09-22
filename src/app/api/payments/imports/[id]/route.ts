@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
@@ -60,11 +62,10 @@ export async function GET(request: Request, context: Context) {
     const { data, error: signedError } = await identity.service.storage
       .from("bank-statements")
       .createSignedUrl(statement.storage_path, 60);
-    if (signedError)
-      return NextResponse.json(
-        { error: "Odkaz na soubor se nepodařilo vytvořit." },
-        { status: 500 },
-      );
+    if (signedError) {
+      logError("Podepsaný odkaz na výpis se nepodařilo vytvořit", signedError, { import_id: id });
+      return apiError(request, "Odkaz na soubor se nepodařilo vytvořit.", 500, "statement_signed_url_failed");
+    }
     return NextResponse.json({ url: data.signedUrl, expires_in: 60 });
   }
   const from = (page - 1) * pageSize;
@@ -101,18 +102,16 @@ export async function GET(request: Request, context: Context) {
         "statement_entry_id",
         entries!.map((entry) => entry.id),
       );
-    if (fetched.error)
-      return NextResponse.json(
-        { error: "Přiřazení se nepodařilo načíst." },
-        { status: 500 },
-      );
+    if (fetched.error) {
+      logError("Přiřazení plateb se nepodařilo načíst", fetched.error, { import_id: id });
+      return apiError(request, "Přiřazení se nepodařilo načíst.", 500, "allocations_read_failed");
+    }
     visibleAllocations = fetched.data ?? [];
   }
-  if (entryError)
-    return NextResponse.json(
-      { error: "Položky importu se nepodařilo načíst." },
-      { status: 500 },
-    );
+  if (entryError) {
+    logError("Položky importu se nepodařilo načíst", entryError, { import_id: id });
+    return apiError(request, "Položky importu se nepodařilo načíst.", 500, "statement_entries_read_failed");
+  }
   // Why a booked row was booked. Lives on the payment, not the entry, and only
   // an unattended run fills it -- so the review screen can tell the reader that
   // nobody looked at this one, and on what grounds it went through.
@@ -152,11 +151,10 @@ export async function GET(request: Request, context: Context) {
       )
       .eq("organization_id", org)
       .in("id", invoiceIds);
-    if (fetched.error)
-      return NextResponse.json(
-        { error: "Navržené faktury se nepodařilo načíst." },
-        { status: 500 },
-      );
+    if (fetched.error) {
+      logError("Navržené faktury se nepodařilo načíst", fetched.error, { import_id: id });
+      return apiError(request, "Navržené faktury se nepodařilo načíst.", 500, "proposal_invoices_read_failed");
+    }
     proposalInvoices = fetched.data ?? [];
   }
   const [booked, failed] = await Promise.all([
@@ -166,7 +164,10 @@ export async function GET(request: Request, context: Context) {
       .eq("organization_id", org).eq("import_id", id).eq("disposition", "accepted")
       .is("bank_payment_id", null).not("processing_error", "is", null),
   ]);
-  if (booked.error || failed.error) return NextResponse.json({ error: "Průběh importu se nepodařilo načíst." }, { status: 500 });
+  if (booked.error || failed.error) {
+    logError("Průběh importu se nepodařilo načíst", booked.error ?? failed.error, { import_id: id });
+    return apiError(request, "Průběh importu se nepodařilo načíst.", 500, "import_progress_read_failed");
+  }
   return NextResponse.json({
     match_reasons: matchReasons,
     import: statement,

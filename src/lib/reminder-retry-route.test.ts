@@ -13,7 +13,10 @@ describe("manual reminder retry reliability", () => {
   it("keeps a retry failed instead of skipping it when the database recheck fails", () => {
     expect(route).toContain("if (currentInvoiceError)");
     expect(route).toContain('status: "failed"');
-    expect(route).toContain('code: "REMINDER_INVOICE_RECHECK_FAILED"');
+    // Kód se vrací přes apiError(), který ho doplní do těla odpovědi spolu
+    // s request_id. Dřív se tu hledal doslovný zápis `code: "..."`, takže
+    // test padal po změně způsobu sestavení odpovědi, i když se vracel týž kód.
+    expect(route).toContain('"REMINDER_INVOICE_RECHECK_FAILED"');
     expect(route.indexOf("if (currentInvoiceError)")).toBeLessThan(route.indexOf("if (!currentInvoice ||"));
   });
 });

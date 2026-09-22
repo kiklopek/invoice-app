@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -33,7 +35,10 @@ export async function POST(request: Request) {
 
   const { error } = await identity.service.from("invoice_uploads").update({ status: "verified", verified_at: new Date().toISOString() })
     .eq("id", upload.id).eq("status", "pending");
-  if (error) return NextResponse.json({ error: "Dokument se nepodařilo potvrdit." }, { status: 500 });
+  if (error) {
+    logError("Potvrzení nahraného dokumentu selhalo", error);
+    return apiError(request, "Dokument se nepodařilo potvrdit.", 500, "upload_verify_failed");
+  }
   return NextResponse.json({ path, verified: true });
 }
 

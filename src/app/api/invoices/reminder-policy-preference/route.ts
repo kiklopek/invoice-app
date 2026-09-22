@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
@@ -29,7 +31,8 @@ export async function GET(request: Request) {
     policiesPromise,
   ]);
   if (preferenceError || policiesError) {
-    return NextResponse.json({ error: "Kategorii upomínek podle IČO se nepodařilo načíst." }, { status: 503 });
+    logError("Kategorii upomínek podle IČO se nepodařilo načíst", preferenceError ?? policiesError);
+    return apiError(request, "Kategorii upomínek podle IČO se nepodařilo načíst.", 503, "reminder_policy_preference_failed");
   }
   const assignment = resolveReminderPolicyPreference({
     counterpartyIco: normalizedIco,

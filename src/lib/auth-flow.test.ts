@@ -55,17 +55,33 @@ describe("authentication flow", () => {
   });
 
   it("confirms role changes and removals from the membership table", () => {
+    // Dřív se tu hledaly doslovné řetězce console.error(...), takže test
+    // padal po každé změně způsobu logování, i když se chování nezměnilo.
+    // Hlídá se proto záměr: změna role i odebrání přístupu se po zápisu
+    // ověřují dotazem zpět do tabulky, každé selhání té kontroly se zapíše
+    // a uživatel se o něm dozví.
     const membersRoute = source("src/app/api/settings/members/route.ts");
-    expect(membersRoute).toContain('console.error("Member role confirmation failed"');
-    expect(membersRoute).toContain('console.error("Member removal confirmation failed"');
-    expect(membersRoute).toContain('console.error("Auth user deletion failed"');
-    expect(membersRoute).toContain('return NextResponse.json({ error: "Přístup zůstal aktivní. Zkuste odebrání znovu." }');
+    for (const failure of [
+      "Potvrzení změněné role selhalo",
+      "Potvrzení odebrání přístupu selhalo",
+      "Smazání přihlašovacího účtu selhalo",
+    ]) {
+      expect(membersRoute, failure).toContain(`logError("${failure}"`);
+    }
+    // Člen, který po odebrání zůstal v tabulce, nesmí projít jako úspěch.
+    expect(membersRoute).toContain("Přístup zůstal aktivní. Zkuste odebrání znovu.");
+    expect(membersRoute).toContain("if (remainingMember)");
   });
 
   it("sends ordinary password logins through e-mail verification while the trusted account opens the dashboard", () => {
     const login = source("src/app/(auth)/login/page.tsx");
     const accessRoute = source("src/app/api/auth/access/route.ts");
-    expect(login).toContain('window.location.assign(access.mfaBypassed ? "/dashboard" : "/mfa")');
+    // Cil po prihlaseni uz neni pevne "/dashboard", ale ?returnTo (validovane
+    // pres safeReturnPath) -- driv se returnTo generovalo, ale nikdo ho necetl.
+    // Invariant zustava: duveryhodny ucet jde rovnou do aplikace, ostatni na MFA.
+    const compactLogin = login.replace(/\s+/g, " ");
+    expect(compactLogin).toMatch(/access\.mfaBypassed \? returnTo : `\/mfa\?returnTo=/);
+    expect(login).toContain("safeReturnPath(");
     expect(login).toContain('fetch("/api/auth/session-preference"');
     expect(login).toContain("Zapamatovat si mě");
     expect(accessRoute).toContain("mfa_bypassed");

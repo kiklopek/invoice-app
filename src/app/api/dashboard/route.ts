@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import type { DashboardData } from "@/lib/dashboard-summary";
 import { loadDashboardPageData, PageDataError } from "@/lib/dashboard-page-data";
@@ -8,7 +10,7 @@ const response = (data: DashboardData, serverTiming?: string) => NextResponse.js
   ...(serverTiming ? { "server-timing": serverTiming } : {}),
 } });
 
-export async function GET() {
+export async function GET(request: Request) {
   const startedAt = performance.now();
   try {
     const identity = await getRequestIdentity();
@@ -21,6 +23,7 @@ export async function GET() {
     return result;
   } catch (error) {
     if (error instanceof PageDataError) return NextResponse.json({ error: error.message }, { status: error.status });
-    return NextResponse.json({ error: "Přehled se nepodařilo načíst." }, { status: 500 });
+    logError("Přehled se nepodařilo načíst", error);
+    return apiError(request, "Přehled se nepodařilo načíst.", 500, "dashboard_read_failed");
   }
 }

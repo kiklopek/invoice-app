@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
+import { validateCompanyFields } from "@/lib/company-validation";
 import {
   canEditCompanySettings,
   canViewCompanySettings,
 } from "@/lib/role-access";
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   if (!identity)
     return NextResponse.json(
@@ -25,11 +28,10 @@ export async function GET() {
     )
     .eq("id", identity.membership.organization_id)
     .single();
-  if (error)
-    return NextResponse.json(
-      { error: "Firemní údaje se nepodařilo načíst." },
-      { status: 500 },
-    );
+  if (error) {
+    logError("Firemní údaje se nepodařilo načíst", error);
+    return apiError(request, "Firemní údaje se nepodařilo načíst.", 500, "company_read_failed");
+  }
   return NextResponse.json({
     company: { ...data, revision: data.settings_revision },
   });
@@ -66,13 +68,14 @@ export async function PUT(request: Request) {
     ]),
   ) as Record<(typeof fields)[number], string>;
   const expectedRevision = Number(body.revision);
-  if (
-    !company.name ||
-    !/^\d{8}$/.test(company.ico) ||
-    !/^\S+@\S+\.\S+$/.test(company.email)
-  )
+  // Dřív se ověřovalo jen "IČO má osm číslic" a čísla účtů vůbec.
+  // Chybný účet se přitom projeví až za týden jako "platby nedorazily",
+  // protože párování výpisů hlásí neshodu účtu. Validace je i na klientovi,
+  // ale spolehnout se na ni nelze -- request může přijít odkudkoli.
+  const fieldErrors = validateCompanyFields(company);
+  if (fieldErrors.length)
     return NextResponse.json(
-      { error: "Zkontrolujte název, osmimístné IČO a e-mail." },
+      { error: fieldErrors.map((problem) => problem.message).join(" ") },
       { status: 400 },
     );
   if (!Number.isInteger(expectedRevision) || expectedRevision < 1)
@@ -100,11 +103,10 @@ export async function PUT(request: Request) {
       "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, settings_revision",
     )
     .maybeSingle();
-  if (error)
-    return NextResponse.json(
-      { error: "Firemní údaje se nepodařilo uložit." },
-      { status: 500 },
-    );
+  if (error) {
+    logError("Firemní údaje se nepodařilo uložit", error);
+    return apiError(request, "Firemní údaje se nepodařilo uložit.", 500, "company_write_failed");
+  }
   if (!data)
     return NextResponse.json(
       {
