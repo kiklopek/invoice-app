@@ -10,6 +10,7 @@ import { InvoiceForm } from "@/components/invoice-form";
 import { Modal } from "@/components/modal";
 import { todayInTimeZone } from "@/lib/reminders";
 import { confirmAction } from "@/lib/confirm-action";
+import { useInvalidateWorkspaceData } from "@/lib/workspace-cache";
 import type {
   Invoice,
   InvoiceInput,
@@ -93,6 +94,7 @@ function reminderDescription(item: ReminderRecord) {
 export function InvoiceDetailClient({ id, initialData }: { id: string; initialData: InvoiceDetailPageData }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const invalidateWorkspaceData = useInvalidateWorkspaceData();
   const [invoice, setInvoice] = useState<Invoice | null>(initialData.invoice);
   const [reminders, setReminders] = useState<ReminderRecord[]>(initialData.reminders);
   const [emailSuppression, setEmailSuppression] =
@@ -151,6 +153,10 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       throw new Error(data.error || "Fakturu se nepodařilo změnit.");
     setInvoice(data.invoice);
     void refreshDetail();
+    // Dashboard, Reporty a další už navštívené stránky sdílejí jednu cache
+    // a bez tohohle by po změně stavu/úhradě zůstaly na starých číslech --
+    // fallbackData ze serveru se ignoruje, když cache pro klíč už něco má.
+    void invalidateWorkspaceData();
     return data as { invoice: Invoice; detached_payments?: number };
   }
   async function changeStatus(status: InvoiceStatus) {
@@ -340,6 +346,8 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       setNotice(
         `Platba byla uvolněna. K úhradě zbývá ${money(Number(data.remaining), payment.currency)}.`,
       );
+      // Uvolnění mění zbývající zůstatek faktury -- stejný důvod jako u patch().
+      void invalidateWorkspaceData();
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -358,6 +366,10 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       const response = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Fakturu se nepodařilo smazat.");
+      // Dashboard a Reporty jsou v tuhle chvíli typicky ještě nepřipojené --
+      // invalidace jen zahodí jejich cache, takže příští návštěva natáhne
+      // čerstvá data místo toho, co platilo před smazáním.
+      void invalidateWorkspaceData();
       router.replace("/invoices");
       router.refresh();
     } catch (cause) {
