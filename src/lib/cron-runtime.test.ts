@@ -80,10 +80,41 @@ describe("cron handler isolation", () => {
 });
 
 describe("cron failure visibility", () => {
-  // Bezi kazdych 5 minut. Tichá chyba je tichá po tydny -- driv se chyba RPC
+  // Bezi jednou denne. Tichá chyba je tichá po tydny -- driv se chyba RPC
   // zahodila uplne a nezbyl po ni zadny zaznam.
   it("logs reconcile failures instead of swallowing them", () => {
     const source = read(`${CRON_DIR}/reconcile-payments/route.ts`);
     expect(source).toContain("logError");
+  });
+});
+
+describe("Hobby plan cron compliance", () => {
+  // Skutečný incident (22. 9.): vercel.json měl reconcile-payments na
+  // "*/5 * * * *" (každých 5 minut). Hobby plán povoluje cron jen jednou
+  // denně -- Vercel takový plán odmítne nasadit ("Hobby accounts are
+  // limited to cron jobs that run once per day"). Nešlo o jedno selhání:
+  // KAŽDÝ deploy od chvíle, kdy se ta routa objevila (12 commitů), tise
+  // selhal a produkce zůstala vzadu, aniž by si toho kdokoli všiml --
+  // GitHub check hlásil selhání, ale nikdo se na něj nepodíval.
+  //
+  // Test hlídá tvar výrazu, ne konkrétní čas: pole minuta a hodina musí být
+  // pevná čísla, ne "*", "*/5", rozsah nebo seznam -- cokoli jiného znamená
+  // víc než jeden běh za den.
+  const runsAtMostOncePerDay = (expression: string) => {
+    const [minute, hour] = expression.trim().split(/\s+/);
+    const isFixed = (field: string | undefined) => field !== undefined && /^\d+$/.test(field);
+    return isFixed(minute) && isFixed(hour);
+  };
+
+  it("odmítne známý špatný výraz, aby bylo jasné, že test skutečně měří", () => {
+    expect(runsAtMostOncePerDay("*/5 * * * *")).toBe(false);
+  });
+
+  it("každý naplánovaný cron v vercel.json běží nejvýš jednou denně", () => {
+    const crons = JSON.parse(read("vercel.json")).crons as { path: string; schedule: string }[];
+    expect(crons.length).toBeGreaterThan(0);
+    for (const cron of crons) {
+      expect(runsAtMostOncePerDay(cron.schedule), `${cron.path}: "${cron.schedule}" běží víckrát než jednou denně -- Hobby plán takový deploy odmítne`).toBe(true);
+    }
   });
 });

@@ -9,7 +9,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { data, error } = await createServiceClient().rpc("run_bank_reconciliation_jobs");
   if (error) {
-    // Bezi kazdych 5 minut a zaucotvava penize. Driv se chyba RPC zahodila
+    // Bezi jednou denne (Hobby plan povoluje cron nejvyse jednou za den --
+    // "*/5 * * * *" tu byl pres tucet commitu a KAZDY nasazeni na produkci
+    // od te doby tise selhavalo na "Hobby accounts are limited to cron jobs
+    // that run once per day"). Zaucotvava penize. Driv se chyba RPC zahodila
     // beze stopy, takze vypadek mohl trvat tydny, aniz by po nem cokoli
     // zbylo -- navenek jen 500 bez detailu.
     logError("Automatické párování plateb selhalo", error, { request_id: requestId(request) });
