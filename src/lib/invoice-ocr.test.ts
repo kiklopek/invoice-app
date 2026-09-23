@@ -769,3 +769,39 @@ describe("relevantOcrWarnings", () => {
     expect(relevantOcrWarnings(warnings, filledIn)).toEqual(warnings);
   });
 });
+
+describe("dlouhé nepřerušované řady číslic v hlavičce dokumentu", () => {
+  // Skutečný incident (23. 9., reálná faktura dvou tras): dokument v hlavičce
+  // nese IBAN bez mezer ("CZ3601000000006844160247"). AMOUNT_SOURCE regex
+  // nemá horní mez na délku neseskupené číslice, takže tuhle 22místnou řadu
+  // vezme jako jedinou "částku". Number(...) na ní ztratí přesnost a přejde
+  // do exponenciálního zápisu; minorUnits() na tom pak spočítá hodnotu daleko
+  // za Number.MAX_SAFE_INTEGER a vyhodí "Částka je mimo podporovaný rozsah."
+  // -- bez zachycení, takže spadne celé parseInvoiceText a OCR faktury s
+  // IBANem v hlavičce (běžný případ) selže vždy, bez ohledu na to, co je
+  // v tabulce položek. Řádek s vlastním IBANem prochází stejnou cestou jako
+  // řádek protistrany, protože bestSource() prohledává KAŽDÝ řádek dokumentu.
+  const withIban = `
+FAKTURA
+R. Hlavica s.r.o.
+IBAN : CZ3601000000006844160247
+Odběratel : Marland s.r.o.
+IČO : 05369495
+DIČ : CZ05369495
+
+Číslo faktury : 2600194
+Datum vystavení : 08.09.2026
+Datum splatnosti: 22.09.2026
+K úhradě : 85 585,20 Kč
+`;
+
+  it("nespadne na dlouhém IBANu v hlavičce, jen ho ignoruje jako částku", () => {
+    expect(() => parseInvoiceText({ text: withIban, fileUrl: "org/file.pdf", organization })).not.toThrow();
+  });
+
+  it("i s IBANem v dokumentu správně najde celkovou částku a protistranu", () => {
+    const result = parseInvoiceText({ text: withIban, fileUrl: "org/file.pdf", organization });
+    expect(result.invoice.amount).toBe(85585.2);
+    expect(result.invoice.counterparty_name).toBe("Marland s.r.o.");
+  });
+});

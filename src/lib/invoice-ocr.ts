@@ -161,7 +161,19 @@ function parseMoney(value: string): number | null {
     normalized = compact.replace(/[.,]/g, "");
   }
   const number = Number(normalized);
-  return Number.isFinite(number) ? roundMoney(number) : null;
+  if (!Number.isFinite(number)) return null;
+  try {
+    // roundMoney (-> minorUnits) vyhazuje výjimku pro cokoli mimo bezpečný
+    // rozsah čísel -- a AMOUNT_SOURCE nemá horní mez na délku neseskupené
+    // číslice, takže dlouhý nepřerušovaný řetězec (IBAN, dlouhé referenční
+    // číslo) v libovolném řádku dokumentu sem klidně dorazí. bestSource()
+    // prohledává KAŽDÝ řádek dokumentu, takže bez tohohle try/catch by
+    // taková hodnota shodila celé parseInvoiceText -- OCR musí na
+    // nerozpoznatelnou částku degradovat na "nenalezeno", ne spadnout.
+    return roundMoney(number);
+  } catch {
+    return null;
+  }
 }
 
 function currencyCode(value: string | null | undefined) {
