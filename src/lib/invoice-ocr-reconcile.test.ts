@@ -77,12 +77,14 @@ describe("reconcileExtractions", () => {
     expect(merged.warnings.some(w => w.includes("IČO odběratele"))).toBe(true);
   });
 
-  it("resolves a non-money disagreement in favor of higher per-field confidence", () => {
+  it("never silently picks a winner on a counterparty_dic disagreement", () => {
     const local = localResult({ counterparty_dic: "CZ64259374" }, { counterparty_dic: source("CZ64259374", 0.4) });
     const ai = aiResult({ counterparty_dic: "CZ64259999" }, { counterparty_dic: source("CZ64259999", 0.9) });
     const merged = reconcileExtractions(local, ai);
-    expect(merged.invoice.counterparty_dic).toBe("CZ64259999");
+    expect(merged.invoice.counterparty_dic).toBe("CZ64259374");
+    expect(merged.field_sources.counterparty_dic?.confidence).toBeLessThanOrEqual(0.3);
     expect(merged.warnings.some(w => w.includes("DIČ odběratele"))).toBe(true);
+    expect(merged.confidence).toBeLessThanOrEqual(0.35);
   });
 
   it("keeps the local value on a non-money disagreement when neither side has a numeric field confidence", () => {
@@ -98,6 +100,18 @@ describe("reconcileExtractions", () => {
     const merged = reconcileExtractions(local, ai);
     expect(merged.invoice.counterparty_email).toBe("fakturace@example.cz");
     expect(merged.field_sources.counterparty_email?.method).toBe("pdf_text");
+  });
+
+  it("does not let AI reinsert identity data that the local parser tied to another named party", () => {
+    const local = localResult({ counterparty_dic: "" });
+    local.warnings.push("DIČ uvedené u jiné osoby nebo firmy nebylo přiřazeno odběrateli. Zkontrolujte DIČ ručně.");
+    const ai = aiResult({ counterparty_dic: "CZ7311145842" }, { counterparty_dic: source("Robert Hlavica DIČ: CZ7311145842", 0.95) });
+
+    const merged = reconcileExtractions(local, ai);
+
+    expect(merged.invoice.counterparty_dic).toBe("");
+    expect(merged.field_sources.counterparty_dic).toBeUndefined();
+    expect(merged.warnings).toContain("DIČ uvedené u jiné osoby nebo firmy nebylo přiřazeno odběrateli. Zkontrolujte DIČ ručně.");
   });
 
   it("keeps the local value when only the local engine found a field", () => {

@@ -598,6 +598,47 @@ function findValueBlockX(layout: OcrDocumentLayout | undefined, value: string): 
   return null;
 }
 
+// Some PDFs put an identity on one physical line, for example
+// "Robert Hlavica DIČ: CZ7311145842". When the document has no reliable
+// section headings/geometry, the old whole-document fallback could take that
+// DIČ for an entirely different counterparty. A value explicitly prefixed by
+// another person's/company's name is stronger evidence than its mere position
+// in the reconstructed text stream, so reject it instead of guessing.
+function hasDifferentInlineOwner(
+  lines: string[],
+  pattern: RegExp,
+  value: string,
+  counterpartyName: string,
+  organizationName: string,
+) {
+  const sought = value.replace(/[\s-]/g, "").toUpperCase();
+  if (!sought) return false;
+  const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+
+  for (const line of lines) {
+    for (const match of line.matchAll(new RegExp(pattern.source, flags))) {
+      if ((match[1] ?? "").replace(/[\s-]/g, "").toUpperCase() !== sought) continue;
+      const prefix = line.slice(0, match.index ?? 0)
+        .replace(new RegExp(`\\b(?:${ISSUER_HEADING_WORDS}|${COUNTERPARTY_HEADING_WORDS})\\b`, "giu"), " ")
+        .replace(/[„“"':|()[\]{}]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const owner = normalizeComparable(prefix);
+      if (!owner) continue;
+      const counterparty = normalizeComparable(counterpartyName);
+      const organization = normalizeComparable(organizationName);
+      if (organization.length >= 5 && owner.includes(organization) && owner !== counterparty) return true;
+
+      // Require at least two real words before treating an arbitrary prefix as
+      // a party name. This deliberately does not reject short accounting
+      // annotations such as "HS: IČ: ...".
+      const words = prefix.match(/\p{L}[\p{L}.&-]*/gu) ?? [];
+      if (words.length >= 2 && counterparty.length >= 3 && !owner.includes(counterparty) && !counterparty.includes(owner)) return true;
+    }
+  }
+  return false;
+}
+
 function findCounterparty(
   lines: string[],
   strippedLines: string[],
@@ -621,6 +662,14 @@ function findCounterparty(
   const issuerNames = new Set(issuerSection.map(line => normalizeComparable(line)).filter(Boolean));
   const issuerEmails = new Set(uniqueMatches(issuerSectionText, EMAIL_PATTERN, value => value.toLowerCase()));
 
+  const name = section.find(line => {
+    const strippedLine = stripDiacritics(line);
+    const normalized = normalizeComparable(line);
+    return line.length >= 3 && !IGNORED_NAME_LINE.test(strippedLine) && !/@/.test(line) && !/^\d/.test(line)
+      && normalized !== normalizeComparable(organization.name)
+      && !issuerNames.has(normalized);
+  }) ?? "";
+
   // Only trust column position when the document actually has two distinct,
   // horizontally separated headings to compare against -- a single-column
   // template, or a layout without word-level geometry (fallbackLayout, plain
@@ -636,10 +685,30 @@ function findCounterparty(
     return Math.abs(x - issuerHeadingX!) < Math.abs(x - counterpartyHeadingX!);
   };
 
-  const icoCandidates = uniqueMatches(`${sectionText}\n${text}`, ICO_PATTERN, digits)
+  const belongsToCounterpartyColumn = (value: string) => {
+    if (!columnsDiffer) return false;
+    const x = findValueBlockX(layout, value);
+    if (x === null) return false;
+    return Math.abs(x - counterpartyHeadingX!) < Math.abs(x - issuerHeadingX!);
+  };
+
+  const structuralIcoCandidates = uniqueMatches(`${sectionText}\n${text}`, ICO_PATTERN, digits)
     .filter(value => value.length === 8 && value !== organizationIco && !issuerIcos.has(value) && !belongsToIssuerColumn(value));
-  const dicCandidates = uniqueMatches(`${sectionText}\n${text}`, DIC_PATTERN, value => value.replace(/[\s-]/g, "").toUpperCase())
+  const structuralDicCandidates = uniqueMatches(`${sectionText}\n${text}`, DIC_PATTERN, value => value.replace(/[\s-]/g, "").toUpperCase())
     .filter(value => value !== organizationDic && !issuerDics.has(value) && !belongsToIssuerColumn(value));
+  const sectionIcos = new Set(uniqueMatches(sectionText, ICO_PATTERN, digits));
+  const sectionDics = new Set(uniqueMatches(sectionText, DIC_PATTERN, value => value.replace(/[\s-]/g, "").toUpperCase()));
+  const icoHasCounterpartyEvidence = (value: string) => sectionIcos.has(value) || belongsToCounterpartyColumn(value);
+  const dicHasCounterpartyEvidence = (value: string) => sectionDics.has(value) || belongsToCounterpartyColumn(value);
+  const icoHasDifferentOwner = (value: string) => hasDifferentInlineOwner(lines, ICO_PATTERN, value, name, organization.name);
+  const dicHasDifferentOwner = (value: string) => hasDifferentInlineOwner(lines, DIC_PATTERN, value, name, organization.name);
+
+  // Identity fields are deliberately stricter than ordinary OCR fields:
+  // appearing somewhere in the document is not evidence that a number
+  // belongs to the customer. Accept it only inside the Odběratel/Customer
+  // section or in the customer column established from document geometry.
+  const icoCandidates = structuralIcoCandidates.filter(value => icoHasCounterpartyEvidence(value) && !icoHasDifferentOwner(value));
+  const dicCandidates = structuralDicCandidates.filter(value => dicHasCounterpartyEvidence(value) && !dicHasDifferentOwner(value));
   // The e-mail used to be the one counterparty field with no supplier guard at
   // all: it fell back to the first address anywhere in the document, which on a
   // single-column template is the SUPPLIER's. That address then rode into the
@@ -649,19 +718,15 @@ function findCounterparty(
   const emailCandidates = uniqueMatches(sectionText || text, EMAIL_PATTERN, value => value.toLowerCase())
     .filter(value => !issuerEmails.has(value) && !belongsToIssuerColumn(value));
 
-  const name = section.find(line => {
-    const strippedLine = stripDiacritics(line);
-    const normalized = normalizeComparable(line);
-    return line.length >= 3 && !IGNORED_NAME_LINE.test(strippedLine) && !/@/.test(line) && !/^\d/.test(line)
-      && normalized !== normalizeComparable(organization.name)
-      && !issuerNames.has(normalized);
-  }) ?? "";
-
   return {
     name: boundedText(name.replace(/^[\s:.-]+/, ""), 200),
     ico: boundedText(icoCandidates[0], 20),
     dic: boundedText(dicCandidates[0], 24),
     email: boundedText(emailCandidates[0], 254),
+    rejectedIcoOwner: structuralIcoCandidates.some(icoHasDifferentOwner),
+    rejectedDicOwner: structuralDicCandidates.some(dicHasDifferentOwner),
+    rejectedUnscopedIco: structuralIcoCandidates.some(value => !icoHasCounterpartyEvidence(value) && !icoHasDifferentOwner(value)),
+    rejectedUnscopedDic: structuralDicCandidates.some(value => !dicHasCounterpartyEvidence(value) && !dicHasDifferentOwner(value)),
   };
 }
 
@@ -903,6 +968,10 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   if (!invoiceNumber) warnings.push(OCR_MISSING_FIELD_WARNING.invoice_number!);
   if (!counterparty.name) warnings.push(OCR_MISSING_FIELD_WARNING.counterparty_name!);
   if (!counterparty.email) warnings.push(OCR_MISSING_FIELD_WARNING.counterparty_email!);
+  if (counterparty.rejectedIcoOwner) warnings.push("IČO uvedené u jiné osoby nebo firmy nebylo přiřazeno odběrateli. Zkontrolujte IČO ručně.");
+  if (counterparty.rejectedDicOwner) warnings.push("DIČ uvedené u jiné osoby nebo firmy nebylo přiřazeno odběrateli. Zkontrolujte DIČ ručně.");
+  if (counterparty.rejectedUnscopedIco) warnings.push("IČO bez jednoznačné vazby na sekci odběratele nebylo přiřazeno. Zkontrolujte IČO ručně.");
+  if (counterparty.rejectedUnscopedDic) warnings.push("DIČ bez jednoznačné vazby na sekci odběratele nebylo přiřazeno. Zkontrolujte DIČ ručně.");
   // DIČ deliberately isn't checked the same way: plenty of legitimate
   // counterparties (non-VAT-payers, individuals) have none at all, so a
   // missing DIČ isn't itself evidence of a recognition failure the way a

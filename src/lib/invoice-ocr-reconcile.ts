@@ -11,7 +11,7 @@ import type { InvoiceInput } from "@/types/invoice";
 // explicit warning naming both readings, so a human decides. This is the
 // same posture invoice-ocr.ts and invoice-ocr-gemini.ts already take
 // individually; reconcileExtractions just applies it when combining them.
-const MONEY_FIELDS = new Set<OcrFieldName>(["amount", "amount_without_vat", "vat_rate", "counterparty_ico"]);
+const PROTECTED_FIELDS = new Set<OcrFieldName>(["amount", "amount_without_vat", "vat_rate", "counterparty_ico", "counterparty_dic"]);
 
 export const DEFAULT_HYBRID_CONFIDENCE_THRESHOLD = 0.8;
 
@@ -75,7 +75,7 @@ const FIELD_LABELS: Record<OcrFieldName, string> = {
 
 // Merges a local (pdfjs/Tesseract + regex) extraction with an AI (Gemini)
 // extraction of the SAME document, field by field, never wholesale
-// preferring one engine. See MONEY_FIELDS above for the one hard rule: a
+// preferring one engine. See PROTECTED_FIELDS above for the one hard rule: a
 // disagreement there always surfaces to the human reviewer instead of
 // silently resolving. Everything else in this function is additive to the
 // existing field_sources/confidence/warnings contract -- the review UI
@@ -103,7 +103,7 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
       }
       // Disagreement. Money/identity fields: never silently pick a winner --
       // keep the local, line-grounded value as-is but flag it for review.
-      if (MONEY_FIELDS.has(field)) {
+      if (PROTECTED_FIELDS.has(field)) {
         moneyDisagreement = true;
         const existing = fieldSources[field];
         if (existing) fieldSources[field] = { ...existing, confidence: Math.min(existing.confidence ?? 0.3, 0.3) };
@@ -127,6 +127,12 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
     }
 
     if (!localPresent && aiPresent) {
+      const rejectedDifferentOwner = (field === "counterparty_ico" || field === "counterparty_dic")
+        && local.warnings.some(warning => warning.startsWith(field === "counterparty_ico" ? "IČO" : "DIČ") && warning.includes("nebylo přiřazeno"));
+      // The local parser saw the value but also saw explicit document
+      // evidence that it belongs to another named party. An ungrounded AI
+      // answer must not reinsert that same dangerous value into the gap.
+      if (rejectedDifferentOwner) continue;
       // AI found something local missed entirely -- fill the gap. Still
       // subject to the money-safety posture: an AI-only money value is
       // exactly as unverified as any other single-source AI read, so it

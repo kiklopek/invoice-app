@@ -280,9 +280,14 @@ export async function extractInvoiceWithGemini({
   // unfamiliar layout. Guard the one field with a cheap, certain check --
   // our own IČO can never legitimately be the counterparty.
   const ownIco = organization.ico?.replace(/[^0-9]/g, "") || null;
+  const ownDic = organization.dic?.replace(/[\s-]/g, "").toUpperCase() || null;
   if (ownIco && data.counterparty_ico?.replace(/[^0-9]/g, "") === ownIco) {
     data = { ...data, counterparty_ico: "", counterparty_name: "", counterparty_email: "" };
     warnings.push("AI rozpoznala jako odběratele vaši vlastní firmu -- údaje byly vynechány, doplňte je ručně.");
+  }
+  if (ownDic && data.counterparty_dic?.replace(/[\s-]/g, "").toUpperCase() === ownDic) {
+    data = { ...data, counterparty_dic: "" };
+    warnings.push("AI přiřadila odběrateli DIČ vaší vlastní firmy -- DIČ bylo vynecháno, zkontrolujte jej ručně.");
   }
   // Same money-safety posture as the local parser: an AI-reported net/rate
   // that doesn't actually reconcile with the AI-reported gross is exactly

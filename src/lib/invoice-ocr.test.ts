@@ -698,6 +698,53 @@ Celkem k úhradě 15 660,00 Kč
       expect(result.invoice.counterparty_dic).toBe("CZ64259374");
     });
 
+    it("does not assign a DIČ explicitly labelled with another person's name to the counterparty", () => {
+      const result = parseInvoiceText({
+        text: `
+FAKTURA
+Robert Hlavica DIČ : CZ7311145842
+Číslo faktury: 260622
+
+Odběratel
+Martin Kresta
+HS : IČ : 11764139
+
+Datum vystavení: 15. 9. 2026
+Datum splatnosti: 29. 9. 2026
+Celkem k úhradě 9 680,00 Kč
+`,
+        fileUrl: "org/inline-owner.pdf",
+        organization,
+      });
+
+      expect(result.invoice.counterparty_name).toBe("Martin Kresta");
+      expect(result.invoice.counterparty_ico).toBe("11764139");
+      expect(result.invoice.counterparty_dic).toBe("");
+      expect(result.field_sources.counterparty_dic).toBeUndefined();
+      expect(result.warnings).toContain("DIČ uvedené u jiné osoby nebo firmy nebylo přiřazeno odběrateli. Zkontrolujte DIČ ručně.");
+    });
+
+    it("does not use an identity number found outside the Odběratel section without customer-column evidence", () => {
+      const result = parseInvoiceText({
+        text: `
+FAKTURA
+DIČ: CZ7311145842
+Číslo faktury: 260623
+Odběratel
+Martin Kresta
+Datum vystavení: 15. 9. 2026
+Datum splatnosti: 29. 9. 2026
+Celkem k úhradě 9 680,00 Kč
+`,
+        fileUrl: "org/unscoped-identity.pdf",
+        organization,
+      });
+
+      expect(result.invoice.counterparty_name).toBe("Martin Kresta");
+      expect(result.invoice.counterparty_dic).toBe("");
+      expect(result.warnings).toContain("DIČ bez jednoznačné vazby na sekci odběratele nebylo přiřazeno. Zkontrolujte DIČ ručně.");
+    });
+
     it("warns and lowers confidence when the counterparty IČO can't be recognized", () => {
       // Unlike name/e-mail/amount/dates, a missing IČO used to pass through
       // completely silently -- no warning, and it didn't affect the reported
