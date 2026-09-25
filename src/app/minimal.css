@@ -2821,19 +2821,17 @@ th,
 /* Samostatný tiskový dokument není součástí obrazovkového rozvržení. */
 .report-print-document { display: none; }
 
+/* Číslo strany nese patička uvnitř tiskového dokumentu (.print-report-page-footer).
+   Okrajové boxy jsou prázdné záměrně: nic nevytisknou, ale Chrome kvůli nim
+   vynechá vlastní záhlaví a zápatí (datum, titulek, URL), které by jinak při
+   výchozím nastavení tiskového dialogu přidal. */
 @page {
   size: A4 portrait;
   margin: 14mm 12mm 18mm;
-  @bottom-left {
-    content: "Finanční report";
-    color: #65746b;
-    font-size: 7pt;
-  }
-  @bottom-right {
-    content: "Strana " counter(page) " / " counter(pages);
-    color: #65746b;
-    font-size: 7pt;
-  }
+  @top-left { content: ""; }
+  @top-right { content: ""; }
+  @bottom-left { content: ""; }
+  @bottom-right { content: ""; }
 }
 
 /* Shared fallback states are intentionally independent of page-specific layout. */
@@ -3901,6 +3899,7 @@ th,
   .print-report-table th { background: #e9efeb !important; color: #405047; font-size: 5.8pt !important; letter-spacing: .25pt; text-transform: uppercase; }
   .print-report-table tbody tr:last-child td { border-bottom: 0 !important; }
   .print-report-table tfoot td { border-top: .35mm solid #9fb2a6 !important; border-bottom: 0 !important; background: #f3f7f4 !important; font-weight: 800; }
+  .print-report-table td strong { font-size: inherit !important; overflow-wrap: anywhere; }
   .print-report-table th:not(:first-child),
   .print-report-table td:not(:first-child) { text-align: right; }
   .print-vat-table th:first-child,
@@ -3983,9 +3982,10 @@ th,
   .print-single-month strong { margin-top: 2mm; overflow-wrap: anywhere; color: #1f5a3e; font-size: 15pt; }
   .print-single-month.compact { padding: 5mm; }
   .print-single-month.compact article { padding: 4mm; }
-  .print-ranking-list { display: grid; gap: 2.5mm; padding: 3mm; }
+  .print-ranking-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5mm; padding: 3mm; }
   .print-ranking-list > div > div { display: flex; justify-content: space-between; gap: 2mm; font-size: 6.5pt; }
   .print-ranking-list span { min-width: 0; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .print-ranking-list strong { flex: none; white-space: nowrap; }
   .print-ranking-list i { display: block; height: 2mm; margin: 1mm 0; overflow: hidden; border-radius: 99mm; background: #edf0ed !important; }
   .print-ranking-list b { display: block; height: 100%; background: #236044 !important; }
   .print-ranking-list small { color: #65746b; font-size: 5.8pt; }

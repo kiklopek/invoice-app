@@ -106,10 +106,22 @@ describe("tisk reportů", () => {
     expect(block).toContain("tfoot { display: table-footer-group !important; }");
   });
 
-  it("čísluje stránky a drží každou další kapitolu na novém listu", () => {
+  it("čísluje stránky jedinou patičkou a nepustí na papír záhlaví prohlížeče", () => {
     const css = minimal();
     const block = lastPrintBlock(css);
-    expect(css).toContain('content: "Strana " counter(page) " / " counter(pages);');
+    // Číslo strany nese patička uvnitř dokumentu (firma · období · Strana X / Y).
+    // Druhá patička z @page okrajů se tiskla pod ní, jiným písmem a s jiným
+    // názvem reportu ("Finanční" vs. "Účetní").
+    expect(printDocument()).toContain("<strong>Strana {page} / {pages}</strong>");
+    expect(css).not.toContain("counter(page)");
+    expect(css).not.toContain('content: "Finanční report"');
+    // Prázdné okrajové boxy nic nevytisknou, ale Chrome kvůli nim vynechá své
+    // vlastní záhlaví a zápatí (datum, titulek stránky, URL, 1/3), které jinak
+    // při výchozím nastavení tiskového dialogu přidá. Ověřeno v Chromiu:
+    // bez horních boxů se datum a titulek vytisknou i nad reportem.
+    for (const box of ["@top-left", "@top-right", "@bottom-left", "@bottom-right"]) {
+      expect(css).toMatch(new RegExp(`${box}\\s*\\{\\s*content: "";`));
+    }
     expect(block).toContain(".report-tab-panel + .report-tab-panel {");
     expect(block).toContain("break-before: page;");
     expect(block).toContain("page-break-before: always;");
@@ -131,6 +143,24 @@ describe("tisk reportů", () => {
     expect(block).toContain(".report-revenue-primary-card { grid-column: 1; grid-row: 1; }");
     expect(block).toContain(".report-aging-overview-card { grid-column: span 7 !important; }");
     expect(block).toContain(".report-dso-insight-card { grid-column: span 5 !important; }");
+  });
+
+  it("žebříček odběratelů nepřeteče z karty a jména v tabulkách mají velikost tabulky", () => {
+    const block = lastPrintBlock(minimal());
+    // Implicitní sloupec gridu se roztáhl podle nezalomitelného jména prvního
+    // odběratele, takže pruhy i procenta vyjely za pravý okraj karty.
+    expect(block).toMatch(/\.print-ranking-list \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+    expect(block).toMatch(/\.print-ranking-list strong \{[^}]*white-space: nowrap/);
+    // <strong> v buňce zdědil obrazovkových 13 px: jména dlužníků a názvy
+    // výpisů byly dvakrát větší než čísla vedle nich a lámaly se uprostřed slova.
+    expect(block).toMatch(/\.print-report-table td strong \{[^}]*font-size: inherit/);
+  });
+
+  it("počty faktur na tisku skloňuje (1 faktura, 2 faktury, 5 faktur)", () => {
+    const source = printDocument();
+    expect(source).toContain('import { invoiceCountLabel } from "@/lib/czech-plural"');
+    expect(source).not.toMatch(/\} faktur[` ]/);
+    expect(source).not.toContain('=== 1 ? "faktura" : "faktur"');
   });
 
   it("nenechává v tiskovém CSS pravidla pro už neexistující prvky", () => {
