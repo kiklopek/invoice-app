@@ -69,7 +69,7 @@ const CONVERTED = [
   "src/app/api/settings/reminders/test/route.ts",
   "src/app/api/invoices/[id]/send/route.ts",
   "src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts",
-  "src/app/api/invoices/extract/route.ts",
+  "src/app/api/invoices/[id]/assignable-payments/route.ts",
 ];
 
 describe("dohledatelnost chyb 5xx", () => {

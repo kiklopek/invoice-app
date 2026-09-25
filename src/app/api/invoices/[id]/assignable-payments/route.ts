@@ -3,10 +3,12 @@ import { getRequestIdentity } from "@/lib/auth";
 import { canManageInvoices } from "@/lib/role-access";
 import { minorUnits } from "@/lib/money";
 import type { AssignableBankPayment } from "@/lib/assignable-bank-payment";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (!uuidPattern.test(id)) return NextResponse.json({ error: "Neplatný identifikátor faktury." }, { status: 400 });
 
@@ -18,12 +20,15 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { data: invoice, error: invoiceError } = await identity.service.from("invoices")
     .select("amount, paid_amount, currency, status")
     .eq("id", id).eq("organization_id", organizationId).maybeSingle();
-  if (invoiceError) return NextResponse.json({ error: "Fakturu se nepodařilo načíst." }, { status: 500 });
+  if (invoiceError) {
+    logError("Fakturu se nepodařilo načíst", invoiceError);
+    return apiError(request, "Fakturu se nepodařilo načíst.", 500, "assignable_payments_invoice_read_failed");
+  }
   if (!invoice || !["pending", "overdue"].includes(invoice.status)) return NextResponse.json({ payments: [] }, { headers: { "cache-control": "private, no-store" } });
 
   const remaining = (minorUnits(Number(invoice.amount)) - minorUnits(Number(invoice.paid_amount))) / 100;
   if (remaining <= 0) return NextResponse.json({ payments: [] }, { headers: { "cache-control": "private, no-store" } });
-  const { data, error } = await identity.service.from("bank_payments")
+  const { data, error: paymentsError } = await identity.service.from("bank_payments")
     .select("id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status")
     .eq("organization_id", organizationId)
     .in("match_status", ["unmatched", "ambiguous"])
@@ -31,7 +36,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     .eq("amount", remaining)
     .order("booked_on", { ascending: false })
     .limit(100);
-  if (error) return NextResponse.json({ error: "Vhodné bankovní platby se nepodařilo načíst." }, { status: 500 });
+  if (paymentsError) {
+    logError("Platby se nepodařilo načíst", paymentsError);
+    return apiError(request, "Platby se nepodařilo načíst.", 500, "assignable_payments_read_failed");
+  }
   return NextResponse.json(
     { payments: (data ?? []).map((payment) => ({ ...payment, amount: Number(payment.amount) })) as AssignableBankPayment[] },
     { headers: { "cache-control": "private, no-store" } },
