@@ -12,6 +12,7 @@ import { StatementArchive } from "./statement-archive";
 
 type SavedPayment = PaymentsPagePayment;
 type OpenInvoice = PaymentsPageOpenInvoice;
+type PaymentSort = "default" | "amount_desc" | "amount_asc" | "name_asc" | "name_desc";
 
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("cs-CZ", { style: "currency", currency }).format(value);
@@ -44,6 +45,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
   const [notice, setNotice] = useState("");
   const [historyQuery, setHistoryQuery] = useState("");
   const [unmatchedOnly, setUnmatchedOnly] = useState(false);
+  const [paymentSort, setPaymentSort] = useState<PaymentSort>("default");
 
   const filteredHistory = useMemo(() => {
     const needle = historyQuery.trim().toLowerCase();
@@ -63,11 +65,17 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
           .toLowerCase();
         return haystack.includes(needle);
       })
-      .sort((left, right) =>
-        matchStatusOrder[left.match_status] - matchStatusOrder[right.match_status] ||
-        right.booked_on.localeCompare(left.booked_on),
-      );
-  }, [history, historyQuery, unmatchedOnly]);
+      .sort((left, right) => {
+        const dateFallback = right.booked_on.localeCompare(left.booked_on) || left.id.localeCompare(right.id);
+        if (paymentSort === "amount_desc") return Number(right.amount) - Number(left.amount) || dateFallback;
+        if (paymentSort === "amount_asc") return Number(left.amount) - Number(right.amount) || dateFallback;
+        const leftName = left.counterparty_name || "Neznámá protistrana";
+        const rightName = right.counterparty_name || "Neznámá protistrana";
+        if (paymentSort === "name_asc") return leftName.localeCompare(rightName, "cs") || dateFallback;
+        if (paymentSort === "name_desc") return rightName.localeCompare(leftName, "cs") || dateFallback;
+        return matchStatusOrder[left.match_status] - matchStatusOrder[right.match_status] || dateFallback;
+      });
+  }, [history, historyQuery, unmatchedOnly, paymentSort]);
 
   async function refreshPayments() {
     const data = await apiFetch<PaymentsPageData>("/api/payments");
@@ -296,6 +304,16 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
               onChange={(event) => setHistoryQuery(event.target.value)}
               placeholder="Protistrana, VS nebo číslo faktury"
             />
+          </label>
+          <label className="payments-history-sort">
+            <span>Seřadit podle</span>
+            <select value={paymentSort} onChange={(event) => setPaymentSort(event.target.value as PaymentSort)}>
+              <option value="default">Stavu a data</option>
+              <option value="amount_desc">Částky: nejvyšší</option>
+              <option value="amount_asc">Částky: nejnižší</option>
+              <option value="name_asc">Názvu: A–Z</option>
+              <option value="name_desc">Názvu: Z–A</option>
+            </select>
           </label>
           <label className="payments-unmatched-toggle">
             <input type="checkbox" checked={unmatchedOnly} onChange={(event) => setUnmatchedOnly(event.target.checked)} />

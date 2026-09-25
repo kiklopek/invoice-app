@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { InvoiceOcrOrganization } from "@/lib/invoice-ocr";
+import { omitUnverifiedOcrValues, type InvoiceOcrOrganization } from "@/lib/invoice-ocr";
 import { extractInvoiceWithGemini, GeminiOcrError } from "./invoice-ocr-gemini";
 
 const organization: InvoiceOcrOrganization = { name: "Robert Hlavica", ico: "66151023", dic: "CZ7311145842" };
@@ -75,5 +75,36 @@ describe("invoice-ocr-gemini API key shape validation", () => {
     expect(result.invoice.counterparty_dic).toBe("");
     expect(result.field_sources.counterparty_dic).toBeUndefined();
     expect(result.warnings).toContain("AI přiřadila odběrateli DIČ vaší vlastní firmy -- DIČ bylo vynecháno, zkontrolujte jej ručně.");
+  });
+
+  it("does not trust an AI identity backed by evidence from the issuer section", async () => {
+    vi.stubEnv("GEMINI_API_KEY", `AIzaSy${"b".repeat(33)}`);
+    vi.spyOn(global, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: JSON.stringify({
+        invoice_number: "260700",
+        counterparty_name: "Wrong Supplier s.r.o.",
+        counterparty_ico: "05829309",
+        amount_without_vat: 1000,
+        vat_rate: 21,
+        amount: 1210,
+        currency: "CZK",
+        evidence: {
+          counterparty_name: { page: 1, text: "Dodavatel: Wrong Supplier s.r.o.", party_role: "issuer" },
+          counterparty_ico: { page: 1, text: "Dodavatel IČO: 05829309", party_role: "issuer" },
+        },
+      }) }] } }],
+      responseId: "response-issuer",
+      modelVersion: "gemini-test",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    const result = await extractInvoiceWithGemini({
+      bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf", fileUrl: "org/file.pdf", organization,
+    });
+    const safe = omitUnverifiedOcrValues(result);
+
+    expect(result.field_sources.counterparty_ico).toBeUndefined();
+    expect(result.field_decisions.counterparty_ico?.status).toBe("review");
+    expect(safe.invoice.counterparty_name).toBe("");
+    expect(safe.invoice.counterparty_ico).toBe("");
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { InvoiceOcrResult, OcrFieldName, OcrFieldSource } from "@/lib/invoice-ocr";
+import { deriveOcrFieldDecisions, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { OCR_VOCABULARY_VERSION } from "@/lib/invoice-ocr-vocabulary";
 import type { InvoiceInput } from "@/types/invoice";
 import { parseConfidenceThreshold, reconcileExtractions } from "./invoice-ocr-reconcile";
 
@@ -24,28 +25,37 @@ function source(text: string, confidence: number | null = null): OcrFieldSource 
 }
 
 function localResult(overrides: Partial<InvoiceInput> = {}, fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>> = {}): InvoiceOcrResult {
+  const invoice = { ...baseInvoice, ...overrides };
   return {
-    invoice: { ...baseInvoice, ...overrides },
+    invoice,
     field_sources: fieldSources,
+    field_decisions: deriveOcrFieldDecisions(invoice, fieldSources, []),
     confidence: 0.86,
     warnings: [],
     document_kind: "issued_invoice",
     issuer_matches_organization: true,
     model: "local-tesseract-v3-geometry",
     response_id: null,
+    vocabulary_version: OCR_VOCABULARY_VERSION,
+    keyword_suggestions: [],
   };
 }
 
 function aiResult(overrides: Partial<InvoiceInput> = {}, fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>> = {}, warnings: string[] = []): InvoiceOcrResult {
+  const invoice = { ...baseInvoice, ...overrides };
+  const resultWarnings = ["Tento dokument byl kvůli rozpoznání údajů odeslán externí AI službě (Google Gemini). Než fakturu uložíte, zkontrolujte všechny údaje.", ...warnings];
   return {
-    invoice: { ...baseInvoice, ...overrides },
+    invoice,
     field_sources: fieldSources,
+    field_decisions: deriveOcrFieldDecisions(invoice, fieldSources, resultWarnings),
     confidence: 0.7,
-    warnings: ["Tento dokument byl kvůli rozpoznání údajů odeslán externí AI službě (Google Gemini). Než fakturu uložíte, zkontrolujte všechny údaje.", ...warnings],
+    warnings: resultWarnings,
     document_kind: "issued_invoice",
     issuer_matches_organization: null,
     model: "gemini:gemini-3.5-flash-lite",
     response_id: "resp-1",
+    vocabulary_version: OCR_VOCABULARY_VERSION,
+    keyword_suggestions: [],
   };
 }
 
@@ -59,12 +69,14 @@ describe("reconcileExtractions", () => {
     expect(merged.confidence).toBeGreaterThan(local.confidence);
   });
 
-  it("never silently picks a winner on a money-field disagreement -- keeps local value, drops confidence, and warns with both numbers", () => {
+  it("never silently picks a winner on a money-field disagreement -- clears the field and retains both candidates", () => {
     const local = localResult({ amount_without_vat: 12942.18 }, { amount_without_vat: source("12 942,18", 0.9) });
     const ai = aiResult({ amount_without_vat: 15659.82 }, { amount_without_vat: source("15659.82") });
     const merged = reconcileExtractions(local, ai);
-    expect(merged.invoice.amount_without_vat).toBe(12942.18);
-    expect(merged.field_sources.amount_without_vat?.confidence).toBeLessThanOrEqual(0.3);
+    expect(merged.invoice.amount_without_vat).toBe(0);
+    expect(merged.field_sources.amount_without_vat).toBeUndefined();
+    expect(merged.field_decisions.amount_without_vat).toMatchObject({ status: "review", confidence: 0 });
+    expect(merged.field_decisions.amount_without_vat?.candidates.map(candidate => candidate.value)).toEqual([12942.18, 15659.82]);
     expect(merged.warnings.some(w => w.includes("základ daně") && w.includes("12942.18") && w.includes("15659.82"))).toBe(true);
     expect(merged.confidence).toBeLessThanOrEqual(0.35);
   });
@@ -73,7 +85,7 @@ describe("reconcileExtractions", () => {
     const local = localResult({ counterparty_ico: "64259374" });
     const ai = aiResult({ counterparty_ico: "11111111" });
     const merged = reconcileExtractions(local, ai);
-    expect(merged.invoice.counterparty_ico).toBe("64259374");
+    expect(merged.invoice.counterparty_ico).toBe("");
     expect(merged.warnings.some(w => w.includes("IČO odběratele"))).toBe(true);
   });
 
@@ -81,17 +93,17 @@ describe("reconcileExtractions", () => {
     const local = localResult({ counterparty_dic: "CZ64259374" }, { counterparty_dic: source("CZ64259374", 0.4) });
     const ai = aiResult({ counterparty_dic: "CZ64259999" }, { counterparty_dic: source("CZ64259999", 0.9) });
     const merged = reconcileExtractions(local, ai);
-    expect(merged.invoice.counterparty_dic).toBe("CZ64259374");
-    expect(merged.field_sources.counterparty_dic?.confidence).toBeLessThanOrEqual(0.3);
+    expect(merged.invoice.counterparty_dic).toBe("");
+    expect(merged.field_sources.counterparty_dic).toBeUndefined();
     expect(merged.warnings.some(w => w.includes("DIČ odběratele"))).toBe(true);
     expect(merged.confidence).toBeLessThanOrEqual(0.35);
   });
 
-  it("keeps the local value on a non-money disagreement when neither side has a numeric field confidence", () => {
+  it("clears a protected identity disagreement even when neither side has numeric confidence", () => {
     const local = localResult({ counterparty_dic: "CZ64259374" });
     const ai = aiResult({ counterparty_dic: "CZ64259999" });
     const merged = reconcileExtractions(local, ai);
-    expect(merged.invoice.counterparty_dic).toBe("CZ64259374");
+    expect(merged.invoice.counterparty_dic).toBe("");
   });
 
   it("fills a field the local parser missed entirely from the AI result", () => {

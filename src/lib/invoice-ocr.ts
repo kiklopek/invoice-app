@@ -1,5 +1,6 @@
 import type { InvoiceInput } from "../types/invoice";
 import { isIsoDate } from "./invoice-validation";
+import { conceptAlternation, findUnknownAccountingLabels, matchOcrConcept, OCR_VOCABULARY_VERSION, type OcrConcept, type OcrKeywordSuggestion } from "./invoice-ocr-vocabulary";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
 
 export const LOCAL_OCR_MODEL = "local-tesseract-v3-geometry";
@@ -61,6 +62,25 @@ export type OcrFieldSource = {
   method: "pdf_text" | "ocr" | "derived" | "ai";
   confidence: number | null;
   bounds: OcrBoundingBox | null;
+  role?: OcrFieldCandidate["role"];
+};
+
+export type OcrFieldDecisionStatus = "verified" | "review" | "missing";
+
+export type OcrFieldCandidate = {
+  value: string | number;
+  page: number;
+  text: string;
+  method: OcrFieldSource["method"];
+  confidence: number | null;
+  role: "counterparty" | "issuer" | "document" | "unknown";
+};
+
+export type OcrFieldDecision = {
+  status: OcrFieldDecisionStatus;
+  confidence: number;
+  reasons: string[];
+  candidates: OcrFieldCandidate[];
 };
 
 export type OcrFieldName =
@@ -80,6 +100,7 @@ export type OcrFieldName =
 export type InvoiceOcrResult = {
   invoice: InvoiceInput;
   field_sources: Partial<Record<OcrFieldName, OcrFieldSource>>;
+  field_decisions: Partial<Record<OcrFieldName, OcrFieldDecision>>;
   confidence: number;
   warnings: string[];
   document_kind: OcrDocumentKind;
@@ -87,6 +108,8 @@ export type InvoiceOcrResult = {
   reminder_policy_assignment?: OcrReminderPolicyAssignment;
   model: string;
   response_id: string | null;
+  vocabulary_version: string;
+  keyword_suggestions: OcrKeywordSuggestion[];
 };
 
 export type InvoiceOcrOrganization = {
@@ -418,10 +441,16 @@ function findLabeledAmountOnSameLine(lines: string[], strippedLines: string[], l
 function pickPlausibleAmount(candidates: ParsedAmount[], gross: number | null, explicitVatRates: number[]): ParsedAmount | null {
   if (!candidates.length) return null;
   if (candidates.length === 1 || gross === null) return candidates[candidates.length - 1];
-  const scored = candidates.map(candidate => ({
-    candidate,
-    rate: candidate.value > 0 ? roundMoney((gross / candidate.value - 1) * 100) : null,
-  }));
+  const scored = candidates.map(candidate => {
+    const rawRate = candidate.value > 0 ? (gross / candidate.value - 1) * 100 : Number.NaN;
+    return {
+      candidate,
+      // A rate is a comparison score, not a monetary value. Do not send an
+      // absurd OCR-derived ratio through the strict money minor-unit helper:
+      // an out-of-range candidate must be rejected, not crash the import.
+      rate: Number.isFinite(rawRate) && rawRate >= 0 && rawRate <= 100 ? rawRate : null,
+    };
+  });
   const explicitMatch = scored.find(entry => entry.rate !== null && explicitVatRates.some(rate => Math.abs(rate - entry.rate!) < 0.5));
   if (explicitMatch) return explicitMatch.candidate;
   const plausible = scored.find(entry => entry.rate !== null && entry.rate >= 0 && entry.rate <= 100);
@@ -494,6 +523,48 @@ function findValue(lines: string[], strippedLines: string[], labels: RegExp[], v
   return "";
 }
 
+function conceptLineMatches(line: string, concept: OcrConcept) {
+  const label = line.split(":", 1)[0] ?? line;
+  return matchOcrConcept(label, concept) ?? matchOcrConcept(line, concept);
+}
+
+function findConceptValue(lines: string[], concept: OcrConcept, valuePattern: RegExp, requireDigit = false) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = conceptLineMatches(lines[index], concept);
+    if (!match || match.exact) continue;
+    const afterColon = lines[index].includes(":") ? lines[index].slice(lines[index].indexOf(":") + 1) : lines[index];
+    const sameLine = afterColon.match(valuePattern)?.[1] ?? "";
+    if (sameLine && (!requireDigit || /\d/.test(sameLine))) return sameLine.trim();
+    const nextLine = lines[index + 1]?.match(valuePattern)?.[1] ?? "";
+    if (nextLine && (!requireDigit || /\d/.test(nextLine))) return nextLine.trim();
+  }
+  return "";
+}
+
+function findConceptDate(lines: string[], concept: "issue_date" | "due_date") {
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = conceptLineMatches(lines[index], concept);
+    if (!match || match.exact) continue;
+    const sameLine = parseDate(lines[index]);
+    if (sameLine) return sameLine;
+    const nextLine = parseDate(lines[index + 1] ?? "");
+    if (nextLine) return nextLine;
+  }
+  return "";
+}
+
+function findConceptAmount(lines: string[], concept: "net_amount" | "gross_amount") {
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = conceptLineMatches(lines[index], concept);
+    if (!match || match.exact) continue;
+    const sameLine = amountFromLine(lines[index]);
+    if (sameLine) return sameLine;
+    const nextLine = amountFromLine(lines[index + 1] ?? "");
+    if (nextLine) return nextLine;
+  }
+  return null;
+}
+
 // Section headings and their "stop" boundaries are detected against the
 // diacritic-stripped/lowercased line (strippedLines), so wording variants and
 // OCR-mangled accents both still match; the actual text pushed into the
@@ -505,21 +576,24 @@ function findValue(lines: string[], strippedLines: string[], labels: RegExp[], v
 // as a positive heading match and as the OTHER side's section-boundary stop
 // word -- a document's "Dodavatel" block ends where its "Odběratel" block
 // begins, and vice versa.
-const ISSUER_HEADING_WORDS = "dodavatel|vystavitel|supplier|seller|vendor|issuer|prodejce";
-const COUNTERPARTY_HEADING_WORDS = "odberatel|zakaznik|customer|bill\\s*to|sold\\s*to|invoice\\s*to|klient|kupujici|purchaser|objednatel";
+const ISSUER_HEADING_WORDS = conceptAlternation("issuer");
+const COUNTERPARTY_HEADING_WORDS = conceptAlternation("counterparty");
 const GENERIC_SECTION_STOP_WORDS = "platebni\\s+udaje|bankovni\\s+spojeni|platba|doprava|datum|produkt|polozky|popis|rekapitulace|celkem|iban|swift|bic";
 const SECTION_STOP = new RegExp(`^(${ISSUER_HEADING_WORDS}|${GENERIC_SECTION_STOP_WORDS})\\b`);
 const ISSUER_SECTION_STOP = new RegExp(`^(${COUNTERPARTY_HEADING_WORDS}|${GENERIC_SECTION_STOP_WORDS})\\b`);
 
-function findSection(lines: string[], strippedLines: string[], heading: RegExp, stop: RegExp = SECTION_STOP) {
-  const start = strippedLines.findIndex(line => heading.test(line));
+function findSection(lines: string[], strippedLines: string[], heading: RegExp, stop: RegExp = SECTION_STOP, concept?: "issuer" | "counterparty") {
+  const start = strippedLines.findIndex(line => heading.test(line) || Boolean(concept && conceptLineMatches(line, concept)));
   if (start < 0) return [];
   const result: string[] = [];
   const headingMatch = strippedLines[start].match(heading);
-  const headingTail = headingMatch?.index === undefined ? "" : lines[start].slice(headingMatch.index + headingMatch[0].length).replace(/^[\s:.-]+/, "");
+  const headingTail = headingMatch?.index === undefined
+    ? lines[start].includes(":") ? lines[start].slice(lines[start].indexOf(":") + 1).trim() : ""
+    : lines[start].slice(headingMatch.index + headingMatch[0].length).replace(/^[\s:.-]+/, "");
   if (headingTail) result.push(headingTail);
   for (let index = start + 1; index < Math.min(lines.length, start + 10); index += 1) {
-    if (stop.test(strippedLines[index])) break;
+    const oppositeConcept = concept === "issuer" ? "counterparty" : concept === "counterparty" ? "issuer" : null;
+    if (stop.test(strippedLines[index]) || Boolean(oppositeConcept && conceptLineMatches(strippedLines[index], oppositeConcept))) break;
     result.push(lines[index]);
   }
   return result;
@@ -537,8 +611,8 @@ const COUNTERPARTY_HEADING = new RegExp(`(${COUNTERPARTY_HEADING_WORDS})\\b`);
 const ISSUER_HEADING = new RegExp(`(${ISSUER_HEADING_WORDS})\\b`);
 const IGNORED_NAME_LINE = new RegExp(`^(?:(?:${COUNTERPARTY_HEADING_WORDS})\\s*:?[\\s.-]*$|(?:ico|dic|vat|ulice|adresa|street|address|tel|telefon|phone|e-?mail)(?=\\s|:|$))`);
 
-const ICO_PATTERN = /(?:IČO?|ICO|I[0O]{2}|1[0O]{2}|ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu;
-const DIC_PATTERN = /(?:DIČ|DIC|VAT(?:[ \t]+ID)?)\s*[:.]?\s*([A-Z]{2}[ \t]*[A-Z0-9][A-Z0-9 \t-]{5,18})/giu;
+const ICO_PATTERN = /(?:IČO?|ICO|I[0O]{2}|1[0O]{2}|Company[ \t]+ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu;
+const DIC_PATTERN = /(?:DIČ|DIC|IČ[ \t]*DPH|IC[ \t]*DPH|VAT(?:[ \t]+ID)?)\s*[:.]?\s*([A-Z]{2}[ \t]*[A-Z0-9][A-Z0-9 \t-]{5,18})/giu;
 const EMAIL_PATTERN = /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/giu;
 
 // A single company/account in this app can legitimately issue invoices under
@@ -551,7 +625,7 @@ const EMAIL_PATTERN = /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/giu;
 // its IČO/DIČ/name can be excluded from counterparty candidates purely
 // structurally.
 function findIssuerSection(lines: string[], strippedLines: string[]) {
-  return findSection(lines, strippedLines, ISSUER_HEADING, ISSUER_SECTION_STOP);
+  return findSection(lines, strippedLines, ISSUER_HEADING, ISSUER_SECTION_STOP, "issuer");
 }
 
 // Two-column invoice templates (Dodavatel box left, Odběratel box right) are
@@ -572,12 +646,12 @@ function findIssuerSection(lines: string[], strippedLines: string[]) {
 // unrelated columns get joined into one display line. Whichever heading
 // ("Dodavatel"/"Odběratel") a candidate value sits horizontally closer to is
 // its true owner, regardless of which text line it was reconstructed onto.
-function findHeadingBlockX(layout: OcrDocumentLayout | undefined, heading: RegExp): number | null {
+function findHeadingBlockX(layout: OcrDocumentLayout | undefined, heading: RegExp, concept: "issuer" | "counterparty"): number | null {
   if (!layout) return null;
   for (const page of layout.pages) {
     for (const line of page.lines) {
       for (const block of line.blocks) {
-        if (heading.test(stripDiacritics(block.text))) return block.x;
+        if (heading.test(stripDiacritics(block.text)) || conceptLineMatches(block.text, concept)) return block.x;
       }
     }
   }
@@ -650,8 +724,8 @@ function findCounterparty(
   const detailStart = strippedLines.findIndex(line => /^odberatel\s+detail$/.test(line));
   const detailLines = detailStart >= 0 ? lines.slice(detailStart + 1) : [];
   const detailStrippedLines = detailStart >= 0 ? strippedLines.slice(detailStart + 1) : [];
-  const detailSection = detailLines.length ? findSection(detailLines, detailStrippedLines, COUNTERPARTY_HEADING) : [];
-  const section = detailSection.length ? detailSection : findSection(lines, strippedLines, COUNTERPARTY_HEADING);
+  const detailSection = detailLines.length ? findSection(detailLines, detailStrippedLines, COUNTERPARTY_HEADING, SECTION_STOP, "counterparty") : [];
+  const section = detailSection.length ? detailSection : findSection(lines, strippedLines, COUNTERPARTY_HEADING, SECTION_STOP, "counterparty");
   const sectionText = section.join("\n");
   const organizationIco = digits(organization.ico);
   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
@@ -675,8 +749,8 @@ function findCounterparty(
   // template, or a layout without word-level geometry (fallbackLayout, plain
   // text-only callers/tests), leaves both null/close and this is skipped, so
   // behavior for those stays exactly as before.
-  const issuerHeadingX = findHeadingBlockX(layout, ISSUER_HEADING);
-  const counterpartyHeadingX = findHeadingBlockX(layout, COUNTERPARTY_HEADING);
+  const issuerHeadingX = findHeadingBlockX(layout, ISSUER_HEADING, "issuer");
+  const counterpartyHeadingX = findHeadingBlockX(layout, COUNTERPARTY_HEADING, "counterparty");
   const columnsDiffer = issuerHeadingX !== null && counterpartyHeadingX !== null && Math.abs(issuerHeadingX - counterpartyHeadingX) > 0.15;
   const belongsToIssuerColumn = (value: string) => {
     if (!columnsDiffer) return false;
@@ -715,14 +789,17 @@ function findCounterparty(
   // customer registry and produced customers that are really us. Guard it the
   // same way the ICO and DIC are guarded. Finding nothing is the better
   // outcome -- the caller already warns that the e-mail needs to be filled in.
-  const emailCandidates = uniqueMatches(sectionText || text, EMAIL_PATTERN, value => value.toLowerCase())
-    .filter(value => !issuerEmails.has(value) && !belongsToIssuerColumn(value));
+  const emailCandidates = uniqueMatches(sectionText || (columnsDiffer ? text : ""), EMAIL_PATTERN, value => value.toLowerCase())
+    .filter(value => !issuerEmails.has(value) && !belongsToIssuerColumn(value)
+      && (Boolean(sectionText) || belongsToCounterpartyColumn(value)));
 
   return {
     name: boundedText(name.replace(/^[\s:.-]+/, ""), 200),
     ico: boundedText(icoCandidates[0], 20),
     dic: boundedText(dicCandidates[0], 24),
     email: boundedText(emailCandidates[0], 254),
+    icoCandidates,
+    dicCandidates,
     rejectedIcoOwner: structuralIcoCandidates.some(icoHasDifferentOwner),
     rejectedDicOwner: structuralDicCandidates.some(dicHasDifferentOwner),
     rejectedUnscopedIco: structuralIcoCandidates.some(value => !icoHasCounterpartyEvidence(value) && !icoHasDifferentOwner(value)),
@@ -834,6 +911,115 @@ export function relevantOcrWarnings(warnings: string[], invoice: InvoiceInput): 
   });
 }
 
+const OCR_FIELDS: OcrFieldName[] = [
+  "invoice_number", "variable_symbol", "issue_date", "due_date",
+  "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email",
+  "amount_without_vat", "vat_rate", "amount", "currency",
+];
+
+export const OCR_REVIEW_FIELDS = OCR_FIELDS;
+
+export function pickOcrReviewValues(invoice: InvoiceInput) {
+  return Object.fromEntries(OCR_REVIEW_FIELDS.map(field => [field, ocrFieldValue(invoice, field) ?? null]));
+}
+
+const FIELD_WARNING_TERMS: Record<OcrFieldName, readonly string[]> = {
+  invoice_number: ["číslo faktury", "číslo dokladu"],
+  variable_symbol: ["variabilní symbol"],
+  issue_date: ["datum vystavení"],
+  due_date: ["datum splatnosti"],
+  counterparty_name: ["název odběratele", "jméno odběratele"],
+  counterparty_ico: ["ičo"],
+  counterparty_dic: ["dič"],
+  counterparty_email: ["e-mail odběratele"],
+  amount_without_vat: ["základ bez dph", "základ daně"],
+  vat_rate: ["sazba dph", "více sazeb dph"],
+  amount: ["částka k úhradě", "celková částka"],
+  currency: ["měna"],
+};
+
+function ocrFieldValue(invoice: InvoiceInput, field: OcrFieldName) {
+  return (invoice as unknown as Record<OcrFieldName, string | number | undefined>)[field];
+}
+
+function hasOcrFieldValue(invoice: InvoiceInput, field: OcrFieldName, source?: OcrFieldSource) {
+  const value = ocrFieldValue(invoice, field);
+  if (field === "vat_rate") return Boolean(source) || typeof value === "number";
+  return typeof value === "number" ? value > 0 : Boolean(value?.trim());
+}
+
+export function isValidCzSkIco(value: string | null | undefined) {
+  const normalized = digits(value ?? "");
+  if (!/^\d{8}$/.test(normalized)) return false;
+  const sum = normalized.slice(0, 7).split("").reduce((total, digit, index) => total + Number(digit) * (8 - index), 0);
+  return Number(normalized[7]) === (11 - sum % 11) % 10;
+}
+
+export function deriveOcrFieldDecisions(
+  invoice: InvoiceInput,
+  fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>>,
+  warnings: string[],
+  extraReasons: Partial<Record<OcrFieldName, string[]>> = {},
+) {
+  return Object.fromEntries(OCR_FIELDS.map(field => {
+    const source = fieldSources[field];
+    const value = ocrFieldValue(invoice, field);
+    const present = hasOcrFieldValue(invoice, field, source);
+    const candidateWasRejected = Boolean(extraReasons[field]?.length);
+    const reasons = [...(extraReasons[field] ?? [])];
+    const relevantWarnings = warnings.filter(warning => FIELD_WARNING_TERMS[field]
+      .some(term => normalizeComparable(warning).includes(normalizeComparable(term))));
+    reasons.push(...relevantWarnings);
+    if (present && !source) reasons.push("Hodnota nemá dohledatelný zdrojový řádek v dokumentu.");
+    if (source?.method === "derived") reasons.push("Hodnota byla dopočítána, nikoli přímo přečtena z dokumentu.");
+    if (source?.confidence !== null && source?.confidence !== undefined && source.confidence < 0.65) reasons.push("Zdrojový text má nízkou OCR jistotu.");
+    if (field === "counterparty_ico" && typeof value === "string" && /^\d{8}$/.test(digits(value)) && !isValidCzSkIco(value)) {
+      reasons.push("IČO neprošlo kontrolním součtem pro české nebo slovenské subjekty.");
+    }
+    if (field === "counterparty_dic" && typeof value === "string" && /^CZ\d{8}$/i.test(value) && invoice.counterparty_ico
+      && digits(value) !== digits(invoice.counterparty_ico)) {
+      reasons.push("České DIČ právnické osoby neodpovídá nalezenému IČO.");
+    }
+
+    const baseConfidence = source?.confidence ?? (source?.method === "pdf_text" ? 0.96 : source?.method === "ocr" ? 0.82 : source?.method === "ai" ? 0.6 : source?.method === "derived" ? 0.55 : 0);
+    const status: OcrFieldDecisionStatus = !present ? candidateWasRejected ? "review" : "missing" : reasons.length ? "review" : "verified";
+    const candidates: OcrFieldCandidate[] = present && source ? [{
+      value: value as string | number,
+      page: source.page,
+      text: source.text,
+      method: source.method,
+      confidence: source.confidence,
+      role: source.role ?? (field.startsWith("counterparty_") ? "counterparty" : "document"),
+    }] : [];
+    return [field, {
+      status,
+      confidence: status === "missing" ? 0 : status === "review" ? Math.min(baseConfidence, 0.59) : baseConfidence,
+      reasons: [...new Set(reasons)],
+      candidates,
+    } satisfies OcrFieldDecision];
+  })) as Partial<Record<OcrFieldName, OcrFieldDecision>>;
+}
+
+const AI_REVIEW_FIELDS = new Set<OcrFieldName>([
+  "invoice_number", "issue_date", "due_date", "counterparty_name", "counterparty_ico",
+  "counterparty_email", "amount_without_vat", "vat_rate", "amount", "currency",
+]);
+
+export function needsOcrAiReview(result: InvoiceOcrResult) {
+  return [...AI_REVIEW_FIELDS].some(field => result.field_decisions[field]?.status !== "verified");
+}
+
+export function omitUnverifiedOcrValues(result: InvoiceOcrResult): InvoiceOcrResult {
+  const invoice = { ...result.invoice };
+  for (const field of OCR_REVIEW_FIELDS) {
+    if (result.field_decisions[field]?.status === "verified") continue;
+    (invoice as unknown as Record<OcrFieldName, string | number>)[field] = field === "amount"
+      || field === "amount_without_vat"
+      || field === "vat_rate" ? 0 : "";
+  }
+  return { ...result, invoice };
+}
+
 export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrConfidence = null, extraWarnings = [], layout }: {
   text: string;
   fileUrl: string;
@@ -872,34 +1058,36 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     // PDF columns collapsed onto one text line by layout reconstruction)
     // could pick up a neighboring plain word instead -- e.g. "Dodavatel"
     // ("Supplier") on an invoice layout that isn't this app's own template.
-    true);
-  const variableSymbol = findValue(lines, strippedLines, [/variabilni\s+symbol/, /\bvar\.?\s*symbol/, /^vs\b/, /\bv\.?s\.?\s*[:#.-]/], /(\d{3,20})/);
+    true) || findConceptValue(lines, "invoice_number", /([A-Z0-9][A-Z0-9./_-]{2,})/i, true);
+  const variableSymbol = findValue(lines, strippedLines, [/variabiln[yi]\s+symbol/, /\bvar\.?\s*symbol/, /^vs\b/, /\bv\.?s\.?\s*[:#.-]/], /(\d{3,20})/)
+    || findConceptValue(lines, "variable_symbol", /(\d{3,20})/, true);
   const issueDate = findLabeledDate(lines, strippedLines, [
-    /datum\s+vystaveni/, /den\s+vystaveni/, /vystaveno\s+dne/, /vystaven[oa]/, /vydano\s+dne/,
+    /datum\s+vystaveni(?:a)?/, /den\s+vystaveni/, /vystaveno\s+dne/, /vystavene\s+dna/, /vystaven[oa]/, /vydano\s+dne/,
     /issue\s*date/, /date\s+of\s+issue/, /invoice\s+date/,
-  ]);
+  ]) || findConceptDate(lines, "issue_date");
   let dueDate = findLabeledDate(lines, strippedLines, [
-    /datum\s+splatnosti/, /splatnost/, /splatn[ae]\s+dne/, /uhradte\s+do/, /splatit\s+do/,
+    /datum\s+splatnosti/, /splatnost/, /splatn[ae]\s+dn[ae]/, /uhradte\s+do/, /splatit\s+do/,
     /due\s*date/, /payment\s+due/, /maturity\s+date/,
-  ]);
+  ]) || findConceptDate(lines, "due_date");
   if (dueDate && issueDate && dueDate < issueDate) {
     warnings.push("Datum splatnosti je dřívější než datum vystavení a nebylo předvyplněno.");
     dueDate = "";
   }
 
   const vatSummary = findVatSummary(lines);
-  const dueAmount = findLabeledAmount(lines, strippedLines, [/celkem\s+k\s+uhrad[ae]/, /castka\s+k\s+uhrad[ae]/, /k\s+uhrad[ae]/, /amount\s+due/, /balance\s+due/]);
+  const dueAmount = findLabeledAmount(lines, strippedLines, [/celk(?:em|om)\s+k\s+uhrad[ae]/, /castka\s+k\s+uhrad[ae]/, /suma\s+na\s+uhradu/, /k\s+uhrad[ae]/, /amount\s+due/, /balance\s+due/])
+    ?? findConceptAmount(lines, "gross_amount");
   // A document total may legitimately exceed what's left to pay (prepayments),
   // which is what initial_paid below is derived from -- but it can never be
   // *less*. Anything smaller than the amount due is a mis-read label, not a
   // total, so it's dropped rather than allowed to outrank "K úhradě".
-  const labelledTotal = findLabeledAmountOnSameLine(lines, strippedLines, [/celkem\s+s\s+dph/, /celkova\s+hodnota/, /grand\s+total/]);
+  const labelledTotal = findLabeledAmountOnSameLine(lines, strippedLines, [/celk(?:em|om)\s+s\s+dph/, /celkova\s+hodnota/, /grand\s+total/]);
   const documentTotal = labelledTotal && (!dueAmount || labelledTotal.value >= dueAmount.value) ? labelledTotal : null;
   const gross = documentTotal ?? findLabeledAmount(lines, strippedLines, [
-    /celkem\s+k\s+uhrad[ae]/, /castka\s+k\s+uhrad[ae]/, /k\s+uhrad[ae]/, /celkem\s+s\s+dph/,
+    /celk(?:em|om)\s+k\s+uhrad[ae]/, /castka\s+k\s+uhrad[ae]/, /suma\s+na\s+uhradu/, /k\s+uhrad[ae]/, /celk(?:em|om)\s+s\s+dph/,
     /celkem\s+k\s+platb[ae]/, /k\s+proplaceni/, /celkem\s+kc/,
     /grand\s+total/, /total\s+due/, /total\s+amount/, /amount\s+due/, /balance\s+due/,
-  ]) ?? vatSummary?.gross ?? null;
+  ]) ?? findConceptAmount(lines, "gross_amount") ?? vatSummary?.gross ?? null;
   const vatTable = findVatBreakdownTable(documentLayout);
   const explicitVatRates = uniqueMatches(text, /(?:sazba\s+dph|dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%/giu, value => String(parseMoney(value) ?? ""));
   const vatRecap = text.split(/rekapitulace\s+dph/i)[1] ?? "";
@@ -910,9 +1098,10 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const net = vatTable?.net
     ?? vatSummary?.net
     ?? findPlausibleNetAmount(lines, strippedLines, [
-      /celkem\s+bez\s+dph/, /castka\s+bez\s+dph/, /cena\s+bez\s+dph/, /zaklad\s+dane/, /zaklad\s+dph/,
-      /tax\s+base/, /subtotal/, /net\s+amount/, /mezisoucet/,
+      /celk(?:em|om)\s+bez\s+dph/, /castka\s+bez\s+dph/, /cena\s+bez\s+dph/, /zaklad\s+dane/, /zaklad\s+dph/,
+      /tax\s+base/, /subtotal/, /net\s+amount/, /mezisoucet|medzisucet/,
     ], gross?.value ?? null, distinctVatRates)
+    ?? findConceptAmount(lines, "net_amount")
     ?? findFirstLabeledAmount(lines, strippedLines, [/soucet\s+polozek/, /souhrn\s+polozek/])
     ?? null;
 
@@ -972,6 +1161,8 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   if (counterparty.rejectedDicOwner) warnings.push("DIČ uvedené u jiné osoby nebo firmy nebylo přiřazeno odběrateli. Zkontrolujte DIČ ručně.");
   if (counterparty.rejectedUnscopedIco) warnings.push("IČO bez jednoznačné vazby na sekci odběratele nebylo přiřazeno. Zkontrolujte IČO ručně.");
   if (counterparty.rejectedUnscopedDic) warnings.push("DIČ bez jednoznačné vazby na sekci odběratele nebylo přiřazeno. Zkontrolujte DIČ ručně.");
+  if (counterparty.icoCandidates.length > 1) warnings.push("V sekci odběratele bylo nalezeno více kandidátů IČO. Zkontrolujte IČO ručně.");
+  if (counterparty.dicCandidates.length > 1) warnings.push("V sekci odběratele bylo nalezeno více kandidátů DIČ. Zkontrolujte DIČ ručně.");
   // DIČ deliberately isn't checked the same way: plenty of legitimate
   // counterparties (non-VAT-payers, individuals) have none at all, so a
   // missing DIČ isn't itself evidence of a recognition failure the way a
@@ -984,17 +1175,17 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const required = [invoiceNumber, counterparty.name, counterparty.ico, counterparty.email, amount > 0, issueDate, dueDate];
   const fieldConfidence = required.filter(Boolean).length / required.length;
   const confidence = Math.max(0, Math.min(1, roundMoney(ocrConfidence === null ? fieldConfidence : fieldConfidence * 0.75 + ocrConfidence / 100 * 0.25)));
-  const grossSource = bestSource(documentLayout, amount,{ kind: "amount", labels: /k\s+uhrad[ae]|celkem\s+s\s+dph|k\s+platb[ae]|k\s+proplaceni|grand\s+total|total\s+due|total\s+amount|amount\s+due|balance\s+due/ });
-  const netSource = bestSource(documentLayout, amountWithoutVat, { kind: "amount", labels: /bez\s+dph|zaklad|subtotal|soucet\s+polozek|tax\s+base|net\s+amount/ });
+  const grossSource = bestSource(documentLayout, amount,{ kind: "amount", labels: /k\s+uhrad[ae]|suma\s+na\s+uhradu|celk(?:em|om)\s+s\s+dph|k\s+platb[ae]|k\s+proplaceni|grand\s+total|total\s+due|total\s+amount|amount\s+due|balance\s+due/ });
+  const netSource = bestSource(documentLayout, amountWithoutVat, { kind: "amount", labels: /bez\s+dph|zaklad|subtotal|soucet\s+polozek|medzisucet|tax\s+base|net\s+amount/ });
   const vatSource = bestSource(documentLayout, vatRate, { kind: "amount", labels: /dph|vat/ });
   const fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>> = {
     invoice_number: bestSource(documentLayout, invoiceNumber, { labels: /cislo\s+(?:faktury|dokladu)|invoice\s*(?:no|number)|faktura|danovy\s+doklad/ }) ?? undefined,
-    variable_symbol: bestSource(documentLayout, variableSymbol, { kind: "digits", labels: /variabilni\s+symbol|var\.?\s*symbol|^vs\b/ }) ?? undefined,
-    issue_date: bestSource(documentLayout, issueDate, { kind: "date", labels: /datum\s+vystaveni|vystaven[oa]|issue\s*date|invoice\s+date/ }) ?? undefined,
+    variable_symbol: bestSource(documentLayout, variableSymbol, { kind: "digits", labels: /variabiln[yi]\s+symbol|var\.?\s*symbol|^vs\b/ }) ?? undefined,
+    issue_date: bestSource(documentLayout, issueDate, { kind: "date", labels: /datum\s+vystaveni(?:a)?|vystaven[oa]|vystavene\s+dna|issue\s*date|invoice\s+date/ }) ?? undefined,
     due_date: bestSource(documentLayout, dueDate, { kind: "date", labels: /splatnost|due\s*date|maturity\s+date/ }) ?? undefined,
     counterparty_name: bestSource(documentLayout, counterparty.name, { labels: COUNTERPARTY_HEADING }) ?? undefined,
-    counterparty_ico: bestSource(documentLayout, counterparty.ico, { kind: "digits", labels: /ico|i[0o]{2}|id/ }) ?? undefined,
-    counterparty_dic: bestSource(documentLayout, counterparty.dic, { labels: /dic|vat/ }) ?? undefined,
+    counterparty_ico: bestSource(documentLayout, counterparty.ico, { kind: "digits", labels: /ico|i[0o]{2}|company\s+id/ }) ?? undefined,
+    counterparty_dic: bestSource(documentLayout, counterparty.dic, { labels: /dic|ic\s*dph|vat/ }) ?? undefined,
     counterparty_email: bestSource(documentLayout, counterparty.email) ?? undefined,
     amount_without_vat: netSource ?? (grossSource ? { ...grossSource, method: "derived" } : undefined),
     vat_rate: vatSource ?? (grossSource ? { ...grossSource, method: "derived" } : undefined),
@@ -1002,41 +1193,70 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     currency: grossSource ?? netSource ?? undefined,
   };
 
-  return {
-    invoice: {
-      invoice_number: boundedText(invoiceNumber, 100),
-      counterparty_name: counterparty.name,
-      counterparty_ico: counterparty.ico,
-      counterparty_dic: counterparty.dic,
-      counterparty_email: counterparty.email,
-      variable_symbol: boundedText(variableSymbol, 20),
-      amount_without_vat: roundMoney(Math.max(0, amountWithoutVat)),
-      vat_rate: roundMoney(Math.max(0, vatRate)),
-      amount: roundMoney(Math.max(0, amount)),
-      money_evidence: {
-        original_total: roundMoney(Math.max(0, amount)),
-        total_source: gross ? "read" : "derived",
-        adjustment: roundMoney(amount - grossFromNet(amountWithoutVat, vatRate)),
-        adjustment_reason: "",
-        adjustment_confirmed: false,
-        initial_paid: documentTotal && dueAmount && documentTotal.value >= dueAmount.value ? roundMoney(documentTotal.value - dueAmount.value) : 0,
-        initial_paid_confirmed: false,
-        multi_rate: distinctVatRates.length > 1,
-        source: fieldSources.amount ? JSON.parse(JSON.stringify(fieldSources.amount)) : null,
-      },
-      currency,
-      issue_date: issueDate,
-      due_date: dueDate,
-      notes: "",
-      source: "ocr",
-      file_url: fileUrl,
+  const invoice: InvoiceInput = {
+    invoice_number: boundedText(invoiceNumber, 100),
+    counterparty_name: counterparty.name,
+    counterparty_ico: counterparty.ico,
+    counterparty_dic: counterparty.dic,
+    counterparty_email: counterparty.email,
+    variable_symbol: boundedText(variableSymbol, 20),
+    amount_without_vat: roundMoney(Math.max(0, amountWithoutVat)),
+    vat_rate: roundMoney(Math.max(0, vatRate)),
+    amount: roundMoney(Math.max(0, amount)),
+    money_evidence: {
+      original_total: roundMoney(Math.max(0, amount)),
+      total_source: gross ? "read" : "derived",
+      adjustment: roundMoney(amount - grossFromNet(amountWithoutVat, vatRate)),
+      adjustment_reason: "",
+      adjustment_confirmed: false,
+      initial_paid: documentTotal && dueAmount && documentTotal.value >= dueAmount.value ? roundMoney(documentTotal.value - dueAmount.value) : 0,
+      initial_paid_confirmed: false,
+      multi_rate: distinctVatRates.length > 1,
+      source: fieldSources.amount ? JSON.parse(JSON.stringify(fieldSources.amount)) : null,
     },
+    currency,
+    issue_date: issueDate,
+    due_date: dueDate,
+    notes: "",
+    source: "ocr",
+    file_url: fileUrl,
+  };
+  const uniqueWarnings = [...new Set(warnings.map(warning => boundedText(warning, 240)).filter(Boolean))].slice(0, 12);
+  const fieldDecisions = deriveOcrFieldDecisions(invoice, fieldSources, uniqueWarnings);
+  const attachIdentityCandidates = (field: "counterparty_ico" | "counterparty_dic", candidates: string[]) => {
+    if (candidates.length < 2 || !fieldDecisions[field]) return;
+    fieldDecisions[field] = {
+      ...fieldDecisions[field],
+      status: "review",
+      confidence: Math.min(fieldDecisions[field]!.confidence, 0.49),
+      reasons: [...new Set([...fieldDecisions[field]!.reasons, "V potvrzené sekci odběratele bylo nalezeno více možných hodnot."])],
+      candidates: candidates.map(value => {
+        const source = bestSource(documentLayout, value, { kind: field === "counterparty_ico" ? "digits" : "text" });
+        return {
+          value,
+          page: source?.page ?? 1,
+          text: source?.text ?? value,
+          method: source?.method ?? "ocr",
+          confidence: source?.confidence ?? null,
+          role: "counterparty" as const,
+        };
+      }),
+    };
+  };
+  attachIdentityCandidates("counterparty_ico", counterparty.icoCandidates);
+  attachIdentityCandidates("counterparty_dic", counterparty.dicCandidates);
+
+  return {
+    invoice,
     field_sources: fieldSources,
+    field_decisions: fieldDecisions,
     confidence,
-    warnings: [...new Set(warnings.map(warning => boundedText(warning, 240)).filter(Boolean))].slice(0, 12),
+    warnings: uniqueWarnings,
     document_kind: kind,
     issuer_matches_organization: issuerMatch,
     model: LOCAL_OCR_MODEL,
     response_id: null,
+    vocabulary_version: OCR_VOCABULARY_VERSION,
+    keyword_suggestions: findUnknownAccountingLabels(sourceText),
   };
 }

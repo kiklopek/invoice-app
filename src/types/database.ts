@@ -428,6 +428,27 @@ export type Database = {
           },
         ]
       }
+      company_registry_cache: {
+        Row: {
+          fetched_at: string
+          ico: string
+          legal_name: string | null
+          lookup_status: string
+        }
+        Insert: {
+          fetched_at?: string
+          ico: string
+          legal_name?: string | null
+          lookup_status: string
+        }
+        Update: {
+          fetched_at?: string
+          ico?: string
+          legal_name?: string | null
+          lookup_status?: string
+        }
+        Relationships: []
+      }
       counterparty_payment_accounts: {
         Row: {
           account_number: string
@@ -735,6 +756,121 @@ export type Database = {
           },
         ]
       }
+      invoice_ocr_keyword_suggestions: {
+        Row: {
+          created_at: string
+          example_label: string
+          id: string
+          normalized_label: string
+          organization_id: string
+          status: string
+          upload_id: string
+          vocabulary_version: string
+        }
+        Insert: {
+          created_at?: string
+          example_label: string
+          id?: string
+          normalized_label: string
+          organization_id: string
+          status?: string
+          upload_id: string
+          vocabulary_version: string
+        }
+        Update: {
+          created_at?: string
+          example_label?: string
+          id?: string
+          normalized_label?: string
+          organization_id?: string
+          status?: string
+          upload_id?: string
+          vocabulary_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_ocr_keyword_suggestions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_ocr_keyword_suggestions_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_ocr_reviews: {
+        Row: {
+          corrected_fields: string[]
+          created_at: string
+          field_decisions: Json
+          final_values: Json
+          id: string
+          invoice_id: string
+          ocr_model: string
+          organization_id: string
+          proposed_values: Json
+          reviewed_by: string | null
+          upload_id: string | null
+          vocabulary_version: string
+        }
+        Insert: {
+          corrected_fields?: string[]
+          created_at?: string
+          field_decisions?: Json
+          final_values: Json
+          id?: string
+          invoice_id: string
+          ocr_model: string
+          organization_id: string
+          proposed_values: Json
+          reviewed_by?: string | null
+          upload_id?: string | null
+          vocabulary_version: string
+        }
+        Update: {
+          corrected_fields?: string[]
+          created_at?: string
+          field_decisions?: Json
+          final_values?: Json
+          id?: string
+          invoice_id?: string
+          ocr_model?: string
+          organization_id?: string
+          proposed_values?: Json
+          reviewed_by?: string | null
+          upload_id?: string | null
+          vocabulary_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_ocr_reviews_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_ocr_reviews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_ocr_reviews_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: true
+            referencedRelation: "invoice_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_uploads: {
         Row: {
           created_at: string
@@ -747,12 +883,15 @@ export type Database = {
           ocr_attempt_count: number
           ocr_completed_at: string | null
           ocr_error: string | null
+          ocr_field_decisions: Json
           ocr_field_sources: Json
           ocr_money_snapshot: Json | null
           ocr_model: string | null
           ocr_provider_response_id: string | null
+          ocr_proposed_values: Json
           ocr_started_at: string | null
           ocr_status: string
+          ocr_vocabulary_version: string | null
           organization_id: string
           original_name: string
           path: string
@@ -770,12 +909,15 @@ export type Database = {
           ocr_attempt_count?: number
           ocr_completed_at?: string | null
           ocr_error?: string | null
+          ocr_field_decisions?: Json
           ocr_field_sources?: Json
           ocr_money_snapshot?: Json | null
           ocr_model?: string | null
           ocr_provider_response_id?: string | null
+          ocr_proposed_values?: Json
           ocr_started_at?: string | null
           ocr_status?: string
+          ocr_vocabulary_version?: string | null
           organization_id: string
           original_name: string
           path: string
@@ -793,12 +935,15 @@ export type Database = {
           ocr_attempt_count?: number
           ocr_completed_at?: string | null
           ocr_error?: string | null
+          ocr_field_decisions?: Json
           ocr_field_sources?: Json
           ocr_money_snapshot?: Json | null
           ocr_model?: string | null
           ocr_provider_response_id?: string | null
+          ocr_proposed_values?: Json
           ocr_started_at?: string | null
           ocr_status?: string
+          ocr_vocabulary_version?: string | null
           organization_id?: string
           original_name?: string
           path?: string
@@ -1393,7 +1538,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      invoice_ocr_field_accuracy: {
+        Row: {
+          accepted_count: number | null
+          field_name: string | null
+          organization_id: string | null
+          accuracy_percent: number | null
+          reviewed_count: number | null
+          vocabulary_version: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_ocr_reviews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       reconcile_bank_statement: {

@@ -8,6 +8,8 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { Modal } from "@/components/modal";
+import { OptionalPaymentAssignment } from "@/components/optional-payment-assignment";
+import { assignBankPaymentToInvoice } from "@/lib/assignable-bank-payment";
 import { todayInTimeZone } from "@/lib/reminders";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import type { InvoiceListPageData } from "@/lib/invoice-list-page-data";
@@ -49,6 +51,8 @@ export function InvoicesClient({
     null,
   );
   const [paymentDate, setPaymentDate] = useState(todayInTimeZone());
+  const [selectedBankPaymentId, setSelectedBankPaymentId] = useState("");
+  const [confirmWithoutBankPayment, setConfirmWithoutBankPayment] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [query, setQuery] = useState(initialQuery.query);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery.query);
@@ -219,21 +223,27 @@ export function InvoicesClient({
     setConfirmingPayment(true);
     setNotice("");
     try {
-      const response = await fetch(`/api/invoices/${paymentCandidate.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status: "paid", paid_on: paymentDate }),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
+      let data: { invoice?: Invoice; error?: string } = {};
+      if (selectedBankPaymentId) {
+        const assignment = await assignBankPaymentToInvoice(selectedBankPaymentId, paymentCandidate.id);
+        if (assignment.invoice_status !== "paid") throw new Error("Platba byla přiřazena, ale nepokryla celý zbývající zůstatek faktury.");
+      } else {
+        if (!confirmWithoutBankPayment) return;
+        const response = await fetch(`/api/invoices/${paymentCandidate.id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ status: "paid", paid_on: paymentDate }),
+        });
+        data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
+      }
 
       setInvoices((current) =>
         status === "pending" || status === "overdue"
           ? current.filter((item) => item.id !== paymentCandidate.id)
-          : current.map((item) =>
-              item.id === paymentCandidate.id ? data.invoice : item,
-            ),
+          : selectedBankPaymentId
+            ? current
+            : current.map((item) => item.id === paymentCandidate.id && data.invoice ? data.invoice : item),
       );
       setActiveCount((current) => Math.max(0, current - 1));
       if (status === "pending" || status === "overdue") {
@@ -548,6 +558,8 @@ export function InvoicesClient({
                           className="btn primary quick-payment-button"
                           onClick={() => {
                             setPaymentDate(todayInTimeZone());
+                            setSelectedBankPaymentId("");
+                            setConfirmWithoutBankPayment(false);
                             setPaymentCandidate(invoice);
                           }}
                         >
@@ -594,7 +606,7 @@ export function InvoicesClient({
           <>
             <header>
               <div>
-                <small>MANUÁLNÍ ÚHRADA</small>
+                <small>POTVRZENÍ ÚHRADY</small>
                 <h2 id="list-payment-confirm-title">
                   Opravdu potvrdit úhradu faktury{" "}
                   {paymentCandidate.invoice_number}?
@@ -625,7 +637,15 @@ export function InvoicesClient({
                   )}
                 </strong>
               </div>
-              <label className="quick-payment-date">
+              <OptionalPaymentAssignment
+                invoiceId={paymentCandidate.id}
+                enabled={Boolean(paymentCandidate)}
+                selectedPaymentId={selectedBankPaymentId}
+                confirmWithoutPayment={confirmWithoutBankPayment}
+                onSelectPayment={setSelectedBankPaymentId}
+                onConfirmWithoutPayment={setConfirmWithoutBankPayment}
+              />
+              {!selectedBankPaymentId && <label className="quick-payment-date">
                 <span>Datum úhrady</span>
                 <input
                   type="date"
@@ -634,7 +654,7 @@ export function InvoicesClient({
                   onChange={(event) => setPaymentDate(event.target.value)}
                 />
                 <small>Zadejte skutečný den, kdy byla částka připsána.</small>
-              </label>
+              </label>}
             </div>
             <footer className="payment-confirm-actions">
               <button
@@ -648,10 +668,14 @@ export function InvoicesClient({
               <button
                 type="button"
                 className="btn primary"
-                disabled={confirmingPayment}
+                disabled={confirmingPayment || (!selectedBankPaymentId && (!paymentDate || !confirmWithoutBankPayment))}
                 onClick={confirmPayment}
               >
-                {confirmingPayment ? "Ukládám…" : "Ano, potvrdit úhradu"}
+                {confirmingPayment
+                  ? "Ukládám…"
+                  : selectedBankPaymentId
+                    ? "Přiřadit a potvrdit"
+                    : "Potvrdit bez platby"}
               </button>
             </footer>
           </>

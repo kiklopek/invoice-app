@@ -14,6 +14,7 @@ import {
 } from "@/lib/excel-export";
 import { loadInvoiceListPageData } from "@/lib/invoice-list-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
+import { OCR_REVIEW_FIELDS } from "@/lib/invoice-ocr";
 
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
@@ -217,7 +218,13 @@ export async function POST(request: Request) {
   }
 
   const organizationId = identity.membership.organization_id;
-  let verifiedUploadId: string | null = null;
+  let verifiedUpload: {
+    id: string;
+    ocr_model: string | null;
+    ocr_proposed_values: unknown;
+    ocr_field_decisions: unknown;
+    ocr_vocabulary_version: string | null;
+  } | null = null;
   if (input.file_url) {
     if (!input.file_url.startsWith(`${organizationId}/`))
       return NextResponse.json(
@@ -226,7 +233,7 @@ export async function POST(request: Request) {
       );
     const { data: upload } = await identity.service
       .from("invoice_uploads")
-      .select("id")
+      .select("id, ocr_model, ocr_proposed_values, ocr_field_decisions, ocr_vocabulary_version")
       .eq("organization_id", organizationId)
       .eq("path", input.file_url)
       .eq("created_by", identity.user.id)
@@ -240,7 +247,7 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
-    verifiedUploadId = upload.id;
+    verifiedUpload = upload;
   }
 
   let policyQuery = identity.service
@@ -294,12 +301,33 @@ export async function POST(request: Request) {
       { status },
     );
   }
-  if (verifiedUploadId) {
+  if (verifiedUpload) {
     await identity.service
       .from("invoice_uploads")
       .update({ status: "claimed", invoice_id: data.id })
-      .eq("id", verifiedUploadId)
+      .eq("id", verifiedUpload.id)
       .eq("status", "verified");
+
+    if (verifiedUpload.ocr_model && verifiedUpload.ocr_vocabulary_version) {
+      const proposed = (verifiedUpload.ocr_proposed_values && typeof verifiedUpload.ocr_proposed_values === "object"
+        ? verifiedUpload.ocr_proposed_values
+        : {}) as Record<string, unknown>;
+      const normalized = (value: unknown) => typeof value === "string" ? value.trim().toLocaleLowerCase("cs") : value;
+      const correctedFields = OCR_REVIEW_FIELDS.filter(field => normalized(proposed[field]) !== normalized(input[field]));
+      const { error: reviewError } = await identity.service.from("invoice_ocr_reviews").insert({
+        organization_id: organizationId,
+        upload_id: verifiedUpload.id,
+        invoice_id: data.id,
+        proposed_values: JSON.parse(JSON.stringify(Object.fromEntries(OCR_REVIEW_FIELDS.map(field => [field, proposed[field] ?? null])))),
+        final_values: JSON.parse(JSON.stringify(Object.fromEntries(OCR_REVIEW_FIELDS.map(field => [field, input[field] ?? null])))),
+        corrected_fields: correctedFields,
+        field_decisions: JSON.parse(JSON.stringify(verifiedUpload.ocr_field_decisions ?? {})),
+        vocabulary_version: verifiedUpload.ocr_vocabulary_version,
+        ocr_model: verifiedUpload.ocr_model,
+        reviewed_by: identity.user.id,
+      });
+      if (reviewError) logError("Audit OCR oprav se nepodařilo uložit", reviewError, { upload_id: verifiedUpload.id, invoice_id: data.id });
+    }
   }
   // AFTER INSERT records confirmed initial payments in the ledger. INSERT
   // RETURNING itself can still contain the pre-trigger balance/status.

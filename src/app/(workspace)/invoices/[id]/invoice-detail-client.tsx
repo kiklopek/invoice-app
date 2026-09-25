@@ -8,6 +8,8 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { InvoiceForm } from "@/components/invoice-form";
 import { Modal } from "@/components/modal";
+import { OptionalPaymentAssignment } from "@/components/optional-payment-assignment";
+import { assignBankPaymentToInvoice } from "@/lib/assignable-bank-payment";
 import { todayInTimeZone } from "@/lib/reminders";
 import { confirmAction } from "@/lib/confirm-action";
 import { useInvalidateWorkspaceData } from "@/lib/workspace-cache";
@@ -109,6 +111,8 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
   const [editing, setEditing] = useState(false);
   const [recordingPayment, setRecordingPayment] = useState(false);
   const [paymentDate, setPaymentDate] = useState("");
+  const [selectedBankPaymentId, setSelectedBankPaymentId] = useState("");
+  const [confirmWithoutBankPayment, setConfirmWithoutBankPayment] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
@@ -209,10 +213,20 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
     setError("");
     setNotice("");
     try {
-      await patch({ status: "paid", paid_on: paymentDate });
+      if (invoice?.status !== "paid" && selectedBankPaymentId) {
+        const assignment = await assignBankPaymentToInvoice(selectedBankPaymentId, id);
+        if (assignment.invoice_status !== "paid") throw new Error("Platba byla přiřazena, ale nepokryla celý zbývající zůstatek faktury.");
+        await refreshDetail();
+        void invalidateWorkspaceData();
+      } else {
+        if (invoice?.status !== "paid" && !confirmWithoutBankPayment) return;
+        await patch({ status: "paid", paid_on: paymentDate });
+      }
       setRecordingPayment(false);
       setNotice(
-        "Úhrada byla zapsána. Další automatické upomínky se zastavily.",
+        selectedBankPaymentId
+          ? "Bankovní platba byla přiřazena a faktura je uhrazená."
+          : "Úhrada byla zapsána. Další automatické upomínky se zastavily.",
       );
     } catch (cause) {
       setError(
@@ -516,6 +530,8 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                   disabled={updating}
                   onClick={() => {
                     setPaymentDate(todayInTimeZone());
+                    setSelectedBankPaymentId("");
+                    setConfirmWithoutBankPayment(false);
                     setRecordingPayment(true);
                   }}
                 >
@@ -545,7 +561,7 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       >
         <header>
           <div>
-            <small>MANUÁLNÍ ÚHRADA</small>
+            <small>{invoice.status === "paid" ? "DATUM ÚHRADY" : "POTVRZENÍ ÚHRADY"}</small>
             <h2 id="payment-confirm-title">
               {invoice.status === "paid"
                 ? "Upravit datum úhrady?"
@@ -567,7 +583,15 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
           </button>
         </header>
         <div className="payment-confirm-content">
-          <label>
+          {invoice.status !== "paid" && <OptionalPaymentAssignment
+            invoiceId={id}
+            enabled={recordingPayment}
+            selectedPaymentId={selectedBankPaymentId}
+            confirmWithoutPayment={confirmWithoutBankPayment}
+            onSelectPayment={setSelectedBankPaymentId}
+            onConfirmWithoutPayment={setConfirmWithoutBankPayment}
+          />}
+          {(invoice.status === "paid" || !selectedBankPaymentId) && <label className={invoice.status !== "paid" ? "quick-payment-date" : undefined}>
             <span>Datum úhrady</span>
             <input
               type="date"
@@ -576,7 +600,7 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
               onChange={(event) => setPaymentDate(event.target.value)}
             />
             <small>Zadejte skutečný den, kdy byla částka připsána.</small>
-          </label>
+          </label>}
         </div>
         <footer className="payment-confirm-actions">
           <button
@@ -590,14 +614,16 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
           <button
             type="button"
             className="btn primary"
-            disabled={updating || !paymentDate}
+            disabled={updating || (invoice.status === "paid" ? !paymentDate : !selectedBankPaymentId && (!paymentDate || !confirmWithoutBankPayment))}
             onClick={recordPayment}
           >
             {updating
               ? "Ukládám…"
               : invoice.status === "paid"
                 ? "Uložit datum"
-                : "Ano, potvrdit úhradu"}
+                : selectedBankPaymentId
+                  ? "Přiřadit a potvrdit"
+                  : "Potvrdit bez platby"}
           </button>
         </footer>
       </Modal>

@@ -1,17 +1,20 @@
 import "server-only";
 
-import { digits, normalizeComparable, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { deriveOcrFieldDecisions, digits, normalizeComparable, type InvoiceOcrResult, type OcrFieldCandidate, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { AMOUNT_ADJUSTMENT_TOLERANCE } from "@/lib/vat";
 import type { InvoiceInput } from "@/types/invoice";
 
 // Fields where a silent pick between two disagreeing engines could cost the
 // organization real money or misfile a payment against the wrong company.
-// For these, disagreement NEVER auto-resolves to one side -- the field keeps
-// its local (line/bounds-grounded) value but at low confidence, plus an
-// explicit warning naming both readings, so a human decides. This is the
+// For these, disagreement NEVER auto-resolves to one side -- the field stays
+// empty while both readings remain available as evidence for review. This is the
 // same posture invoice-ocr.ts and invoice-ocr-gemini.ts already take
 // individually; reconcileExtractions just applies it when combining them.
-const PROTECTED_FIELDS = new Set<OcrFieldName>(["amount", "amount_without_vat", "vat_rate", "counterparty_ico", "counterparty_dic"]);
+const PROTECTED_FIELDS = new Set<OcrFieldName>([
+  "invoice_number", "variable_symbol", "issue_date", "due_date",
+  "counterparty_name", "counterparty_ico", "counterparty_dic",
+  "amount", "amount_without_vat", "vat_rate", "currency",
+]);
 
 export const DEFAULT_HYBRID_CONFIDENCE_THRESHOLD = 0.8;
 
@@ -86,6 +89,7 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
   const warnings = [...local.warnings];
   let moneyDisagreement = false;
   let anyAgreement = false;
+  const conflictingCandidates: Partial<Record<OcrFieldName, OcrFieldCandidate[]>> = {};
 
   const fields = Object.keys(FIELD_LABELS) as OcrFieldName[];
   for (const field of fields) {
@@ -101,12 +105,21 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
         if (existing) fieldSources[field] = { ...existing, confidence: Math.min(1, (existing.confidence ?? 0.7) + 0.15) };
         continue;
       }
-      // Disagreement. Money/identity fields: never silently pick a winner --
-      // keep the local, line-grounded value as-is but flag it for review.
+      // Disagreement on a critical field: neither engine wins. Keep both
+      // readings as auditable candidates, but leave the form field empty.
       if (PROTECTED_FIELDS.has(field)) {
         moneyDisagreement = true;
-        const existing = fieldSources[field];
-        if (existing) fieldSources[field] = { ...existing, confidence: Math.min(existing.confidence ?? 0.3, 0.3) };
+        const candidate = (value: string | number, source: OcrFieldSource | undefined): OcrFieldCandidate => ({
+          value,
+          page: source?.page ?? 1,
+          text: source?.text ?? String(value),
+          method: source?.method ?? "ai",
+          confidence: source?.confidence ?? null,
+          role: source?.role ?? (field.startsWith("counterparty_") ? "counterparty" : "document"),
+        });
+        conflictingCandidates[field] = [candidate(localValue, local.field_sources[field]), candidate(aiValue, ai.field_sources[field])];
+        (invoice as unknown as Record<OcrFieldName, string | number>)[field] = NUMERIC_FIELDS.has(field) ? 0 : "";
+        delete fieldSources[field];
         warnings.push(
           `Lokální rozpoznávač a AI se neshodují na poli ${FIELD_LABELS[field]} ` +
             `(${formatForWarning(field, localValue)} vs ${formatForWarning(field, aiValue)}) -- zkontrolujte ručně.`,
@@ -162,15 +175,28 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
   if (moneyDisagreement) confidence = Math.min(confidence, 0.35);
   else if (anyAgreement) confidence = Math.min(1, confidence + 0.1);
 
+  const uniqueWarnings = [...new Set(warnings)];
+  const fieldDecisions = deriveOcrFieldDecisions(invoice, fieldSources, uniqueWarnings);
+  for (const [field, candidates] of Object.entries(conflictingCandidates) as Array<[OcrFieldName, OcrFieldCandidate[]]>) {
+    fieldDecisions[field] = {
+      status: "review",
+      confidence: 0,
+      reasons: [`Lokální OCR a AI nabídly pro ${FIELD_LABELS[field]} rozdílné hodnoty. Pole zůstalo prázdné.`],
+      candidates,
+    };
+  }
   return {
     invoice,
     field_sources: fieldSources,
+    field_decisions: fieldDecisions,
     confidence,
-    warnings,
+    warnings: uniqueWarnings,
     document_kind: local.document_kind,
     issuer_matches_organization: local.issuer_matches_organization,
     reminder_policy_assignment: local.reminder_policy_assignment,
     model: `local+${ai.model}`,
     response_id: ai.response_id,
+    vocabulary_version: local.vocabulary_version,
+    keyword_suggestions: local.keyword_suggestions,
   };
 }

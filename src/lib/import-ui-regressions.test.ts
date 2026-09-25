@@ -97,6 +97,15 @@ describe("MFA and bank statement UI regressions", () => {
     expect(css).toContain(".payments-archive-page .payment-history-table { display: grid;");
   });
 
+  it("allows payment history to be sorted by amount or counterparty name", () => {
+    expect(paymentsArchivePage).toContain('type PaymentSort = "default" | "amount_desc" | "amount_asc" | "name_asc" | "name_desc"');
+    expect(paymentsArchivePage).toContain('<span>Seřadit podle</span>');
+    expect(paymentsArchivePage).toContain('Částky: nejvyšší');
+    expect(paymentsArchivePage).toContain('Názvu: A–Z');
+    expect(paymentsArchivePage).toContain('leftName.localeCompare(rightName, "cs")');
+    expect(css).toContain(".payments-archive-page .payments-history-sort");
+  });
+
   it("uses distinct, accessible navigation cards between both payment pages", () => {
     expect(paymentsUploadPage).toContain('className="payments-switch payments-switch-archive"');
     expect(paymentsUploadPage).toContain('<Icon name="statement" />');
@@ -114,5 +123,14 @@ describe("MFA and bank statement UI regressions", () => {
     expect(appShell).toContain('classList.add("mobile-navigation-lock")');
     expect(appShell).toContain('classList.remove("mobile-navigation-lock")');
     expect(mobileNavigation).toContain("body.mobile-navigation-lock { overflow: hidden; }");
+  });
+
+  it("keeps statement archive actions together without creating an implicit grid row", () => {
+    expect(paymentsArchivePage).toContain('<StatementArchive />');
+    const statementArchive = source("src/app/(workspace)/invoices/payments/archive/statement-archive.tsx");
+    expect(statementArchive).toContain('className="statement-file-actions"');
+    expect(statementArchive).toContain('className="btn secondary compact statement-discard"');
+    expect(css).toContain('.statement-file-actions { display: flex;');
+    expect(css).toContain('minmax(250px,auto)');
   });
 });

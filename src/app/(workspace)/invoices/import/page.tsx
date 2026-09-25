@@ -70,7 +70,7 @@ function parseCsv(text: string): InvoiceInput[] {
   });
 }
 
-type OcrInfo = Pick<InvoiceOcrResult, "confidence" | "warnings" | "document_kind" | "issuer_matches_organization" | "reminder_policy_assignment" | "field_sources">;
+type OcrInfo = Pick<InvoiceOcrResult, "confidence" | "warnings" | "document_kind" | "issuer_matches_organization" | "reminder_policy_assignment" | "field_sources" | "field_decisions">;
 type QueueStatus = "pending" | "processing" | "ready" | "saved" | "error";
 type QueueItem = {
   file: File;
@@ -225,7 +225,11 @@ export default function ImportInvoicesPage() {
     try {
       const extraction = await requestDocumentExtraction(uploaded.file_url);
       setQueue(current => current.map((item, i) => i === index ? { ...item, invoice: extraction.invoice, ocrInfo: extraction, error: undefined } : item));
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "OCR se nepodařilo zopakovat."); }
+    } catch (cause) {
+      const detail = cause instanceof Error ? cause.message : "OCR se nepodařilo zopakovat.";
+      setQueue(current => current.map((item, i) => i === index ? { ...item, error: detail } : item));
+      setMessage(detail);
+    }
     finally { setWorking(false); setDocumentStage("idle"); }
   }
   async function create(input: InvoiceInput) {
@@ -355,10 +359,10 @@ export default function ImportInvoicesPage() {
             <section className="page-panel"><p className="page-state">{documentStageLabel[documentStage] || "Čeká na zpracování…"}</p></section>
           ) : uploaded ? <>
             <div className={`import-step-note ${ocrInfo ? "ocr-complete" : "ocr-manual"}`}>
-              <div><strong>{ocrInfo ? "Údaje byly předvyplněny z dokumentu" : "Dokument je bezpečně uložený"}</strong><span>{ocrInfo ? `Spolehlivost rozpoznání přibližně ${Math.round(ocrInfo.confidence * 100)} %. Každý údaj před uložením zkontrolujte.` : "Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>
+              <div><strong>{ocrInfo ? "Dokument načten" : "Automatické načtení se nezdařilo"}</strong><span>{ocrInfo ? `OCR ${Math.round(ocrInfo.confidence * 100)} % · údaje před uložením zkontrolujte.` : active.error ?? "Dokument je bezpečně uložený. Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>
               {!ocrInfo && <div className="ocr-manual-actions"><button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button><a className="btn secondary compact" href="#manual-invoice-form">Vyplnit ručně</a></div>}
             </div>
-            <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} ocrWarnings={ocrInfo?.warnings} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
+            <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} ocrFieldDecisions={ocrInfo?.field_decisions} ocrWarnings={ocrInfo?.warnings} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
           </> : null}
         </>
       )

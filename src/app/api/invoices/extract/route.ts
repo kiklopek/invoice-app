@@ -3,10 +3,11 @@ import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document-validation";
-import { isOcrHourlyQuotaExceeded, parseInvoiceText, type InvoiceOcrResult } from "@/lib/invoice-ocr";
+import { isOcrHourlyQuotaExceeded, needsOcrAiReview, omitUnverifiedOcrValues, parseInvoiceText, pickOcrReviewValues, type InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { extractInvoiceWithGemini, GeminiOcrError } from "@/lib/invoice-ocr-gemini";
-import { parseConfidenceThreshold, reconcileExtractions } from "@/lib/invoice-ocr-reconcile";
+import { reconcileExtractions } from "@/lib/invoice-ocr-reconcile";
+import { rejectOrganizationIdentity, validateCounterpartyWithAres } from "@/lib/invoice-ocr-registry";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
@@ -92,18 +93,9 @@ export async function POST(request: Request) {
   // kind of thing nobody agreed to. See invoice-ocr-gemini.ts for the
   // GDPR/data-processor reasoning behind keeping this explicit.
   const ocrProvider = process.env.OCR_PROVIDER === "gemini" || process.env.OCR_PROVIDER === "hybrid" ? process.env.OCR_PROVIDER : "local";
+  const contextualMode = process.env.OCR_CONTEXTUAL_MODE === "active" ? "active" : "shadow";
   const useGemini = ocrProvider === "gemini";
   const useHybrid = ocrProvider === "hybrid";
-
-  // Provisional default, not derived from a large measured sample (only 4
-  // real invoices were available when this was written, and the local
-  // parser scored 0.86 confidence on all 4 -- not enough spread to fit a
-  // real threshold). Deliberately set high so hybrid mode only calls Gemini
-  // when the local parser is genuinely unsure, keeping the common case
-  // free/fast; override via env once more real-world outcomes are measured
-  // (see invoice-ocr-reconcile.ts / the OCR upgrade plan's Fáze 2).
-  const HYBRID_CONFIDENCE_THRESHOLD = parseConfidenceThreshold(process.env.OCR_HYBRID_CONFIDENCE_THRESHOLD);
-  const HYBRID_REQUIRED_FIELDS = ["amount", "counterparty_ico", "vat_rate"] as const;
 
   const runLocal = async () => {
     // pdfjs/unpdf detaches the buffer it's given (see the comment on
@@ -130,8 +122,9 @@ export async function POST(request: Request) {
       extraction = await extractInvoiceWithGemini({ bytes, mime: upload.expected_mime, fileUrl: path, organization });
     } else if (useHybrid) {
       const local = await runLocal();
-      const missingRequiredField = HYBRID_REQUIRED_FIELDS.some(field => !local.invoice[field]);
-      const needsAiCrossCheck = local.confidence < HYBRID_CONFIDENCE_THRESHOLD || missingRequiredField;
+      const needsAiCrossCheck = contextualMode === "active"
+        ? needsOcrAiReview(local)
+        : local.confidence < 0.8 || !local.invoice.amount || !local.invoice.counterparty_ico || !local.field_sources.vat_rate;
       if (!needsAiCrossCheck) {
         extraction = local;
       } else {
@@ -173,6 +166,22 @@ export async function POST(request: Request) {
     return fail(useGemini ? "AI OCR se nepodařilo zpracovat. Zkuste to znovu nebo údaje doplňte ručně." : "Dokument se nepodařilo lokálně zpracovat. Zkuste jej znovu nebo údaje doplňte ručně.", 500, useGemini ? "gemini_failed" : "local_ocr_failed");
   }
 
+  // Always enforce the organization's own identity before any optional ARES
+  // rollout logic. This prevents the supplier's IČO from reaching the form,
+  // reminder preferences, or persisted OCR proposal through any provider.
+  extraction = rejectOrganizationIdentity(extraction, organization);
+  const registryValidated = await validateCounterpartyWithAres(extraction, identity.service);
+  if (contextualMode === "active") {
+    extraction = omitUnverifiedOcrValues(registryValidated);
+  } else if (
+    registryValidated.invoice.counterparty_ico !== extraction.invoice.counterparty_ico
+    || registryValidated.invoice.counterparty_dic !== extraction.invoice.counterparty_dic
+  ) {
+    // Shadow rollout records only whether the new registry guard would have
+    // changed identity. It deliberately does not log customer values.
+    console.info("[invoice-ocr] shadow ARES validation would require identity review", { upload_id: upload.id });
+  }
+
   const normalizedIco = normalizeCounterpartyIco(extraction.invoice.counterparty_ico);
   const preferencePromise = normalizedIco
     ? identity.service.from("counterparty_reminder_preferences").select("reminder_policy_id")
@@ -206,7 +215,10 @@ export async function POST(request: Request) {
     ocr_status: "succeeded",
     ocr_model: extraction.model,
     ocr_provider_response_id: extraction.response_id,
-    ocr_field_sources: extraction.field_sources,
+    ocr_field_sources: JSON.parse(JSON.stringify(extraction.field_sources)),
+    ocr_field_decisions: JSON.parse(JSON.stringify(extraction.field_decisions)),
+    ocr_proposed_values: JSON.parse(JSON.stringify(pickOcrReviewValues(extraction.invoice))),
+    ocr_vocabulary_version: extraction.vocabulary_version,
     ocr_money_snapshot: extraction.invoice.money_evidence ?? null,
     ocr_error: null,
     ocr_completed_at: new Date().toISOString(),
@@ -214,6 +226,19 @@ export async function POST(request: Request) {
   if (completionError) {
     logError("Výsledek OCR se nepodařilo potvrdit", completionError, { upload_id: upload.id });
     return apiError(request, "Výsledek OCR se nepodařilo bezpečně potvrdit.", 500, "ocr_completion_failed");
+  }
+
+  if (extraction.keyword_suggestions.length) {
+    const { error: suggestionsError } = await identity.service.from("invoice_ocr_keyword_suggestions").insert(
+      extraction.keyword_suggestions.map(suggestion => ({
+        organization_id: organizationId,
+        upload_id: upload.id,
+        normalized_label: suggestion.normalized_label,
+        example_label: suggestion.example_label,
+        vocabulary_version: extraction.vocabulary_version,
+      })),
+    );
+    if (suggestionsError) logError("Návrhy nových OCR popisků se nepodařilo uložit", suggestionsError, { upload_id: upload.id });
   }
 
   return NextResponse.json({ extraction }, { headers: { "cache-control": "no-store" } });

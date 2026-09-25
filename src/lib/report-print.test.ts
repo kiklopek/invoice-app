@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const report = () => source("src/app/(workspace)/reports/reports-client.tsx");
+const printDocument = () => source("src/app/(workspace)/reports/report-print-document.tsx");
 const minimal = () => source("src/app/minimal.css");
 
 /** Vrátí tělo posledního @media print bloku v souboru (počítá závorky). */
@@ -24,16 +25,21 @@ function lastPrintBlock(css: string) {
 describe("tisk reportů", () => {
   it("nabízí tlačítko tisku, které nejede nad nehotovým reportem", () => {
     expect(report()).toContain('disabled={loading || !report} onClick={() => window.print()}');
+    expect(report()).toContain('title="Vytisknout nebo uložit jako PDF"');
+    expect(report()).toContain("Tisk / PDF");
   });
 
   it("tiskne hlavičku s firmou, obdobím a aktivními filtry", () => {
-    const source = report();
-    expect(source).toContain('className="report-print-cover"');
-    expect(source).toContain('className="report-print-footer"');
-    expect(source).toContain("profile?.companyName");
-    expect(source).toContain("dateBasisNames[dateBasis]");
-    expect(source).toContain("selectedStatus");
-    expect(source).toContain("selectedCustomer");
+    const client = report();
+    const printable = printDocument();
+    expect(client).toContain("<ReportPrintDocument");
+    expect(client).toContain("profile?.companyName");
+    expect(client).toContain("dateBasisNames[dateBasis]");
+    expect(client).toContain("selectedStatus={selectedStatus}");
+    expect(client).toContain("selectedCustomer={selectedCustomer}");
+    expect(printable).toContain('className="print-report-cover"');
+    expect(printable).toContain('className="print-report-meta"');
+    expect(printable).toContain('className="print-report-page-footer"');
   });
 
   it("nespoléhá na fixní opakovanou hlavičku, která přetékala do obsahu", () => {
@@ -42,13 +48,13 @@ describe("tisk reportů", () => {
   });
 
   it("používá segmentované pruhy, které zůstávají čitelné i v tisku", () => {
-    const source = report();
+    const source = printDocument();
     const block = lastPrintBlock(minimal());
-    expect(source).toContain('className="report-segmented-bar"');
-    expect(source).toContain('className="report-payment-bar"');
+    expect(source).toContain('className="print-status-bar"');
+    expect(source).toContain('className="print-matching-bar"');
     expect(source).not.toContain('className="donut"');
-    expect(block).toContain(".report-segmented-bar");
-    expect(block).toContain(".report-payment-bar");
+    expect(block).toContain(".print-status-bar");
+    expect(block).toContain(".print-matching-bar");
   });
 
   it("má jediný autoritativní @media print blok a ten leží na konci minimal.css", () => {
@@ -66,6 +72,7 @@ describe("tisk reportů", () => {
       ".mobile-navigation-shell",
       ".report-area-background",
       ".report-screen-header",
+      ".report-screen-document",
       ".section-actions",
       ".report-filters",
       ".btn",
@@ -99,6 +106,33 @@ describe("tisk reportů", () => {
     expect(block).toContain("tfoot { display: table-footer-group !important; }");
   });
 
+  it("čísluje stránky a drží každou další kapitolu na novém listu", () => {
+    const css = minimal();
+    const block = lastPrintBlock(css);
+    expect(css).toContain('content: "Strana " counter(page) " / " counter(pages);');
+    expect(block).toContain(".report-tab-panel + .report-tab-panel {");
+    expect(block).toContain("break-before: page;");
+    expect(block).toContain("page-break-before: always;");
+  });
+
+  it("dovolí dlouhým tabulkám pokračovat na další stránce bez rozdělení řádku", () => {
+    const source = report();
+    const block = lastPrintBlock(minimal());
+    expect(source.match(/report-table-card/g) ?? []).toHaveLength(2);
+    expect(source).toContain("report-splittable-card report-imports-card");
+    expect(block).toContain(".report-card.report-table-card");
+    expect(block).toContain("break-inside: auto;");
+    expect(block).toMatch(/tr\s*\{[\s\S]*?break-inside: avoid/);
+  });
+
+  it("skládá tržby i analytické karty pohledávek do tiskových sloupců", () => {
+    const block = lastPrintBlock(minimal());
+    expect(block).toContain("grid-template-columns: minmax(0, 1.6fr) minmax(52mm, .8fr);");
+    expect(block).toContain(".report-revenue-primary-card { grid-column: 1; grid-row: 1; }");
+    expect(block).toContain(".report-aging-overview-card { grid-column: span 7 !important; }");
+    expect(block).toContain(".report-dso-insight-card { grid-column: span 5 !important; }");
+  });
+
   it("nenechává v tiskovém CSS pravidla pro už neexistující prvky", () => {
     const block = lastPrintBlock(minimal());
     const tsx = readFileSync(join(process.cwd(), "src/app/(workspace)/reports/reports-client.tsx"), "utf8");
@@ -110,6 +144,13 @@ describe("tisk reportů", () => {
 });
 
 describe("pracovní plocha reportů", () => {
+  it("omezuje žebříček největších odběratelů na pět položek", () => {
+    const source = report();
+    expect(source).toContain("const TOP_CUSTOMERS_LIMIT = 5");
+    expect(source).toContain("customer_concentration.slice(0, TOP_CUSTOMERS_LIMIT)");
+    expect(source).toContain("topCustomers.map((row)");
+  });
+
   it("řadí Tržby do zarovnaných dvojic a centruje graf s jediným měsícem", () => {
     const source = report();
     const css = minimal();
@@ -142,14 +183,34 @@ describe("pracovní plocha reportů", () => {
     expect(css).toContain('.report-vat-grid .report-span-4{grid-column:span 12}');
   });
 
-  it("roztahuje graf doby úhrady k sousední kartě a na mobilu nechává hodnotu viditelnou", () => {
+  it("odděluje stáří pohledávek od rychlosti úhrad a graf používá až pro trend", () => {
     const source = report();
     const css = minimal();
-    expect(source).toContain('report-span-7 report-dso-card');
-    expect(source).toContain('report-dso-chart${report.dso_monthly.length === 1 ? " is-single" : ""}');
-    expect(css).toContain('.report-dso-card{display:flex;flex-direction:column;align-self:stretch}');
-    expect(css).toContain('.report-dso-chart.report-dso-chart{height:auto;min-height:220px;flex:1 1 auto}');
-    expect(css).toContain('.report-dso-chart .report-column-values{display:flex}');
+    expect(source).toContain('report-span-7 report-aging-overview-card');
+    expect(source).toContain('report-span-5 report-dso-card report-dso-insight-card');
+    expect(source).toContain('className="report-aging-segments"');
+    expect(source).toContain('className="report-aging-legend"');
+    expect(source).toContain('className="report-dso-line-chart"');
+    expect(source).toContain('dsoPoints.length === 1 ? <div className="report-dso-summary">');
+    expect(source).toContain('Plně uhrazené faktury');
+    expect(source).toContain('<polyline points={dsoPoints.map');
+    expect(source).toContain('className="report-dso-point"');
+    expect(css).toContain('.report-aging-distribution{padding:20px 18px 16px}');
+    expect(css).toContain('.report-aging-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))');
+    expect(css).toContain('.report-dso-line-chart{display:flex;min-height:220px;flex:1 1 auto');
+    expect(css).toContain('.report-dso-summary{display:grid;min-height:220px;flex:1 1 auto');
+    expect(css).toContain('.report-dso-plot polyline{fill:none;stroke:var(--green)');
+    expect(css).toContain('.report-aging-overview-card,.report-dso-insight-card{grid-column:1/-1}');
+  });
+
+  it("zpřehledňuje tabulku dlužníků pořadím a zvýrazněním rizika", () => {
+    const source = report();
+    const css = minimal();
+    expect(source).toContain('report.debtors.map((row, index)');
+    expect(source).toContain('className="report-debtor-name"');
+    expect(source).toContain('className={row.overdue ? "report-overdue-amount" : undefined}');
+    expect(css).toContain('.report-debtor-name>i{display:grid;width:24px;height:24px');
+    expect(css).toContain('.report-overdue-amount{display:inline-flex');
   });
 
   it("v Tržbách drží přesné částky v obou grafech viditelné i na mobilu", () => {

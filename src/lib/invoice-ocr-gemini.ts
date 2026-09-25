@@ -1,6 +1,7 @@
 import "server-only";
 
-import { boundedText, type InvoiceOcrOrganization, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { boundedText, deriveOcrFieldDecisions, type InvoiceOcrOrganization, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { OCR_VOCABULARY_VERSION } from "@/lib/invoice-ocr-vocabulary";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "@/lib/vat";
 import type { InvoiceInput } from "@/types/invoice";
 
@@ -59,6 +60,22 @@ const EXTRACTION_SCHEMA = {
     currency: { type: "STRING", description: "ISO kód měny (CZK, EUR, USD), ne symbol jako Kč nebo €." },
     issue_date: { type: "STRING", description: "YYYY-MM-DD" },
     due_date: { type: "STRING", description: "YYYY-MM-DD" },
+    evidence: {
+      type: "OBJECT",
+      description: "Důkaz pro každé vrácené pole. Klíč odpovídá názvu pole.",
+      properties: Object.fromEntries([
+        "invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic", "counterparty_email",
+        "variable_symbol", "amount_without_vat", "vat_rate", "amount", "currency", "issue_date", "due_date",
+      ].map(field => [field, {
+        type: "OBJECT",
+        properties: {
+          page: { type: "INTEGER" },
+          text: { type: "STRING" },
+          party_role: { type: "STRING", enum: ["counterparty", "issuer", "document", "unknown"] },
+        },
+        required: ["page", "text", "party_role"],
+      }])),
+    },
   },
   required: ["invoice_number", "amount_without_vat", "vat_rate", "amount"],
 };
@@ -126,6 +143,11 @@ Specifika českého účetnictví, která musíš znát a nezaměňovat:
   (např. "Vystavil: ... Email: ..."), i kdyby to byl jediný e-mail na celé
   faktuře.
 
+- Pro každou neprázdnou hodnotu vrať v objektu evidence doslovný krátký text
+  z dokumentu, číslo stránky a party_role. Pokud nedokážeš uvést konkrétní
+  důkaz nebo roli, nech příslušnou hodnotu prázdnou. Hodnota z party_role
+  "issuer" nikdy nesmí být vrácena jako counterparty_*.
+
 - currency vracej jako ISO kód (CZK, EUR, USD), ne symbol jako "Kč" nebo "€".
 
 Data vracej jako YYYY-MM-DD.`;
@@ -143,6 +165,7 @@ type GeminiExtraction = Partial<{
   currency: string;
   issue_date: string;
   due_date: string;
+  evidence: Partial<Record<OcrFieldName, { page?: number; text?: string; party_role?: "counterparty" | "issuer" | "document" | "unknown" }>>;
 }>;
 
 function isIsoDateLike(value: unknown): value is string {
@@ -334,29 +357,49 @@ export async function extractInvoiceWithGemini({
 
   // No line/bounding-box provenance from an AI text answer -- "ai" is the
   // honest method for that, see the OcrFieldSource comment in invoice-ocr.ts.
-  const aiSource = (value: unknown): OcrFieldSource | undefined =>
-    value ? { page: 1, line: 0, text: String(value), method: "ai", confidence: null, bounds: null } : undefined;
+  const aiSource = (field: OcrFieldName, value: unknown): OcrFieldSource | undefined => {
+    if (value === null || value === undefined || value === "") return undefined;
+    const evidence = data.evidence?.[field];
+    if (field.startsWith("counterparty_") && evidence?.party_role !== "counterparty") {
+      warnings.push(`AI nedoložila pole ${field} důkazem ze sekce odběratele; hodnota vyžaduje ruční kontrolu.`);
+      return undefined;
+    }
+    return {
+      page: typeof evidence?.page === "number" && evidence.page > 0 ? Math.floor(evidence.page) : 1,
+      line: 0,
+      text: boundedText(evidence?.text || String(value), 240),
+      method: "ai",
+      confidence: evidence?.text ? 0.65 : 0.45,
+      bounds: null,
+      role: evidence?.party_role ?? "unknown",
+    };
+  };
   const fieldSources: Partial<Record<OcrFieldName, OcrFieldSource>> = {
-    invoice_number: aiSource(data.invoice_number),
-    counterparty_name: aiSource(data.counterparty_name),
-    counterparty_ico: aiSource(data.counterparty_ico),
-    counterparty_dic: aiSource(data.counterparty_dic),
-    counterparty_email: aiSource(data.counterparty_email),
-    variable_symbol: aiSource(data.variable_symbol),
-    amount_without_vat: aiSource(data.amount_without_vat),
-    vat_rate: aiSource(data.vat_rate),
-    amount: aiSource(data.amount),
-    currency: aiSource(data.currency),
+    invoice_number: aiSource("invoice_number", data.invoice_number),
+    counterparty_name: aiSource("counterparty_name", data.counterparty_name),
+    counterparty_ico: aiSource("counterparty_ico", data.counterparty_ico),
+    counterparty_dic: aiSource("counterparty_dic", data.counterparty_dic),
+    counterparty_email: aiSource("counterparty_email", data.counterparty_email),
+    variable_symbol: aiSource("variable_symbol", data.variable_symbol),
+    amount_without_vat: aiSource("amount_without_vat", data.amount_without_vat),
+    vat_rate: aiSource("vat_rate", data.vat_rate),
+    amount: aiSource("amount", data.amount),
+    currency: aiSource("currency", data.currency),
+    issue_date: aiSource("issue_date", data.issue_date),
+    due_date: aiSource("due_date", data.due_date),
   };
 
   return {
     invoice,
     field_sources: fieldSources,
+    field_decisions: deriveOcrFieldDecisions(invoice, fieldSources, warnings),
     confidence: amount && invoice.counterparty_name && invoice.invoice_number ? 0.7 : 0.3,
     warnings,
     document_kind: "issued_invoice",
     issuer_matches_organization: null,
     model: `gemini:${model}`,
     response_id: responseId,
+    vocabulary_version: OCR_VOCABULARY_VERSION,
+    keyword_suggestions: [],
   };
 }

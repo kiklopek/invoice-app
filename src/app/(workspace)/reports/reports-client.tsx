@@ -3,7 +3,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
-import { CompanyLogo } from "@/components/company-logo";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { todayInTimeZone } from "@/lib/reminders";
@@ -11,6 +10,7 @@ import type { ReportDateBasis } from "@/lib/report-query";
 import type { ReportPageData } from "@/lib/report-page-data";
 import { useAccessProfile } from "@/lib/use-access-role";
 import type { InvoiceStatus } from "@/types/invoice";
+import { ReportPrintDocument } from "./report-print-document";
 
 const iso = (date: Date) => date.toISOString().slice(0, 10);
 const money = (value: number, currency: string) =>
@@ -26,6 +26,7 @@ const statusNames: Record<InvoiceStatus, string> = {
   cancelled: "Storno",
 };
 const statusChartOrder: InvoiceStatus[] = ["paid", "overdue", "pending", "cancelled"];
+const TOP_CUSTOMERS_LIMIT = 5;
 type ReportTab = "revenue" | "vat" | "receivables" | "payments";
 const reportTabs: Array<{ id: ReportTab; label: string; icon: "chart" | "invoice" | "clock" | "bank" }> = [
   { id: "revenue", label: "Tržby", icon: "chart" },
@@ -148,9 +149,15 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
     ...(report?.monthly.flatMap((month) => [Number(month.issued), Number(month.paid)]) ?? []),
   );
   const maxDsoMonthly = Math.max(1, ...(report?.dso_monthly.map((month) => Number(month.avg_days)) ?? []));
+  const dsoPoints = (report?.dso_monthly ?? []).map((month, index, months) => ({
+    ...month,
+    x: months.length === 1 ? 50 : 6 + (index / (months.length - 1)) * 88,
+    y: 12 + (1 - Number(month.avg_days) / maxDsoMonthly) * 70,
+  }));
   const maxYoyMonthly = Math.max(1, ...(report?.yoy_monthly.flatMap((month) => [Number(month.current_year), Number(month.prior_year)]) ?? []));
   const maxConcentration = Math.max(1, ...(report?.customer_concentration.map((row) => Number(row.revenue)) ?? []));
-  const maxAging = Math.max(1, ...(report?.aging.map((bucket) => Number(bucket.amount)) ?? []));
+  const topCustomers = report?.customer_concentration.slice(0, TOP_CUSTOMERS_LIMIT) ?? [];
+  const totalAging = report?.aging.reduce((sum, bucket) => sum + Number(bucket.amount), 0) || 1;
   const maxVatGross = Math.max(1, ...(report?.vat_breakdown.map((row) => Number(row.gross)) ?? []));
   const concentrationTotal = report?.customer_concentration.reduce((sum, row) => sum + Number(row.revenue), 0) || 1;
   const netTotal = report?.vat_breakdown.reduce((sum, row) => sum + Number(row.base), 0) ?? 0;
@@ -180,9 +187,9 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
           </span>
         </div>
         <div className="section-actions">
-          <button className="btn secondary" disabled={loading || !report} onClick={() => window.print()}>
+          <button className="btn secondary" title="Vytisknout nebo uložit jako PDF" disabled={loading || !report} onClick={() => window.print()}>
             <Icon name="print" />
-            Vytisknout
+            Tisk / PDF
           </button>
           <button
             className="btn primary"
@@ -277,22 +284,17 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
         <p className="page-state">Připravuji report…</p>
       ) : (
         <>
-          <section className="report-print-cover" aria-hidden="true">
-            <CompanyLogo className="report-print-logo" />
-            <div className="report-print-title">
-              <span>FINANČNÍ REPORT</span>
-              <h1>Účetní report</h1>
-              <p>{companyName}</p>
-            </div>
-            <dl className="report-print-meta">
-              <div><dt>Období</dt><dd>{printPeriod}</dd></div>
-              <div><dt>Období podle</dt><dd>{dateBasisNames[dateBasis]}</dd></div>
-              <div><dt>Měna</dt><dd>{currency}</dd></div>
-              <div><dt>Stav</dt><dd>{selectedStatus}</dd></div>
-              <div className="wide"><dt>Odběratel</dt><dd>{selectedCustomer}</dd></div>
-              <div><dt>Vytvořeno</dt><dd>{displayDateTime(generatedAt)}</dd></div>
-            </dl>
-          </section>
+          <ReportPrintDocument
+            report={report}
+            currency={currency}
+            companyName={companyName}
+            period={printPeriod}
+            dateBasis={dateBasisNames[dateBasis]}
+            selectedStatus={selectedStatus}
+            selectedCustomer={selectedCustomer}
+            generatedAt={displayDateTime(generatedAt)}
+          />
+          <div className="report-screen-document">
           <section className="report-accounting-summary" aria-label="Účetní souhrn">
             {[
               ["Základ bez DPH", money(netTotal, currency), `${report.invoice_count} faktur`],
@@ -356,7 +358,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
                 <article className="page-panel report-card report-revenue-card report-revenue-customers-card">
                   <header><div><h3>Největší odběratelé</h3><p>Podíl na tržbách v období</p></div></header>
                   <div className="report-ranking">
-                    {report.customer_concentration.map((row) => <div key={row.name}><div><span>{row.name}</span><strong>{Math.round(Number(row.revenue) / concentrationTotal * 100)} %</strong></div><i><b style={{ width: `${Number(row.revenue) / maxConcentration * 100}%` }}/></i><small>{money(Number(row.revenue), currency)}</small></div>)}
+                    {topCustomers.map((row) => <div key={row.name}><div><span>{row.name}</span><strong>{Math.round(Number(row.revenue) / concentrationTotal * 100)} %</strong></div><i><b style={{ width: `${Number(row.revenue) / maxConcentration * 100}%` }}/></i><small>{money(Number(row.revenue), currency)}</small></div>)}
                     {!report.customer_concentration.length && <p className="report-revenue-empty">Zatím nejsou tržby podle odběratelů.</p>}
                   </div>
                 </article>
@@ -371,7 +373,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
             <section id="report-panel-vat" role="tabpanel" aria-labelledby="report-tab-vat" aria-hidden={activeTab !== "vat"} className={`report-tab-panel${activeTab === "vat" ? " active" : ""}`}>
               <div className="report-tab-intro"><div><span>02</span><h2>DPH</h2></div><p>Daňové základy, vypočtená daň a celkové částky podle sazeb.</p></div>
               <div className="report-workspace-grid report-vat-grid">
-                <article className="page-panel report-card report-span-8"><header><div><h3>Rozpis podle sazby DPH</h3><p>Podklad pro kontrolu daňového přiznání</p></div></header><div className="report-accounting-table"><table className="vat-breakdown-table"><thead><tr><th>Sazba</th><th>Základ daně</th><th>DPH</th><th>Celkem</th><th>Faktur</th></tr></thead><tbody>{report.vat_breakdown.map((row) => <tr key={row.vat_rate}><td data-label="Sazba"><strong>{row.vat_rate} %</strong></td><td data-label="Základ daně">{money(Number(row.base), currency)}</td><td data-label="DPH">{money(Number(row.tax), currency)}</td><td data-label="Celkem">{money(Number(row.gross), currency)}</td><td data-label="Faktur">{row.count}</td></tr>)}</tbody><tfoot><tr><td data-label="Sazba"><strong>Celkem</strong></td><td data-label="Základ daně"><strong>{money(netTotal, currency)}</strong></td><td data-label="DPH"><strong>{money(taxTotal, currency)}</strong></td><td data-label="Celkem"><strong>{money(Number(report.total), currency)}</strong></td><td data-label="Faktur"><strong>{report.vat_breakdown.reduce((sum, row) => sum + row.count, 0)}</strong></td></tr></tfoot></table></div></article>
+                <article className="page-panel report-card report-table-card report-span-8"><header><div><h3>Rozpis podle sazby DPH</h3><p>Podklad pro kontrolu daňového přiznání</p></div></header><div className="report-accounting-table"><table className="vat-breakdown-table"><thead><tr><th>Sazba</th><th>Základ daně</th><th>DPH</th><th>Celkem</th><th>Faktur</th></tr></thead><tbody>{report.vat_breakdown.map((row) => <tr key={row.vat_rate}><td data-label="Sazba"><strong>{row.vat_rate} %</strong></td><td data-label="Základ daně">{money(Number(row.base), currency)}</td><td data-label="DPH">{money(Number(row.tax), currency)}</td><td data-label="Celkem">{money(Number(row.gross), currency)}</td><td data-label="Faktur">{row.count}</td></tr>)}</tbody><tfoot><tr><td data-label="Sazba"><strong>Celkem</strong></td><td data-label="Základ daně"><strong>{money(netTotal, currency)}</strong></td><td data-label="DPH"><strong>{money(taxTotal, currency)}</strong></td><td data-label="Celkem"><strong>{money(Number(report.total), currency)}</strong></td><td data-label="Faktur"><strong>{report.vat_breakdown.reduce((sum, row) => sum + row.count, 0)}</strong></td></tr></tfoot></table></div></article>
                 <article className="page-panel report-card report-span-4 report-vat-structure-card"><header><div><h3>Struktura DPH</h3><p>Poměr jednotlivých sazeb</p></div></header><div className="report-vat-bars">{report.vat_breakdown.map((row) => <div key={row.vat_rate}><div><span>{row.vat_rate} %</span><strong>{money(Number(row.gross), currency)}</strong></div><i><b style={{ width: `${Number(row.gross) / maxVatGross * 100}%` }}/></i><small>Základ {money(Number(row.base), currency)} · DPH {money(Number(row.tax), currency)}</small></div>)}</div></article>
               </div>
             </section>
@@ -379,10 +381,24 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
             <section id="report-panel-receivables" role="tabpanel" aria-labelledby="report-tab-receivables" aria-hidden={activeTab !== "receivables"} className={`report-tab-panel${activeTab === "receivables" ? " active" : ""}`}>
               <div className="report-tab-intro"><div><span>03</span><h2>Pohledávky</h2></div><p>Stav faktur, stáří dluhu a platební disciplína odběratelů.</p></div>
               <article className="page-panel report-card report-status-card"><header><div><h3>Stav faktur</h3><p>{report.invoice_count} faktur ve vybraném období</p></div><strong>{money(Number(report.open), currency)} otevřeno</strong></header><div className="report-segmented-bar">{statusChartOrder.map((key) => <i key={key} className={key} style={{ width: `${report.invoice_count ? report.counts[key] / report.invoice_count * 100 : 0}%` }}/>)}</div><div className="report-segment-legend">{statusChartOrder.map((key) => <div key={key}><i className={key}/><span>{statusNames[key]}</span><strong>{report.counts[key]}</strong></div>)}</div></article>
-              <div className="report-workspace-grid">
-                <article className="page-panel report-card report-span-5"><header><div><h3>Stáří pohledávek</h3><p>Částky podle dní po splatnosti</p></div></header><div className="report-aging-chart">{report.aging.map((bucket, index) => <div className={`report-aging-row risk-${index}`} key={bucket.label}><div><span>{bucket.label}</span><strong>{money(Number(bucket.amount), currency)}</strong></div><i><b style={{ width: `${Number(bucket.amount) / maxAging * 100}%` }}/></i><small>{bucket.count} {bucket.count === 1 ? "faktura" : "faktur"}</small></div>)}</div></article>
-                <article className="page-panel report-card report-span-7 report-dso-card"><header><div><h3>Doba do úplné úhrady</h3><p>Průměr podle měsíce platby · celkem {report.dso.avg_days} dní</p></div></header><div className={`report-column-chart compact single-series report-dso-chart${report.dso_monthly.length === 1 ? " is-single" : ""}`}>{report.dso_monthly.map((month) => <div className="report-column-group" key={month.key}><div className="report-column-values"><small>{month.avg_days} dní</small></div><div className="report-columns"><i className="paid" style={{ height: `${(Number(month.avg_days) / maxDsoMonthly) * 100}%` }}/></div><span>{monthAxisLabel(month.key)}</span></div>)}</div></article>
-                <article className="page-panel report-card report-span-12"><header><div><h3>Přehled dlužníků</h3><p>Kliknutím na řádek omezíte celý report na vybraného odběratele</p></div></header><div className="report-accounting-table"><table className="top-debtors-table"><thead><tr><th>Odběratel</th><th>Otevřeno</th><th>Po splatnosti</th><th>Faktur</th><th>Upomínky</th></tr></thead><tbody>{report.debtors.map((row) => <tr key={row.name} role="button" tabIndex={0} onClick={() => setCustomer(row.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setCustomer(row.name); } }}><td data-label="Odběratel"><strong>{row.name}</strong></td><td data-label="Otevřeno">{money(Number(row.open), currency)}</td><td data-label="Po splatnosti" className={row.overdue ? "red-text" : undefined}>{money(Number(row.overdue), currency)}</td><td data-label="Faktur">{row.count}</td><td data-label="Upomínky">{row.reminders}</td></tr>)}</tbody></table></div></article>
+              <div className="report-workspace-grid report-receivables-grid">
+                <article className="page-panel report-card report-span-7 report-aging-overview-card">
+                  <header><div><h3>Stáří pohledávek</h3><p>Rozložení otevřených částek podle doby po splatnosti</p></div><strong>{money(Number(report.open), currency)}</strong></header>
+                  <div className="report-aging-distribution">
+                    <div className="report-aging-segments" role="img" aria-label={`Rozložení pohledávek: ${report.aging.map((bucket) => `${bucket.label} ${money(Number(bucket.amount), currency)}`).join(", ")}`}>
+                      {report.aging.map((bucket, index) => <i className={`risk-${index}`} key={bucket.label} style={{ width: `${Number(bucket.amount) / totalAging * 100}%` }}/>) }
+                    </div>
+                    <div className="report-aging-legend">{report.aging.map((bucket, index) => <div className="report-aging-legend-item" key={bucket.label}><i className={`risk-${index}`} aria-hidden="true"/><div><span>{bucket.label}</span><small>{bucket.count} {bucket.count === 1 ? "faktura" : "faktur"}</small></div><strong>{money(Number(bucket.amount), currency)}</strong></div>)}</div>
+                  </div>
+                </article>
+                <article className="page-panel report-card report-span-5 report-dso-card report-dso-insight-card">
+                  <header><div><h3>Doba do úplné úhrady</h3><p>{dsoPoints.length > 1 ? `Vývoj podle měsíce platby · průměr ${report.dso.avg_days} dní` : "Jak rychle jsou faktury v průměru plně zaplacené"}</p></div></header>
+                  {dsoPoints.length === 1 ? <div className="report-dso-summary">
+                    <div className="report-dso-summary-main"><span className="report-dso-summary-icon" aria-hidden="true"><Icon name="clock"/></span><div><strong>{dsoPoints[0].avg_days}</strong><span>dne v průměru</span></div></div>
+                    <dl><div><dt>Měsíc platby</dt><dd>{monthAxisLabel(dsoPoints[0].key)}</dd></div><div><dt>Plně uhrazené faktury</dt><dd>{dsoPoints[0].count}</dd></div></dl>
+                  </div> : dsoPoints.length > 1 ? <div className="report-dso-line-chart" role="img" aria-label={`Vývoj doby do úplné úhrady: ${dsoPoints.map((month) => `${monthAxisLabel(month.key)} ${month.avg_days} dní`).join(", ")}`}><div className="report-dso-plot"><div className="report-dso-grid" aria-hidden="true"><i/><i/><i/><i/></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points={dsoPoints.map((month) => `${month.x},${month.y}`).join(" ")}/></svg>{dsoPoints.map((month) => <div className="report-dso-point" key={month.key} style={{ left: `${month.x}%`, top: `${month.y}%` }}><strong>{month.avg_days} dní</strong><i aria-hidden="true"/></div>)}</div><div className="report-dso-axis">{dsoPoints.map((month) => <span key={month.key}>{monthAxisLabel(month.key)}</span>)}</div></div> : <p className="report-revenue-empty">Pro výpočet zatím nejsou dostupné uhrazené faktury.</p>}
+                </article>
+                <article className="page-panel report-card report-table-card report-span-12 report-debtors-card"><header><div><h3>Přehled dlužníků</h3><p>Kliknutím na řádek omezíte celý report na vybraného odběratele</p></div><strong>{report.debtors.length} odběratelů</strong></header><div className="report-accounting-table"><table className="top-debtors-table"><thead><tr><th>Odběratel</th><th>Otevřeno</th><th>Po splatnosti</th><th>Faktur</th><th>Upomínky</th></tr></thead><tbody>{report.debtors.map((row, index) => <tr key={row.name} role="button" tabIndex={0} onClick={() => setCustomer(row.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setCustomer(row.name); } }}><td data-label="Odběratel"><span className="report-debtor-name"><i aria-hidden="true">{index + 1}</i><strong>{row.name}</strong></span></td><td data-label="Otevřeno">{money(Number(row.open), currency)}</td><td data-label="Po splatnosti"><span className={row.overdue ? "report-overdue-amount" : undefined}>{money(Number(row.overdue), currency)}</span></td><td data-label="Faktur">{row.count}</td><td data-label="Upomínky">{row.reminders}</td></tr>)}</tbody></table></div></article>
               </div>
             </section>
 
@@ -392,14 +408,11 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
                 <section className="report-payment-metrics"><article><span>Přijaté platby</span><strong>{totals.accepted}</strong><small>potvrzeno v období</small></article><article><span>Automaticky spárováno</span><strong>{totals.auto_matched}</strong><small>{reviewed ? Math.round(totals.auto_matched / reviewed * 100) : 0} % posouzených</small></article><article><span>Ruční kontrola</span><strong>{totals.needs_review}</strong><small>vyžadovalo rozhodnutí</small></article><article><span>Nespárované</span><strong>{totals.unmatched_payments}</strong><small>zbývá vyřešit</small></article>{totals.unacknowledged_mismatch_imports > 0 && <article className="report-payment-alert"><span>Nepotvrzený nesoulad účtu</span><strong>{totals.unacknowledged_mismatch_imports}</strong><small>výpis(y) zaúčtovány automaticky bez potvrzení</small></article>}</section>
                 <article className="page-panel report-card report-payment-result"><header><div><h3>Úspěšnost párování</h3><p>Poměr automatického zpracování a ruční kontroly</p></div></header><div className="report-payment-bar"><i className="auto" style={{ width: `${reviewed ? totals.auto_matched / reviewed * 100 : 0}%` }}/><i className="review" style={{ width: `${reviewed ? totals.needs_review / reviewed * 100 : 0}%` }}/></div><div className="report-payment-legend"><span><i className="auto"/>Automaticky <strong>{totals.auto_matched}</strong></span><span><i className="review"/>Ruční kontrola <strong>{totals.needs_review}</strong></span></div></article>
               </>; })()}
-              <article className="page-panel report-card report-imports-card"><header><div><h3>Poslední potvrzené výpisy</h3><p>Importy bankovních plateb ve vybraném období</p></div></header>{report.payment_reconciliation.recent_imports.length ? <div className="report-import-list">{report.payment_reconciliation.recent_imports.map((item) => <div key={item.id}><span>{item.filename}</span><time>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</time><strong>{item.auto_matched} automaticky · {item.needs_review} kontrola{item.error_count ? ` · ${item.error_count} chyb` : ""}</strong></div>)}</div> : <p className="empty-report">V období nejsou žádné potvrzené bankovní výpisy.</p>}</article>
+              <article className="page-panel report-card report-splittable-card report-imports-card"><header><div><h3>Poslední potvrzené výpisy</h3><p>Importy bankovních plateb ve vybraném období</p></div></header>{report.payment_reconciliation.recent_imports.length ? <div className="report-import-list">{report.payment_reconciliation.recent_imports.map((item) => <div key={item.id}><span>{item.filename}</span><time>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</time><strong>{item.auto_matched} automaticky · {item.needs_review} kontrola{item.error_count ? ` · ${item.error_count} chyb` : ""}</strong></div>)}</div> : <p className="empty-report">V období nejsou žádné potvrzené bankovní výpisy.</p>}</article>
             </section>
           </div>
 
-          <footer className="report-print-footer" aria-hidden="true">
-            <span>{companyName} · Účetní report · {printPeriod}</span>
-            <span>Vytvořeno {displayDateTime(generatedAt)}</span>
-          </footer>
+          </div>
         </>
       )}
     </AppFrame>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InvoiceInput } from "@/types/invoice";
-import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, normalizeOcrText, type OcrDocumentLayout, parseInvoiceText, relevantOcrWarnings } from "./invoice-ocr";
+import { isOcrHourlyQuotaExceeded, LOCAL_OCR_MODEL, needsOcrAiReview, normalizeOcrText, omitUnverifiedOcrValues, type OcrDocumentLayout, parseInvoiceText, relevantOcrWarnings } from "./invoice-ocr";
 
 const organization = { name: "R. Hlavica s.r.o.", ico: "05829309", dic: "CZ05829309" };
 
@@ -50,6 +50,108 @@ describe("local invoice OCR parser", () => {
     expect(result.response_id).toBeNull();
     expect(result.field_sources.invoice_number).toMatchObject({ page: 1, text: "Číslo faktury: FV-2026-007" });
     expect(result.field_sources.amount).toMatchObject({ page: 1, text: "Celkem k úhradě 12 100,00 Kč" });
+  });
+
+  it("extracts Slovak accounting labels without using the supplier identity", () => {
+    const result = parseInvoiceText({
+      text: `
+FAKTÚRA
+Dodávateľ
+Dodávateľ SK s.r.o.
+IČO: 31322832
+IČ DPH: SK2020295860
+
+Odberateľ
+Slovenská sporiteľňa, a.s.
+IČO: 35815256
+IČ DPH: SK2020259802
+E-mail: faktury@example.sk
+
+Číslo faktúry: SK-2026-15
+Variabilný symbol: 202615
+Dátum vystavenia: 3. 9. 2026
+Dátum splatnosti: 17. 9. 2026
+Celkom bez DPH 100,00 EUR
+DPH: 20 %
+Suma na úhradu 120,00 EUR
+`,
+      fileUrl: "org/slovak.pdf",
+      organization: { name: "Dodávateľ SK s.r.o.", ico: "31322832", dic: "SK2020295860" },
+    });
+
+    expect(result.invoice).toMatchObject({
+      invoice_number: "SK-2026-15",
+      counterparty_name: "Slovenská sporiteľňa, a.s.",
+      counterparty_ico: "35815256",
+      counterparty_dic: "SK2020259802",
+      variable_symbol: "202615",
+      amount_without_vat: 100,
+      vat_rate: 20,
+      amount: 120,
+      currency: "EUR",
+      issue_date: "2026-09-03",
+      due_date: "2026-09-17",
+    });
+    expect(result.invoice.counterparty_ico).not.toBe("31322832");
+  });
+
+  it("marks missing or invalid critical fields for AI review", () => {
+    const result = parseInvoiceText({ text: "FAKTURA\nOdběratel\nNeznámý zákazník", fileUrl: "org/weak.pdf", organization });
+    expect(result.field_decisions.counterparty_ico?.status).toBe("missing");
+    expect(result.field_decisions.amount?.status).toBe("missing");
+    expect(needsOcrAiReview(result)).toBe(true);
+  });
+
+  it("uses bounded fuzzy keyword matching for common OCR substitutions", () => {
+    const result = parseInvoiceText({
+      text: `
+FAKTURA
+Dodavate1
+R. Hlavica s.r.o.
+IČO: 05829309
+Odberate1
+C.S.CARGO a.s.
+IČO: 64259374
+E-mail: faktury@cscargo.cz
+Cis1o faktury: FV-2026-099
+Datum vystaven1: 20. 9. 2026
+Datum splatnost1: 30. 9. 2026
+Ce1kem bez DPH: 1 000,00 Kč
+DPH: 21 %
+Ce1kem k uhrade: 1 210,00 Kč
+`,
+      fileUrl: "org/fuzzy.pdf",
+      organization,
+    });
+    expect(result.invoice).toMatchObject({
+      invoice_number: "FV-2026-099",
+      counterparty_name: "C.S.CARGO a.s.",
+      counterparty_ico: "64259374",
+      amount_without_vat: 1000,
+      amount: 1210,
+      issue_date: "2026-09-20",
+      due_date: "2026-09-30",
+    });
+  });
+
+  it("does not prefill fields that remain unverified in active mode", () => {
+    const result = parseInvoiceText({ text: "FAKTURA\nOdběratel\nNeznámý zákazník", fileUrl: "org/weak.pdf", organization });
+    const safe = omitUnverifiedOcrValues(result);
+    expect(safe.invoice.invoice_number).toBe("");
+    expect(safe.invoice.amount).toBe(0);
+    expect(safe.invoice.currency).toBe("");
+    expect(safe.field_decisions.currency?.status).toBe("review");
+  });
+
+  it("keeps multiple customer identity candidates for review instead of hiding the ambiguity", () => {
+    const result = parseInvoiceText({
+      text: `FAKTURA\nOdběratel\nDvě identity s.r.o.\nIČO: 64259374\nIČO: 11764139\nE-mail: audit@example.cz\nČíslo faktury: FV-2\nDatum vystavení: 1. 9. 2026\nDatum splatnosti: 15. 9. 2026\nCelkem k úhradě: 100 Kč`,
+      fileUrl: "org/ambiguous.pdf",
+      organization,
+    });
+    expect(result.field_decisions.counterparty_ico?.status).toBe("review");
+    expect(result.field_decisions.counterparty_ico?.candidates.map(candidate => candidate.value)).toEqual(["64259374", "11764139"]);
+    expect(needsOcrAiReview(result)).toBe(true);
   });
 
   it("disables only the usage quota when the organization limit is null", () => {

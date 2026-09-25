@@ -106,23 +106,25 @@ export function StatementArchive() {
                 <span><strong>{item.accepted_count}</strong> přijatých</span>
                 <span className={item.error_count ? "has-errors" : ""}><strong>{item.error_count}</strong> chyb</span>
               </div>
-              <span className={`statement-status ${item.status === "committed" ? "committed" : item.status === "discarded" ? "discarded" : "review"}`}>
-                {STATUS_LABELS[item.status] ?? "Ke kontrole"}
-              </span>
-              {canManage && DISCARDABLE.has(item.status) && (
-                <button
-                  type="button"
-                  className="btn secondary compact"
-                  disabled={working === item.id}
-                  onClick={() => discard(item)}
-                  aria-label={`Zahodit ${item.original_filename}`}
-                >
-                  {working === item.id ? "Zahazuji…" : "Zahodit"}
+              <div className="statement-file-actions">
+                <span className={`statement-status ${item.status === "committed" ? "committed" : item.status === "discarded" ? "discarded" : "review"}`}>
+                  {STATUS_LABELS[item.status] ?? "Ke kontrole"}
+                </span>
+                {canManage && DISCARDABLE.has(item.status) && (
+                  <button
+                    type="button"
+                    className="btn secondary compact statement-discard"
+                    disabled={working === item.id}
+                    onClick={() => discard(item)}
+                    aria-label={`Zahodit ${item.original_filename}`}
+                  >
+                    {working === item.id ? "Zahazuji…" : "Zahodit"}
+                  </button>
+                )}
+                <button type="button" className="statement-download" onClick={() => download(item)} aria-label={`Stáhnout ${item.original_filename}`} title="Stáhnout originál">
+                  <Icon name="download" />
                 </button>
-              )}
-              <button type="button" className="statement-download" onClick={() => download(item)} aria-label={`Stáhnout ${item.original_filename}`} title="Stáhnout originál">
-                <Icon name="download" />
-              </button>
+              </div>
             </article>
           ))}
         </div>

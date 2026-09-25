@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 const detail = () => read("src/app/(workspace)/invoices/[id]/invoice-detail-client.tsx");
+const invoiceList = () => read("src/app/(workspace)/invoices/invoices-client.tsx");
+const paymentChoice = () => read("src/components/optional-payment-assignment.tsx");
 const reminders = () => read("src/app/(workspace)/reminders/reminders-client.tsx");
 const gpc = () => read("src/app/(workspace)/invoices/payments/gpc-import-panel.tsx");
 const archive = () => read("src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx");
@@ -46,6 +48,17 @@ describe("storno faktury", () => {
 });
 
 describe("akce, které nejdou vzít zpět, se ptají", () => {
+  it("vyžaduje bankovní platbu nebo výslovné potvrzení ruční úhrady", () => {
+    for (const source of [detail(), invoiceList()]) {
+      expect(source).toContain("<OptionalPaymentAssignment");
+      expect(source).toContain("!selectedBankPaymentId");
+      expect(source).toContain("!confirmWithoutBankPayment");
+      expect(source).toContain("assignBankPaymentToInvoice");
+    }
+    expect(paymentChoice()).toContain("Potvrdit úhradu bez přiřazení bankovní platby");
+    expect(paymentChoice()).toContain("Bez přiřazení platby");
+  });
+
   // Pravidlo: co odesila e-mail treti strane nebo meni penezni stav,
   // vyzaduje potvrzeni s uvedenim rozsahu dopadu. Mazani faktury dialog
   // melo uz drive -- nekonzistence byla horsi nez absence, protoze ucila

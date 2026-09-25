@@ -289,10 +289,68 @@ create table invoice_uploads (
   ocr_model text,
   ocr_provider_response_id text,
   ocr_field_sources jsonb not null default '{}'::jsonb check (jsonb_typeof(ocr_field_sources) = 'object'),
+  ocr_proposed_values jsonb not null default '{}'::jsonb check (jsonb_typeof(ocr_proposed_values) = 'object'),
+  ocr_field_decisions jsonb not null default '{}'::jsonb check (jsonb_typeof(ocr_field_decisions) = 'object'),
+  ocr_vocabulary_version text,
   created_at timestamptz not null default now()
 );
 
 create index invoice_uploads_cleanup on invoice_uploads (status, expires_at);
+
+create table company_registry_cache (
+  ico text primary key check (ico ~ '^\d{8}$'),
+  legal_name text,
+  lookup_status text not null check (lookup_status in ('found', 'not_found')),
+  fetched_at timestamptz not null default now()
+);
+
+create table invoice_ocr_reviews (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references organizations(id) on delete cascade,
+  upload_id uuid unique references invoice_uploads(id) on delete set null,
+  invoice_id uuid not null references invoices(id) on delete cascade,
+  proposed_values jsonb not null check (jsonb_typeof(proposed_values) = 'object'),
+  final_values jsonb not null check (jsonb_typeof(final_values) = 'object'),
+  corrected_fields text[] not null default '{}',
+  field_decisions jsonb not null default '{}'::jsonb check (jsonb_typeof(field_decisions) = 'object'),
+  vocabulary_version text not null,
+  ocr_model text not null,
+  reviewed_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (organization_id, invoice_id)
+);
+
+create index invoice_ocr_reviews_org_created_idx on invoice_ocr_reviews(organization_id, created_at desc);
+create index invoice_ocr_reviews_invoice_idx on invoice_ocr_reviews(invoice_id);
+create index invoice_ocr_reviews_reviewed_by_idx on invoice_ocr_reviews(reviewed_by);
+
+create table invoice_ocr_keyword_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references organizations(id) on delete cascade,
+  upload_id uuid not null references invoice_uploads(id) on delete cascade,
+  normalized_label text not null check (length(normalized_label) between 2 and 80),
+  example_label text not null check (length(example_label) between 2 and 80),
+  vocabulary_version text not null,
+  status text not null default 'proposed' check (status in ('proposed', 'accepted', 'rejected')),
+  created_at timestamptz not null default now(),
+  unique (organization_id, upload_id, normalized_label)
+);
+
+create index invoice_ocr_keyword_suggestions_org_label_idx
+  on invoice_ocr_keyword_suggestions(organization_id, normalized_label, created_at desc);
+create index invoice_ocr_keyword_suggestions_upload_idx
+  on invoice_ocr_keyword_suggestions(upload_id);
+
+create view invoice_ocr_field_accuracy with (security_invoker = true) as
+select review.organization_id,
+  review.vocabulary_version,
+  decision.field_name,
+  count(*)::bigint as reviewed_count,
+  count(*) filter (where not (decision.field_name = any(review.corrected_fields)))::bigint as accepted_count,
+  round(100.0 * count(*) filter (where not (decision.field_name = any(review.corrected_fields))) / nullif(count(*), 0), 2) as accuracy_percent
+from invoice_ocr_reviews review
+cross join lateral jsonb_object_keys(review.field_decisions) decision(field_name)
+group by review.organization_id, review.vocabulary_version, decision.field_name;
 
 -- Atomický zámek brání dvojímu OCR a omezuje nákladné zpracování na tři pokusy.
 create or replace function claim_invoice_ocr(target_upload_id uuid, target_user_id uuid)
@@ -1579,6 +1637,9 @@ alter table email_templates enable row level security;
 alter table invoices enable row level security;
 alter table invoice_events enable row level security;
 alter table invoice_uploads enable row level security;
+alter table company_registry_cache enable row level security;
+alter table invoice_ocr_reviews enable row level security;
+alter table invoice_ocr_keyword_suggestions enable row level security;
 alter table reminder_log enable row level security;
 alter table reminder_automation_runs enable row level security;
 alter table reminder_settings_events enable row level security;
@@ -1597,6 +1658,14 @@ revoke insert, update, delete on email_templates from anon, authenticated;
 revoke insert, update, delete on invoices from anon, authenticated;
 revoke insert, update, delete on invoice_events from anon, authenticated;
 revoke insert, update, delete on invoice_uploads from anon, authenticated;
+revoke all on company_registry_cache from anon, authenticated;
+revoke all on invoice_ocr_reviews from anon, authenticated;
+grant select, insert, update, delete on company_registry_cache to service_role;
+grant select, insert, update, delete on invoice_ocr_reviews to service_role;
+revoke all on invoice_ocr_keyword_suggestions from anon, authenticated;
+grant select, insert, update, delete on invoice_ocr_keyword_suggestions to service_role;
+revoke all on invoice_ocr_field_accuracy from anon, authenticated;
+grant select on invoice_ocr_field_accuracy to service_role;
 revoke insert, update, delete on reminder_log from anon, authenticated;
 revoke insert, update, delete on reminder_automation_runs from anon, authenticated;
 revoke insert, update, delete on reminder_settings_events from anon, authenticated;
