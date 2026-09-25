@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect } from "react";
 import { CompanyLogo } from "@/components/company-logo";
 import { invoiceCountLabel } from "@/lib/czech-plural";
 import type { ReportPageData } from "@/lib/report-page-data";
@@ -36,10 +39,6 @@ function PageHeader({ number, title, subtitle }: { number: string; title: string
   return <header className="print-report-section-header"><span>{number}</span><div><h2>{title}</h2><p>{subtitle}</p></div></header>;
 }
 
-function PageFooter({ companyName, period, page, pages }: { companyName: string; period: string; page: number; pages: number }) {
-  return <footer className="print-report-page-footer"><span>{companyName} · {period}</span><strong>Strana {page} / {pages}</strong></footer>;
-}
-
 function Metric({ label, value, note, tone }: { label: string; value: string; note: string; tone?: "primary" | "warning" }) {
   return <article className={tone ? `print-report-metric ${tone}` : "print-report-metric"}><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
 }
@@ -59,7 +58,6 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
   const totals = report.payment_reconciliation.totals;
   const reviewedPayments = totals.auto_matched + totals.needs_review;
   const hasPaymentActivity = totals.imports > 0 || totals.accepted > 0 || reviewedPayments > 0 || totals.unmatched_payments > 0 || totals.unacknowledged_mismatch_imports > 0 || report.payment_reconciliation.recent_imports.length > 0;
-  const pageCount = hasPaymentActivity ? 4 : 3;
   const netTotal = report.vat_breakdown.reduce((sum, row) => sum + Number(row.base), 0);
   const taxTotal = report.vat_breakdown.reduce((sum, row) => sum + Number(row.tax), 0);
   const topDebtors = report.debtors.slice(0, TOP_DEBTORS_LIMIT);
@@ -77,6 +75,16 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
     { label: "Nesoulad bankovního účtu", value: totals.unacknowledged_mismatch_imports, tone: totals.unacknowledged_mismatch_imports ? "danger" : "ok" },
   ] as const;
   const controlsAreClear = controls.every((item) => item.value === 0);
+  const footer = `${companyName} · ${period}`;
+
+  // Patičku kreslí prohlížeč do okraje každé skutečné stránky (@page v
+  // minimal.css) a text si bere z téhle proměnné. Kdyby ji nesl dokument,
+  // musela by každá kapitola mít pevnou výšku přesně jedné A4.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--print-report-footer", JSON.stringify(footer));
+    return () => { root.style.removeProperty("--print-report-footer"); };
+  }, [footer]);
 
   return <section className="report-print-document" aria-label="Účetní report pro tisk">
     <article className="print-report-page print-report-summary-page">
@@ -110,7 +118,6 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
         <section className="print-report-block compact"><div className="print-report-block-heading"><div><h2>Stav faktur</h2><p>Počet dokladů podle stavu</p></div></div><div className="print-status-bar">{statusOrder.map((key) => <i className={key} key={key} style={{ width: `${report.invoice_count ? report.counts[key] / report.invoice_count * 100 : 0}%` }}/>)}</div><div className="print-status-legend">{statusOrder.map((key) => <span key={key}><i className={key}/>{statusNames[key]} <strong>{report.counts[key]}</strong></span>)}</div></section>
         <section className="print-report-block compact"><div className="print-report-block-heading"><div><h2>Kontrolní stav</h2><p>Výjimky vyžadující účetní kontrolu</p></div></div>{controlsAreClear ? <div className="print-control-clear"><strong>Bez otevřených kontrol</strong><span>Platby a bankovní importy nevykazují nevyřešené výjimky.</span></div> : <div className="print-control-list">{controls.map((item) => <div className={item.tone} key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}</div>}</section>
       </div>
-      <PageFooter companyName={companyName} period={period} page={1} pages={pageCount} />
     </article>
 
     <article className="print-report-page">
@@ -119,11 +126,10 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
         <Metric label="Otevřeno" value={money(Number(report.open), currency)} note="celkem" />
         <Metric label="Po splatnosti" value={money(Number(report.overdue), currency)} note="riziková část" tone={Number(report.overdue) > 0 ? "warning" : undefined} />
         <Metric label="Míra úhrad" value={`${report.paid_rate} %`} note="z nestornovaných faktur" />
-        <Metric label="Průměrná doba úhrady" value={`${report.dso.avg_days} dní`} note={`${report.dso.paid_invoice_count} plně uhrazených`} />
+        <Metric label="Průměrná doba úhrady" value={`${new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 }).format(report.dso.avg_days)} dní`} note={`${report.dso.paid_invoice_count} plně uhrazených`} />
       </section>
       <section className="print-report-block print-aging-block"><div className="print-report-block-heading"><div><h2>Stáří pohledávek</h2><p>Rozložení částek podle dní po splatnosti</p></div></div><div className="print-aging-bar">{report.aging.map((bucket, index) => <i className={`risk-${index}`} key={bucket.label} style={{ width: `${Number(bucket.amount) / totalAging * 100}%` }}/>)}</div><div className="print-aging-list">{report.aging.map((bucket, index) => <div key={bucket.label}><i className={`risk-${index}`}/><span>{bucket.label}<small>{invoiceCountLabel(bucket.count)}</small></span><strong>{money(Number(bucket.amount), currency)}</strong></div>)}</div></section>
       <section className="print-report-block print-debtors-block"><div className="print-report-block-heading"><div><h2>Nejvýznamnější dlužníci</h2><p>Zobrazeno {topDebtors.length} z {report.debtors.length} odběratelů · úplný seznam je dostupný v aplikaci a Excelu</p></div></div>{topDebtors.length ? <table className="print-report-table print-debtors-table"><thead><tr><th>#</th><th>Odběratel</th><th>Otevřeno</th><th>Po splatnosti</th><th>Faktur</th><th>Upomínky</th></tr></thead><tbody>{topDebtors.map((row, index) => <tr key={row.name}><td>{index + 1}</td><td><strong>{row.name}</strong></td><td>{money(Number(row.open), currency)}</td><td className={Number(row.overdue) > 0 ? "is-risk" : undefined}>{money(Number(row.overdue), currency)}</td><td>{row.count}</td><td>{row.reminders}</td></tr>)}</tbody></table> : <p className="print-report-empty">Ve vybraném období nejsou žádné otevřené pohledávky.</p>}</section>
-      <PageFooter companyName={companyName} period={period} page={2} pages={pageCount} />
     </article>
 
     <article className="print-report-page">
@@ -134,7 +140,6 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
         <section className="print-report-block print-yoy-block"><div className="print-report-block-heading"><div><h2>Meziroční srovnání</h2><p>Aktuální období proti předchozímu roku</p></div></div>{report.yoy_monthly.length === 1 ? <div className="print-single-month compact"><span>{monthNumberLabel(report.yoy_monthly[0].month)}</span><div><article><small>Předchozí rok</small><strong>{money(Number(report.yoy_monthly[0].prior_year), currency)}</strong></article><article><small>Aktuální rok</small><strong>{money(Number(report.yoy_monthly[0].current_year), currency)}</strong></article></div></div> : report.yoy_monthly.length ? <div className="print-column-chart compact">{report.yoy_monthly.map((row) => <div key={row.month}><div><i className="prior" style={{ height: `${Number(row.prior_year) / maxYoy * 100}%` }}/><i className="current" style={{ height: `${Number(row.current_year) / maxYoy * 100}%` }}/></div><span>{monthNumberLabel(row.month)}</span></div>)}</div> : <p className="print-report-empty">Pro meziroční srovnání nejsou dostupná data.</p>}</section>
         <section className="print-average-invoice"><span>Průměrná faktura</span><strong>{money(averageInvoice, currency)}</strong><small>{invoiceCountLabel(report.invoice_count)} ve výběru</small></section>
       </div>
-      <PageFooter companyName={companyName} period={period} page={3} pages={pageCount} />
     </article>
 
     {hasPaymentActivity && <article className="print-report-page">
@@ -147,7 +152,6 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
       </section>
       <section className="print-report-block print-matching-block"><div className="print-report-block-heading"><div><h2>Úspěšnost párování</h2><p>Poměr automatického zpracování a ruční kontroly</p></div><strong>{reviewedPayments ? Math.round(totals.auto_matched / reviewedPayments * 100) : 0} % automaticky</strong></div><div className="print-matching-bar"><i className="auto" style={{ width: `${reviewedPayments ? totals.auto_matched / reviewedPayments * 100 : 0}%` }}/><i className="review" style={{ width: `${reviewedPayments ? totals.needs_review / reviewedPayments * 100 : 0}%` }}/></div><div className="print-matching-legend"><span><i className="auto"/>Automaticky <strong>{totals.auto_matched}</strong></span><span><i className="review"/>Ruční kontrola <strong>{totals.needs_review}</strong></span>{totals.unacknowledged_mismatch_imports > 0 && <span className="danger"><i/>Nesoulad účtu <strong>{totals.unacknowledged_mismatch_imports}</strong></span>}</div></section>
       <section className="print-report-block print-imports-block"><div className="print-report-block-heading"><div><h2>Poslední potvrzené výpisy</h2><p>Zobrazeno {topImports.length} z {report.payment_reconciliation.recent_imports.length} importů · úplný přehled je dostupný v aplikaci</p></div></div>{topImports.length ? <table className="print-report-table print-imports-table"><thead><tr><th>Soubor</th><th>Datum</th><th>Přijato</th><th>Automaticky</th><th>Kontrola</th><th>Chyby</th></tr></thead><tbody>{topImports.map((item) => <tr key={item.id}><td><strong>{item.filename}</strong></td><td>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</td><td>{item.accepted_count}</td><td>{item.auto_matched}</td><td className={item.needs_review ? "is-warning" : undefined}>{item.needs_review}</td><td className={item.error_count ? "is-risk" : undefined}>{item.error_count}</td></tr>)}</tbody></table> : <p className="print-report-empty">V období nejsou žádné potvrzené bankovní výpisy.</p>}</section>
-      <PageFooter companyName={companyName} period={period} page={4} pages={pageCount} />
     </article>}
   </section>;
 }

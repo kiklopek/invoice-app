@@ -39,7 +39,7 @@ describe("tisk reportů", () => {
     expect(client).toContain("selectedCustomer={selectedCustomer}");
     expect(printable).toContain('className="print-report-cover"');
     expect(printable).toContain('className="print-report-meta"');
-    expect(printable).toContain('className="print-report-page-footer"');
+    expect(printable).toContain("const footer = `${companyName} · ${period}`;");
   });
 
   it("nespoléhá na fixní opakovanou hlavičku, která přetékala do obsahu", () => {
@@ -106,20 +106,24 @@ describe("tisk reportů", () => {
     expect(block).toContain("tfoot { display: table-footer-group !important; }");
   });
 
-  it("čísluje stránky jedinou patičkou a nepustí na papír záhlaví prohlížeče", () => {
+  it("čísluje skutečné stránky patičkou z @page, ne odhadem v dokumentu", () => {
     const css = minimal();
     const block = lastPrintBlock(css);
-    // Číslo strany nese patička uvnitř dokumentu (firma · období · Strana X / Y).
-    // Druhá patička z @page okrajů se tiskla pod ní, jiným písmem a s jiným
-    // názvem reportu ("Finanční" vs. "Účetní").
-    expect(printDocument()).toContain("<strong>Strana {page} / {pages}</strong>");
-    expect(css).not.toContain("counter(page)");
-    expect(css).not.toContain('content: "Finanční report"');
-    // Prázdné okrajové boxy nic nevytisknou, ale Chrome kvůli nim vynechá své
-    // vlastní záhlaví a zápatí (datum, titulek stránky, URL, 1/3), které jinak
-    // při výchozím nastavení tiskového dialogu přidá. Ověřeno v Chromiu:
-    // bez horních boxů se datum a titulek vytisknou i nad reportem.
-    for (const box of ["@top-left", "@top-right", "@bottom-left", "@bottom-right"]) {
+    // Kapitola dřív měla pevnou výšku přesně jedné A4 a vlastní patičku se
+    // "Strana X / Y" spočítanou dopředu. Stačil posun o pár milimetrů (jiné
+    // písmo na Macu, okraje v dialogu) a každá kapitola se přelila na další
+    // list: z reportu na 4 strany jich Chrome vytiskl 6 a čísla nesouhlasila.
+    // Patičku proto kreslí prohlížeč na okraj každé skutečné stránky.
+    expect(css).toContain('content: "Strana " counter(page) " / " counter(pages);');
+    expect(css).toContain("content: var(--print-report-footer");
+    expect(printDocument()).toContain('"--print-report-footer"');
+    expect(printDocument()).not.toContain("print-report-page-footer");
+    expect(block).not.toMatch(/\.print-report-page \{[^}]*height: 264mm/);
+    expect(block).not.toMatch(/\.print-report-page \{[^}]*overflow: hidden/);
+    // Prázdné horní boxy nic nevytisknou, ale Chrome kvůli nim vynechá své
+    // vlastní záhlaví (datum, titulek stránky), které jinak při výchozím
+    // nastavení tiskového dialogu přidá. Ověřeno v Chromiu.
+    for (const box of ["@top-left", "@top-right"]) {
       expect(css).toMatch(new RegExp(`${box}\\s*\\{\\s*content: "";`));
     }
     expect(block).toContain(".report-tab-panel + .report-tab-panel {");
@@ -158,6 +162,8 @@ describe("tisk reportů", () => {
 
   it("počty faktur na tisku skloňuje (1 faktura, 2 faktury, 5 faktur)", () => {
     const source = printDocument();
+    // Průměrná doba úhrady je desetinné číslo; bez formátování vyšlo "14.3 dní".
+    expect(source).not.toContain("{report.dso.avg_days} dní");
     expect(source).toContain('import { invoiceCountLabel } from "@/lib/czech-plural"');
     expect(source).not.toMatch(/\} faktur[` ]/);
     expect(source).not.toContain('=== 1 ? "faktura" : "faktur"');
