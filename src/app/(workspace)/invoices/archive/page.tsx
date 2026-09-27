@@ -155,7 +155,7 @@ export default function InvoiceArchivePage() {
                   {invoices.map((invoice) => (
                     <tr
                       key={invoice.id}
-                      className="invoice-row"
+                      className={`invoice-row${invoice.status === "paid" ? " is-paid" : ""}`}
                       onClick={(event) => {
                         // Bez téhle podmínky by klik na odkaz v buňce spustil
                         // navigaci dvakrát (odkaz i řádek). Stejný vzor jako
@@ -169,13 +169,13 @@ export default function InvoiceArchivePage() {
                           bez něj nebyl klávesnicí dosažitelný vůbec, takže
                           archiv se dal ovládat výhradně myší. Klik na řádek
                           zůstává jako vylepšení pro myš. */}
-                      <td data-label="Faktura"><Link href={`/invoices/${invoice.id}`}><strong>{invoice.invoice_number}</strong></Link><small>VS {invoice.variable_symbol || "—"}</small></td>
-                      <td data-label="Odběratel"><strong>{invoice.counterparty_name}</strong><small>{invoice.counterparty_email}</small></td>
-                      <td data-label="Částka"><strong>{money(Number(invoice.amount), invoice.currency)}</strong><small>Uhrazeno {money(Number(invoice.paid_amount), invoice.currency)}</small></td>
-                      <td data-label="Vystavení">{date(invoice.issue_date)}</td>
-                      <td data-label="Splatnost">{date(invoice.due_date)}</td>
-                      <td data-label="Datum úhrady">{invoice.status === "paid" ? date(invoice.paid_at) : "—"}</td>
-                      <td data-label="Stav"><span className={`status ${invoice.status}`}>{invoice.status === "paid" ? "Zaplaceno" : "Stornováno"}</span></td>
+                      <td data-label="Faktura" className="archive-invoice-number"><Link href={`/invoices/${invoice.id}`}><strong>{invoice.invoice_number}</strong></Link><small>VS {invoice.variable_symbol || "—"}</small></td>
+                      <td data-label="Odběratel" className="archive-invoice-customer"><strong>{invoice.counterparty_name}</strong><small>{invoice.counterparty_email}</small></td>
+                      <td data-label="Částka" className="archive-invoice-amount"><strong>{money(Number(invoice.amount), invoice.currency)}</strong><small>Uhrazeno {money(Number(invoice.paid_amount), invoice.currency)}</small></td>
+                      <td data-label="Vystavení" className="archive-invoice-issued">{date(invoice.issue_date)}</td>
+                      <td data-label="Splatnost" className="archive-invoice-due">{date(invoice.due_date)}</td>
+                      <td data-label="Datum úhrady" className="archive-invoice-paid-at">{invoice.status === "paid" ? date(invoice.paid_at) : "—"}</td>
+                      <td data-label="Stav" className="archive-invoice-status"><span className={`status ${invoice.status}`}>{invoice.status === "paid" ? "Zaplaceno" : "Stornováno"}</span></td>
                     </tr>
                   ))}
                 </tbody>

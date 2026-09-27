@@ -36,8 +36,22 @@ describe("authentication flow", () => {
   });
 
   it("keeps password login behind organization membership verification", () => {
-    expect(source("src/app/(auth)/login/page.tsx")).toContain('fetch("/api/auth/access", { method: "POST" })');
-    expect(source("src/app/api/auth/access/route.ts")).toContain("getRequestIdentity({ requireMfa: false, requireLoginSession: false })");
+    const login = source("src/app/(auth)/login/page.tsx");
+    const accessRoute = source("src/app/api/auth/access/route.ts");
+    const sessionPreferenceRoute = source("src/app/api/auth/session-preference/route.ts");
+    const identity = source("src/lib/auth.ts");
+
+    // Bez explicitního tokenu je první serverový požadavek závislý na tom,
+    // zda prohlížeč už stihl propsat právě vydanou SSR cookie. Když ji server
+    // ještě neviděl, platný a pozvaný účet dostal falešnou hlášku o chybějící
+    // pozvánce. Token se smí použít jen po serverovém getClaims + getUser.
+    expect(login).toContain("signInData.session?.access_token");
+    expect(login).toContain('Authorization: `Bearer ${accessToken}`');
+    expect(accessRoute).toContain("getBearerAccessToken(request)");
+    expect(sessionPreferenceRoute).toContain("getBearerAccessToken(request)");
+    expect(identity).toContain("auth.auth.getClaims(accessToken)");
+    expect(identity).toContain("auth.auth.getUser(accessToken)");
+    expect(identity).toContain("membershipClient");
   });
 
   it("slides the remember-me window forward on every authenticated request instead of a fixed 30-day expiry", () => {

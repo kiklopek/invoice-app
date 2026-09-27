@@ -138,7 +138,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                     {recent.map((invoice) => (
                       <tr
                         key={invoice.id}
-                        className="invoice-row"
+                        className={`invoice-row${invoice.status === "paid" ? " is-paid" : ""}`}
                         onClick={(event) => {
                           const target = event.target;
                           if (target instanceof HTMLElement && target.closest("a, button, input, select, textarea")) return;
@@ -189,6 +189,53 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                     ))}
                   </tbody>
                 </table>
+                <div className="dashboard-invoice-compact-list" role="list" aria-label="Poslední faktury">
+                  {recent.map((invoice) => (
+                    <Link
+                      className={`dashboard-invoice-compact-row${invoice.status === "paid" ? " is-paid" : ""}`}
+                      href={`/invoices/${invoice.id}`}
+                      key={`compact-${invoice.id}`}
+                      role="listitem"
+                    >
+                      <span className="dashboard-invoice-compact-customer">
+                        <strong>{invoice.counterparty_name}</strong>
+                        <small>{invoice.counterparty_email}</small>
+                      </span>
+                      <span className="dashboard-invoice-compact-amount">
+                        <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
+                        {Number(invoice.paid_amount) > 0 && invoice.status !== "cancelled" ? (
+                          <small>
+                            Zbývá {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
+                          </small>
+                        ) : null}
+                      </span>
+                      <span className="dashboard-invoice-compact-meta">
+                        <span aria-label={`Faktura ${invoice.invoice_number}`} title="Číslo faktury">
+                          <Icon name="document" />
+                          <strong>{invoice.invoice_number}</strong>
+                        </span>
+                        <span
+                          className={invoice.status === "overdue" ? "red-text" : undefined}
+                          aria-label={`Splatnost ${shortDate(invoice.due_date)}`}
+                          title="Splatnost"
+                        >
+                          <Icon name="clock" />
+                          <span>{shortDate(invoice.due_date)}</span>
+                        </span>
+                        <span aria-label={`${invoice.reminders_sent} odeslaných upomínek`} title="Odeslané upomínky">
+                          <Icon name="mail" />
+                          <span>{invoice.reminders_sent}×</span>
+                        </span>
+                      </span>
+                      <span className="dashboard-invoice-compact-statuses">
+                        <span className={`status ${invoice.status}`}>{statusLabel[invoice.status]}</span>
+                        {(invoice.status === "pending" || invoice.status === "overdue") && Number(invoice.paid_amount) > 0 ? (
+                          <span className="status partial">Částečně uhrazeno</span>
+                        ) : null}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>

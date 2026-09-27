@@ -300,10 +300,10 @@ export function InvoiceForm({
       <ul>{visibleWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>
     </details>}
     <section className="form-section"><div className="form-section-title"><span>1</span><div><h2>Identifikace faktury</h2><p>Čísla, podle kterých fakturu dohledáte v účetnictví.</p></div></div><div className="form-grid">
-      <label><span>Číslo faktury *</span><input required value={form.invoice_number} onChange={e => field("invoice_number", e.target.value)} placeholder="např. FV-2026-001"/><OcrSourceNote source={source("invoice_number")} decision={decision("invoice_number")}/></label>
-      <label><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001"/><OcrSourceNote source={source("variable_symbol")} decision={decision("variable_symbol")}/></label>
-      <label><span>Datum vystavení *</span><input type="date" required value={form.issue_date} onChange={e => field("issue_date", e.target.value)}/><OcrSourceNote source={source("issue_date")} decision={decision("issue_date")}/></label>
-      <label><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)}/><OcrSourceNote source={source("due_date")} decision={decision("due_date")}/></label>
+      <label><span>Číslo faktury *</span><input required value={form.invoice_number} onChange={e => field("invoice_number", e.target.value)} placeholder="např. FV-2026-001" autoCapitalize="off" spellCheck={false} enterKeyHint="next"/><OcrSourceNote source={source("invoice_number")} decision={decision("invoice_number")}/></label>
+      <label><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001" inputMode="numeric" pattern="[0-9]*" maxLength={10} enterKeyHint="next"/><OcrSourceNote source={source("variable_symbol")} decision={decision("variable_symbol")}/></label>
+      <label><span>Datum vystavení *</span><input type="date" required value={form.issue_date} onChange={e => field("issue_date", e.target.value)} enterKeyHint="next"/><OcrSourceNote source={source("issue_date")} decision={decision("issue_date")}/></label>
+      <label><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)} enterKeyHint="next"/><OcrSourceNote source={source("due_date")} decision={decision("due_date")}/></label>
       <label className="wide reminder-policy-field">
         <span>Kategorie upomínek *</span>
         <select required value={form.reminder_policy_id ?? ""} disabled={policiesLoading || Boolean(policiesError)} onChange={e => { policyManuallyChangedRef.current = true; field("reminder_policy_id", e.target.value); }}>
@@ -345,6 +345,7 @@ export function InvoiceForm({
           onBlur={() => { window.setTimeout(() => setCustomerDropdownOpen(false), 150); }}
           placeholder="Název firmy"
           autoComplete="off"
+          enterKeyHint="next"
         />
         {customerDropdownOpen && customerMatches.length > 0 && (
           <ul className="customer-search-results" role="listbox">
@@ -360,14 +361,14 @@ export function InvoiceForm({
         )}
         <OcrSourceNote source={source("counterparty_name")} decision={decision("counterparty_name")}/>
       </label>
-      <label><span>IČO</span><input value={form.counterparty_ico} onChange={e => field("counterparty_ico", e.target.value)} inputMode="numeric" placeholder="12345678"/><OcrSourceNote source={source("counterparty_ico")} decision={decision("counterparty_ico")}/></label>
-      <label><span>DIČ</span><input value={form.counterparty_dic} onChange={e => field("counterparty_dic", e.target.value)} placeholder="CZ12345678"/><OcrSourceNote source={source("counterparty_dic")} decision={decision("counterparty_dic")}/></label>
-      <label className="wide"><span>E-mail pro upomínky *</span><input type="email" required value={form.counterparty_email} onChange={e => field("counterparty_email", e.target.value)} placeholder="fakturace@odberatel.cz"/><small>Na tuto adresu budou chodit automatické upomínky.</small><OcrSourceNote source={source("counterparty_email")} decision={decision("counterparty_email")}/></label>
+      <label><span>IČO</span><input value={form.counterparty_ico} onChange={e => field("counterparty_ico", e.target.value)} inputMode="numeric" pattern="[0-9]*" maxLength={8} enterKeyHint="next" placeholder="12345678"/><OcrSourceNote source={source("counterparty_ico")} decision={decision("counterparty_ico")}/></label>
+      <label><span>DIČ</span><input value={form.counterparty_dic} onChange={e => field("counterparty_dic", e.target.value)} autoCapitalize="characters" enterKeyHint="next" placeholder="CZ12345678"/><OcrSourceNote source={source("counterparty_dic")} decision={decision("counterparty_dic")}/></label>
+      <label className="wide"><span>E-mail pro upomínky *</span><input type="email" required value={form.counterparty_email} onChange={e => field("counterparty_email", e.target.value)} autoComplete="off" enterKeyHint="next" placeholder="fakturace@odberatel.cz"/><small>Na tuto adresu budou chodit automatické upomínky.</small><OcrSourceNote source={source("counterparty_email")} decision={decision("counterparty_email")}/></label>
     </div></section>
     <section className="form-section"><div className="form-section-title"><span>3</span><div><h2>Částka a poznámka</h2><p>Hodnota pohledávky a interní informace.</p></div></div><div className="form-grid">
-      <label><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/><OcrSourceNote source={source("amount_without_vat")} decision={decision("amount_without_vat")}/></label>
-      <label><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small><OcrSourceNote source={source("vat_rate")} decision={decision("vat_rate")}/></label>
-      <label><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small><OcrSourceNote source={source("amount")} decision={decision("amount")}/></label>
+      <label><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/><OcrSourceNote source={source("amount_without_vat")} decision={decision("amount_without_vat")}/></label>
+      <label><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small><OcrSourceNote source={source("vat_rate")} decision={decision("vat_rate")}/></label>
+      <label><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small><OcrSourceNote source={source("amount")} decision={decision("amount")}/></label>
       {(needsAmountReview || detectedPrepayment) && <div className="wide invoice-money-review">
         {needsAmountReview && <p>Výpočet ze základu a sazby: {calculatedTotal.toFixed(2)} {form.currency}. Rozdíl: {amountDifference.toFixed(2)} {form.currency}.</p>}
         {needsAmountReview && <>
@@ -382,7 +383,7 @@ export function InvoiceForm({
         </>}
       </div>}
       <label><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option value="" disabled>Vyberte měnu</option><option>CZK</option><option>EUR</option><option>USD</option></select><OcrSourceNote source={source("currency")} decision={decision("currency")}/></label>
-      <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} placeholder="Volitelná poznámka pro účetní oddělení"/></label>
+      <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} enterKeyHint="done" placeholder="Volitelná poznámka pro účetní oddělení"/></label>
     </div></section>
     {submitAttempted && submitBlockers.length > 0 && <div className="form-error form-submit-blockers"><strong>Než fakturu uložíte, opravte prosím:</strong><ul>{submitBlockers.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
     {error && <p className="form-error">{error}</p>}

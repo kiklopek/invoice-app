@@ -149,6 +149,15 @@ describe("tisk reportů", () => {
     expect(block).toContain(".report-dso-insight-card { grid-column: span 5 !important; }");
   });
 
+  it("skládá tisk tržeb do nezávislých sloupců bez mezery podle výšky sousední karty", () => {
+    const printable = printDocument();
+    const block = lastPrintBlock(minimal());
+    expect(printable).toContain('className="print-revenue-column print-revenue-primary-column"');
+    expect(printable).toContain('className="print-revenue-column print-revenue-secondary-column"');
+    expect(block).toContain(".print-revenue-column { display: grid;");
+    expect(block).toContain("align-content: start;");
+  });
+
   it("žebříček odběratelů nepřeteče z karty a jména v tabulkách mají velikost tabulky", () => {
     const block = lastPrintBlock(minimal());
     // Implicitní sloupec gridu se roztáhl podle nezalomitelného jména prvního

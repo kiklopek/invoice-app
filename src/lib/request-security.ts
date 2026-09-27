@@ -15,3 +15,15 @@ export function isSameOriginMutation(request: Request) {
     return false;
   }
 }
+
+/**
+ * Reads a short-lived Supabase access token used only while bootstrapping a
+ * freshly-created browser session. The token is still verified by Supabase on
+ * the server; this helper deliberately performs no JWT decoding or trust.
+ */
+export function getBearerAccessToken(request: Request) {
+  const authorization = request.headers.get("authorization")?.trim();
+  if (!authorization) return null;
+  const match = /^Bearer\s+([^\s]+)$/i.exec(authorization);
+  return match?.[1] ?? null;
+}

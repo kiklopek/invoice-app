@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isSameOriginMutation } from "./request-security";
+import { getBearerAccessToken, isSameOriginMutation } from "./request-security";
 
 describe("isSameOriginMutation", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -22,5 +22,23 @@ describe("isSameOriginMutation", () => {
 
   it("odmítne mutaci z cizího webu", () => {
     expect(isSameOriginMutation(new Request("https://app.example.cz/api/invoices", { headers: { origin: "https://evil.example" } }))).toBe(false);
+  });
+});
+
+describe("getBearerAccessToken", () => {
+  it("accepts one bearer token and ignores casing", () => {
+    expect(getBearerAccessToken(new Request("https://app.example.cz", {
+      headers: { authorization: "bearer header.payload.signature" },
+    }))).toBe("header.payload.signature");
+  });
+
+  it("rejects missing and malformed authorization headers", () => {
+    expect(getBearerAccessToken(new Request("https://app.example.cz"))).toBeNull();
+    expect(getBearerAccessToken(new Request("https://app.example.cz", {
+      headers: { authorization: "Basic abc" },
+    }))).toBeNull();
+    expect(getBearerAccessToken(new Request("https://app.example.cz", {
+      headers: { authorization: "Bearer one two" },
+    }))).toBeNull();
   });
 });

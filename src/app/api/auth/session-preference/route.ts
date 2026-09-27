@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
-import { isSameOriginMutation } from "@/lib/request-security";
+import { getBearerAccessToken, isSameOriginMutation } from "@/lib/request-security";
 import { apiError } from "@/lib/api-response";
 
 export async function POST(request: Request) {
@@ -9,7 +9,11 @@ export async function POST(request: Request) {
     return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   }
 
-  const identity = await getRequestIdentity({ requireMfa: false, requireLoginSession: false });
+  const identity = await getRequestIdentity({
+    requireMfa: false,
+    requireLoginSession: false,
+    accessToken: getBearerAccessToken(request),
+  });
   if (!identity) {
     return apiError(request, "Nejste přihlášený uživatel.", 401, "unauthorized");
   }

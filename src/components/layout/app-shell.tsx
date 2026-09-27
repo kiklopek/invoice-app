@@ -7,6 +7,7 @@ import {
   Fragment,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Icon, type IconName } from "@/components/icons";
@@ -100,6 +101,8 @@ export function AppSidebar({
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const mobileNavToggleRef = useRef<HTMLButtonElement>(null);
+  const mobileNavPanelRef = useRef<HTMLDivElement>(null);
   const visibleItems = visibleNavForRole(role);
   const isChildActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -134,14 +137,60 @@ export function AppSidebar({
 
   useEffect(() => {
     if (!mobileNavOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileNavOpen(false);
+    const scrollY = window.scrollY;
+    const main = document.getElementById("obsah");
+    const toggle = mobileNavToggleRef.current;
+    const bodyStyle = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+    };
+    const focusableSelector = [
+      "a[href]",
+      "button:not([disabled])",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(",");
+    const panel = mobileNavPanelRef.current;
+    const focusable = () =>
+      Array.from(panel?.querySelectorAll<HTMLElement>(focusableSelector) ?? []);
+    const closeOrTrapFocus = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileNavOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = focusable();
+      if (!controls.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.body.classList.add("mobile-navigation-lock");
-    window.addEventListener("keydown", closeOnEscape);
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    if (main) main.inert = true;
+    window.addEventListener("keydown", closeOrTrapFocus);
+    window.requestAnimationFrame(() => focusable()[0]?.focus());
     return () => {
       document.body.classList.remove("mobile-navigation-lock");
-      window.removeEventListener("keydown", closeOnEscape);
+      document.body.style.position = bodyStyle.position;
+      document.body.style.top = bodyStyle.top;
+      document.body.style.width = bodyStyle.width;
+      if (main) main.inert = false;
+      window.removeEventListener("keydown", closeOrTrapFocus);
+      window.scrollTo(0, scrollY);
+      toggle?.focus({ preventScroll: true });
     };
   }, [mobileNavOpen]);
 
@@ -247,6 +296,7 @@ export function AppSidebar({
             </div>
           </div>
           <button
+            ref={mobileNavToggleRef}
             type="button"
             className={`mobile-navigation-toggle ${mobileNavOpen ? "is-open" : ""}`}
             aria-label={mobileNavOpen ? "Zavřít navigaci" : "Otevřít navigaci"}
@@ -268,8 +318,12 @@ export function AppSidebar({
               onClick={() => setMobileNavOpen(false)}
             />
             <div
+              ref={mobileNavPanelRef}
               id="mobile-navigation-panel"
               className="mobile-navigation-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigace aplikace"
             >
               <div className="mobile-navigation-panel-heading">
                 <span>Navigace</span>

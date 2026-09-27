@@ -37,22 +37,35 @@ export default function LoginPage() {
     return normalized;
   }
 
-  async function verifyApplicationAccess() {
-    const response = await fetch("/api/auth/access", { method: "POST" });
+  async function verifyApplicationAccess(accessToken: string) {
+    const response = await fetch("/api/auth/access", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     if (response.ok) {
       const result = await response.json().catch(() => null) as { mfa_bypassed?: unknown } | null;
-      return { mfaBypassed: result?.mfa_bypassed === true };
+      return { ok: true as const, mfaBypassed: result?.mfa_bypassed === true };
     }
+    const result = await response.json().catch(() => null) as { error?: unknown; code?: unknown } | null;
     const supabase = createClient();
     await supabase.auth.signOut();
-    return null;
+    return {
+      ok: false as const,
+      message: response.status === 403 && result?.code === "access_denied"
+        ? "Tento účet nemá aktivní přístup do firemní aplikace. Obraťte se na administrátora."
+        : "Přihlášení se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.",
+    };
   }
 
-  async function saveSessionPreference() {
+  async function saveSessionPreference(accessToken: string) {
     const response = await fetch("/api/auth/session-preference", {
       method: "POST",
       credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ remember }),
     });
     return response.ok;
@@ -70,19 +83,26 @@ export default function LoginPage() {
     }
     setSubmitting(true);
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     if (signInError) {
       setLoginFailure(true);
       setSubmitting(false);
       return;
     }
-    const access = await verifyApplicationAccess();
-    if (!access) {
-      setError("Tento účet není pozvaný do firemní aplikace. Obraťte se na administrátora.");
+    const accessToken = signInData.session?.access_token;
+    if (!accessToken) {
+      await supabase.auth.signOut({ scope: "local" });
+      setError("Přihlášení nevytvořilo platnou relaci. Obnovte stránku a zkuste to znovu.");
       setSubmitting(false);
       return;
     }
-    if (!await saveSessionPreference()) {
+    const access = await verifyApplicationAccess(accessToken);
+    if (!access.ok) {
+      setError(access.message);
+      setSubmitting(false);
+      return;
+    }
+    if (!await saveSessionPreference(accessToken)) {
       await supabase.auth.signOut({ scope: "local" });
       setError("Přihlášení se nepodařilo bezpečně uložit. Zkuste to znovu.");
       setSubmitting(false);

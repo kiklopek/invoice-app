@@ -146,9 +146,11 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
           <span>Vyhledat zákazníka</span>
           <span className="customers-search-field">
             <input
+              type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Název, IČO, e-mail nebo telefon"
+              enterKeyHint="search"
             />
             {query && (
               <button type="button" onClick={() => setQuery("")} aria-label="Vymazat hledání">
@@ -204,25 +206,30 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                       </div>
                     </td>
                     <td data-label="Kontakt" className="customer-contact-cell">
-                      {customer.email && <small>{customer.email}</small>}
-                      {editingPhoneId === customer.id ? (
-                        <span className="customer-phone-edit">
-                          <input
-                            autoFocus
-                            value={phoneDraft}
-                            onChange={(e) => setPhoneDraft(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") savePhone(customer.id); if (e.key === "Escape") setEditingPhoneId(null); }}
-                            placeholder="Telefon"
-                            disabled={savingPhone}
-                          />
-                          <button type="button" onClick={() => savePhone(customer.id)} disabled={savingPhone} aria-label="Uložit telefon"><Icon name="check" /></button>
-                        </span>
-                      ) : (
-                        <button type="button" className="customer-phone-display" onClick={() => canManage && startEditingPhone(customer)} disabled={!canManage}>
-                          {customer.phone || (canManage ? "+ Přidat telefon" : "Telefon neuveden")}
-                        </button>
-                      )}
-                      {phoneError && editingPhoneId === customer.id && <small className="red-text">{phoneError}</small>}
+                      <div className="customer-contact-details">
+                        {customer.email && <small>{customer.email}</small>}
+                        {editingPhoneId === customer.id ? (
+                          <span className="customer-phone-edit">
+                            <input
+                              autoFocus
+                              type="tel"
+                              inputMode="tel"
+                              autoComplete="tel"
+                              value={phoneDraft}
+                              onChange={(e) => setPhoneDraft(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") savePhone(customer.id); if (e.key === "Escape") setEditingPhoneId(null); }}
+                              placeholder="Telefon"
+                              disabled={savingPhone}
+                            />
+                            <button type="button" onClick={() => savePhone(customer.id)} disabled={savingPhone} aria-label="Uložit telefon"><Icon name="check" /></button>
+                          </span>
+                        ) : (
+                          <button type="button" className="customer-phone-display" onClick={() => canManage && startEditingPhone(customer)} disabled={!canManage}>
+                            {customer.phone || (canManage ? "+ Přidat telefon" : "Telefon neuveden")}
+                          </button>
+                        )}
+                        {phoneError && editingPhoneId === customer.id && <small className="red-text">{phoneError}</small>}
+                      </div>
                     </td>
                     <td data-label="Fakturace" className="customer-billing-cell">
                       <Link href={`/invoices?q=${encodeURIComponent(customer.name)}`} className="customer-invoices-link">
@@ -230,7 +237,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                         <small>{customer.invoice_count} {customer.invoice_count === 1 ? "faktura" : customer.invoice_count > 1 && customer.invoice_count < 5 ? "faktury" : "faktur"} →</small>
                       </Link>
                     </td>
-                    <td data-label="Neuhrazeno">
+                    <td data-label="Neuhrazeno" className="customer-outstanding-cell">
                       {customer.outstanding > 0 ? (
                         <span className={`outstanding-badge ${customer.overdue_amount > 0 ? "overdue" : ""}`}>
                           {money(customer.outstanding)}
@@ -239,12 +246,12 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                         <span className="customer-paid-state"><Icon name="check" /> Uhrazeno</span>
                       )}
                     </td>
-                    <td data-label="Upomínky">
+                    <td data-label="Upomínky" className="customer-reminders-cell">
                       {customer.reminder_policy_name
                         ? <span className="reminder-policy-badge">{customer.reminder_policy_name}</span>
                         : <span className="muted-text">Nepřiřazeno</span>}
                     </td>
-                    <td data-label="Poslední faktura">{date(customer.last_invoice_date)}</td>
+                    <td data-label="Poslední faktura" className="customer-last-invoice-cell">{date(customer.last_invoice_date)}</td>
                   </tr>
                 ))}
               </tbody>

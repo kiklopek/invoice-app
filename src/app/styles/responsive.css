@@ -1,0 +1,1620 @@
+/*
+ * Responzivni vrstva je zamerne oddelena od desktopoveho vzhledu.
+ * Kazde pravidlo, ktere meni layout, je omezeno na `screen`, aby se
+ * mobilni breakpointy nikdy nepropsaly do A4 tisku.
+ */
+
+.u-nowrap,
+.money {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.u-break-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.invoice-list-table {
+  container-name: invoice-table;
+  container-type: inline-size;
+}
+
+.dashboard-invoice-table {
+  container-name: dashboard-invoices;
+  container-type: inline-size;
+}
+
+.dashboard-invoice-compact-list {
+  display: none;
+}
+
+.dashboard-invoice-compact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "customer amount"
+    "meta statuses";
+  align-items: center;
+  gap: 10px 18px;
+  min-width: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color .15s ease;
+}
+
+.dashboard-invoice-compact-row:hover { background: #f8faf7; }
+.dashboard-invoice-compact-row:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--green); outline-offset: -2px; }
+.dashboard-invoice-compact-customer { grid-area: customer; min-width: 0; }
+.dashboard-invoice-compact-customer strong,
+.dashboard-invoice-compact-customer small,
+.dashboard-invoice-compact-amount strong,
+.dashboard-invoice-compact-amount small { display: block; max-width: 100%; overflow-wrap: anywhere; }
+.dashboard-invoice-compact-customer strong { font-size: 13px; line-height: 1.3; }
+.dashboard-invoice-compact-customer small,
+.dashboard-invoice-compact-amount small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.dashboard-invoice-compact-amount { grid-area: amount; min-width: 100px; text-align: right; }
+.dashboard-invoice-compact-amount strong { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dashboard-invoice-compact-meta { grid-area: meta; display: flex; min-width: 0; align-items: center; gap: 7px 14px; flex-wrap: wrap; color: #5f6d64; font-size: 10px; font-variant-numeric: tabular-nums; }
+.dashboard-invoice-compact-meta > span { display: inline-flex; min-width: 0; align-items: center; gap: 5px; white-space: nowrap; }
+.dashboard-invoice-compact-meta svg { width: 14px; height: 14px; flex: 0 0 14px; color: #6f8275; }
+.dashboard-invoice-compact-meta strong { color: var(--ink); font-size: 10px; }
+.dashboard-invoice-compact-statuses { grid-area: statuses; display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
+.dashboard-invoice-compact-statuses .status { margin-left: 0; white-space: nowrap; }
+
+@media screen and (min-width: 768px) {
+  .dashboard-invoice-table th:nth-child(5),
+  .dashboard-invoice-table td:nth-child(5) {
+    text-align: center;
+  }
+}
+
+.invoice-mobile-action-status {
+  display: none;
+}
+
+.invoice-card-reminders svg {
+  display: none;
+}
+
+/* Dashboard má vedle seznamu ještě panel priorit, takže šířka tabulky není
+ * přímo odvoditelná z viewportu. Container query ji přizpůsobí skutečnému
+ * prostoru a zachová všech šest údajů bez horizontálního přetékání. */
+@media screen and (min-width: 1024px) {
+  @container dashboard-invoices (max-width: 800px) {
+    .dashboard-invoice-table table {
+      width: 100%;
+      min-width: 0;
+      table-layout: fixed;
+    }
+
+    .dashboard-invoice-table th,
+    .dashboard-invoice-table td {
+      min-width: 0;
+      padding-right: 9px;
+      padding-left: 9px;
+    }
+
+    .dashboard-invoice-table th:nth-child(1) { width: 15%; }
+    .dashboard-invoice-table th:nth-child(2) { width: 27%; }
+    .dashboard-invoice-table th:nth-child(3) { width: 17%; }
+    .dashboard-invoice-table th:nth-child(4) { width: 17%; }
+    .dashboard-invoice-table th:nth-child(5) { width: 11%; }
+    .dashboard-invoice-table th:nth-child(6) { width: 13%; }
+
+    .dashboard-invoice-table td strong,
+    .dashboard-invoice-table td small {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .dashboard-invoice-table .status {
+      max-width: 100%;
+      padding: 5px 7px;
+      white-space: normal;
+      text-align: center;
+    }
+  }
+
+  @container dashboard-invoices (max-width: 680px) {
+    .dashboard-invoice-table > table {
+      display: none;
+    }
+
+    .dashboard-invoice-compact-list {
+      display: grid;
+    }
+  }
+}
+
+/* Profil drží vždy dole v postranním panelu. Panel má overflow: hidden, takže
+ * na nižším okně (např. 1280 × 720) dřív navigace odsunula profil pod okraj
+ * obrazovky, kam se nedalo dostat. Když se menu nevejde, posouvá se menu,
+ * profil zůstává. */
+@media screen and (min-width: 1024px) {
+  .sidebar > .desktop-navigation {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, .18) transparent;
+  }
+
+  .sidebar > .sidebar-bottom {
+    flex: none;
+  }
+}
+
+/* Kompaktní rozestupy panelu mezi 621 a 800 px výšky (pod 620 px platí ještě
+ * těsnější pravidlo v minimal.css): běžné notebooky (1280 × 720,
+ * 1366 × 768) se tak vejdou celé bez posouvání menu. */
+@media screen and (min-width: 1024px) and (min-height: 621px) and (max-height: 800px) {
+  .sidebar {
+    padding-top: 20px;
+    padding-bottom: 14px;
+  }
+
+  .sidebar > .desktop-navigation {
+    margin-top: 48px;
+    gap: 4px;
+  }
+
+  .sidebar > .desktop-navigation a {
+    height: 42px;
+  }
+
+  .user-card {
+    padding-top: 12px;
+  }
+}
+
+/* Úzký desktop: filtry zůstávají čitelné při práci ve dvou oknech vedle
+ * sebe. Seznam faktur se níže mění na responzivní řádky. */
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  .filter-row,
+  .report-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filter-row label,
+  .report-filters label {
+    min-width: 0;
+  }
+
+  .filter-row label.grow,
+  .period-presets {
+    grid-column: 1 / -1;
+  }
+
+  /* Základních 940 px je širších než obsah vedle postranního panelu
+   * (~766 px na 1024 px), takže poslední sloupce se schovávaly za
+   * vodorovný posuv uvnitř karty. Ani bez něj se šest sloupců nevejde
+   * spolehlivě (nad 1180 px se navíc rozšíří panel), proto tu odpadá
+   * Kontakt -- stejný vedlejší sloupec, který schovává i tablet. */
+  .customers-list-table table {
+    min-width: 0;
+  }
+
+  .customers-list-table th:nth-child(2),
+  .customers-list-table td:nth-child(2) {
+    display: none;
+  }
+}
+
+/* Užší desktop má stále postranní navigaci. Profil musí zůstat v jednom
+ * řádku; starší pravidlo z něj dělalo další textový řádek, který se následně
+ * ořízl na šířku ikonového tlačítka. */
+@media screen and (min-width: 1024px) and (max-width: 1180px) {
+  .sidebar-bottom {
+    min-width: 0;
+  }
+
+  .user-card {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 40px;
+    align-items: center;
+    gap: 9px;
+    padding: 15px 0 0;
+  }
+
+  .user-card .avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .user-card-details {
+    min-width: 0;
+  }
+
+  .user-card > button {
+    display: grid;
+    grid-column: 3;
+    grid-row: 1;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px;
+    place-items: center;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .user-card > button span {
+    display: none !important;
+  }
+
+  .user-card > button svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+@media screen and (max-width: 1023px) {
+  html {
+    scroll-padding-top: calc(var(--mobile-navigation-height, 72px) + env(safe-area-inset-top) + 12px);
+  }
+
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  .app-shell > .content {
+    width: 100%;
+    margin-left: 0;
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-left: max(16px, env(safe-area-inset-left));
+  }
+
+  .invoice-area-background,
+  .report-area-background {
+    left: 0;
+  }
+
+  .workspace-grid,
+  .detail-page-grid,
+  .settings-grid,
+  .access-settings-grid,
+  .analytics-grid,
+  .reminders-layout,
+  .reminder-monitor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-panel,
+  .panel,
+  .form-section,
+  .data-panel,
+  .analytics-card,
+  .content > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Tablet ponechává tabulkovou hustotu desktopu. Starší pravidla do 780 px
+ * měnila 768px tablet na roztažené telefonní karty, proto zde obnovujeme
+ * tabulku a schováváme jen skutečně vedlejší sloupce. */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .dashboard-invoice-table,
+  .invoice-list-table,
+  .customers-list-table {
+    overflow-x: clip;
+  }
+
+  .dashboard-invoice-table table,
+  .invoice-list-table table,
+  .customers-list-table table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .dashboard-invoice-table thead,
+  .invoice-list-table thead,
+  .customers-list-table thead {
+    display: table-header-group !important;
+  }
+
+  .dashboard-invoice-table tbody,
+  .invoice-list-table tbody,
+  .customers-list-table tbody {
+    display: table-row-group !important;
+  }
+
+  .dashboard-invoice-table tr,
+  .invoice-list-table tr,
+  .customers-list-table tr {
+    display: table-row !important;
+    padding: 0;
+    border: 0;
+  }
+
+  .dashboard-invoice-table td,
+  .invoice-list-table td,
+  .customers-list-table td,
+  .customers-list-table .customer-contact-cell {
+    display: table-cell !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 12px 9px !important;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+
+  .dashboard-invoice-table td::before,
+  .invoice-list-table td::before,
+  .customers-list-table td::before {
+    content: none !important;
+  }
+
+  .dashboard-invoice-table th:nth-child(5),
+  .dashboard-invoice-table td:nth-child(5),
+  .customers-list-table th:nth-child(2),
+  .customers-list-table td:nth-child(2),
+  .customers-list-table th:nth-child(6),
+  .customers-list-table td:nth-child(6) {
+    display: none !important;
+  }
+
+  .invoice-list-table .invoice-card-action {
+    padding-top: 12px !important;
+    border-top: 0;
+  }
+
+  .invoice-list-table .quick-payment-button {
+    width: auto;
+    min-height: 44px;
+    padding-inline: 10px;
+    white-space: normal;
+  }
+
+  .customer-identity {
+    min-width: 0;
+  }
+}
+
+/* Mezi telefonem a širokým desktopem už klasická osmisloupcová tabulka
+ * nedává smysl. Řádek se proto skládá do dvou úrovní, ale zachovává každou
+ * hodnotu i hlavní akci. */
+@media screen and (min-width: 768px) {
+ @container invoice-table (max-width: 1180px) {
+  .invoice-list-table table,
+  .invoice-list-table tbody {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .invoice-list-table table {
+    padding: 10px;
+    background: #f7f9f6;
+  }
+
+  .invoice-list-table thead {
+    display: none !important;
+  }
+
+  .invoice-list-table tbody {
+    display: grid !important;
+    gap: 8px;
+  }
+
+  .invoice-list-table tr {
+    display: grid !important;
+    /* Splatnost končí druhý informační sloupec, za ní je úzký sloupec
+     * upomínek a až potom dominantní částka. Částka, upomínky, hlavní akce
+     * i stav zabírají oba řádky, takže se žádný údaj neocitá osamocený pod
+     * tlačítkem. */
+    grid-template-columns: minmax(110px, 1fr) minmax(160px, 1.45fr) 72px minmax(130px, 1fr) minmax(150px, 1.1fr) 132px;
+    grid-template-areas:
+      "invoice customer reminder amount action status"
+      "issue due reminder amount action status";
+    align-items: center;
+    gap: 10px 18px;
+    margin: 0;
+    padding: 15px 16px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--paper) !important;
+  }
+
+  .invoice-list-table td {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    white-space: normal !important;
+  }
+
+  .invoice-list-table td:nth-child(1) { grid-area: invoice; }
+  .invoice-list-table td:nth-child(2) { grid-area: customer; }
+  .invoice-list-table td:nth-child(3) { grid-area: amount; }
+  .invoice-list-table td:nth-child(4) { grid-area: issue; }
+  .invoice-list-table td:nth-child(5) { grid-area: due; }
+  .invoice-list-table td:nth-child(6) { grid-area: reminder; }
+  .invoice-list-table td:nth-child(7) { grid-area: status; justify-self: end; }
+  .invoice-list-table td:nth-child(8) { grid-area: action; }
+
+  .invoice-list-table .invoice-card-amount {
+    display: flex !important;
+    align-self: stretch;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 18px !important;
+    border-right: 1px solid #e5ebe6 !important;
+    border-left: 1px solid #e5ebe6 !important;
+  }
+
+  .invoice-list-table .invoice-card-amount strong {
+    font-size: clamp(20px, 2vw, 28px);
+    line-height: 1.1;
+  }
+
+  .invoice-list-table .invoice-card-reminders {
+    display: flex !important;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transform: translateX(-28px);
+    color: #52665a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .invoice-list-table .invoice-card-reminders svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    color: #688073;
+  }
+
+  .invoice-list-table td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  .invoice-list-table td:nth-child(1)::before,
+  .invoice-list-table td:nth-child(2)::before,
+  .invoice-list-table .invoice-card-reminders::before,
+  .invoice-list-table td:nth-child(7)::before,
+  .invoice-list-table td:nth-child(8)::before {
+    display: none !important;
+  }
+
+  .invoice-list-table td strong,
+  .invoice-list-table td small {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+
+  .invoice-list-table td:nth-child(3) strong,
+  .invoice-list-table td:nth-child(4),
+  .invoice-list-table td:nth-child(5),
+  .invoice-list-table td:nth-child(6) {
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .invoice-list-table .status {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .invoice-list-table .invoice-card-action {
+    align-self: center;
+  }
+
+  .invoice-list-table .invoice-card-action:empty {
+    display: none !important;
+  }
+
+  .invoice-list-table .invoice-card-action .btn {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+ }
+}
+
+@media screen and (min-width: 768px) {
+ @container invoice-table (max-width: 820px) {
+  .invoice-list-table tr {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "invoice status"
+      "customer customer"
+      "amount due"
+      "issue reminder"
+      "action action";
+  }
+
+  .invoice-list-table td:nth-child(7) {
+    justify-self: end;
+  }
+
+  .invoice-list-table .invoice-card-reminders {
+    transform: none;
+  }
+ }
+}
+
+@media screen and (max-width: 767px) {
+  .app-shell > .content {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .topbar,
+  .section-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .top-actions,
+  .section-actions,
+  .section-header .section-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .top-actions .btn,
+  .section-actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .form-grid,
+  .settings-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-grid label.wide,
+  .settings-form label.wide {
+    grid-column: auto;
+  }
+
+  dialog.modal,
+  dialog.confirm-dialog {
+    width: 100% !important;
+    max-width: none;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: 18px 18px 0 0;
+    overscroll-behavior: contain;
+  }
+
+  dialog.modal > header,
+  dialog.modal > footer {
+    position: sticky;
+    z-index: 2;
+    background: var(--paper);
+  }
+
+  dialog.modal > header {
+    top: 0;
+  }
+
+  dialog.modal > footer {
+    bottom: 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .toast-region {
+    top: calc(var(--mobile-navigation-height, 72px) + 12px + env(safe-area-inset-top));
+    right: 8px;
+    bottom: auto;
+    left: 8px;
+    width: auto;
+  }
+
+  .toast-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px 12px;
+    padding: 15px 16px 13px;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head > div {
+    min-width: 0;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head h2 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head p {
+    margin-top: 4px;
+    font-size: 10px;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head > a {
+    align-self: center;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .dashboard-invoice-table {
+    overflow: visible !important;
+  }
+
+  .dashboard-invoice-table > table {
+    display: none !important;
+  }
+
+  .dashboard-invoice-compact-list {
+    display: grid;
+  }
+
+  .dashboard-invoice-compact-row {
+    grid-template-areas:
+      "customer amount"
+      "meta meta"
+      "statuses statuses";
+    gap: 8px 12px;
+    padding: 13px 16px;
+  }
+
+  .dashboard-invoice-compact-meta {
+    gap: 7px 12px;
+  }
+
+  .dashboard-invoice-compact-statuses {
+    justify-content: flex-end;
+  }
+
+  .invoice-list-table tr {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "invoice status"
+      "customer customer"
+      "amount due"
+      "issued reminder"
+      "action action";
+    gap: 8px 14px;
+    margin: 0;
+    padding: 14px;
+  }
+
+  .invoice-list-table td:nth-child(1) { grid-area: invoice; }
+  .invoice-list-table td:nth-child(2) { grid-area: customer; }
+  .invoice-list-table td:nth-child(3) { grid-area: amount; }
+  .invoice-list-table td:nth-child(4) { grid-area: issued; }
+  .invoice-list-table td:nth-child(5) { grid-area: due; text-align: right; }
+  .invoice-list-table td:nth-child(6) { grid-area: reminder; text-align: right; }
+  .invoice-list-table td:nth-child(7) { grid-area: status; justify-self: end; }
+  .invoice-list-table .invoice-card-action { grid-area: action; }
+
+  .invoice-list-table td::before {
+    margin-bottom: 2px;
+    font-size: 12px;
+  }
+
+  .invoice-list-table td:nth-child(1)::before,
+  .invoice-list-table td:nth-child(2)::before,
+  .invoice-list-table td:nth-child(7)::before,
+  .invoice-list-table .invoice-card-action::before {
+    display: none !important;
+  }
+
+  .invoice-list-table td strong,
+  .invoice-list-table td small {
+    overflow-wrap: break-word;
+  }
+
+  .invoice-list-table td:nth-child(3) strong,
+  .invoice-list-table td:nth-child(5),
+  .invoice-list-table .status {
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Aktivní faktury používají na telefonu vlastní informační kartu. Není to
+   * zmenšená tabulka: nejdřív identita a stav, potom obchodní údaje a až
+   * nakonec akce. Archiv má jiná data, proto zůstává záměrně oddělený. */
+  .active-invoice-table {
+    padding: 8px;
+    overflow: visible;
+    border-radius: 16px;
+    background: transparent;
+  }
+
+  .active-invoice-table table,
+  .active-invoice-table tbody {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .active-invoice-table tbody {
+    display: grid !important;
+    gap: 8px;
+  }
+
+  .active-invoice-table .invoice-row {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "customer invoice"
+      "amount due"
+      "issued reminder"
+      "footer footer";
+    gap: 12px 10px;
+    border: 1px solid #dce4dd;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(28, 67, 46, .035);
+  }
+
+  .active-invoice-table .invoice-row.is-paid {
+    grid-template-areas:
+      "customer invoice"
+      "amount due"
+      "issued reminder";
+    border-color: #bcd7c4;
+    background: #eaf6ed !important;
+  }
+
+  .active-invoice-table .invoice-row.is-paid:hover {
+    background: #e2f1e6 !important;
+  }
+
+  .active-invoice-table .invoice-row.is-paid .invoice-card-action {
+    display: none !important;
+  }
+
+  .active-invoice-table .invoice-row.is-paid .invoice-card-amount,
+  .active-invoice-table .invoice-row.is-paid .invoice-card-due {
+    background: #e2f0e6 !important;
+  }
+
+  .active-invoice-table .invoice-card-number { grid-area: invoice; }
+  .active-invoice-table .invoice-card-customer { grid-area: customer; }
+  .active-invoice-table .invoice-card-amount { grid-area: amount; }
+  .active-invoice-table .invoice-card-issued { grid-area: issued; }
+  .active-invoice-table .invoice-card-due { grid-area: due; }
+  .active-invoice-table .invoice-card-reminders { grid-area: reminder; }
+  .active-invoice-table .invoice-card-status { grid-area: status; }
+
+  .active-invoice-table .invoice-card-number a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 44px;
+    font-size: 17px;
+    line-height: 1.2;
+  }
+
+  .active-invoice-table .invoice-card-number {
+    align-self: start;
+    text-align: right;
+  }
+
+  .active-invoice-table .invoice-card-number small {
+    margin-top: 3px;
+    font-size: 12px;
+  }
+
+  .active-invoice-table .invoice-card-customer {
+    align-self: start;
+    padding: 4px 0 10px !important;
+    border-bottom: 0 !important;
+  }
+
+  .active-invoice-table .invoice-card-customer strong {
+    font-size: 15px;
+    line-height: 1.3;
+  }
+
+  .active-invoice-table .invoice-card-customer small {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .active-invoice-table .invoice-card-amount,
+  .active-invoice-table .invoice-card-due {
+    display: flex !important;
+    min-height: 86px !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 10px !important;
+    border-radius: 10px;
+    background: #f5f8f5 !important;
+    text-align: center;
+  }
+
+  .active-invoice-table .invoice-card-due {
+    min-width: 126px !important;
+  }
+
+  .active-invoice-table .invoice-card-amount::before,
+  .active-invoice-table .invoice-card-due::before {
+    margin-bottom: 7px;
+    line-height: 1;
+  }
+
+  .active-invoice-table .invoice-card-amount strong {
+    font-size: 16px;
+  }
+
+  .active-invoice-table .invoice-card-issued,
+  .active-invoice-table .invoice-card-reminders {
+    display: flex !important;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 6px !important;
+    border-top: 1px solid #e7ece8 !important;
+    border-bottom: 0 !important;
+    background: #fff !important;
+    color: #435147;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .active-invoice-table .invoice-card-issued {
+    margin-right: -5px;
+    border-radius: 0;
+  }
+
+  .active-invoice-table .invoice-card-reminders {
+    justify-self: stretch;
+    margin-left: -5px;
+    border-left: 1px solid #e7ece8 !important;
+    border-radius: 0;
+  }
+
+  .active-invoice-table .invoice-card-issued::before,
+  .active-invoice-table .invoice-card-reminders::before {
+    display: inline !important;
+    margin: 0;
+    font-size: 10px;
+  }
+
+  .active-invoice-table .invoice-card-reminders::before {
+    display: none !important;
+  }
+
+  .active-invoice-table .invoice-card-reminders svg {
+    display: block;
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    color: #688073;
+  }
+
+  .active-invoice-table .invoice-card-status {
+    display: none !important;
+  }
+
+  .active-invoice-table .invoice-card-status .status {
+    padding: 7px 10px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .active-invoice-table .invoice-card-action {
+    display: grid !important;
+    grid-area: footer;
+    grid-column: 1 / -1 !important;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: 10px;
+    justify-self: stretch;
+    width: 100% !important;
+    margin-top: 0;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+  }
+
+  .active-invoice-table .invoice-card-action:empty {
+    display: none !important;
+  }
+
+  .active-invoice-table .invoice-mobile-action-status {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    width: max-content;
+    align-items: center;
+    justify-content: flex-end;
+    justify-self: end;
+    margin-left: auto;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .active-invoice-table .invoice-mobile-action-status .status {
+    margin-left: 0;
+    padding: 7px 10px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .active-invoice-table .quick-payment-button {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100% !important;
+    min-width: 0;
+    min-height: 46px;
+    padding: 10px 16px;
+  }
+
+  /* Zákazník je na telefonu souhrnná karta, ne šest tabulkových řádků pod
+   * sebou. Identita a kontakt jsou nahoře, účetní stav tvoří mřížku 2 × 2. */
+  .customers-list-table {
+    padding: 8px;
+    border-radius: 16px;
+    background: #f3f6f2;
+  }
+
+  .customers-list-table tbody {
+    gap: 8px;
+  }
+
+  .customers-list-table tr {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "identity identity"
+      "contact contact"
+      "billing outstanding"
+      "reminders last";
+    gap: 8px !important;
+    padding: 16px !important;
+    border-radius: 14px;
+    border-color: #dce4dd;
+    box-shadow: 0 1px 2px rgba(28, 67, 46, .035);
+  }
+
+  .customers-list-table .customer-identity-cell {
+    grid-area: identity;
+    padding: 0 0 13px !important;
+    border-bottom: 1px solid #e7ece8 !important;
+  }
+
+  .customers-list-table .customer-contact-cell {
+    grid-area: contact;
+    padding: 2px 0 8px !important;
+  }
+
+  .customers-list-table .customer-billing-cell { grid-area: billing; }
+  .customers-list-table .customer-outstanding-cell { grid-area: outstanding; }
+  .customers-list-table .customer-reminders-cell { grid-area: reminders; }
+  .customers-list-table .customer-last-invoice-cell { grid-area: last; }
+
+  .customers-list-table .customer-avatar {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+
+  .customers-list-table .customer-identity {
+    gap: 12px;
+  }
+
+  .customers-list-table .customer-identity strong {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .customers-list-table .customer-identity small {
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .customers-list-table .customer-contact-details {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px 14px;
+    flex-wrap: wrap;
+  }
+
+  .customers-list-table .customer-contact-cell::before {
+    margin-bottom: 2px;
+  }
+
+  .customers-list-table .customer-contact-cell small {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  .customers-list-table .customer-phone-display {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .customers-list-table .customer-billing-cell,
+  .customers-list-table .customer-outstanding-cell,
+  .customers-list-table .customer-reminders-cell,
+  .customers-list-table .customer-last-invoice-cell {
+    min-height: 82px !important;
+    padding: 11px 12px !important;
+    border-radius: 10px;
+    background: #f5f8f5 !important;
+  }
+
+  .customers-list-table td::before {
+    margin-bottom: 7px;
+    font-size: 10px;
+  }
+
+  .customers-list-table .customer-billing-cell strong {
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .customers-list-table .customer-billing-cell small {
+    margin-top: 5px;
+    font-size: 11px;
+  }
+
+  .customers-list-table .outstanding-badge,
+  .customers-list-table .reminder-policy-badge {
+    max-width: 100%;
+    padding: 5px 8px;
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: normal;
+  }
+
+  .customers-list-table .customer-paid-state {
+    font-size: 12px;
+  }
+
+  .customers-list-table .customer-last-invoice-cell {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .app-shell > .content {
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-left: max(12px, env(safe-area-inset-left));
+  }
+
+  .top-actions,
+  .section-actions,
+  .section-header .section-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-panel,
+  .panel,
+  .form-section,
+  .import-panel {
+    border-radius: 14px;
+  }
+
+  .invoice-list-table tr {
+    padding: 12px;
+  }
+
+  .active-invoice-table .invoice-row {
+    padding: 14px !important;
+  }
+
+  .active-invoice-table .invoice-card-due {
+    min-width: 116px !important;
+  }
+
+  .active-invoice-table .quick-payment-button {
+    width: 100% !important;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head {
+    padding-inline: 14px;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head h2 {
+    font-size: 17px;
+  }
+
+  .dashboard-workspace .invoice-panel > .panel-head > a {
+    font-size: 10px;
+  }
+
+  .dashboard-invoice-compact-row {
+    padding-inline: 14px;
+  }
+
+  .customers-list-table tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 14px !important;
+  }
+
+  .customers-list-table .customer-billing-cell,
+  .customers-list-table .customer-outstanding-cell,
+  .customers-list-table .customer-reminders-cell,
+  .customers-list-table .customer-last-invoice-cell {
+    min-height: 78px !important;
+    padding: 10px !important;
+  }
+}
+
+@media screen and (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  button,
+  summary,
+  select,
+  .btn,
+  a.btn,
+  [role="button"],
+  [role="tab"] {
+    min-height: 44px;
+  }
+
+  button[aria-label],
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media screen and (max-height: 500px) and (orientation: landscape) and (max-width: 1023px) {
+  :root {
+    --mobile-navigation-height: 52px;
+  }
+
+  html {
+    scroll-padding-top: calc(var(--mobile-navigation-height) + env(safe-area-inset-top) + 8px);
+  }
+
+  .sidebar {
+    height: calc(var(--mobile-navigation-height) + env(safe-area-inset-top));
+  }
+
+  .mobile-navigation-shell,
+  .mobile-navigation-bar {
+    height: var(--mobile-navigation-height);
+  }
+
+  .mobile-navigation-bar {
+    grid-template-columns: 38px minmax(0, 1fr) 44px;
+    padding-block: 4px;
+  }
+
+  .sidebar .mobile-navigation-brand {
+    width: 38px;
+    height: 44px;
+    min-width: 38px;
+  }
+
+  .mobile-navigation-logo {
+    width: 36px;
+  }
+
+  .mobile-navigation-toggle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .mobile-navigation-backdrop {
+    inset-block-start: calc(var(--mobile-navigation-height) + env(safe-area-inset-top));
+  }
+
+  .mobile-navigation-panel {
+    top: calc(var(--mobile-navigation-height) + env(safe-area-inset-top));
+    max-height: calc(100dvh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .app-shell > .content {
+    padding-top: calc(var(--mobile-navigation-height) + 12px + env(safe-area-inset-top));
+  }
+}
+
+/* Název stránky v mobilní liště stojí přesně uprostřed obrazovky. Krajní
+ * sloupce (logo, hamburger) jsou proto stejně široké; název je sloupec
+ * s automatickou šířkou, který se u dlouhého textu zkrátí trojtečkou. */
+@media screen and (max-width: 1023px) {
+  .sidebar .mobile-navigation-bar {
+    grid-template-columns: minmax(52px, 1fr) minmax(0, auto) minmax(52px, 1fr);
+  }
+
+  .sidebar .mobile-navigation-brand {
+    justify-self: start;
+  }
+
+  .sidebar .mobile-navigation-toggle {
+    justify-self: end;
+  }
+
+  .sidebar .mobile-navigation-current {
+    justify-content: center;
+    padding-left: 0;
+    text-align: center;
+  }
+}
+
+/* Zaplacené faktury rozlišuje plocha celého řádku místo dalšího štítku.
+ * Pravidla jsou až za jednotlivými breakpointy, aby platila shodně pro
+ * desktopovou tabulku, střední karty i telefonní variantu. */
+@media screen {
+  .active-invoice-table .invoice-row.is-paid,
+  .dashboard-invoice-table .invoice-row.is-paid,
+  .dashboard-invoice-compact-row.is-paid {
+    border-color: #bcd7c4 !important;
+    background: #eaf6ed !important;
+  }
+
+  .active-invoice-table .invoice-row.is-paid > td,
+  .dashboard-invoice-table .invoice-row.is-paid > td {
+    background: transparent !important;
+  }
+
+  .active-invoice-table .invoice-row.is-paid:hover,
+  .dashboard-invoice-table .invoice-row.is-paid:hover,
+  .dashboard-invoice-compact-row.is-paid:hover {
+    background: #e2f1e6 !important;
+  }
+
+  .active-invoice-table .invoice-row.is-paid .status.paid,
+  .dashboard-invoice-table .invoice-row.is-paid .status.paid,
+  .dashboard-invoice-compact-row.is-paid .status.paid {
+    display: none !important;
+  }
+
+  .dashboard-invoice-compact-row.is-paid {
+    grid-template-areas:
+      "customer amount"
+      "meta meta";
+  }
+
+  .dashboard-invoice-compact-row.is-paid .dashboard-invoice-compact-statuses {
+    display: none;
+  }
+}
+
+/* Archiv má oproti aktivním fakturám datum úhrady a nemá akční tlačítko ani
+ * upomínky. Vlastní mřížka zabraňuje tomu, aby se jeho buňky skládaly do
+ * oblastí určených pro aktivní faktury. */
+@media screen and (min-width: 768px) {
+  @container invoice-table (max-width: 1180px) {
+    .archive-invoice-table tr {
+      grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr) 118px;
+      grid-template-areas:
+        "invoice customer amount payment status"
+        "issue due amount payment status" !important;
+      gap: 8px 16px;
+      padding: 13px 14px;
+    }
+
+    .archive-invoice-table .archive-invoice-number { grid-area: invoice !important; }
+    .archive-invoice-table .archive-invoice-customer { grid-area: customer !important; }
+    .archive-invoice-table .archive-invoice-amount { grid-area: amount !important; }
+    .archive-invoice-table .archive-invoice-issued { grid-area: issue !important; }
+    .archive-invoice-table .archive-invoice-due { grid-area: due !important; }
+    .archive-invoice-table .archive-invoice-paid-at { grid-area: payment !important; }
+    .archive-invoice-table .archive-invoice-status { grid-area: status !important; }
+
+    .archive-invoice-table .archive-invoice-amount,
+    .archive-invoice-table .archive-invoice-paid-at {
+      display: flex !important;
+      align-self: stretch;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4px 16px !important;
+    }
+
+    .archive-invoice-table .archive-invoice-amount {
+      border-right: 1px solid #e2e9e3 !important;
+      border-left: 1px solid #e2e9e3 !important;
+    }
+
+    .archive-invoice-table .archive-invoice-amount strong {
+      font-size: clamp(18px, 1.65vw, 23px);
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .archive-invoice-table .archive-invoice-paid-at {
+      align-items: center;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .archive-invoice-table .archive-invoice-status {
+      align-self: center;
+      justify-self: end;
+    }
+
+    .archive-invoice-table .invoice-row.is-paid {
+      grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr);
+      grid-template-areas:
+        "invoice customer amount payment"
+        "issue due amount payment" !important;
+    }
+
+    .archive-invoice-table .invoice-row.is-paid .archive-invoice-status {
+      display: none !important;
+    }
+  }
+
+  @container invoice-table (max-width: 820px) {
+    .archive-invoice-table tr {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        "customer invoice"
+        "amount payment"
+        "issue due"
+        "status status" !important;
+      gap: 8px 10px;
+    }
+
+    .archive-invoice-table .archive-invoice-amount {
+      border: 0 !important;
+      border-radius: 10px;
+      background: #f7f8f7 !important;
+    }
+
+    .archive-invoice-table .archive-invoice-paid-at {
+      border-radius: 10px;
+      background: #fafbfa !important;
+    }
+
+    .archive-invoice-table .archive-invoice-status {
+      justify-self: end;
+    }
+
+    .archive-invoice-table .invoice-row.is-paid {
+      grid-template-areas:
+        "customer invoice"
+        "amount payment"
+        "issue due" !important;
+    }
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .archive-invoice-table {
+    padding: 8px;
+    overflow: visible;
+    border-radius: 16px;
+    background: transparent;
+  }
+
+  .archive-invoice-table table,
+  .archive-invoice-table tbody {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .archive-invoice-table tbody {
+    display: grid !important;
+    gap: 8px;
+  }
+
+  .archive-invoice-table tr {
+    display: grid !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-areas:
+      "customer invoice"
+      "amount payment"
+      "issue due"
+      "status status" !important;
+    grid-template-rows: 54px 68px 44px max-content;
+    grid-auto-rows: max-content;
+    align-content: start;
+    align-items: stretch;
+    gap: 7px 10px;
+    border: 1px solid #dce4dd;
+    border-radius: 14px;
+    background: #fff !important;
+  }
+
+  .archive-invoice-table tr > td {
+    width: auto !important;
+    min-height: 0 !important;
+    align-self: stretch;
+  }
+
+  .archive-invoice-table .archive-invoice-number { grid-area: invoice !important; }
+  .archive-invoice-table .archive-invoice-customer { grid-area: customer !important; }
+  .archive-invoice-table .archive-invoice-amount { grid-area: amount !important; }
+  .archive-invoice-table .archive-invoice-issued { grid-area: issue !important; }
+  .archive-invoice-table .archive-invoice-due { grid-area: due !important; }
+  .archive-invoice-table .archive-invoice-paid-at { grid-area: payment !important; }
+  .archive-invoice-table .archive-invoice-status { grid-area: status !important; }
+
+  .archive-invoice-table .archive-invoice-number::before,
+  .archive-invoice-table .archive-invoice-customer::before {
+    display: none !important;
+  }
+
+  .archive-invoice-table .archive-invoice-number,
+  .archive-invoice-table .archive-invoice-customer {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    text-align: center;
+  }
+
+  .archive-invoice-table .archive-invoice-number a {
+    justify-content: center;
+    min-height: 0;
+    line-height: 1.25;
+  }
+
+  .archive-invoice-table .archive-invoice-number small,
+  .archive-invoice-table .archive-invoice-customer small {
+    margin-top: 3px;
+  }
+
+  .archive-invoice-table .archive-invoice-amount {
+    display: flex !important;
+    min-height: 68px !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 8px !important;
+    border-radius: 9px;
+    background: #f7f8f7 !important;
+    text-align: center;
+  }
+
+  .archive-invoice-table .archive-invoice-amount::before {
+    margin-bottom: 5px;
+  }
+
+  .archive-invoice-table .archive-invoice-amount strong {
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .archive-invoice-table .archive-invoice-issued,
+  .archive-invoice-table .archive-invoice-paid-at {
+    min-height: 0 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .archive-invoice-table .archive-invoice-paid-at {
+    display: flex !important;
+    min-height: 68px !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 8px !important;
+    border-radius: 9px;
+    background: #fafbfa !important;
+    text-align: center;
+  }
+
+  .archive-invoice-table .archive-invoice-issued,
+  .archive-invoice-table .archive-invoice-due {
+    display: flex !important;
+    min-height: 0 !important;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 0 1px !important;
+    border-top: 1px solid #e4e9e5 !important;
+    border-radius: 0;
+    background: transparent !important;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .archive-invoice-table .archive-invoice-issued::before,
+  .archive-invoice-table .archive-invoice-due::before {
+    display: inline !important;
+    margin: 0 6px 0 0;
+  }
+
+  .archive-invoice-table .archive-invoice-status {
+    align-self: center;
+    justify-self: center;
+    text-align: center;
+  }
+
+  .archive-invoice-table .invoice-row.is-paid {
+    grid-template-areas:
+      "customer invoice"
+      "amount payment"
+      "issue due" !important;
+    grid-template-rows: 54px 68px 44px;
+    border-color: #dce4dd;
+    background: #fff !important;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .archive-invoice-table {
+    padding: 6px;
+  }
+
+  .archive-invoice-table tr {
+    padding: 11px !important;
+    grid-template-rows: 50px 64px 42px max-content;
+    gap: 6px 8px;
+  }
+
+  .archive-invoice-table .invoice-row.is-paid {
+    grid-template-rows: 50px 64px 42px;
+  }
+
+  .archive-invoice-table .archive-invoice-amount,
+  .archive-invoice-table .archive-invoice-paid-at {
+    min-height: 64px !important;
+  }
+
+  .archive-invoice-table .archive-invoice-amount strong {
+    font-size: 17px;
+  }
+
+  .archive-invoice-table .archive-invoice-issued,
+  .archive-invoice-table .archive-invoice-due {
+    font-size: 12px;
+  }
+}
+
+@media screen {
+  .archive-invoice-table .invoice-row.is-paid {
+    border-color: #dce4dd !important;
+    background: #fff !important;
+  }
+
+  .archive-invoice-table .invoice-row.is-paid > td {
+    background: transparent !important;
+  }
+
+  .archive-invoice-table .invoice-row.is-paid:hover {
+    background: #fafbf9 !important;
+  }
+
+  .archive-invoice-table .invoice-row.is-paid .status.paid {
+    display: none !important;
+  }
+
+  .archive-invoice-table .invoice-row.is-paid .archive-invoice-status {
+    display: none !important;
+  }
+}

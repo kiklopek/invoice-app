@@ -1,12 +1,12 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
-// Postranní panel se zobrazuje až nad 780 px; pod tím ho nahrazuje hamburger.
+// Postranní panel se zobrazuje od 1024 px; pod tím ho nahrazuje hamburger.
 // Specy, které panel ověřují, se proto dřív přeskakovaly podmínkou
 // `project.name.startsWith("mobile")` -- jenže projekt `tablet` má 768 px,
 // takže na něm běžely a selhávaly na chování, které je správné. Odvozovat to
 // od šířky místo od názvu znamená, že další přidaný projekt tenhle problém
 // nezopakuje.
-export const DESKTOP_NAVIGATION_MIN_WIDTH = 781;
+export const DESKTOP_NAVIGATION_MIN_WIDTH = 1024;
 
 function viewportWidth(testInfo: TestInfo) {
   // Bez nastavené šířky platí výchozích 1280 px Playwrightu.

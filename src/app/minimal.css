@@ -340,7 +340,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   box-shadow: 0 16px 38px rgba(23,34,28,.16);
 }
 
-@media (max-width: 780px) {
+@media screen and (max-width: 780px) {
   .invoice-actions-menu-popover { right: auto; left: 0; }
 }
 .invoice-actions-menu-popover a,
@@ -542,7 +542,7 @@ input:focus, select:focus, textarea:focus,
 
 /* Desktop dashboard is one viewport. Both growing collections share the same
    bottom edge and scroll inside their cards, so neither list moves the page. */
-@media (min-width: 1181px) {
+@media screen and (min-width: 1181px) {
   .dashboard-page {
     display: flex !important;
     height: 100vh;
@@ -594,7 +594,7 @@ input:focus, select:focus, textarea:focus,
   .dashboard-attention-panel .timeline::-webkit-scrollbar-thumb:hover { background: #bcc4bd; }
 }
 
-@media (min-width: 1181px) and (max-height: 760px) {
+@media screen and (min-width: 1181px) and (max-height: 760px) {
   .dashboard-page { padding-top: 22px; padding-bottom: 22px; }
   .dashboard-page > .topbar { margin-bottom: 16px; }
   .dashboard-command { margin-bottom: 14px; }
@@ -603,18 +603,18 @@ input:focus, select:focus, textarea:focus,
   .dashboard-balance-actions { margin-top: 20px; }
 }
 
-@media (max-width: 1180px) {
+@media screen and (max-width: 1180px) {
   .dashboard-command { grid-template-columns: 1fr; }
   .dashboard-signal-grid { grid-template-columns: repeat(3,minmax(0,1fr)); grid-template-rows: none; }
 }
 
-@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   .dashboard-balance-card { min-height: 235px; padding: 26px 24px; }
   .dashboard-signal-grid { grid-template-columns: 1fr; }
   .dashboard-signal { min-height: 82px; }
 }
 
-@media (max-width: 520px) {
+@media screen and (max-width: 520px) {
   .dashboard-balance-card { min-height: 0; padding: 23px 20px; border-radius: 17px; }
   .dashboard-balance-topline { align-items: flex-start; flex-direction: column; gap: 10px; }
   .dashboard-balance-card > strong { margin-top: 18px; font-size: 29px; }
@@ -986,7 +986,7 @@ tr:hover td { background: #fafbf9; }
   background: #fff;
 }
 
-@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   .section-header.reminders-hero { min-height: 0; align-items: flex-start; padding: 22px 20px; }
   .reminders-hero h1 { font-size: 29px; }
   .reminders-hero .reminders-hero-copy > span { font-size: 12px; }
@@ -998,7 +998,7 @@ tr:hover td { background: #fafbf9; }
   .reminders-automation-card.active > button { border-top-color: rgba(255,255,255,.16); }
 }
 
-@media (max-width: 520px) {
+@media screen and (max-width: 520px) {
   .section-header.reminders-hero .reminders-hero-side { grid-template-columns: 1fr; }
   .reminders-hero-run { width: 100%; }
   .reminder-stat-card { grid-template-columns: 44px minmax(0,1fr); min-height: 98px; gap: 13px; }
@@ -1244,7 +1244,7 @@ tr:hover td { background: #fafbf9; }
 .payments-page .gpc-safety-card li::before { border-color: rgba(35,96,68,.28); background: #e8f1ea; color: #286649; }
 .payments-page .gpc-safety-card li strong { color: #244b36; }
 .payments-page .gpc-safety-card li span { color: #6b7b71; }
-@media (min-width: 981px) {
+@media screen and (min-width: 981px) {
   .payments-page .gpc-safety-card {
     display: grid !important;
     grid-template-columns: 48px minmax(0, 1fr);
@@ -1560,15 +1560,15 @@ tr:hover td { background: #fafbf9; }
 .payments-empty-state a { margin-top: 13px; color: var(--green); font-size: 10px; font-weight: 750; text-decoration: none; }
 .payments-empty-state a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-@media (max-width: 980px) {
+@media screen and (max-width: 980px) {
   .payments-hero { min-height: 0; }
   .payments-page .gpc-intro-grid { grid-template-columns: 1fr; }
 }
-@media (max-width: 1180px) {
+@media screen and (max-width: 1180px) {
   .payments-page .payments-hero { grid-template-columns: 1fr; gap: 20px; }
   .payments-page .payments-hero-side { align-items: flex-start; }
 }
-@media (max-width: 760px) {
+@media screen and (max-width: 760px) {
   .payments-hero { padding: 22px 20px; }
   .payments-hero-side { width: 100%; min-width: 0; align-items: stretch; gap: 14px; }
   .payments-jump-links { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -1603,7 +1603,7 @@ tr:hover td { background: #fafbf9; }
   .statement-status { width: fit-content; }
   .statement-file-actions .statement-discard { min-width: 88px; }
 }
-@media (max-width: 520px) {
+@media screen and (max-width: 520px) {
   .payments-hero .back-link { margin-bottom: 17px; }
   .payments-hero h1 { font-size: 29px; }
   .payments-hero > .payments-hero-copy > span { font-size: 12px; }
@@ -1838,7 +1838,7 @@ input, select, textarea,
 .sidebar-logout-error { margin: 0 8px 8px; color: #ffd8d2; font-size: 10px; line-height: 1.35; }
 .user-card > button:disabled { cursor: wait; opacity: .55; }
 
-@media (max-width: 1180px) {
+@media screen and (max-width: 1180px) {
   .sidebar { width: 208px; }
   .sidebar nav a { font-size: 13px; }
   .content { width: calc(100% - 208px); margin-left: 208px; padding: 30px 24px 48px; }
@@ -1852,7 +1852,7 @@ input, select, textarea,
   .period-presets { grid-column: 1 / -1; }
 }
 
-@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   body { font-size: 14px; }
   .sidebar {
     inset: auto 0 0;
@@ -1991,14 +1991,14 @@ input, select, textarea,
   .invoice-list-table .quick-payment-button { width: 100%; }
 }
 
-@media (max-height: 620px) and (min-width: 781px) {
+@media screen and (max-height: 620px) and (min-width: 781px) {
   .sidebar { padding-top: 20px; padding-bottom: 14px; }
   .sidebar nav { margin-top: 28px; gap: 3px; }
   .sidebar nav a { height: 40px; }
   .user-card { padding-top: 12px; }
 }
 
-@media (max-width: 520px) {
+@media screen and (max-width: 520px) {
   .content { padding-inline: 12px; }
   .top-actions, .section-actions { grid-template-columns: 1fr; }
   .btn { font-size: 12px; }
@@ -2057,7 +2057,7 @@ input, select, textarea,
   .import-step-note .btn { width: 100%; }
 }
 
-@media (max-width: 360px) {
+@media screen and (max-width: 360px) {
   .content { padding-inline: 10px; }
   .sidebar { padding-inline: 3px; }
   .sidebar nav a { font-size: 9px; }
@@ -2208,7 +2208,7 @@ th,
 .login-card input,
 .auth-form input { font-size: 14px; }
 
-@media (max-width: 760px) {
+@media screen and (max-width: 760px) {
   .policy-toolbar { align-items:stretch; flex-direction:column; padding:16px; }
   .policy-toolbar select { font-size:16px; }
   .policy-toolbar .btn { width:100%; }
@@ -2223,12 +2223,12 @@ th,
   .payment-history-table td::before { font-size: 11px; }
 }
 
-@media (max-width: 360px) {
+@media screen and (max-width: 360px) {
   .sidebar nav a { font-size: 9px; }
 }
 
 /* Mobilní reporty a ovládání automatu. */
-@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   .analytics-grid { grid-template-columns: minmax(0, 1fr); }
   .reports-chart-grid .analytics-card { min-height: 0; }
   .analytics-card,
@@ -2285,7 +2285,7 @@ th,
   .automation-switch > button b { flex: 0 0 38px; }
 }
 
-@media (max-width: 420px) {
+@media screen and (max-width: 420px) {
   .analytics-card { padding-inline: 16px; }
   .analytics-card > header { margin-inline: -16px; padding-inline: 16px; }
   .aging-report > div > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
@@ -2296,7 +2296,7 @@ th,
 .mobile-disclosure-content { display: contents; }
 .mobile-disclosure-toggle { display: none; }
 
-@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   html, body {
     width: 100% !important;
     min-width: 0 !important;
@@ -2703,7 +2703,7 @@ th,
   .payment-assignment .btn { min-height: 44px; }
 }
 
-@media (max-width: 520px) {
+@media screen and (max-width: 520px) {
   .auth-login-options { align-items: flex-start; flex-direction: column; }
   .content {
     padding-inline: 11px; }
@@ -2730,7 +2730,7 @@ th,
     align-items: start; }
 }
 
-@media (max-width: 360px) {
+@media screen and (max-width: 360px) {
   .content {
     padding-inline: 9px; }
   .sidebar nav a {
@@ -2751,7 +2751,7 @@ th,
   .rule-controls select { grid-column: 1; width: 100%; }
 }
 
-@media (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 900px) and (orientation: landscape) {
   .content { padding-top: 16px; }
   .sidebar { height: calc(64px + env(safe-area-inset-bottom)); }
   .sidebar nav a { height: 48px; min-height: 48px; }
@@ -2783,25 +2783,25 @@ th,
 .report-status-card{margin-bottom:12px}.report-status-card>header{align-items:center}.report-segmented-bar,.report-payment-bar{display:flex;height:13px;margin:16px 18px 10px;overflow:hidden;border-radius:999px;background:#edf0ed}.report-segmented-bar i,.report-payment-bar i{display:block;height:100%}.report-segmented-bar .paid{background:#2f7650}.report-segmented-bar .overdue{background:#c45143}.report-segmented-bar .pending{background:#d69a3b}.report-segmented-bar .cancelled{background:#aab1ac}.report-segment-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 18px 16px}.report-segment-legend div{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;font-size:0.75rem}.report-segment-legend div>i,.report-payment-legend i{width:7px;height:7px;border-radius:50%}.report-segment-legend .paid{background:#2f7650}.report-segment-legend .overdue{background:#c45143}.report-segment-legend .pending{background:#d69a3b}.report-segment-legend .cancelled{background:#aab1ac}.report-segment-legend span{color:var(--muted)}
 .report-payment-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}.report-payment-metrics article{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff}.report-payment-metrics span,.report-payment-metrics strong,.report-payment-metrics small{display:block}.report-payment-metrics span{color:var(--muted);font-size:0.75rem}.report-payment-metrics strong{margin:6px 0 3px;font-size:1.375rem}.report-payment-metrics small{color:var(--muted);font-size:0.75rem}.report-payment-metrics .report-payment-alert{border-color:#ead3a4;background:#fff5df}.report-payment-metrics .report-payment-alert span,.report-payment-metrics .report-payment-alert small{color:#755817}.report-payment-metrics .report-payment-alert strong{color:var(--amber)}.report-payment-result{margin-bottom:12px}.report-payment-bar .auto{background:var(--green)}.report-payment-bar .review{background:var(--amber)}.report-payment-legend{display:flex;gap:20px;padding:0 18px 16px;color:var(--muted);font-size:0.75rem}.report-payment-legend span{display:flex;align-items:center;gap:6px}.report-payment-legend .auto{background:var(--green)}.report-payment-legend .review{background:var(--amber)}.report-import-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(220px,auto);gap:16px;padding:12px 18px;border-bottom:1px solid var(--line);font-size:0.75rem}.report-import-list>div:last-child{border-bottom:0}.report-import-list time{color:var(--muted)}.report-import-list strong{text-align:right}.report-imports-card>.empty-report{padding:18px}
 
-@media(max-width:1100px){.report-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.report-filters .period-presets{grid-column:1/-1}.report-accounting-summary{grid-template-columns:repeat(3,1fr)}.report-accounting-summary article:nth-child(3){border-right:0}.report-accounting-summary article:nth-child(n+4){border-top:1px solid var(--line)}.report-accounting-summary article:nth-child(4){grid-column:span 2}.report-span-8,.report-span-7{grid-column:span 12}.report-span-4,.report-span-5{grid-column:span 6}}
-@media(max-width:1100px){.report-vat-grid{align-items:start}.report-vat-grid .report-span-4{grid-column:span 12}.report-vat-structure-card{display:block}.report-vat-structure-card .report-vat-bars{align-content:start}}
-@media(max-width:1100px){.report-revenue-layout{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:1100px){.report-revenue-layout .report-revenue-card{grid-column:1;grid-row:auto}.report-revenue-primary-card{order:1}.report-revenue-customers-card{order:2}.report-revenue-yoy-card{order:3}.report-revenue-average-card{order:4}}
-@media(max-width:780px){.report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.report-filters .period-presets,.report-filters .customer-filter{grid-column:1/-1}.report-accounting-summary{grid-template-columns:repeat(2,1fr)}.report-accounting-summary article:nth-child(n){grid-column:auto;border-top:1px solid var(--line);border-right:1px solid var(--line)}.report-accounting-summary article:nth-child(-n+2){border-top:0}.report-accounting-summary article:nth-child(even){border-right:0}.report-accounting-summary article:last-child{grid-column:1/-1;border-right:0}.report-tab-intro{align-items:flex-start;flex-direction:column;gap:4px}.report-span-4,.report-span-5{grid-column:span 12}.report-payment-metrics{grid-template-columns:repeat(2,1fr)}.report-import-list>div{grid-template-columns:1fr auto}.report-import-list strong{grid-column:1/-1;text-align:left}}
-@media(max-width:780px){.report-dso-card{align-self:auto}.report-dso-line-chart{height:clamp(230px,52vw,300px);min-height:0;flex:none}}
-@media(max-width:1100px){.report-aging-overview-card,.report-dso-insight-card{grid-column:1/-1}}
-@media(max-width:620px){.report-dso-summary{min-height:0;grid-template-columns:minmax(0,1fr);gap:12px;padding:16px}.report-dso-summary-main{padding:20px}.report-dso-summary dl{grid-template-columns:repeat(2,minmax(0,1fr))}.report-dso-summary dl>div{align-items:flex-start;flex-direction:column;gap:5px}}
-@media(max-width:620px){.report-aging-distribution{padding:16px 15px}.report-aging-legend{grid-template-columns:minmax(0,1fr)}.report-aging-legend-item:nth-last-child(2){border-bottom:1px solid #edf0ed}.report-dso-insight-card .report-dso-summary{padding:15px}.report-dso-insight-card .report-dso-summary-main{padding:18px}}
-@media(max-width:520px){.report-filters{grid-template-columns:1fr}.report-filters .period-presets,.report-filters .customer-filter{grid-column:auto}.report-accounting-summary{grid-template-columns:1fr}.report-accounting-summary article:nth-child(n){grid-column:auto;border-top:1px solid var(--line);border-right:0}.report-accounting-summary article:first-child{border-top:0}.report-tabs button{padding-inline:13px}.report-workspace-grid{gap:10px}.report-card>header{padding:14px 15px}.report-chart-key{display:none}.report-column-chart{height:min(58vw,220px);padding-inline:12px}.report-column-values{display:none}.report-column-group{flex-basis:38px}.report-payment-metrics{grid-template-columns:1fr 1fr}.report-segment-legend{grid-template-columns:1fr 1fr}.report-accounting-table{width:100%;max-width:100%;margin:0;overflow-x:auto;overscroll-behavior-inline:contain}.report-accounting-table table{min-width:620px}.report-import-list>div{grid-template-columns:1fr}.report-import-list time,.report-import-list strong{text-align:left}.report-payment-legend{align-items:flex-start;flex-direction:column;gap:7px}}
-@media(max-width:520px){.report-revenue-card .report-chart-key{display:flex;flex-wrap:wrap}.report-revenue-chart,.report-revenue-chart.compact{height:auto;padding-inline:12px}.report-revenue-chart .report-column-values{display:grid}.report-revenue-chart .report-column-group{flex-basis:112px}}
-@media(max-width:1100px){
+@media screen and (max-width:1100px){.report-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.report-filters .period-presets{grid-column:1/-1}.report-accounting-summary{grid-template-columns:repeat(3,1fr)}.report-accounting-summary article:nth-child(3){border-right:0}.report-accounting-summary article:nth-child(n+4){border-top:1px solid var(--line)}.report-accounting-summary article:nth-child(4){grid-column:span 2}.report-span-8,.report-span-7{grid-column:span 12}.report-span-4,.report-span-5{grid-column:span 6}}
+@media screen and (max-width:1100px){.report-vat-grid{align-items:start}.report-vat-grid .report-span-4{grid-column:span 12}.report-vat-structure-card{display:block}.report-vat-structure-card .report-vat-bars{align-content:start}}
+@media screen and (max-width:1100px){.report-revenue-layout{grid-template-columns:minmax(0,1fr)}}
+@media screen and (max-width:1100px){.report-revenue-layout .report-revenue-card{grid-column:1;grid-row:auto}.report-revenue-primary-card{order:1}.report-revenue-customers-card{order:2}.report-revenue-yoy-card{order:3}.report-revenue-average-card{order:4}}
+@media screen and (max-width:780px){.report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.report-filters .period-presets,.report-filters .customer-filter{grid-column:1/-1}.report-accounting-summary{grid-template-columns:repeat(2,1fr)}.report-accounting-summary article:nth-child(n){grid-column:auto;border-top:1px solid var(--line);border-right:1px solid var(--line)}.report-accounting-summary article:nth-child(-n+2){border-top:0}.report-accounting-summary article:nth-child(even){border-right:0}.report-accounting-summary article:last-child{grid-column:1/-1;border-right:0}.report-tab-intro{align-items:flex-start;flex-direction:column;gap:4px}.report-span-4,.report-span-5{grid-column:span 12}.report-payment-metrics{grid-template-columns:repeat(2,1fr)}.report-import-list>div{grid-template-columns:1fr auto}.report-import-list strong{grid-column:1/-1;text-align:left}}
+@media screen and (max-width:780px){.report-dso-card{align-self:auto}.report-dso-line-chart{height:clamp(230px,52vw,300px);min-height:0;flex:none}}
+@media screen and (max-width:1100px){.report-aging-overview-card,.report-dso-insight-card{grid-column:1/-1}}
+@media screen and (max-width:620px){.report-dso-summary{min-height:0;grid-template-columns:minmax(0,1fr);gap:12px;padding:16px}.report-dso-summary-main{padding:20px}.report-dso-summary dl{grid-template-columns:repeat(2,minmax(0,1fr))}.report-dso-summary dl>div{align-items:flex-start;flex-direction:column;gap:5px}}
+@media screen and (max-width:620px){.report-aging-distribution{padding:16px 15px}.report-aging-legend{grid-template-columns:minmax(0,1fr)}.report-aging-legend-item:nth-last-child(2){border-bottom:1px solid #edf0ed}.report-dso-insight-card .report-dso-summary{padding:15px}.report-dso-insight-card .report-dso-summary-main{padding:18px}}
+@media screen and (max-width:520px){.report-filters{grid-template-columns:1fr}.report-filters .period-presets,.report-filters .customer-filter{grid-column:auto}.report-accounting-summary{grid-template-columns:1fr}.report-accounting-summary article:nth-child(n){grid-column:auto;border-top:1px solid var(--line);border-right:0}.report-accounting-summary article:first-child{border-top:0}.report-tabs button{padding-inline:13px}.report-workspace-grid{gap:10px}.report-card>header{padding:14px 15px}.report-chart-key{display:none}.report-column-chart{height:min(58vw,220px);padding-inline:12px}.report-column-values{display:none}.report-column-group{flex-basis:38px}.report-payment-metrics{grid-template-columns:1fr 1fr}.report-segment-legend{grid-template-columns:1fr 1fr}.report-accounting-table{width:100%;max-width:100%;margin:0;overflow-x:auto;overscroll-behavior-inline:contain}.report-accounting-table table{min-width:620px}.report-import-list>div{grid-template-columns:1fr}.report-import-list time,.report-import-list strong{text-align:left}.report-payment-legend{align-items:flex-start;flex-direction:column;gap:7px}}
+@media screen and (max-width:520px){.report-revenue-card .report-chart-key{display:flex;flex-wrap:wrap}.report-revenue-chart,.report-revenue-chart.compact{height:auto;padding-inline:12px}.report-revenue-chart .report-column-values{display:grid}.report-revenue-chart .report-column-group{flex-basis:112px}}
+@media screen and (max-width:1100px){
   .report-accounting-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
   .report-accounting-summary article:nth-child(n){grid-column:auto;border:1px solid var(--line)}
   .report-accounting-summary article:last-child{grid-column:1/-1}
   .report-accounting-summary article.primary:nth-child(n){border-color:#bdd6c5}
   .report-accounting-summary article.warning:nth-child(n){border-color:#eadad5}
 }
-@media(max-width:600px){
+@media screen and (max-width:600px){
   .report-accounting-summary{grid-template-columns:minmax(0,1fr)}
   .report-accounting-summary article:nth-child(n){grid-column:auto;border:1px solid var(--line)}
   .report-accounting-summary article.primary:nth-child(n){border-color:#bdd6c5}
@@ -2927,7 +2927,7 @@ th,
 #manual-invoice-form .form-section { margin-bottom: 16px; }
 #manual-invoice-form .form-section:last-of-type { margin-bottom: 18px; }
 
-@media (max-width: 780px), (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   #manual-invoice-form .form-submit {
     position: static;
     z-index: auto;
@@ -3040,6 +3040,7 @@ th,
 .sort-header.active::after { content: "↓"; font-size: 9px; }
 .sort-header.active.asc::after { content: "↑"; }
 .customer-contact-cell { display: flex; min-width: 175px; flex-direction: column; gap: 4px; }
+.customer-contact-details { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 4px; }
 .customer-contact-cell small { color: var(--muted); font-size: 10px; }
 .customer-phone-display {
   border: none;
@@ -3096,7 +3097,7 @@ th,
 
 /* 780, ne 760: širší tabulku zákazníků zapíná blok s max-width 780px
    (min-width: 940px), takže na 761 až 780 px se jinak vždy posouvá do stran. */
-@media (max-width: 780px) {
+@media screen and (max-width: 780px) {
   .customers-hero { min-height: 0; align-items: flex-start; padding: 22px 20px; }
   .customers-hero::after { right: -60px; bottom: -115px; }
   .customers-hero .section-actions { width: 100%; }
@@ -3134,7 +3135,7 @@ th,
   .customer-contact-cell small { overflow-wrap: anywhere; }
 }
 
-@media (max-width: 520px) {
+@media screen and (max-width: 520px) {
   .customers-hero h1 { font-size: 29px; }
   .customers-list-table tr { grid-template-columns: 1fr; }
   .customers-list-table .customer-identity-cell { grid-column: 1; }
@@ -3260,12 +3261,12 @@ th,
 .payments-archive-page .payment-history-action .matched-payment a { display: flex; grid-column: 1; flex-wrap: wrap; align-items: center; gap: 4px 7px; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
 .payments-archive-page .payment-history-action .matched-payment a strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .payments-archive-page .payment-history-action .matched-payment .btn { grid-column: 2; grid-row: 1; justify-self: end; width: auto; max-width: 132px; min-height: 38px; padding: 7px 12px; font-size: 11px; line-height: 1.25; white-space: normal; }
-@media (max-width: 1100px) {
+@media screen and (max-width: 1100px) {
   .payments-archive-page .payment-history-item { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 18px; }
   .payments-archive-page .payment-history-action { grid-column: 1 / -1; }
   .payments-archive-page .payment-history-summary { justify-items: end; }
 }
-@media (max-width: 680px) {
+@media screen and (max-width: 680px) {
   .payments-archive-page .payments-history .panel-head { flex-wrap: wrap; padding: 18px; }
   .payments-archive-page .payments-history .payments-section-number { display: none; }
   .payments-archive-page .payments-record-count { display: inline-flex; margin-left: 0; }
@@ -3277,21 +3278,21 @@ th,
   .payments-archive-page .payment-history-summary { justify-items: start; }
   .payments-archive-page .payment-history-action { grid-column: auto; padding-top: 12px; border-top: 1px solid var(--line); }
 }
-@media (max-width: 420px) {
+@media screen and (max-width: 420px) {
   .payments-archive-page .payments-history-sort { flex-basis: 100%; }
   .payments-archive-page .payment-history-action .payment-assignment { grid-template-columns: minmax(0, 1fr); }
   .payments-archive-page .payment-history-action .payment-assignment .btn { width: 100%; }
   .payments-archive-page .payment-history-action .payment-assignment.matched-payment { grid-template-columns: minmax(0, 1fr) minmax(105px, auto); }
   .payments-archive-page .payment-history-action .payment-assignment.matched-payment .btn { width: auto; }
 }
-@media (max-width: 760px) {
+@media screen and (max-width: 760px) {
   .payments-switch { grid-template-columns: 42px minmax(0, 1fr) 26px; max-width: none; min-height: 76px; gap: 11px; padding: 13px 14px; border-radius: 15px; }
   .payments-switch .payments-switch-icon { width: 42px; height: 42px; }
   .payments-switch .payments-switch-copy strong { font-size: 14px; }
   .payments-switch .payments-switch-copy small { font-size: 9px; }
   .payments-archive-page .payment-history-table { overflow: visible; }
 }
-@media (max-width: 420px) {
+@media screen and (max-width: 420px) {
   .payments-switch { grid-template-columns: 40px minmax(0, 1fr) 24px; }
   .payments-switch .payments-switch-icon { width: 40px; height: 40px; }
   .payments-switch .payments-switch-copy small { display: none; }
@@ -3320,7 +3321,7 @@ th,
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
 /* Na mobilu nahoře: dole je navigační lišta a pod palcem by se toast
    překrýval s ovládáním. */
-@media (max-width: 780px) {
+@media screen and (max-width: 780px) {
   .toast-region { right: 12px; left: 12px; bottom: auto; top: calc(12px + env(safe-area-inset-top)); width: auto; }
 }
 
@@ -3349,7 +3350,7 @@ th,
 /* Pět účetních sloupců reportu a čtyři sloupce blokovaných adres se na
    telefonu četly přes vodorovný posuv o šířce 620 az 760 px. Čtou se proto
    jako označené karty, stejně jako seznam faktur. */
-@media (max-width: 640px) {
+@media screen and (max-width: 640px) {
   .report-accounting-table { overflow: visible; }
   .report-accounting-table table { min-width: 0; width: 100%; }
   .report-accounting-table thead { display: none; }
@@ -3969,6 +3970,7 @@ th,
   .print-imports-table .is-warning { color: #8a5c0d; font-weight: 800; }
 
   .print-revenue-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(52mm, .8fr); align-items: start; gap: 4mm; }
+  .print-revenue-column { display: grid; min-width: 0; align-content: start; gap: 4mm; }
   .print-column-chart { display: flex; height: 65mm; align-items: stretch; gap: 1.5mm; padding: 3mm; }
   .print-column-chart.compact { height: 55mm; }
   .print-column-chart > div { display: flex; min-width: 0; flex: 1 1 0; flex-direction: column; }

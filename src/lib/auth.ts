@@ -9,14 +9,33 @@ import { createServiceClient, createUserServerClient } from "@/lib/supabase-serv
 import { isAccessRole } from "@/lib/role-access";
 export { canManageInvoices } from "@/lib/role-access";
 
-type IdentityOptions = { requireMfa?: boolean; requireLoginSession?: boolean };
+type IdentityOptions = {
+  requireMfa?: boolean;
+  requireLoginSession?: boolean;
+  accessToken?: string | null;
+};
 
 export async function getRequestIdentity(options: IdentityOptions = {}) {
-  const { requireMfa = true, requireLoginSession = true } = options;
-  const auth = await createUserServerClient();
-  const { data: claimsData, error: claimsError } = await auth.auth.getClaims();
+  const {
+    requireMfa = true,
+    requireLoginSession = true,
+    accessToken = null,
+  } = options;
+  const cookieAuth = await createUserServerClient();
+  const service = createServiceClient();
+  // Immediately after signInWithPassword the browser owns a verified token,
+  // but its SSR cookie may not yet be visible to the first Route Handler
+  // request in every browser. The bootstrap endpoints therefore pass that
+  // token explicitly. Both calls below validate it against Supabase; no claim
+  // from the browser is trusted without verification.
+  const auth = accessToken ? service : cookieAuth;
+  const { data: claimsData, error: claimsError } = accessToken
+    ? await auth.auth.getClaims(accessToken)
+    : await auth.auth.getClaims();
   if (claimsError || !claimsData?.claims?.sub) return null;
-  const { data, error } = await auth.auth.getUser();
+  const { data, error } = accessToken
+    ? await auth.auth.getUser(accessToken)
+    : await auth.auth.getUser();
   if (error || !data.user || claimsData.claims.sub !== data.user.id) return null;
 
   const email = normalizeEmail(data.user.email);
@@ -35,13 +54,15 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   // tedy váže identitu na organizaci), zůstává až za oběma kontrolami --
   // jinak by si účet nepotvrzený přes MFA mohl tiše zabrat pozvánku.
   //
-  // Routine membership reads use the signed-in client so RLS remains the
-  // primary organization boundary. Service role is only needed to claim a
-  // previously invited row whose user_id is still null.
+  // Routine cookie-based reads use the signed-in client so RLS remains the
+  // primary organization boundary. During the short bootstrap path the
+  // bearer token has already been verified above, so the service client may
+  // perform the equivalent membership lookup before the cookie is visible.
+  const membershipClient = accessToken ? service : cookieAuth;
   const [hasLoginSession, hasMfa, boundMembershipResult] = await Promise.all([
     requireLoginSession ? hasServerLoginSession({ userId: data.user.id, sessionId }) : Promise.resolve(true),
     requireMfa ? hasVerifiedEmailMfa({ email, userId: data.user.id, sessionId }) : Promise.resolve(true),
-    auth
+    membershipClient
       .from("organization_members")
       .select("id, organization_id, role, email")
       .eq("user_id", data.user.id)
@@ -54,7 +75,6 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   if (!hasMfa) return null;
 
   let membership = boundMembershipResult.data;
-  const service = createServiceClient();
   if (!membership) {
     const { data: invitation } = await service
       .from("organization_members")
@@ -81,7 +101,7 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     user: data.user,
     membership: { ...membership, role: membership.role },
     service,
-    userClient: auth,
+    userClient: cookieAuth,
     sessionId,
   };
 }

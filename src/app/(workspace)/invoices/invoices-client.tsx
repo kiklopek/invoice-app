@@ -469,7 +469,7 @@ export function InvoicesClient({
             </div>
           )
         ) : (
-          <div className="large-table invoice-list-table">
+          <div className="large-table invoice-list-table active-invoice-table">
             <table>
               <thead>
                 <tr>
@@ -489,7 +489,7 @@ export function InvoicesClient({
                     key={invoice.id}
                     onMouseEnter={() => prefetchInvoice(invoice.id)}
                     onTouchStart={() => prefetchInvoice(invoice.id)}
-                    className="invoice-row"
+                    className={`invoice-row${invoice.status === "paid" ? " is-paid" : ""}`}
                     onClick={(event) => {
                       const target = event.target;
                       if (
@@ -500,7 +500,7 @@ export function InvoicesClient({
                       router.push(`/invoices/${invoice.id}`);
                     }}
                   >
-                    <td data-label="Faktura">
+                    <td data-label="Faktura" className="invoice-card-number">
                       <Link
                         href={`/invoices/${invoice.id}`}
                         onFocus={() => prefetchInvoice(invoice.id)}
@@ -509,11 +509,11 @@ export function InvoicesClient({
                       </Link>
                       <small>VS {invoice.variable_symbol || "—"}</small>
                     </td>
-                    <td data-label="Odběratel">
+                    <td data-label="Odběratel" className="invoice-card-customer">
                       <strong>{invoice.counterparty_name}</strong>
                       <small>{invoice.counterparty_email}</small>
                     </td>
-                    <td data-label="Částka">
+                    <td data-label="Částka" className="invoice-card-amount">
                       <strong>
                         {money(Number(invoice.amount), invoice.currency)}
                       </strong>
@@ -532,15 +532,23 @@ export function InvoicesClient({
                         </small>
                       ) : null}
                     </td>
-                    <td data-label="Vystavení">{date(invoice.issue_date)}</td>
+                    <td data-label="Vystaveno" className="invoice-card-issued">{date(invoice.issue_date)}</td>
                     <td
                       data-label="Splatnost"
-                      className={invoice.status === "overdue" ? "red-text" : ""}
+                      className={`invoice-card-due${invoice.status === "overdue" ? " red-text" : ""}`}
                     >
                       {date(invoice.due_date)}
                     </td>
-                    <td data-label="Upomínky">{invoice.reminders_sent}×</td>
-                    <td data-label="Stav">
+                    <td
+                      data-label="Upomínky"
+                      className="invoice-card-reminders"
+                      aria-label={`${invoice.reminders_sent} odeslaných upomínek`}
+                      title="Odeslané upomínky"
+                    >
+                      <Icon name="mail" />
+                      <span>{invoice.reminders_sent}×</span>
+                    </td>
+                    <td data-label="Stav" className="invoice-card-status">
                       <span className={`status ${invoice.status}`}>
                         {labels[invoice.status]}
                       </span>
@@ -550,6 +558,15 @@ export function InvoicesClient({
                       ) : null}
                     </td>
                     <td className="invoice-card-action">
+                      <span className="invoice-mobile-action-status">
+                        <span className={`status ${invoice.status}`}>
+                          {labels[invoice.status]}
+                        </span>
+                        {(invoice.status === "pending" || invoice.status === "overdue") &&
+                        Number(invoice.paid_amount) > 0 ? (
+                          <span className="status partial">Částečně uhrazeno</span>
+                        ) : null}
+                      </span>
                       {canManage &&
                       (invoice.status === "pending" ||
                         invoice.status === "overdue") ? (
