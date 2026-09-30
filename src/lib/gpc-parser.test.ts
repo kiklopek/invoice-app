@@ -65,6 +65,26 @@ describe("GPC parser", () => {
     expect(parsed.totals).toEqual({ accepted: 0, ignored: 2, errors: 0 });
   });
 
+  it("keeps a debit reversal (booking code 4) out of payments with its own reason", () => {
+    // Spec: 1 debet, 2 kredit, 4 storno debetu, 5 storno kreditu. Storno debetu
+    // přináší peníze zpět na účet, ale není to úhrada faktury.
+    const parsed = parseGpc(file(transaction({ code: "4" })));
+    expect(parsed.payments).toHaveLength(0);
+    expect(parsed.entries[0]).toEqual(
+      expect.objectContaining({ disposition: "ignored", reason: "Storno platby.", transactionCode: "4" }),
+    );
+    expect(parsed.totals).toEqual({ accepted: 0, ignored: 1, errors: 0 });
+  });
+
+  it("reads a seven-digit amount (6 000 476,67 Kč) exactly, without float drift", () => {
+    // Skutečný řádek z výpisu testera: převod mezi vlastními účty. Částka je
+    // v haléřích na 12 místech (pozice 49-60).
+    const parsed = parseGpc(file(transaction({ amount: "000600047667", vs: "0" })));
+    expect(parsed.payments[0].amount).toBe(6_000_476.67);
+    expect(parsed.payments[0].variable_symbol).toBe("0");
+    expect(parsed.entries[0].disposition).toBe("accepted");
+  });
+
   it("always reads incoming GPC payments as CZK -- GPC is a Czech domestic-only clearing format with no currency field", () => {
     // Regression test for a real bug: bytes 118-121 were previously misread
     // as an ISO 4217 numeric currency code. A real bank export puts the

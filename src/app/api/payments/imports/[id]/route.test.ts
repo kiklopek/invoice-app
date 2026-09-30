@@ -74,4 +74,90 @@ describe("PATCH /api/payments/imports/[id] (save review allocations)", () => {
     const response = await PATCH(fakeRequest(URL_, { method: "PATCH", body: validBody }), context(SOME_UUID));
     expect(response.status).toBe(403);
   });
+
+  // Řádek, který uživatel označí „Nesouvisí s fakturami“ (vlastní převod,
+  // vratka od dodavatele), nesmí skončit v knize plateb. Příznak jede uvnitř
+  // stávajícího JSON pole reviewed_entries -- signatura RPC se nemění.
+  function rpcSpy() {
+    const rpc = vi.fn().mockResolvedValue({ data: { id: SOME_UUID, revision: 2 }, error: null });
+    return { rpc, identity: fakeIdentity({ service: { rpc } }) };
+  }
+
+  it("carries the 'unrelated' flag to the database inside the existing reviewed_entries JSON", async () => {
+    const { rpc, identity } = rpcSpy();
+    mocks.getRequestIdentity.mockResolvedValue(identity);
+    const response = await PATCH(
+      fakeRequest(URL_, {
+        method: "PATCH",
+        body: JSON.stringify({
+          revision: 1,
+          reviewed_entry_ids: [SOME_UUID, OTHER_UUID],
+          unrelated_entry_ids: [OTHER_UUID],
+          allocations: [],
+        }),
+      }),
+      context(SOME_UUID),
+    );
+    expect(response.status).toBe(200);
+    expect(rpc).toHaveBeenCalledWith(
+      "save_bank_statement_allocations",
+      expect.objectContaining({
+        reviewed_entries: [
+          { id: SOME_UUID, unrelated: false },
+          { id: OTHER_UUID, unrelated: true },
+        ],
+        allocation_rows: [],
+      }),
+    );
+  });
+
+  it("keeps the legacy payload when nothing is marked, so it still works against the previous database function", async () => {
+    const { rpc, identity } = rpcSpy();
+    mocks.getRequestIdentity.mockResolvedValue(identity);
+    await PATCH(
+      fakeRequest(URL_, {
+        method: "PATCH",
+        body: JSON.stringify({ revision: 1, reviewed_entry_ids: [SOME_UUID], allocations: [] }),
+      }),
+      context(SOME_UUID),
+    );
+    expect(rpc).toHaveBeenCalledWith(
+      "save_bank_statement_allocations",
+      expect.objectContaining({ reviewed_entries: [SOME_UUID] }),
+    );
+  });
+
+  it("refuses a row marked unrelated that also carries an invoice allocation -- a contradiction, not something to decide silently", async () => {
+    const { rpc, identity } = rpcSpy();
+    mocks.getRequestIdentity.mockResolvedValue(identity);
+    const response = await PATCH(
+      fakeRequest(URL_, {
+        method: "PATCH",
+        body: JSON.stringify({
+          revision: 1,
+          reviewed_entry_ids: [SOME_UUID],
+          unrelated_entry_ids: [SOME_UUID],
+          allocations: [{ entry_id: SOME_UUID, invoice_id: OTHER_UUID, amount: 100, is_manual_partial: false }],
+        }),
+      }),
+      context(SOME_UUID),
+    );
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Nesouvisí s fakturami");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("explains the database-side refusal instead of a generic failure", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: "unrelated_entry_already_booked" } });
+    mocks.getRequestIdentity.mockResolvedValue(fakeIdentity({ service: { rpc } }));
+    const response = await PATCH(
+      fakeRequest(URL_, {
+        method: "PATCH",
+        body: JSON.stringify({ revision: 1, reviewed_entry_ids: [SOME_UUID], unrelated_entry_ids: [SOME_UUID], allocations: [] }),
+      }),
+      context(SOME_UUID),
+    );
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("už zaúčtovaný");
+  });
 });

@@ -6,6 +6,11 @@ import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
 import { canUseGpcImport } from "@/lib/gpc-feature";
 import { resolveConfiguredAccountForCurrencies } from "@/lib/payment-import";
+import {
+  UNRELATED_CONFLICT_ERROR,
+  buildReviewedEntriesPayload,
+  detectOwnTransfer,
+} from "@/lib/payment-unrelated-rows";
 
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -157,6 +162,40 @@ export async function GET(request: Request, context: Context) {
     }
     proposalInvoices = fetched.data ?? [];
   }
+  // Proposal only: which visible rows look like a transfer between the
+  // organization's own accounts. The panel pre-selects "Nesouvisí s
+  // fakturami" for them with this reason shown, and nothing happens until a
+  // person confirms the import. Own accounts = the configured ones, this
+  // statement's header account, and the header accounts of the org's other
+  // (not discarded) statements -- those are accounts it uploads statements for.
+  const ownTransfers: Record<string, string> = {};
+  const incoming = (entries ?? []).filter((entry) => entry.disposition === "accepted" && !entry.bank_payment_id);
+  if (incoming.length > 0) {
+    const [{ data: company, error: companyError }, { data: statementAccounts, error: statementAccountsError }] =
+      await Promise.all([
+        identity.service.from("organizations").select("name, bank_account_czk, bank_account_eur").eq("id", org).single(),
+        identity.service.from("bank_statement_imports").select("statement_account")
+          .eq("organization_id", org).neq("status", "discarded").not("statement_account", "is", null).limit(200),
+      ]);
+    if (companyError || statementAccountsError) {
+      // Losing a suggestion is safe; failing the whole review screen is not.
+      logError("Vlastní účty organizace se nepodařilo načíst", companyError ?? statementAccountsError, { import_id: id });
+    } else {
+      const context = {
+        organizationName: company?.name ?? null,
+        ownAccounts: [
+          company?.bank_account_czk,
+          company?.bank_account_eur,
+          statement.statement_account,
+          ...(statementAccounts ?? []).map((row) => row.statement_account),
+        ],
+      };
+      for (const entry of incoming) {
+        const match = detectOwnTransfer(entry, context);
+        if (match) ownTransfers[entry.id] = match.reason;
+      }
+    }
+  }
   const [booked, failed] = await Promise.all([
     identity.service.from("bank_statement_entries").select("id", { count: "exact", head: true })
       .eq("organization_id", org).eq("import_id", id).not("bank_payment_id", "is", null),
@@ -170,6 +209,7 @@ export async function GET(request: Request, context: Context) {
   }
   return NextResponse.json({
     match_reasons: matchReasons,
+    own_transfers: ownTransfers,
     import: statement,
     progress: { booked: booked.count ?? 0, errors: failed.count ?? 0,
       remaining: Math.max(0, statement.accepted_count - (booked.count ?? 0)) },
@@ -196,6 +236,7 @@ export async function PATCH(request: Request, context: Context) {
   const body = (await request.json().catch(() => null)) as {
     revision?: unknown;
     reviewed_entry_ids?: unknown;
+    unrelated_entry_ids?: unknown;
     allocations?: unknown;
   } | null;
   if (
@@ -222,6 +263,16 @@ export async function PATCH(request: Request, context: Context) {
       { error: "Nemáte oprávnění měnit návrh." },
       { status: 403 },
     );
+  // "Nesouvisí s fakturami" rides inside the existing reviewed_entries JSON --
+  // the RPC signature does not change. A row marked unrelated AND allocated is
+  // a contradiction; refuse it here rather than let either answer win.
+  const reviewed = buildReviewedEntriesPayload({
+    reviewed_entry_ids: body?.reviewed_entry_ids,
+    unrelated_entry_ids: body?.unrelated_entry_ids,
+    allocations: body?.allocations,
+  });
+  if (!reviewed.ok)
+    return NextResponse.json({ error: reviewed.error, code: reviewed.code }, { status: 400 });
   const { data, error } = await identity.service.rpc(
     "save_bank_statement_allocations",
     {
@@ -229,18 +280,28 @@ export async function PATCH(request: Request, context: Context) {
       actor_user: identity.user.id,
       target_import: id,
       expected_revision: Number(body?.revision),
-      reviewed_entries: body?.reviewed_entry_ids as Json,
+      reviewed_entries: reviewed.reviewed_entries as Json,
       allocation_rows: body?.allocations as Json,
     },
   );
-  if (error)
+  if (error) {
+    const known: Record<string, string> = {
+      unrelated_entry_has_allocations: UNRELATED_CONFLICT_ERROR,
+      unrelated_entry_already_booked:
+        "Řádek je už zaúčtovaný jako platba. Nejdřív ho uvolněte, teprve pak ho lze označit jako nesouvisející s fakturami.",
+    };
+    const code = Object.keys(known).find((key) => error.message.includes(key));
     return NextResponse.json(
       {
         error: error.message.includes("revision_conflict")
           ? "Návrh mezitím změnil jiný uživatel. Načtěte jej znovu."
-          : "Návrh se nepodařilo uložit.",
+          : code
+            ? known[code]
+            : "Návrh se nepodařilo uložit.",
+        ...(code ? { code } : {}),
       },
       { status: error.message.includes("revision_conflict") ? 409 : 400 },
     );
+  }
   return NextResponse.json(data);
 }
