@@ -1,6 +1,6 @@
 import "server-only";
 
-import { deriveOcrFieldDecisions, digits, normalizeComparable, type InvoiceOcrResult, type OcrFieldCandidate, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { deriveOcrFieldDecisions, digits, normalizeComparable, OCR_MISSING_FIELD_WARNING, type InvoiceOcrResult, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { AMOUNT_ADJUSTMENT_TOLERANCE } from "@/lib/vat";
 import type { InvoiceInput } from "@/types/invoice";
 
@@ -76,6 +76,21 @@ const FIELD_LABELS: Record<OcrFieldName, string> = {
   currency: "měnu",
 };
 
+const AI_MISSING_FIELD_WARNING = {
+  counterparty_name: "AI nerozpoznala jméno odběratele.",
+  counterparty_ico: "AI nerozpoznala IČO odběratele.",
+  amount: "AI nerozpoznala celkovou částku faktury.",
+} as const;
+
+const NON_INVOICE_WARNING = "Dokument nemusí být běžná vydaná faktura. Před uložením ověřte jeho typ.";
+
+const KIND_LABELS: Record<InvoiceOcrResult["document_kind"], string> = {
+  issued_invoice: "faktura",
+  proforma: "zálohová faktura",
+  credit_note: "dobropis",
+  other: "jiný dokument",
+};
+
 // Merges a local (pdfjs/Tesseract + regex) extraction with an AI (Gemini)
 // extraction of the SAME document, field by field, never wholesale
 // preferring one engine. See PROTECTED_FIELDS above for the one hard rule: a
@@ -90,6 +105,7 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
   let moneyDisagreement = false;
   let anyAgreement = false;
   const conflictingCandidates: Partial<Record<OcrFieldName, OcrFieldCandidate[]>> = {};
+  const outcome: Partial<Record<OcrFieldName, "agreed" | "ai_only" | "disagreed">> = {};
 
   const fields = Object.keys(FIELD_LABELS) as OcrFieldName[];
   for (const field of fields) {
@@ -101,10 +117,12 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
     if (localPresent && aiPresent) {
       if (valuesAgree(field, localValue, aiValue)) {
         anyAgreement = true;
+        outcome[field] = "agreed";
         const existing = fieldSources[field];
         if (existing) fieldSources[field] = { ...existing, confidence: Math.min(1, (existing.confidence ?? 0.7) + 0.15) };
         continue;
       }
+      outcome[field] = "disagreed";
       // Disagreement on a critical field: neither engine wins. Keep both
       // readings as auditable candidates, but leave the form field empty.
       if (PROTECTED_FIELDS.has(field)) {
@@ -154,6 +172,7 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
       // AI DID find it, but no independent corroboration exists either).
       (invoice as unknown as Record<OcrFieldName, string | number>)[field] = aiValue;
       if (ai.field_sources[field]) fieldSources[field] = ai.field_sources[field];
+      outcome[field] = "ai_only";
     }
     // else: local-only or neither -- keep local's value/absence as-is. Local
     // already produces its own "nebylo rozpoznáno" warnings for genuinely
@@ -175,8 +194,52 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
   if (moneyDisagreement) confidence = Math.min(confidence, 0.35);
   else if (anyAgreement) confidence = Math.min(1, confidence + 0.1);
 
-  const uniqueWarnings = [...new Set(warnings)];
-  const fieldDecisions = deriveOcrFieldDecisions(invoice, fieldSources, uniqueWarnings);
+  // A "not recognized" warning describes ONE engine's reading. Once the other
+  // engine filled the field it is no longer true -- and because field
+  // decisions map warnings to fields by wording, leaving it in turned every
+  // AI-filled field into "review" and active mode then blanked the value.
+  const filled = (field: keyof typeof AI_MISSING_FIELD_WARNING | keyof typeof OCR_MISSING_FIELD_WARNING) => {
+    const value = (invoice as unknown as Record<string, string | number | undefined>)[field];
+    return typeof value === "number" ? value > 0 : Boolean(value?.trim());
+  };
+  const staleWarnings = new Set<string>([
+    ...(Object.entries(OCR_MISSING_FIELD_WARNING) as Array<[keyof typeof OCR_MISSING_FIELD_WARNING, string]>)
+      .filter(([field]) => filled(field)).map(([, warning]) => warning),
+    ...(Object.entries(AI_MISSING_FIELD_WARNING) as Array<[keyof typeof AI_MISSING_FIELD_WARNING, string]>)
+      .filter(([field]) => filled(field)).map(([, warning]) => warning),
+  ]);
+  const uniqueWarnings = [...new Set(warnings)].filter(warning => !staleWarnings.has(warning));
+  const derived = deriveOcrFieldDecisions(invoice, fieldSources, uniqueWarnings);
+  const fieldDecisions: Partial<Record<OcrFieldName, OcrFieldDecision>> = {};
+  for (const field of fields) {
+    const localDecision = local.field_decisions[field];
+    const derivedDecision = derived[field];
+    if (!outcome[field]) {
+      // Local-only or neither: the AI added nothing, so the local parser's own
+      // decision (including its extra reasons and candidate lists) stands.
+      fieldDecisions[field] = localDecision ?? derivedDecision;
+    } else if (outcome[field] === "ai_only" && derivedDecision?.status === "verified") {
+      // One model's reading with nothing contradicting it: keep it in the
+      // form, but it is not independently confirmed -- a person confirms it.
+      fieldDecisions[field] = {
+        ...derivedDecision,
+        status: "review",
+        confidence: Math.min(derivedDecision.confidence, 0.59),
+        reasons: [...derivedDecision.reasons, `Hodnotu pro ${FIELD_LABELS[field]} přečetla jen AI, žádný další zdroj ji nepotvrdil. Potvrďte ji podle dokumentu.`],
+        needs_confirmation: true,
+      };
+    } else if (outcome[field] === "agreed" && localDecision && localDecision.candidates.length > 1) {
+      // Local saw several candidates; AI agreeing with the first one does not
+      // make the ambiguity go away.
+      fieldDecisions[field] = localDecision;
+    } else if (outcome[field] === "agreed" && localDecision?.needs_confirmation && derivedDecision?.status === "verified") {
+      // Second independent reading confirms a value local could only offer
+      // for confirmation (e.g. a name from a damaged PDF text layer).
+      fieldDecisions[field] = { ...derivedDecision, reasons: ["Hodnotu potvrdilo lokální čtení i AI."] };
+    } else {
+      fieldDecisions[field] = derivedDecision;
+    }
+  }
   for (const [field, candidates] of Object.entries(conflictingCandidates) as Array<[OcrFieldName, OcrFieldCandidate[]]>) {
     fieldDecisions[field] = {
       status: "review",
@@ -185,13 +248,25 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
       candidates,
     };
   }
+  // Document kind: the AI's answer counts only when it actually classified
+  // the document (document_kind_reported). A disagreement is never resolved
+  // silently -- the non-invoice reading wins (safer: it withholds treating
+  // an advance invoice as a receivable) and the conflict is shown.
+  let documentKind = local.document_kind;
+  let kindWarning: string | null = null;
+  if (ai.document_kind_reported && ai.document_kind !== local.document_kind) {
+    documentKind = ai.document_kind === "issued_invoice" ? local.document_kind : ai.document_kind;
+    kindWarning = `Druh dokladu se liší: lokální rozpoznání „${KIND_LABELS[local.document_kind]}“, AI „${KIND_LABELS[ai.document_kind]}“. Ověřte typ dokladu.`;
+  }
+  if (documentKind !== "issued_invoice" && !uniqueWarnings.includes(NON_INVOICE_WARNING)) uniqueWarnings.unshift(NON_INVOICE_WARNING);
   return {
     invoice,
     field_sources: fieldSources,
     field_decisions: fieldDecisions,
     confidence,
-    warnings: uniqueWarnings,
-    document_kind: local.document_kind,
+    warnings: kindWarning ? [...uniqueWarnings, kindWarning] : uniqueWarnings,
+    document_kind: documentKind,
+    document_kind_reported: true,
     issuer_matches_organization: local.issuer_matches_organization,
     reminder_policy_assignment: local.reminder_policy_assignment,
     model: `local+${ai.model}`,

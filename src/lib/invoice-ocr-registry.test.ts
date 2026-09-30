@@ -75,3 +75,65 @@ describe("OCR company registry validation", () => {
     })).toBe(result);
   });
 });
+
+describe("ARES jako nezávislý zdroj identity odběratele", () => {
+  const client = {} as SupabaseClient<Database>;
+  const found = (name: string, dic: string | null = "CZ46692011") => vi.fn(async () => ({
+    status: "found" as const, cached: false, subject: { ico: "46692011", name, dic, address: null },
+  }));
+
+  function czechResult(overrides: Partial<InvoiceOcrResult["invoice"]> = {}): InvoiceOcrResult {
+    const result = slovakResult();
+    result.invoice = { ...result.invoice, counterparty_name: "TIMBER & PULP a.s.", counterparty_ico: "46692011", counterparty_dic: "CZ46692011", currency: "CZK", ...overrides };
+    result.field_sources = {
+      counterparty_ico: { page: 1, line: 4, text: "IČO: 46692011", method: "pdf_text", confidence: null, bounds: null },
+      counterparty_name: { page: 1, line: 5, text: "TIMBER & PULP a.s.", method: "pdf_text", confidence: null, bounds: null },
+    };
+    result.field_decisions = deriveOcrFieldDecisions(result.invoice, result.field_sources, result.warnings);
+    return result;
+  }
+
+  it("doplní prázdný název a DIČ z ARES se zdrojem ARES a nezahodí IČO", async () => {
+    const result = czechResult({ counterparty_name: "", counterparty_dic: "" });
+    result.warnings.push("Název odběratele nebyl rozpoznán.");
+    const validated = await validateCounterpartyWithAres(result, client, { lookup: found("TIMBER & PULP a.s.") });
+    expect(validated.invoice).toMatchObject({ counterparty_name: "TIMBER & PULP a.s.", counterparty_ico: "46692011", counterparty_dic: "CZ46692011" });
+    expect(validated.field_sources.counterparty_name?.method).toBe("ares");
+    expect(validated.field_decisions.counterparty_name?.status).toBe("verified");
+    expect(validated.warnings).not.toContain("Název odběratele nebyl rozpoznán.");
+  });
+
+  it("jiný název v dokumentu a v ARES: nic nepřepíše, obě hodnoty nabídne k volbě", async () => {
+    const result = czechResult({ counterparty_name: "Úplně jiná firma s.r.o." });
+    const validated = await validateCounterpartyWithAres(result, client, { lookup: found("TIMBER & PULP a.s.") });
+    expect(validated.invoice.counterparty_name).toBe("");
+    expect(validated.field_decisions.counterparty_name?.status).toBe("review");
+    expect(validated.field_decisions.counterparty_name?.candidates.map(candidate => [candidate.value, candidate.method])).toEqual([
+      ["Úplně jiná firma s.r.o.", "pdf_text"],
+      ["TIMBER & PULP a.s.", "ares"],
+    ]);
+    expect(validated.invoice.counterparty_ico).toBe("");
+  });
+
+  it("rozdílné DIČ v dokumentu a v ARES jde k ověření s oběma hodnotami", async () => {
+    const result = czechResult({ counterparty_dic: "CZ46692012" });
+    const validated = await validateCounterpartyWithAres(result, client, { lookup: found("TIMBER & PULP a.s.") });
+    expect(validated.invoice.counterparty_dic).toBe("");
+    expect(validated.field_decisions.counterparty_dic?.candidates.map(candidate => candidate.value)).toEqual(["CZ46692012", "CZ46692011"]);
+  });
+
+  it("výpadek ARES je viditelné varování, ne blokace ani změna údajů", async () => {
+    const result = czechResult();
+    const validated = await validateCounterpartyWithAres(result, client, { lookup: vi.fn(async () => ({ status: "unavailable" as const, reason: "timeout" as const })) });
+    expect(validated.invoice).toEqual(result.invoice);
+    expect(validated.warnings.some(warning => warning.includes("ARES"))).toBe(true);
+  });
+
+  it("nesahá na rozhodnutí o polích, která s identitou nesouvisí", async () => {
+    const result = czechResult();
+    result.field_decisions.amount = { status: "review", confidence: 0.5, reasons: ["jen AI"], candidates: [], needs_confirmation: true };
+    const validated = await validateCounterpartyWithAres(result, client, { lookup: found("TIMBER & PULP a.s.") });
+    expect(validated.field_decisions.amount).toEqual(result.field_decisions.amount);
+    expect(validated.field_decisions.counterparty_ico?.status).toBe("verified");
+  });
+});

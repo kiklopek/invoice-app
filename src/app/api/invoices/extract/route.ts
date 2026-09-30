@@ -6,8 +6,10 @@ import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document
 import { isOcrHourlyQuotaExceeded, needsOcrAiReview, omitUnverifiedOcrValues, parseInvoiceText, pickOcrReviewValues, type InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { extractInvoiceWithGemini, GeminiOcrError } from "@/lib/invoice-ocr-gemini";
-import { reconcileExtractions } from "@/lib/invoice-ocr-reconcile";
 import { rejectOrganizationIdentity, validateCounterpartyWithAres } from "@/lib/invoice-ocr-registry";
+import { applyOcrConsistencyChecks, mergeOcrSources, type ExactSourceReading } from "@/lib/invoice-ocr-sources";
+import { isdocToExactReading, parseIsdoc } from "@/lib/invoice-isdoc";
+import { spaydToExactReading } from "@/lib/invoice-qr";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
@@ -96,6 +98,11 @@ export async function POST(request: Request) {
   const contextualMode = process.env.OCR_CONTEXTUAL_MODE === "active" ? "active" : "shadow";
   const useGemini = ocrProvider === "gemini";
   const useHybrid = ocrProvider === "hybrid";
+  // OCR_AI_PRIMARY=true: in hybrid mode Gemini reads every document as the
+  // main reader (the local parser stays the independent check). Default off,
+  // because every call sends the document to a third party and costs money.
+  const aiPrimary = process.env.OCR_AI_PRIMARY === "true";
+  let exactReadings: ExactSourceReading[] = [];
 
   const runLocal = async () => {
     // pdfjs/unpdf detaches the buffer it's given (see the comment on
@@ -106,6 +113,14 @@ export async function POST(request: Request) {
     if (!documentText.text.trim()) {
       throw new LocalOcrError("empty_ocr_text", "V dokumentu se nepodařilo najít žádný čitelný text. Zkuste kvalitnější sken nebo údaje doplňte ručně.");
     }
+    // Přesné zdroje vložené v samotném dokumentu: ISDOC příloha a QR platba.
+    const parsedIsdoc = documentText.isdoc ? parseIsdoc(documentText.isdoc.xml) : null;
+    const qrReading = spaydToExactReading(documentText.qrCodes ?? []);
+    exactReadings = [
+      ...(parsedIsdoc && documentText.isdoc ? [isdocToExactReading(parsedIsdoc, organization, documentText.isdoc.fileName)] : []),
+      ...(qrReading ? [qrReading] : []),
+    ];
+    if (documentText.isdoc && !parsedIsdoc) documentText.warnings.push("PDF obsahuje přílohu ISDOC, kterou se nepodařilo přečíst. Údaje byly vytěženy z obsahu dokumentu.");
     return parseInvoiceText({
       text: documentText.text,
       fileUrl: path,
@@ -119,18 +134,23 @@ export async function POST(request: Request) {
   let extraction: InvoiceOcrResult;
   try {
     if (useGemini) {
-      extraction = await extractInvoiceWithGemini({ bytes, mime: upload.expected_mime, fileUrl: path, organization });
+      extraction = mergeOcrSources({ ai: await extractInvoiceWithGemini({ bytes, mime: upload.expected_mime, fileUrl: path, organization }), organization });
     } else if (useHybrid) {
       const local = await runLocal();
-      const needsAiCrossCheck = contextualMode === "active"
-        ? needsOcrAiReview(local)
-        : local.confidence < 0.8 || !local.invoice.amount || !local.invoice.counterparty_ico || !local.field_sources.vat_rate;
+      const withExact = mergeOcrSources({ local, exact: exactReadings, organization });
+      // A complete ISDOC already carries the whole invoice exactly -- the
+      // document does not need to leave the company for an AI reading.
+      const isdocComplete = exactReadings.some(reading => reading.method === "isdoc"
+        && reading.values.amount && reading.values.invoice_number && reading.values.counterparty_ico);
+      const needsAiCrossCheck = !isdocComplete && (aiPrimary || (contextualMode === "active"
+        ? needsOcrAiReview(withExact)
+        : local.confidence < 0.8 || !local.invoice.amount || !local.invoice.counterparty_ico || !local.field_sources.vat_rate));
       if (!needsAiCrossCheck) {
-        extraction = local;
+        extraction = withExact;
       } else {
         try {
           const ai = await extractInvoiceWithGemini({ bytes: bytes.slice(), mime: upload.expected_mime, fileUrl: path, organization });
-          extraction = reconcileExtractions(local, ai);
+          extraction = mergeOcrSources({ local, ai, exact: exactReadings, organization });
         } catch (aiCause) {
           // The AI cross-check is a bonus, not a requirement -- a document
           // that already produced a real local reading must not fail
@@ -142,11 +162,12 @@ export async function POST(request: Request) {
             // by naopak přepsal popis výše.
             code: aiCause instanceof GeminiOcrError ? aiCause.code : "unexpected",
           });
-          extraction = local;
+          extraction = withExact;
         }
       }
     } else {
-      extraction = await runLocal();
+      const local = await runLocal();
+      extraction = mergeOcrSources({ local, exact: exactReadings, organization });
     }
   } catch (cause) {
     logError("OCR zpracování dokumentu selhalo", cause, {
@@ -172,7 +193,9 @@ export async function POST(request: Request) {
   extraction = rejectOrganizationIdentity(extraction, organization);
   const registryValidated = await validateCounterpartyWithAres(extraction, identity.service);
   if (contextualMode === "active") {
-    extraction = omitUnverifiedOcrValues(registryValidated);
+    // ARES may have filled a name or DIČ -- rerun the result checks (DIČ vs
+    // IČO etc.) on the final values before deciding what the form gets.
+    extraction = omitUnverifiedOcrValues(applyOcrConsistencyChecks(registryValidated, organization));
   } else if (
     registryValidated.invoice.counterparty_ico !== extraction.invoice.counterparty_ico
     || registryValidated.invoice.counterparty_dic !== extraction.invoice.counterparty_dic

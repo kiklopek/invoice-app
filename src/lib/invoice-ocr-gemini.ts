@@ -1,6 +1,6 @@
 import "server-only";
 
-import { boundedText, deriveOcrFieldDecisions, type InvoiceOcrOrganization, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { boundedText, deriveOcrFieldDecisions, type InvoiceOcrOrganization, type InvoiceOcrResult, type OcrDocumentKind, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { OCR_VOCABULARY_VERSION } from "@/lib/invoice-ocr-vocabulary";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "@/lib/vat";
 import type { InvoiceInput } from "@/types/invoice";
@@ -60,6 +60,11 @@ const EXTRACTION_SCHEMA = {
     currency: { type: "STRING", description: "ISO kód měny (CZK, EUR, USD), ne symbol jako Kč nebo €." },
     issue_date: { type: "STRING", description: "YYYY-MM-DD" },
     due_date: { type: "STRING", description: "YYYY-MM-DD" },
+    document_kind: {
+      type: "STRING",
+      enum: ["issued_invoice", "proforma", "credit_note", "other"],
+      description: "issued_invoice = faktura / daňový doklad (i samofakturace), proforma = zálohová faktura / zálohový list / výzva k platbě, credit_note = dobropis / opravný daňový doklad, other = cokoli jiného (upomínka, dodací list, objednávka, přijatá faktura).",
+    },
     evidence: {
       type: "OBJECT",
       description: "Důkaz pro každé vrácené pole. Klíč odpovídá názvu pole.",
@@ -148,11 +153,30 @@ Specifika českého účetnictví, která musíš znát a nezaměňovat:
   důkaz nebo roli, nech příslušnou hodnotu prázdnou. Hodnota z party_role
   "issuer" nikdy nesmí být vrácena jako counterparty_*.
 
+- SAMOFAKTURACE: doklad s poznámkou "vystaveno zákazníkem", "samofakturace"
+  nebo "self-billing" vystavil ODBĚRATEL jménem dodavatele. Odběratel
+  (counterparty_*) je i tehdy ten, kdo fakturu PLATÍ -- tedy firma v sekci
+  "Odběratel"/"Zákazník", i když je zároveň uvedena jako "Fakturu vystavil",
+  má logo v hlavičce nebo kontakt v patičce. Dodavatel (kdo dostane peníze)
+  nikdy není counterparty. Kontakt osoby, která doklad vystavila, patří v
+  tomto případě odběrateli.
+
+- document_kind: "proforma" pro zálohovou fakturu, zálohový list nebo výzvu
+  k platbě -- i když je nadpis proložený mezerami ("Z Á L O H O V Á
+  F A K T U R A") nebo je na dokladu věta "nejedná se o daňový doklad".
+  "credit_note" pro dobropis / opravný daňový doklad. Když si druhem nejsi
+  jistý, pole vynech.
+
+- invoice_number je číslo TOHOTO dokladu u popisku "Číslo faktury",
+  "Faktura č.", "Doklad č." apod. Čísla právních předpisů ("zákon č.
+  235/2004 Sb.", "§ 92a", "č. 302/2008 Sb."), čísla objednávek, smluv,
+  účtů ani konstantní symbol nikdy nejsou číslem faktury.
+
 - currency vracej jako ISO kód (CZK, EUR, USD), ne symbol jako "Kč" nebo "€".
 
 Data vracej jako YYYY-MM-DD.`;
 
-type GeminiExtraction = Partial<{
+export type GeminiExtraction = Partial<{
   invoice_number: string;
   counterparty_name: string;
   counterparty_ico: string;
@@ -165,6 +189,7 @@ type GeminiExtraction = Partial<{
   currency: string;
   issue_date: string;
   due_date: string;
+  document_kind: string;
   evidence: Partial<Record<OcrFieldName, { page?: number; text?: string; party_role?: "counterparty" | "issuer" | "document" | "unknown" }>>;
 }>;
 
@@ -290,8 +315,19 @@ export async function extractInvoiceWithGemini({
   organization: InvoiceOcrOrganization;
 }): Promise<InvoiceOcrResult> {
   const called = await callGemini(bytes, mime);
-  const { model, responseId } = called;
-  let data = called.data;
+  return geminiExtractionToResult(called.data, { organization, fileUrl, model: called.model, responseId: called.responseId });
+}
+
+const GEMINI_DOCUMENT_KINDS = new Set<OcrDocumentKind>(["issued_invoice", "proforma", "credit_note", "other"]);
+
+// Pure conversion of Gemini's JSON answer into the shared OCR result shape.
+// Split out of extractInvoiceWithGemini so tests can feed recorded/mocked
+// answers through exactly the production guards without calling Google.
+export function geminiExtractionToResult(
+  payload: GeminiExtraction,
+  { organization, fileUrl, model, responseId }: { organization: InvoiceOcrOrganization; fileUrl: string; model: string; responseId: string | null },
+): InvoiceOcrResult {
+  let data = payload;
 
   const amount = typeof data.amount === "number" && Number.isFinite(data.amount) ? roundMoney(Math.max(0, data.amount)) : 0;
   const amountWithoutVat = typeof data.amount_without_vat === "number" && Number.isFinite(data.amount_without_vat) ? roundMoney(Math.max(0, data.amount_without_vat)) : 0;
@@ -389,13 +425,18 @@ export async function extractInvoiceWithGemini({
     due_date: aiSource("due_date", data.due_date),
   };
 
+  const kindReported = typeof data.document_kind === "string" && GEMINI_DOCUMENT_KINDS.has(data.document_kind as OcrDocumentKind);
   return {
     invoice,
     field_sources: fieldSources,
     field_decisions: deriveOcrFieldDecisions(invoice, fieldSources, warnings),
     confidence: amount && invoice.counterparty_name && invoice.invoice_number ? 0.7 : 0.3,
     warnings,
-    document_kind: "issued_invoice",
+    // Only an explicit classification counts. Without one this stays the
+    // neutral default and document_kind_reported=false tells reconciliation
+    // not to let it override the local parser.
+    document_kind: kindReported ? data.document_kind as OcrDocumentKind : "issued_invoice",
+    document_kind_reported: kindReported,
     issuer_matches_organization: null,
     model: `gemini:${model}`,
     response_id: responseId,

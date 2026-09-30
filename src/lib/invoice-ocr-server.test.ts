@@ -4,6 +4,7 @@ import sharp from "sharp";
 vi.mock("server-only", () => ({}));
 
 import { extractInvoiceDocumentText, layoutPdfPage, layoutPdfTextItems } from "./invoice-ocr-server";
+import { DAMAGED_TEXT_LAYER_WARNING } from "./invoice-ocr";
 
 function createTextPdf(text: string) {
   const escaped = text.replace(/([\\()])/g, "\\$1");
@@ -143,4 +144,44 @@ describe("local OCR document reader", () => {
     expect(result.pagesProcessed).toBe(1);
     expect(result.text).toContain("FV-2026-008");
   }, 30_000);
+});
+
+describe("přesné zdroje a poškozená textová vrstva v PDF", () => {
+  async function pdfWith({ lines, attachment, qr }: { lines: string[]; attachment?: { name: string; xml: string }; qr?: string }) {
+    const { PDFDocument, StandardFonts } = await import("pdf-lib");
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([595, 842]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    lines.forEach((line, index) => page.drawText(line, { x: 50, y: 780 - index * 18, size: 11, font }));
+    if (qr) {
+      const QRCode = (await import("qrcode")).default;
+      const png = await doc.embedPng(await QRCode.toBuffer(qr, { margin: 2, width: 240 }));
+      page.drawImage(png, { x: 400, y: 60, width: 130, height: 130 });
+    }
+    if (attachment) await doc.attach(Buffer.from(attachment.xml, "utf8"), attachment.name, { mimeType: "application/xml" });
+    return new Uint8Array(await doc.save());
+  }
+
+  it("přečte ISDOC přílohu PDF", async () => {
+    const xml = '<?xml version="1.0"?><Invoice xmlns="http://isdoc.cz/namespace/2013" version="6.0.2"><ID>FV-1</ID></Invoice>';
+    const result = await extractInvoiceDocumentText({ bytes: await pdfWith({ lines: ["FAKTURA FV-1 Odberatel Test s.r.o. Celkem 100 CZK"], attachment: { name: "faktura.isdoc", xml } }), mime: "application/pdf", timeoutMs: 15_000 });
+    expect(result.isdoc).toEqual({ fileName: "faktura.isdoc", xml });
+  }, 20_000);
+
+  it("najde QR platbu na stránce PDF s textovou vrstvou", async () => {
+    const spayd = "SPD*1.0*ACC:CZ3401000000006786420257*AM:3370.00*CC:CZK*X-VS:426198";
+    const result = await extractInvoiceDocumentText({ bytes: await pdfWith({ lines: ["ZALOHOVA FAKTURA 426198 Celkem 3 370,00 CZK Datum vystaveni 02.09.2026"], qr: spayd }), mime: "application/pdf", timeoutMs: 15_000 });
+    expect(result.qrCodes).toContain(spayd);
+    expect(result.ocrUsed).toBe(false);
+  }, 20_000);
+
+  it("pozná textovou vrstvu bez č/ě/ř, zkusí OCR a ohlásí to", async () => {
+    const result = await extractInvoiceDocumentText({
+      bytes: await pdfWith({ lines: ["FAKTURA - da ovy doklad . 1443260157", "ODB RATEL: I O: 46692011", "DI : CZ46692011", "TIMBER & PULP a.s.", "K uhrad : 123 100,20 CZK"] }),
+      mime: "application/pdf",
+      timeoutMs: 30_000,
+    });
+    expect(result.warnings).toContain(DAMAGED_TEXT_LAYER_WARNING);
+    expect(result.text).toMatch(/46692011/);
+  }, 40_000);
 });

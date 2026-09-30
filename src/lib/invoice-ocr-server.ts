@@ -6,7 +6,9 @@ import { join } from "node:path";
 import sharp from "sharp";
 import { createWorker, OEM, PSM, type Worker } from "tesseract.js";
 import { definePDFJSModule, getDocumentProxy, renderPageAsImage } from "unpdf";
-import { normalizeOcrText, type OcrDocumentLayout, type OcrLayoutLine } from "./invoice-ocr";
+import { DAMAGED_TEXT_LAYER_WARNING, normalizeOcrText, type OcrDocumentLayout, type OcrLayoutLine } from "./invoice-ocr";
+import { hasDroppedGlyphLabels, repairDroppedGlyphLabels } from "./invoice-ocr-vocabulary";
+import { decodeQrCodesFromImage } from "./invoice-qr";
 
 export const MAX_TEXT_PDF_PAGES = 30;
 export const MAX_SCANNED_PDF_PAGES = 8;
@@ -30,6 +32,10 @@ export type ExtractedDocumentText = {
   averageConfidence: number | null;
   warnings: string[];
   layout: OcrDocumentLayout;
+  // Strojově čitelná faktura vložená do PDF (ISDOC), pokud ji dokument nese.
+  isdoc?: { fileName: string; xml: string } | null;
+  // Obsah QR kódů nalezených na prvních stránkách / na obrázku.
+  qrCodes?: string[];
 };
 
 function assertDeadline(deadline: number) {
@@ -355,6 +361,43 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
   };
 }
 
+const MAX_QR_PAGES = 2;
+const MAX_DAMAGED_OCR_PAGES = 2;
+const MAX_ATTACHMENT_BYTES = 2_000_000;
+// Textová vrstva PDF nemá vlastní jistotu; znaky, které v ní jsou, jsou
+// přesné. Pro porovnání s Tesseractem se proto bere jako vysoce jistá.
+const PDF_TEXT_LAYER_CONFIDENCE = 90;
+
+type PdfProxy = Awaited<ReturnType<typeof getDocumentProxy>>;
+
+type PdfAttachment = { filename?: string; content?: Uint8Array | null };
+type PdfAttachmentApi = {
+  getAttachments: () => Promise<Map<string, PdfAttachment> | Record<string, PdfAttachment> | null>;
+  getAttachmentContent?: (id: string) => Promise<Uint8Array | null>;
+};
+
+async function readIsdocAttachment(pdf: PdfProxy, deadline: number): Promise<ExtractedDocumentText["isdoc"]> {
+  try {
+    const api = pdf as unknown as PdfAttachmentApi;
+    const attachments = await withDeadline(api.getAttachments(), deadline);
+    // pdfjs 6 vrací Map a obsah dotahuje až na vyžádání; starší verze objekt s obsahem.
+    const entries = attachments instanceof Map ? [...attachments.entries()] : Object.entries(attachments ?? {});
+    for (const [key, attachment] of entries) {
+      const fileName = (attachment.filename || key).slice(0, 200);
+      if (!/\.(isdoc|xml)$/i.test(fileName)) continue;
+      const content = attachment.content
+        ?? (typeof api.getAttachmentContent === "function" ? await withDeadline(api.getAttachmentContent(key), deadline) : null);
+      if (!content || content.byteLength > MAX_ATTACHMENT_BYTES) continue;
+      const xml = new TextDecoder("utf-8").decode(content);
+      if (/isdoc\.cz\/namespace/.test(xml)) return { fileName, xml };
+    }
+  } catch (cause) {
+    if (cause instanceof LocalOcrError) throw cause;
+    // Poškozené přílohy nejsou důvod dokument odmítnout.
+  }
+  return null;
+}
+
 async function extractPdf(bytes: Uint8Array, deadline: number): Promise<ExtractedDocumentText> {
   try {
     await withDeadline(definePDFJSModule(async () => {
@@ -370,38 +413,85 @@ async function extractPdf(bytes: Uint8Array, deadline: number): Promise<Extracte
       if (pdf.numPages > MAX_TEXT_PDF_PAGES) {
         throw new LocalOcrError("pdf_too_long", `PDF má ${pdf.numPages} stran. Podporováno je nejvýše ${MAX_TEXT_PDF_PAGES} stran.`);
       }
+      const isdoc = await readIsdocAttachment(pdf, deadline);
       const pages = await extractPdfPagesWithLayout(pdf, deadline);
       const pagesForOcr = pages.filter(item => item.text.replace(/\s/g, "").length < MIN_TEXT_LAYER_CHARACTERS);
-      if (!pagesForOcr.length) {
-        return { text: pages.map(page => page.text).join("\n\n"), ocrUsed: false, totalPages: pdf.numPages, pagesProcessed: pdf.numPages, averageConfidence: null, warnings: [], layout: { pages: pages.map(({ page, width, height, lines }) => ({ page, width, height, lines })) } };
-      }
       if (pagesForOcr.length > MAX_SCANNED_PDF_PAGES) {
         throw new LocalOcrError("scan_too_long", `Skenované PDF má ${pagesForOcr.length} stran bez čitelné textové vrstvy. OCR podporuje nejvýše ${MAX_SCANNED_PDF_PAGES} takových stran.`);
       }
-      const rendered: Uint8Array[] = [];
-      for (const item of pagesForOcr) {
+      // Textová vrstva bez č/ď/ě/ň/ř/ť/ů: popisky se dají opravit, hodnoty ne.
+      // Zkusí se i Tesseract nad vykreslenou stránkou a vezme se lepší text.
+      const damagedPages = pages.filter(item => !pagesForOcr.includes(item) && hasDroppedGlyphLabels(item.text));
+      const damagedForOcr = damagedPages.slice(0, MAX_DAMAGED_OCR_PAGES)
+        .filter(() => deadline - Date.now() >= MIN_ENHANCED_PASS_TIME_MS);
+      const ocrPageNumbers = new Set([...pagesForOcr, ...damagedForOcr].map(page => page.page));
+      const renderPageNumbers = [...new Set([...pages.slice(0, MAX_QR_PAGES).map(page => page.page), ...ocrPageNumbers])].sort((a, b) => a - b);
+
+      const rendered = new Map<number, Uint8Array>();
+      for (const pageNumber of renderPageNumbers) {
         assertDeadline(deadline);
-        const image = await withDeadline(renderPageAsImage(pdf, item.page, {
-          canvasImport: () => import("@napi-rs/canvas"),
-          scale: 2,
-        }), deadline);
-        rendered.push(new Uint8Array(image));
+        try {
+          const image = await withDeadline(renderPageAsImage(pdf, pageNumber, {
+            canvasImport: () => import("@napi-rs/canvas"),
+            scale: 2,
+          }), deadline);
+          rendered.set(pageNumber, new Uint8Array(image));
+        } catch (cause) {
+          // Stránku, kterou je nutné přečíst OCR, vykreslit musíme; pro QR
+          // nebo pokus o lepší text je selhání jen ztráta bonusu.
+          if (cause instanceof LocalOcrError || pagesForOcr.some(page => page.page === pageNumber)) throw cause;
+        }
       }
-      const recognized = await recognizeImages(rendered, deadline, false, pagesForOcr.map(page => page.page));
-      let recognizedIndex = 0;
-      const merged = pages.map(page => page.text.replace(/\s/g, "").length >= MIN_TEXT_LAYER_CHARACTERS ? page.text : recognized.pages[recognizedIndex++] ?? "");
-      const recognizedLayouts = new Map(recognized.layout.pages.map(page => [page.page, page]));
+      const qrCodes: string[] = [];
+      for (const pageNumber of renderPageNumbers.slice(0, MAX_QR_PAGES + ocrPageNumbers.size)) {
+        const image = rendered.get(pageNumber);
+        if (!image || deadline - Date.now() < 1_000) continue;
+        for (const code of await decodeQrCodesFromImage(image)) if (!qrCodes.includes(code)) qrCodes.push(code);
+      }
+      const warnings: string[] = damagedPages.length ? [DAMAGED_TEXT_LAYER_WARNING] : [];
+      const layoutPages = pages.map(({ page, width, height, lines }) => ({ page, width, height, lines }));
+      if (!ocrPageNumbers.size) {
+        return { text: pages.map(page => page.text).join("\n\n"), ocrUsed: false, totalPages: pdf.numPages, pagesProcessed: pdf.numPages, averageConfidence: null, warnings, layout: { pages: layoutPages }, isdoc, qrCodes };
+      }
+
+      const ocrTargets = [...ocrPageNumbers].sort((a, b) => a - b).filter(pageNumber => rendered.has(pageNumber));
+      let recognized: Awaited<ReturnType<typeof recognizeImages>> | null = null;
+      try {
+        recognized = await recognizeImages(ocrTargets.map(pageNumber => rendered.get(pageNumber)!), deadline, false, ocrTargets);
+      } catch (cause) {
+        // Když selže jen pokus o lepší text u poškozené vrstvy, zůstane text PDF.
+        if (pagesForOcr.length) throw cause;
+      }
+      const recognizedText = new Map(ocrTargets.map((pageNumber, index) => [pageNumber, recognized?.pages[index] ?? ""]));
+      const recognizedLayouts = new Map((recognized?.layout.pages ?? []).map(page => [page.page, page]));
+      const recognizedConfidence = recognized?.confidence ?? 0;
+      let usedOcr = 0;
+      const merged = pages.map(page => {
+        const ocrText = recognizedText.get(page.page);
+        if (ocrText === undefined) return { text: page.text, layout: null };
+        if (pagesForOcr.includes(page)) {
+          usedOcr += 1;
+          return { text: ocrText, layout: recognizedLayouts.get(page.page) ?? null };
+        }
+        const better = textQuality(ocrText, recognizedConfidence) > textQuality(repairDroppedGlyphLabels(page.text).text, PDF_TEXT_LAYER_CONFIDENCE);
+        if (!better) return { text: page.text, layout: null };
+        usedOcr += 1;
+        return { text: ocrText, layout: recognizedLayouts.get(page.page) ?? null };
+      });
       return {
-        text: normalizeOcrText(merged.join("\n\n")),
-        ocrUsed: true,
+        text: normalizeOcrText(merged.map(page => page.text).join("\n\n")),
+        ocrUsed: usedOcr > 0,
         totalPages: pdf.numPages,
-        pagesProcessed: pagesForOcr.length,
-        averageConfidence: recognized.confidence,
+        pagesProcessed: usedOcr || pdf.numPages,
+        averageConfidence: usedOcr ? recognized?.confidence ?? null : null,
         warnings: [
-          ...(pagesForOcr.length < pdf.numPages ? ["Část PDF byla přečtena z textové vrstvy a část pomocí OCR."] : []),
-          ...(recognized.enhancedPasses ? ["U hůře čitelné části dokumentu bylo použito zesílené OCR."] : []),
+          ...warnings,
+          ...(usedOcr && usedOcr < pdf.numPages ? ["Část PDF byla přečtena z textové vrstvy a část pomocí OCR."] : []),
+          ...(recognized?.enhancedPasses ? ["U hůře čitelné části dokumentu bylo použito zesílené OCR."] : []),
         ],
-        layout: { pages: pages.map(({ page, width, height, lines }) => recognizedLayouts.get(page) ?? { page, width, height, lines }) },
+        layout: { pages: layoutPages.map((page, index) => merged[index].layout ?? page) },
+        isdoc,
+        qrCodes,
       };
     } finally {
       const disposable = pdf as unknown as { destroy?: () => Promise<void>; cleanup?: () => Promise<void> | void };
@@ -438,6 +528,8 @@ export async function extractInvoiceDocumentText({ bytes, mime, timeoutMs = OCR_
       averageConfidence: recognized.confidence,
       warnings: recognized.enhancedPasses ? ["Fotografie vyžadovala zesílené OCR. Zkontrolujte předvyplněné údaje."] : [],
       layout: recognized.layout,
+      isdoc: null,
+      qrCodes: deadline - Date.now() >= 1_000 ? await decodeQrCodesFromImage(bytes) : [],
     };
   } catch (cause) {
     if (cause instanceof LocalOcrError) throw cause;

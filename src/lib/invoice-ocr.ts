@@ -1,6 +1,6 @@
 import type { InvoiceInput } from "../types/invoice";
 import { isIsoDate } from "./invoice-validation";
-import { conceptAlternation, findUnknownAccountingLabels, matchOcrConcept, OCR_VOCABULARY_VERSION, type OcrConcept, type OcrKeywordSuggestion } from "./invoice-ocr-vocabulary";
+import { conceptAlternation, findUnknownAccountingLabels, matchOcrConcept, OCR_VOCABULARY_VERSION, repairDroppedGlyphLabels, type OcrConcept, type OcrKeywordSuggestion } from "./invoice-ocr-vocabulary";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
 
 export const LOCAL_OCR_MODEL = "local-tesseract-v3-geometry";
@@ -59,7 +59,11 @@ export type OcrFieldSource = {
   // AI answer as one of those -- the whole point of field_sources is letting
   // a human reviewer tell "the document says X on this line" apart from
   // "a model said X", and those carry different trust.
-  method: "pdf_text" | "ocr" | "derived" | "ai";
+  //
+  // "isdoc" and "qr" are exact machine-readable sources embedded in the
+  // document itself (ISDOC XML attachment, QR platba/SPAYD). "ares" is the
+  // Czech business registry looked up by a checksum-valid IČO.
+  method: "pdf_text" | "ocr" | "derived" | "ai" | "isdoc" | "qr" | "ares";
   confidence: number | null;
   bounds: OcrBoundingBox | null;
   role?: OcrFieldCandidate["role"];
@@ -81,6 +85,12 @@ export type OcrFieldDecision = {
   confidence: number;
   reasons: string[];
   candidates: OcrFieldCandidate[];
+  // A "review" field whose value came from a single plausible source with
+  // nothing contradicting it (e.g. only the AI read it, or the PDF text layer
+  // is damaged). The value stays prefilled, but the form refuses to save until
+  // a person explicitly confirms or edits it. Conflicts and rejected values
+  // never carry this flag -- those are withheld from the form entirely.
+  needs_confirmation?: boolean;
 };
 
 export type OcrFieldName =
@@ -104,6 +114,9 @@ export type InvoiceOcrResult = {
   confidence: number;
   warnings: string[];
   document_kind: OcrDocumentKind;
+  // False/absent when the engine only filled in a default rather than
+  // actually classifying the document (Gemini without a document_kind answer).
+  document_kind_reported?: boolean;
   issuer_matches_organization: boolean | null;
   reminder_policy_assignment?: OcrReminderPolicyAssignment;
   model: string;
@@ -501,12 +514,27 @@ function findLabeledDate(lines: string[], strippedLines: string[], labels: RegEx
   return "";
 }
 
-function findValue(lines: string[], strippedLines: string[], labels: RegExp[], valuePattern: RegExp, requireDigit = false) {
+// A reference to legislation is never a document number: "Nejedná se o daňový
+// doklad dle Zákona o DPH č. 302/2008 Sb." used to hand "302/2008" to the
+// invoice-number label search (the "daňový doklad" label matched, the value
+// search then walked on through the sentence) and it came out as verified.
+function isLegalReference(candidate: string, before: string, after: string) {
+  if (/^\s*Sb\b/iu.test(after)) return true;
+  if (/(?:z[aá]kon|na[rř][ií]zen|vyhl[aá][sš]k|§)/iu.test(before) && /^\d{1,4}\/(?:19|20)\d{2}$/.test(candidate)) return true;
+  return false;
+}
+
+function findValue(lines: string[], strippedLines: string[], labels: RegExp[], valuePattern: RegExp, requireDigit = false, rejectLegalReferences = false) {
   const globalPattern = new RegExp(valuePattern.source, valuePattern.flags.includes("g") ? valuePattern.flags : `${valuePattern.flags}g`);
   const firstValidMatch = (text: string) => {
     for (const match of text.matchAll(globalPattern)) {
       const candidate = match[1];
-      if (candidate && (!requireDigit || /\d/.test(candidate))) return candidate;
+      if (!candidate || (requireDigit && !/\d/.test(candidate))) continue;
+      if (rejectLegalReferences) {
+        const start = match.index ?? 0;
+        if (isLegalReference(candidate, text.slice(0, start), text.slice(start + match[0].length))) continue;
+      }
+      return candidate;
     }
     return undefined;
   };
@@ -612,7 +640,10 @@ const ISSUER_HEADING = new RegExp(`(${ISSUER_HEADING_WORDS})\\b`);
 const IGNORED_NAME_LINE = new RegExp(`^(?:(?:${COUNTERPARTY_HEADING_WORDS})\\s*:?[\\s.-]*$|(?:ico|dic|vat|ulice|adresa|street|address|tel|telefon|phone|e-?mail)(?=\\s|:|$))`);
 
 const ICO_PATTERN = /(?:IČO?|ICO|I[0O]{2}|1[0O]{2}|Company[ \t]+ID)\s*[:.]?\s*(\d[\d\s]{6,10})/giu;
-const DIC_PATTERN = /(?:DIČ|DIC|IČ[ \t]*DPH|IC[ \t]*DPH|VAT(?:[ \t]+ID)?)\s*[:.]?\s*([A-Z]{2}[ \t]*[A-Z0-9][A-Z0-9 \t-]{5,18})/giu;
+// A space inside the VAT ID is accepted only before a digit ("CZ 699 001
+// 234"). Otherwise "DIČ: CZ06765734 IČO : 06765734" on one line swallowed the
+// next label's first letter and produced the non-existent "CZ06765734I".
+const DIC_PATTERN = /(?:DIČ|DIC|IČ[ \t]*DPH|IC[ \t]*DPH|VAT(?:[ \t]+ID)?)\s*[:.]?\s*([A-Z]{2}[ \t]*[A-Z0-9](?:[A-Z0-9-]|[ \t](?=\d)){5,18})/giu;
 const EMAIL_PATTERN = /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/giu;
 
 // A single company/account in this app can legitimately issue invoices under
@@ -693,6 +724,11 @@ function hasDifferentInlineOwner(
     for (const match of line.matchAll(new RegExp(pattern.source, flags))) {
       if ((match[1] ?? "").replace(/[\s-]/g, "").toUpperCase() !== sought) continue;
       const prefix = line.slice(0, match.index ?? 0)
+        // Another identity number of the SAME party is not an owner name:
+        // "DIČ: CZ06765734 IČO : 06765734" put "DIČ CZ…" in front of the IČO
+        // and got it rejected as belonging to "someone else".
+        .replace(new RegExp(ICO_PATTERN.source, "giu"), " ")
+        .replace(new RegExp(DIC_PATTERN.source, "giu"), " ")
         .replace(new RegExp(`\\b(?:${ISSUER_HEADING_WORDS}|${COUNTERPARTY_HEADING_WORDS})\\b`, "giu"), " ")
         .replace(/[„“"':|()[\]{}]/g, " ")
         .replace(/\s+/g, " ")
@@ -807,10 +843,19 @@ function findCounterparty(
   };
 }
 
+// Headings are often letter-spaced for style ("Z Á L O H O V Á F A K T U R A").
+// Glue runs of 4+ single letters back together before classifying, otherwise
+// the spaced "f a k t u r a" inside such a heading won as a plain invoice and
+// an advance invoice was silently treated as a real receivable.
+function collapseLetterSpacing(strippedText: string) {
+  return strippedText.replace(/(?<![a-z0-9])(?:[a-z] ){3,}[a-z](?![a-z0-9])/g, run => run.replace(/ /g, ""));
+}
+
 function documentKind(strippedText: string): OcrDocumentKind {
-  if (/dobropis|opravny\s+danovy\s+doklad|credit\s+note/.test(strippedText)) return "credit_note";
-  if (/proforma|zalohov[ay]\s+faktura|pro\s*forma/.test(strippedText)) return "proforma";
-  if (/faktura|f\s+a\s+k\s+t\s+u\s+r\s+a|danovy\s+doklad|invoice|tax\s+document/.test(strippedText)) return "issued_invoice";
+  const text = collapseLetterSpacing(strippedText);
+  if (/dobropis|opravny\s+danovy\s+doklad|credit\s+note/.test(text)) return "credit_note";
+  if (/proforma|zalohov[ay]\s*(?:faktura|list)|pro\s*forma|advance\s+invoice/.test(text)) return "proforma";
+  if (/faktura|danovy\s+doklad|invoice|tax\s+document/.test(text)) return "issued_invoice";
   return "other";
 }
 
@@ -900,6 +945,66 @@ export const OCR_MISSING_FIELD_WARNING: Partial<Record<keyof InvoiceInput, strin
   issue_date: "Datum vystavení nebylo rozpoznáno.",
   due_date: "Datum splatnosti nebylo rozpoznáno.",
 };
+
+export const DAMAGED_TEXT_LAYER_WARNING = "PDF má poškozený text (chybí znaky č, ě, ř, ň), zkontrolujte údaje.";
+const DAMAGED_NAME_REASON = "Textová vrstva PDF ztrácí znaky č, ě, ř, ň – název může být neúplný. Potvrďte ho podle dokumentu.";
+
+// Two-column headers ("Číslo faktury: / Datum vystavení: / ..." on the left,
+// the values on the right) come out of the PDF text layer as a run of bare
+// labels followed by the same number of bare values. Pair them back up --
+// but only when every single pair is type-consistent (a date label gets a
+// date, a number label a number, nothing else gets a date). One mismatch
+// means the columns don't line up 1:1 and the run is left untouched, so a
+// shifted pairing can never assign a value to the wrong label.
+const STACKED_LABEL = /^([^\d:]{2,48}):\s*$/;
+
+function stackedLabelKind(label: string): "date" | "number" | "text" {
+  const stripped = stripDiacritics(label);
+  if (/datum|splatnost|duzp|\bdate\b|\bdue\b|vystaven/.test(stripped)) return "date";
+  if (/cislo|symbol|\bvs\b|\bks\b|\bss\b|number|\bno\b|objednavk|uctu|\bucet\b|iban/.test(stripped)) return "number";
+  return "text";
+}
+
+function stackedValueFits(kind: "date" | "number" | "text", value: string) {
+  const isDate = Boolean(parseDate(value));
+  if (kind === "date") return isDate && value.length <= 24;
+  if (isDate || value.includes(":")) return false;
+  if (kind === "number") return /\d/.test(value) && value.length <= 40 && /^[\p{L}\d][\p{L}\d ./_-]*$/u.test(value);
+  return value.length <= 80;
+}
+
+function pairStackedLabels(lines: string[]) {
+  const result: string[] = [];
+  let index = 0;
+  while (index < lines.length) {
+    let runEnd = index;
+    while (runEnd < lines.length && STACKED_LABEL.test(lines[runEnd])) runEnd += 1;
+    const count = runEnd - index;
+    if (count < 2) {
+      result.push(lines[index]);
+      index += 1;
+      continue;
+    }
+    const labels = lines.slice(index, runEnd).map(line => line.replace(STACKED_LABEL, "$1").trim());
+    const values = lines.slice(runEnd, runEnd + count);
+    const partyHeading = labels.some(label => {
+      const stripped = stripDiacritics(label);
+      return COUNTERPARTY_HEADING.test(stripped) || ISSUER_HEADING.test(stripped);
+    });
+    const aligned = !partyHeading
+      && values.length === count
+      && values.every(value => !STACKED_LABEL.test(value))
+      && labels.every((label, offset) => stackedValueFits(stackedLabelKind(label), values[offset]));
+    if (!aligned) {
+      result.push(...lines.slice(index, runEnd));
+      index = runEnd;
+      continue;
+    }
+    labels.forEach((label, offset) => result.push(`${label}: ${values[offset]}`));
+    index = runEnd + count;
+  }
+  return result;
+}
 
 export function relevantOcrWarnings(warnings: string[], invoice: InvoiceInput): string[] {
   const fieldWarnings = Object.entries(OCR_MISSING_FIELD_WARNING) as Array<[keyof InvoiceInput, string]>;
@@ -1012,7 +1117,11 @@ export function needsOcrAiReview(result: InvoiceOcrResult) {
 export function omitUnverifiedOcrValues(result: InvoiceOcrResult): InvoiceOcrResult {
   const invoice = { ...result.invoice };
   for (const field of OCR_REVIEW_FIELDS) {
-    if (result.field_decisions[field]?.status === "verified") continue;
+    const decision = result.field_decisions[field];
+    if (decision?.status === "verified") continue;
+    // Single-source reading with nothing against it: stays prefilled, the
+    // form blocks saving until a person confirms it (see needs_confirmation).
+    if (decision?.status === "review" && decision.needs_confirmation) continue;
     (invoice as unknown as Record<OcrFieldName, string | number>)[field] = field === "amount"
       || field === "amount_without_vat"
       || field === "vat_rate" ? 0 : "";
@@ -1028,8 +1137,13 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   extraWarnings?: string[];
   layout?: OcrDocumentLayout;
 }): InvoiceOcrResult {
-  const text = normalizeOcrText(sourceText);
-  const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+  // Damaged PDF text layers drop č/ď/ě/ň/ř/ť/ů ("ODB RATEL: I O: 26229854").
+  // Labels are repaired from the vocabulary; values cannot be, so the
+  // document is reported as damaged and its free-text name needs a human.
+  const repair = repairDroppedGlyphLabels(normalizeOcrText(sourceText));
+  const damagedTextLayer = repair.repaired.length > 0;
+  const text = repair.text;
+  const lines = pairStackedLabels(text.split("\n").map(line => line.trim()).filter(Boolean));
   // Label matching runs against this diacritic-stripped, lowercased parallel
   // array (see stripDiacritics above) so wording variants and OCR-mangled
   // accents both still match; values (digits, amounts, dates) are read from
@@ -1037,6 +1151,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const strippedLines = lines.map(stripDiacritics);
   const strippedText = strippedLines.join("\n");
   const warnings = [...extraWarnings];
+  if (damagedTextLayer) warnings.push(DAMAGED_TEXT_LAYER_WARNING);
   const kind = documentKind(strippedText);
   const issuerMatch = issuerMatches(text, organization);
   const documentLayout = layout ?? fallbackLayout(text);
@@ -1058,7 +1173,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     // PDF columns collapsed onto one text line by layout reconstruction)
     // could pick up a neighboring plain word instead -- e.g. "Dodavatel"
     // ("Supplier") on an invoice layout that isn't this app's own template.
-    true) || findConceptValue(lines, "invoice_number", /([A-Z0-9][A-Z0-9./_-]{2,})/i, true);
+    true, true) || findConceptValue(lines, "invoice_number", /([A-Z0-9][A-Z0-9./_-]{2,})/i, true);
   const variableSymbol = findValue(lines, strippedLines, [/variabiln[yi]\s+symbol/, /\bvar\.?\s*symbol/, /^vs\b/, /\bv\.?s\.?\s*[:#.-]/], /(\d{3,20})/)
     || findConceptValue(lines, "variable_symbol", /(\d{3,20})/, true);
   const issueDate = findLabeledDate(lines, strippedLines, [
@@ -1087,7 +1202,12 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     /celk(?:em|om)\s+k\s+uhrad[ae]/, /castka\s+k\s+uhrad[ae]/, /suma\s+na\s+uhradu/, /k\s+uhrad[ae]/, /celk(?:em|om)\s+s\s+dph/,
     /celkem\s+k\s+platb[ae]/, /k\s+proplaceni/, /celkem\s+kc/,
     /grand\s+total/, /total\s+due/, /total\s+amount/, /amount\s+due/, /balance\s+due/,
-  ]) ?? findConceptAmount(lines, "gross_amount") ?? vatSummary?.gross ?? null;
+  ]) ?? findConceptAmount(lines, "gross_amount")
+    // Last resort before the VAT summary: a bare "CELKEM : 3 370,00 Kč" line.
+    // Only its own line (or the next) counts, and only when nothing more
+    // specific labelled the total.
+    ?? findLabeledAmount(lines, strippedLines, [/^celk(?:em|om)\s*:/])
+    ?? vatSummary?.gross ?? null;
   const vatTable = findVatBreakdownTable(documentLayout);
   const explicitVatRates = uniqueMatches(text, /(?:sazba\s+dph|dph|vat)\s*[:.]?\s*(\d{1,2}(?:[,.]\d{1,2})?)\s*%/giu, value => String(parseMoney(value) ?? ""));
   const vatRecap = text.split(/rekapitulace\s+dph/i)[1] ?? "";
@@ -1223,6 +1343,15 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   };
   const uniqueWarnings = [...new Set(warnings.map(warning => boundedText(warning, 240)).filter(Boolean))].slice(0, 12);
   const fieldDecisions = deriveOcrFieldDecisions(invoice, fieldSources, uniqueWarnings);
+  if (damagedTextLayer && invoice.counterparty_name && fieldDecisions.counterparty_name) {
+    fieldDecisions.counterparty_name = {
+      ...fieldDecisions.counterparty_name,
+      status: "review",
+      confidence: Math.min(fieldDecisions.counterparty_name.confidence, 0.59),
+      reasons: [...new Set([...fieldDecisions.counterparty_name.reasons, DAMAGED_NAME_REASON])],
+      needs_confirmation: fieldDecisions.counterparty_name.status === "verified" ? true : fieldDecisions.counterparty_name.needs_confirmation,
+    };
+  }
   const attachIdentityCandidates = (field: "counterparty_ico" | "counterparty_dic", candidates: string[]) => {
     if (candidates.length < 2 || !fieldDecisions[field]) return;
     fieldDecisions[field] = {

@@ -9,18 +9,22 @@ import {
   normalizeComparable,
   type InvoiceOcrResult,
   type InvoiceOcrOrganization,
+  type OcrFieldCandidate,
+  type OcrFieldName,
+  type OcrFieldSource,
 } from "@/lib/invoice-ocr";
+import { lookupAresSubject } from "@/lib/ares";
 
 const ARES_CACHE_MS = 30 * 24 * 60 * 60_000;
-const ARES_TIMEOUT_MS = 2_000;
 
 type RegistryResult = {
   status: "found" | "not_found" | "unavailable";
   legalName: string | null;
+  dic: string | null;
   source: "cache" | "ares" | "none";
 };
 
-function rejectedIdentityCandidate(result: InvoiceOcrResult, field: "counterparty_ico" | "counterparty_dic", value: string) {
+function rejectedIdentityCandidate(result: InvoiceOcrResult, field: "counterparty_ico" | "counterparty_dic" | "counterparty_name", value: string) {
   const source = result.field_sources[field];
   return {
     value,
@@ -63,7 +67,7 @@ export function rejectOrganizationIdentity(
   const reasons: Partial<Record<"counterparty_ico" | "counterparty_dic", string[]>> = {};
   if (icoMatches) reasons.counterparty_ico = [`Odmítnutý kandidát: ${originalIco}. Toto IČO patří vystaviteli faktury (${organization.name}), nikoli odběrateli.`];
   if (originalDic && (icoMatches || dicMatches)) reasons.counterparty_dic = [`DIČ ${originalDic} nebylo použito, protože odpovídá identitě vystavitele nebo souvisí s jeho IČO.`];
-  const decisions = deriveOcrFieldDecisions(invoice, result.field_sources, warnings, reasons);
+  const decisions = identityDecisions(result, invoice, result.field_sources, warnings, reasons);
   if (icoMatches && decisions.counterparty_ico && originalIco) {
     decisions.counterparty_ico.candidates = [{
       ...rejectedIdentityCandidate(result, "counterparty_ico", originalIco),
@@ -97,43 +101,71 @@ export function companyNamesAgree(left: string, right: string) {
   return intersection.length >= 2;
 }
 
-async function lookupAres(client: SupabaseClient<Database>, ico: string): Promise<RegistryResult> {
-  const { data: cached } = await client.from("company_registry_cache")
-    .select("legal_name, lookup_status, fetched_at")
-    .eq("ico", ico)
-    .maybeSingle();
-  if (cached && Date.parse(cached.fetched_at) >= Date.now() - ARES_CACHE_MS) {
+type AresLookupFn = typeof lookupAresSubject;
+
+async function lookupAres(client: SupabaseClient<Database>, ico: string, lookup: AresLookupFn): Promise<RegistryResult> {
+  const ares = await lookup(ico);
+  if (ares.status === "found" || ares.status === "not_found") {
+    const legalName = ares.status === "found" ? ares.subject.name : null;
+    // Databázová cache je jen záloha pro výpadek ARES; její zápis je best-effort.
+    try {
+      await client.from("company_registry_cache").upsert({
+        ico,
+        legal_name: legalName,
+        lookup_status: ares.status,
+        fetched_at: new Date().toISOString(),
+      }, { onConflict: "ico" });
+    } catch {
+      // Selhání cache nesmí ovlivnit výsledek ověření.
+    }
     return {
-      status: cached.lookup_status === "found" ? "found" : "not_found",
-      legalName: cached.legal_name,
-      source: "cache",
+      status: ares.status,
+      legalName,
+      dic: ares.status === "found" ? ares.subject.dic : null,
+      source: ares.status === "found" && ares.cached ? "cache" : "ares",
     };
   }
-
+  if (ares.status === "invalid_ico") return { status: "not_found", legalName: null, dic: null, source: "none" };
   try {
-    const response = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${encodeURIComponent(ico)}`, {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(ARES_TIMEOUT_MS),
-      cache: "no-store",
-    });
-    const status: RegistryResult["status"] = response.status === 404 ? "not_found" : response.ok ? "found" : "unavailable";
-    if (status === "unavailable") return { status, legalName: null, source: "none" };
-    const payload = response.ok ? await response.json().catch(() => null) as { obchodniJmeno?: unknown } | null : null;
-    const legalName = typeof payload?.obchodniJmeno === "string" ? payload.obchodniJmeno.trim().slice(0, 240) : null;
-    const finalStatus = status === "found" && legalName ? "found" : "not_found";
-    await client.from("company_registry_cache").upsert({
-      ico,
-      legal_name: legalName,
-      lookup_status: finalStatus,
-      fetched_at: new Date().toISOString(),
-    }, { onConflict: "ico" });
-    return { status: finalStatus, legalName, source: "ares" };
+    const { data: cached } = await client.from("company_registry_cache")
+      .select("legal_name, lookup_status, fetched_at")
+      .eq("ico", ico)
+      .maybeSingle();
+    if (cached && Date.parse(cached.fetched_at) >= Date.now() - ARES_CACHE_MS) {
+      return { status: cached.lookup_status === "found" ? "found" : "not_found", legalName: cached.legal_name, dic: null, source: "cache" };
+    }
   } catch {
-    return { status: "unavailable", legalName: null, source: "none" };
+    // Bez cache i bez ARES: "nedostupné" níže.
   }
+  return { status: "unavailable", legalName: null, dic: null, source: "none" };
 }
 
-export async function validateCounterpartyWithAres(result: InvoiceOcrResult, client: SupabaseClient<Database>): Promise<InvoiceOcrResult> {
+export const ARES_UNAVAILABLE_WARNING = "Registr ARES teď nebyl dostupný, identitu odběratele se nepodařilo ověřit v registru.";
+
+const IDENTITY_FIELDS = ["counterparty_name", "counterparty_ico", "counterparty_dic"] as const;
+
+// Přepočítá rozhodnutí jen u identitních polí; rozhodnutí ostatních polí
+// (shody zdrojů, potvrzení, kandidáti) zůstávají, jak je nastavily předchozí kroky.
+function identityDecisions(result: InvoiceOcrResult, invoice: InvoiceOcrResult["invoice"], fieldSources: InvoiceOcrResult["field_sources"], warnings: string[], reasons: Partial<Record<OcrFieldName, string[]>> = {}) {
+  const derived = deriveOcrFieldDecisions(invoice, fieldSources, warnings, reasons);
+  const decisions = { ...result.field_decisions };
+  for (const field of IDENTITY_FIELDS) decisions[field] = derived[field];
+  return decisions;
+}
+
+function aresSource(text: string): OcrFieldSource {
+  return { page: 1, line: 0, text: text.slice(0, 240), method: "ares", confidence: 0.97, bounds: null, role: "counterparty" };
+}
+
+function aresCandidate(value: string): OcrFieldCandidate {
+  return { value, page: 1, text: `ARES: ${value}`, method: "ares", confidence: 0.97, role: "counterparty" };
+}
+
+export async function validateCounterpartyWithAres(
+  result: InvoiceOcrResult,
+  client: SupabaseClient<Database>,
+  { lookup = lookupAresSubject }: { lookup?: AresLookupFn } = {},
+): Promise<InvoiceOcrResult> {
   const ico = digits(result.invoice.counterparty_ico ?? "");
   if (!ico) return result;
 
@@ -148,7 +180,7 @@ export async function validateCounterpartyWithAres(result: InvoiceOcrResult, cli
     const invoice = { ...result.invoice, counterparty_ico: "", counterparty_dic: "" };
     const warning = "Nalezené IČO neprošlo kontrolním součtem a nebylo předvyplněno. Zkontrolujte identitu odběratele ručně.";
     const warnings = [...new Set([...result.warnings, warning])];
-    const decisions = deriveOcrFieldDecisions(invoice, result.field_sources, warnings, {
+    const decisions = identityDecisions(result, invoice, result.field_sources, warnings, {
       counterparty_ico: [`Odmítnutý kandidát: ${originalIco}. Neplatný kontrolní součet.`],
       counterparty_dic: originalDic ? [`DIČ ${originalDic} nebylo použito, protože související IČO je neplatné.`] : [],
     });
@@ -157,37 +189,97 @@ export async function validateCounterpartyWithAres(result: InvoiceOcrResult, cli
     return { ...result, invoice, warnings, field_decisions: decisions, confidence: Math.min(result.confidence, 0.59) };
   }
 
-  const registry = await lookupAres(client, ico);
-  if (registry.status === "unavailable") return result;
-  if (registry.status === "not_found" || !registry.legalName || !companyNamesAgree(result.invoice.counterparty_name, registry.legalName)) {
+  const registry = await lookupAres(client, ico, lookup);
+  if (registry.status === "unavailable") {
+    return { ...result, warnings: [...new Set([...result.warnings, ARES_UNAVAILABLE_WARNING])] };
+  }
+
+  const documentName = result.invoice.counterparty_name?.trim() ?? "";
+  if (registry.status === "not_found" || !registry.legalName || (documentName && !companyNamesAgree(documentName, registry.legalName))) {
     const originalIco = result.invoice.counterparty_ico;
     const originalDic = result.invoice.counterparty_dic;
-    const invoice = { ...result.invoice, counterparty_ico: "", counterparty_dic: "" };
+    const nameConflict = Boolean(registry.status === "found" && registry.legalName && documentName);
+    const invoice = { ...result.invoice, counterparty_ico: "", counterparty_dic: "", ...(nameConflict ? { counterparty_name: "" } : {}) };
     const warning = registry.status === "not_found"
       ? "IČO nebylo potvrzeno v ARES a nebylo předvyplněno. Zkontrolujte odběratele ručně."
       : `Název odběratele neodpovídá subjektu vedenému v ARES (${registry.legalName}) a IČO nebylo předvyplněno.`;
     const warnings = [...new Set([...result.warnings, warning])];
-    const decisions = deriveOcrFieldDecisions(invoice, result.field_sources, warnings, {
+    const fieldSources = { ...result.field_sources };
+    if (nameConflict) delete fieldSources.counterparty_name;
+    const decisions = identityDecisions(result, invoice, fieldSources, warnings, {
       counterparty_ico: [`Odmítnutý kandidát: ${originalIco}. ARES nepotvrdil vazbu na odběratele.`],
       counterparty_dic: originalDic ? [`DIČ ${originalDic} nebylo použito, protože ARES nepotvrdil vazbu IČO na odběratele.`] : [],
+      ...(nameConflict ? { counterparty_name: [`Název v dokumentu (${documentName}) se liší od názvu v ARES (${registry.legalName}). Vyberte správný.`] } : {}),
     });
     if (decisions.counterparty_ico && originalIco) decisions.counterparty_ico.candidates = [rejectedIdentityCandidate(result, "counterparty_ico", originalIco)];
     if (decisions.counterparty_dic && originalDic) decisions.counterparty_dic.candidates = [rejectedIdentityCandidate(result, "counterparty_dic", originalDic)];
-    return {
-      ...result,
-      invoice,
-      warnings,
-      field_decisions: decisions,
-      confidence: Math.min(result.confidence, 0.59),
-    };
+    if (nameConflict && decisions.counterparty_name) {
+      decisions.counterparty_name.status = "review";
+      decisions.counterparty_name.candidates = [
+        rejectedIdentityCandidate(result, "counterparty_name", documentName),
+        aresCandidate(registry.legalName!),
+      ];
+    }
+    return { ...result, invoice, field_sources: fieldSources, warnings, field_decisions: decisions, confidence: Math.min(result.confidence, 0.59) };
   }
 
-  const fieldDecisions = deriveOcrFieldDecisions(result.invoice, result.field_sources, result.warnings);
-  if (fieldDecisions.counterparty_ico) fieldDecisions.counterparty_ico = {
+  // IČO odpovídá subjektu v ARES. Prázdné pole doplníme z ARES, rozdílné DIČ
+  // nikdy nepřepíšeme -- jde k ověření s oběma hodnotami.
+  const invoice = { ...result.invoice };
+  const fieldSources = { ...result.field_sources };
+  const reasons: Partial<Record<OcrFieldName, string[]>> = {};
+  let warnings = [...result.warnings];
+  const cacheNote = registry.source === "cache" ? " z cache" : "";
+  if (!documentName) {
+    invoice.counterparty_name = registry.legalName.slice(0, 200);
+    fieldSources.counterparty_name = aresSource(`ARES: ${registry.legalName}`);
+    warnings = warnings.filter(warning => warning !== "Název odběratele nebyl rozpoznán.");
+  }
+  const documentDic = invoice.counterparty_dic?.replace(/[\s-]/g, "").toUpperCase() ?? "";
+  let dicConflict: string | null = null;
+  if (registry.dic && !documentDic) {
+    invoice.counterparty_dic = registry.dic;
+    fieldSources.counterparty_dic = aresSource(`ARES: ${registry.dic}`);
+  } else if (registry.dic && documentDic && documentDic !== registry.dic) {
+    dicConflict = invoice.counterparty_dic ?? documentDic;
+    invoice.counterparty_dic = "";
+    delete fieldSources.counterparty_dic;
+    reasons.counterparty_dic = [`DIČ v dokumentu (${dicConflict}) se liší od DIČ v ARES (${registry.dic}). Vyberte správné.`];
+    warnings.push(`DIČ odběratele v dokumentu (${dicConflict}) neodpovídá registru ARES (${registry.dic}) – zkontrolujte ho.`);
+  }
+  warnings = [...new Set(warnings)];
+  const fieldDecisions = identityDecisions(result, invoice, fieldSources, warnings, reasons);
+  const icoWasVerifiable = result.field_decisions.counterparty_ico?.status !== "review" || !result.field_decisions.counterparty_ico?.candidates.length;
+  if (fieldDecisions.counterparty_ico && icoWasVerifiable && fieldDecisions.counterparty_ico.status !== "missing") fieldDecisions.counterparty_ico = {
     ...fieldDecisions.counterparty_ico,
     status: "verified",
     confidence: Math.max(0.98, fieldDecisions.counterparty_ico.confidence),
-    reasons: [`IČO a název odběratele byly ověřeny v ARES${registry.source === "cache" ? " z cache" : ""}.`],
+    reasons: [`IČO a název odběratele byly ověřeny v ARES${cacheNote}.`],
   };
-  return { ...result, field_decisions: fieldDecisions };
+  const icoVerified = fieldDecisions.counterparty_ico?.status === "verified";
+  for (const field of ["counterparty_name", "counterparty_dic"] as const) {
+    const decision = fieldDecisions[field];
+    if (!decision || decision.status === "missing" || (field === "counterparty_dic" && dicConflict)) continue;
+    const fromAres = fieldSources[field]?.method === "ares";
+    const confirmedByAres = field === "counterparty_name" ? true : Boolean(registry.dic);
+    if ((fromAres || confirmedByAres) && icoVerified && decision.reasons.every(reason => !reason.includes("kontrolním součtem"))) {
+      fieldDecisions[field] = {
+        ...decision,
+        status: "verified",
+        confidence: Math.max(decision.confidence, 0.95),
+        reasons: [fromAres ? `Doplněno z ARES podle ověřeného IČO${cacheNote}.` : `Potvrzeno registrem ARES${cacheNote}.`],
+        needs_confirmation: undefined,
+      };
+    } else if (fromAres) {
+      fieldDecisions[field] = { ...decision, status: "review", needs_confirmation: true, reasons: [...decision.reasons, "Doplněno z ARES, ale IČO samo ověřené není. Potvrďte."] };
+    }
+  }
+  if (dicConflict && fieldDecisions.counterparty_dic) {
+    fieldDecisions.counterparty_dic = {
+      ...fieldDecisions.counterparty_dic,
+      status: "review",
+      candidates: [rejectedIdentityCandidate(result, "counterparty_dic", dicConflict), aresCandidate(registry.dic!)],
+    };
+  }
+  return { ...result, invoice, field_sources: fieldSources, warnings, field_decisions: fieldDecisions };
 }

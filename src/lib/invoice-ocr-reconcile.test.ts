@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { deriveOcrFieldDecisions, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { deriveOcrFieldDecisions, omitUnverifiedOcrValues, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { OCR_VOCABULARY_VERSION } from "@/lib/invoice-ocr-vocabulary";
 import type { InvoiceInput } from "@/types/invoice";
 import { parseConfidenceThreshold, reconcileExtractions } from "./invoice-ocr-reconcile";
@@ -147,6 +147,58 @@ describe("reconcileExtractions", () => {
     const merged = reconcileExtractions(local, ai);
     expect(merged.document_kind).toBe(local.document_kind);
     expect(merged.issuer_matches_organization).toBe(local.issuer_matches_organization);
+  });
+
+  it("a field only the AI read is not blanked because the local parser warned it was missing -- it waits for confirmation instead", () => {
+    const local = localResult({ counterparty_name: "" });
+    local.warnings.push("Název odběratele nebyl rozpoznán.");
+    local.field_decisions = deriveOcrFieldDecisions(local.invoice, local.field_sources, local.warnings);
+    const ai = aiResult({ counterparty_name: "WOOD & PAPER a.s." }, {
+      counterparty_name: { page: 1, line: 0, text: "Odběratel: WOOD & PAPER a.s.", method: "ai", confidence: 0.65, bounds: null, role: "counterparty" },
+    });
+
+    const merged = reconcileExtractions(local, ai);
+
+    expect(merged.warnings).not.toContain("Název odběratele nebyl rozpoznán.");
+    expect(merged.field_decisions.counterparty_name).toMatchObject({ status: "review", needs_confirmation: true });
+    expect(omitUnverifiedOcrValues(merged).invoice.counterparty_name).toBe("WOOD & PAPER a.s.");
+  });
+
+  it("the AI's own 'not recognized' warning does not demote a value the local parser did read", () => {
+    const local = localResult({}, { counterparty_name: source("C.S.CARGO a.s.") });
+    const ai = aiResult({ counterparty_name: "" }, {}, ["AI nerozpoznala jméno odběratele."]);
+    const merged = reconcileExtractions(local, ai);
+    expect(merged.field_decisions.counterparty_name?.status).toBe("verified");
+    expect(omitUnverifiedOcrValues(merged).invoice.counterparty_name).toBe("C.S.CARGO a.s.");
+  });
+
+  it("keeps the local parser's multi-candidate review even when the AI agrees with the first candidate", () => {
+    const local = localResult({}, { counterparty_ico: source("IČO 64259374") });
+    local.field_decisions.counterparty_ico = {
+      status: "review", confidence: 0.49, reasons: ["V potvrzené sekci odběratele bylo nalezeno více možných hodnot."],
+      candidates: [
+        { value: "64259374", page: 1, text: "IČO 64259374", method: "pdf_text", confidence: null, role: "counterparty" },
+        { value: "27082440", page: 1, text: "IČO 27082440", method: "pdf_text", confidence: null, role: "counterparty" },
+      ],
+    };
+    const merged = reconcileExtractions(local, aiResult());
+    expect(merged.field_decisions.counterparty_ico?.status).toBe("review");
+    expect(merged.field_decisions.counterparty_ico?.candidates).toHaveLength(2);
+  });
+
+  it("takes an explicitly reported AI document kind and shows the disagreement", () => {
+    const local = localResult();
+    const ai = { ...aiResult(), document_kind: "proforma" as const, document_kind_reported: true };
+    const merged = reconcileExtractions(local, ai);
+    expect(merged.document_kind).toBe("proforma");
+    expect(merged.warnings.some(warning => warning.startsWith("Druh dokladu se liší"))).toBe(true);
+    expect(merged.warnings).toContain("Dokument nemusí být běžná vydaná faktura. Před uložením ověřte jeho typ.");
+  });
+
+  it("an AI 'plain invoice' answer never overrides a local advance-invoice reading", () => {
+    const local = { ...localResult(), document_kind: "proforma" as const };
+    const ai = { ...aiResult(), document_kind: "issued_invoice" as const, document_kind_reported: true };
+    expect(reconcileExtractions(local, ai).document_kind).toBe("proforma");
   });
 
   it("labels the combined model as local+gemini for traceability", () => {

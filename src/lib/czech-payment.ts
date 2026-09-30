@@ -109,3 +109,109 @@ export function buildSpayd(payment: SpaydPayment): string | null {
 
   return `SPD*1.0*${fields.join("*")}`;
 }
+
+/** QR platba přečtená z cizí faktury. Chybějící nebo poškozené pole je null. */
+export type ParsedSpayd = {
+  iban: string;
+  bic: string | null;
+  /** Český tvar účtu, když jde o platný český IBAN; jinak null. */
+  account: string | null;
+  amount: number | null;
+  currency: string | null;
+  variableSymbol: string | null;
+  constantSymbol: string | null;
+  specificSymbol: string | null;
+  /** YYYY-MM-DD */
+  dueDate: string | null;
+  message: string | null;
+  recipientName: string | null;
+};
+
+/** ISO 13616 mod-97 kontrola IBANu (libovolná země). */
+export function isValidIban(raw: string) {
+  const iban = raw.replace(/\s/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) return false;
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  let remainder = 0;
+  for (const char of rearranged) {
+    const value = /[A-Z]/.test(char) ? String(char.charCodeAt(0) - 55) : char;
+    for (const digit of value) remainder = (remainder * 10 + Number(digit)) % 97;
+  }
+  return remainder === 1;
+}
+
+/** Převede český IBAN zpět na "[předčíslí-]číslo/kód banky"; jen platný účet. */
+export function czechIbanToAccount(iban: string): string | null {
+  const compact = iban.replace(/\s/g, "").toUpperCase();
+  if (!/^CZ\d{22}$/.test(compact) || !isValidIban(compact)) return null;
+  const bank = compact.slice(4, 8);
+  const prefix = compact.slice(8, 14).replace(/^0+/, "");
+  const number = compact.slice(14).replace(/^0+/, "");
+  if (!number) return null;
+  const account = { prefix, number, bank };
+  if (!isPlausibleCzechAccount(account)) return null;
+  return `${prefix ? `${prefix}-` : ""}${number}/${bank}`;
+}
+
+function decodeSpaydValue(value: string) {
+  // Hodnoty SPAYD smí obsahovat procentové kódování (hlavně %2A = "*").
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Přečte řetězec QR platby (SPAYD). Vrací null, když nejde o QR platbu nebo
+ * když účet neprojde kontrolou IBAN -- špatný účet je horší než žádný. Pole,
+ * která nemají předepsaný tvar (částka, VS, datum, měna), se nevyplní, místo
+ * aby se odhadovala.
+ */
+export function parseSpayd(raw: string | null | undefined): ParsedSpayd | null {
+  if (!raw) return null;
+  const text = raw.trim();
+  if (!/^SPD\*\d+\.\d+\*/i.test(text)) return null;
+  const fields = new Map<string, string>();
+  for (const part of text.split("*").slice(2)) {
+    const separator = part.indexOf(":");
+    if (separator <= 0) continue;
+    const key = part.slice(0, separator).toUpperCase();
+    if (!fields.has(key)) fields.set(key, decodeSpaydValue(part.slice(separator + 1)));
+  }
+  const accountField = fields.get("ACC");
+  if (!accountField) return null;
+  const [ibanPart, bicPart] = accountField.split("+");
+  const iban = ibanPart.replace(/\s/g, "").toUpperCase();
+  if (!isValidIban(iban)) return null;
+
+  const amountText = fields.get("AM");
+  const amount = amountText && /^\d{1,10}(?:\.\d{1,2})?$/.test(amountText) ? Number(amountText) : null;
+  const currencyText = fields.get("CC")?.toUpperCase();
+  const digitsOnly = (key: string, max: number) => {
+    const value = fields.get(key)?.trim();
+    return value && new RegExp(`^\\d{1,${max}}$`).test(value) ? value : null;
+  };
+  const dateText = fields.get("DT");
+  let dueDate: string | null = null;
+  if (dateText && /^\d{8}$/.test(dateText)) {
+    const iso = `${dateText.slice(0, 4)}-${dateText.slice(4, 6)}-${dateText.slice(6, 8)}`;
+    const parsed = new Date(`${iso}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso) dueDate = iso;
+  }
+  const freeText = (key: string) => fields.get(key)?.trim().slice(0, 140) || null;
+
+  return {
+    iban,
+    bic: bicPart && /^[A-Z0-9]{8}(?:[A-Z0-9]{3})?$/i.test(bicPart) ? bicPart.toUpperCase() : null,
+    account: czechIbanToAccount(iban),
+    amount: amount !== null && amount > 0 ? amount : null,
+    currency: currencyText && /^[A-Z]{3}$/.test(currencyText) ? currencyText : null,
+    variableSymbol: digitsOnly("X-VS", 10),
+    constantSymbol: digitsOnly("X-KS", 10),
+    specificSymbol: digitsOnly("X-SS", 10),
+    dueDate,
+    message: freeText("MSG"),
+    recipientName: freeText("RN"),
+  };
+}

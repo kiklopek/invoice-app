@@ -1,4 +1,4 @@
-export const OCR_VOCABULARY_VERSION = "2026-09-24.1";
+export const OCR_VOCABULARY_VERSION = "2026-09-30.1";
 
 export type OcrConcept =
   | "counterparty"
@@ -111,6 +111,89 @@ export function matchOcrConcept(value: string, concept: OcrConcept): OcrConceptM
     }
   }
   return best;
+}
+
+// ---------------------------------------------------------------------------
+// Poškozená textová vrstva PDF: chybějící znaky s háčkem
+//
+// Některé generátory PDF vkládají písmo jen v kódování Windows-1252. Znaky,
+// které v něm nejsou -- č, ď, ě, ň, ř, ť, ů -- se do textové vrstvy vůbec
+// nedostanou a na jejich místě zůstane mezera: "ODB RATEL", "I O: 26229854",
+// "DI : CZ26229854", "da ový doklad", "K úhrad :". Na obrazovce dokument
+// vypadá v pořádku, ale žádný popisek se nenajde a parser vrátí prázdnou
+// sekci odběratele.
+//
+// Poškození je deterministické: z tištěné podoby popisku přesně víme, jak
+// bude vypadat po ztrátě znaků. Proto tu držíme popisky v tištěné podobě s
+// diakritikou a poškozenou variantu z nich odvozujeme -- žádné ruční regexy
+// pro jednotlivé případy. Opravují se jen POPISKY; hodnoty (jména, adresy)
+// opravit nelze, a proto parser takový dokument hlásí jako poškozený.
+const DROPPED_GLYPH_CLASS = "[čďěňřťůČĎĚŇŘŤŮ]";
+
+// Jak popisek vypadá v poškozené textové vrstvě (znak -> mezera).
+export function damagedLabelForm(printed: string) {
+  return printed.replace(new RegExp(DROPPED_GLYPH_CLASS, "g"), " ");
+}
+
+export const OCR_PRINTED_LABELS: readonly string[] = [
+  // Delší popisky první -- "ič dph" se musí opravit dřív než samotné "ič".
+  "datum uskutečnění zdanitelného plnění",
+  "celkem k úhradě", "částka k úhradě", "opravný daňový doklad", "příjemce faktury",
+  "číslo faktury", "číslo dokladu", "daňový doklad", "základ daně", "k úhradě",
+  "odběratel", "ič dph", "ičo", "dič", "ič",
+];
+
+type GlyphGapRepair = { pattern: RegExp; printed: string };
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildGlyphGapRepairs(): GlyphGapRepair[] {
+  return OCR_PRINTED_LABELS.flatMap(printed => {
+    if (!new RegExp(DROPPED_GLYPH_CLASS).test(printed)) return [];
+    const damaged = damagedLabelForm(printed).replace(/\s+/g, " ").trim();
+    const letters = damaged.replace(/[^\p{L}]/gu, "").length;
+    if (letters < 1) return [];
+    const endsWithGap = new RegExp(`${DROPPED_GLYPH_CLASS}$`).test(printed);
+    const body = damaged.split(" ").map(escapeRegExp).join("[ \\t]+");
+    // Krátké popisky ("I O", "DI", "I") jsou samy o sobě běžná písmena, takže
+    // se přijmou jen v podobě popisku -- s dvojtečkou, u jednopísmenného
+    // "IČ" navíc s číslem za ní.
+    const tail = letters === 1
+      ? "(?=[ \\t]*:[ \\t]*\\d{6})"
+      : letters < 4
+        ? "(?=[ \\t]*:)"
+        : endsWithGap ? "(?=[\\s:.]|$)" : "(?![\\p{L}\\d])";
+    return [{ pattern: new RegExp(`(?<![\\p{L}\\d])${body}${tail}`, "giu"), printed }];
+  });
+}
+
+const GLYPH_GAP_REPAIRS = buildGlyphGapRepairs();
+
+function matchCase(template: string, printed: string) {
+  const letters = template.replace(/[^\p{L}]/gu, "");
+  if (letters && letters === letters.toUpperCase()) return printed.toUpperCase();
+  if (/^\p{Lu}/u.test(template)) return printed.charAt(0).toUpperCase() + printed.slice(1);
+  return printed;
+}
+
+// Vrátí text s opravenými popisky a seznam oprav. Prázdný seznam znamená, že
+// textová vrstva nenese znaky poškozeného písma.
+export function repairDroppedGlyphLabels(text: string): { text: string; repaired: string[] } {
+  const repaired: string[] = [];
+  let result = text;
+  for (const repair of GLYPH_GAP_REPAIRS) {
+    result = result.replace(repair.pattern, match => {
+      repaired.push(match);
+      return matchCase(match, repair.printed);
+    });
+  }
+  return { text: result, repaired };
+}
+
+export function hasDroppedGlyphLabels(text: string) {
+  return repairDroppedGlyphLabels(text).repaired.length > 0;
 }
 
 export function conceptAlternation(concept: OcrConcept) {

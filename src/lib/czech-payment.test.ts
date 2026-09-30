@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSpayd, czechAccountToIban, parseCzechAccount } from "./czech-payment";
+import { buildSpayd, czechAccountToIban, parseCzechAccount, parseSpayd } from "./czech-payment";
 
 describe("parseCzechAccount", () => {
   it("reads both the plain and the prefixed form", () => {
@@ -68,5 +68,40 @@ describe("buildSpayd", () => {
 
   it("keeps only digits in the variable symbol", () => {
     expect(buildSpayd({ ...base, variableSymbol: "VS-2026/0042" })).toContain("X-VS:20260042");
+  });
+});
+
+describe("parseSpayd (QR platba přečtená z faktury)", () => {
+  it("přečte řetězec, který sestaví buildSpayd, zpět beze ztráty", () => {
+    const spayd = buildSpayd({ account: "6786420257/0100", amount: 123100.2, currency: "CZK", variableSymbol: "1443260157", dueDate: "2026-09-23", message: "Faktura 1443260157" })!;
+    expect(parseSpayd(spayd)).toEqual({
+      iban: "CZ3401000000006786420257",
+      bic: null,
+      account: "6786420257/0100",
+      amount: 123100.2,
+      currency: "CZK",
+      variableSymbol: "1443260157",
+      constantSymbol: null,
+      specificSymbol: null,
+      dueDate: "2026-09-23",
+      message: "Faktura 1443260157",
+      recipientName: null,
+    });
+  });
+
+  it("zvládne BIC za IBANem, KS/SS, jméno příjemce a zakódovanou hvězdičku", () => {
+    const parsed = parseSpayd("SPD*1.0*ACC:CZ3401000000006786420257+KOMBCZPP*AM:3370.00*CC:czk*X-KS:0308*X-SS:77*RN:ROBERT HLAVICA*MSG:ZALOHA%2A10");
+    expect(parsed).toMatchObject({ bic: "KOMBCZPP", amount: 3370, currency: "CZK", constantSymbol: "0308", specificSymbol: "77", recipientName: "ROBERT HLAVICA", message: "ZALOHA*10", variableSymbol: null });
+  });
+
+  it("vrátí null, když nejde o QR platbu nebo IBAN nesedí kontrolním součtem", () => {
+    expect(parseSpayd("https://example.com")).toBeNull();
+    expect(parseSpayd("SPD*1.0*AM:100.00*CC:CZK")).toBeNull();
+    expect(parseSpayd("SPD*1.0*ACC:CZ3301000000006786420257*AM:100.00")).toBeNull();
+  });
+
+  it("nevymyslí částku, VS ani datum z poškozených hodnot", () => {
+    const parsed = parseSpayd("SPD*1.0*ACC:CZ3401000000006786420257*AM:12,50*X-VS:12AB*DT:20261332*CC:KORUNY");
+    expect(parsed).toMatchObject({ amount: null, variableSymbol: null, dueDate: null, currency: null });
   });
 });

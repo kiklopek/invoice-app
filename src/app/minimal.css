@@ -2979,6 +2979,10 @@ th,
 .ocr-field-candidate + .ocr-field-candidate { margin-top: 4px; border-top: 1px solid #e5ebe6; }
 .ocr-field-candidate small { color: #738078; font-size: 9px; font-weight: 500; }
 .ocr-field-candidate q { grid-column: 1/-1; }
+/* Volba hodnoty z více zdrojů a potvrzení hodnoty z jediného zdroje (OCR). */
+#manual-invoice-form .form-grid > label > .ocr-field-choices { grid-column: 1 / -1; }
+.ocr-field-choices { display: flex !important; flex-wrap: wrap; gap: 6px; margin-top: 6px !important; }
+.ocr-field-choices .btn small { margin-left: 4px; color: #6b7a70; font-size: 10px; font-weight: 500; }
 
 /* OCR kontrola faktury: pouze srovnání rozestupů, bez změny vzhledu formuláře. */
 #manual-invoice-form .reminder-policy-field > .ocr-policy-assignment { margin-top: 10px; }
