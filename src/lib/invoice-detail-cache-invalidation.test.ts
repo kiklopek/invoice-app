@@ -37,3 +37,45 @@ describe("invalidace sdílené cache po mutacích faktury", () => {
     expect(unassignFn).toContain("invalidateWorkspaceData()");
   });
 });
+
+// Tester: po přidání faktury ukazoval seznam a přehled staré údaje až do
+// cmd+R. Vytvoření faktury musí invalidovat sdílenou cache i router cache,
+// listy se při návratu musí znovu načíst a postranní menu nesmí vynucovat
+// 5minutový prefetch cache.
+function read(...parts: string[]) {
+  return readFileSync(join(process.cwd(), "src", ...parts), "utf8");
+}
+
+describe("čerstvá data po vytvoření faktury", () => {
+  const importPage = read("app", "(workspace)", "invoices", "import", "page.tsx");
+  const newPage = read("app", "(workspace)", "invoices", "new", "page.tsx");
+
+  it("import: create() invaliduje cache a obnoví router", () => {
+    expect(importPage).toContain("const invalidateWorkspaceData = useInvalidateWorkspaceData();");
+    const start = importPage.indexOf("async function create(");
+    const fn = importPage.slice(start, importPage.indexOf("async function loadCsv"));
+    expect(fn).toContain("invalidateWorkspaceData()");
+    expect(fn).toContain("router.refresh()");
+  });
+
+  it("import: importCsv() invaliduje cache a obnoví router", () => {
+    const fn = importPage.slice(importPage.indexOf("async function importCsv"), importPage.indexOf("return <AppFrame>"));
+    expect(fn).toContain("invalidateWorkspaceData()");
+    expect(fn).toContain("router.refresh()");
+  });
+
+  it("ruční zadání invaliduje cache a obnoví router", () => {
+    expect(newPage).toContain("const invalidateWorkspaceData = useInvalidateWorkspaceData();");
+    expect(newPage).toContain("invalidateWorkspaceData()");
+    expect(newPage).toContain("router.refresh()");
+  });
+
+  it("dashboard a seznam faktur se při připojení znovu načtou", () => {
+    expect(read("app", "(workspace)", "dashboard", "dashboard-client.tsx")).not.toContain("revalidateOnMount: false");
+    expect(read("app", "(workspace)", "invoices", "invoices-client.tsx")).not.toContain("revalidateOnMount: listKey !== initialKey");
+  });
+
+  it("odkazy v postranním menu nevynucují prefetch={true}", () => {
+    expect(read("components", "layout", "app-shell.tsx")).not.toContain("prefetch={true}");
+  });
+});

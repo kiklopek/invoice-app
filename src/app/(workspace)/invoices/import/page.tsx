@@ -9,6 +9,7 @@ import type { InvoiceInput } from "@/types/invoice";
 import { createClient } from "@/lib/supabase-browser";
 import { hasExpectedDocumentSignature, validateDocumentMetadata } from "@/lib/document-validation";
 import { Icon } from "@/components/icons";
+import { useInvalidateWorkspaceData } from "@/lib/workspace-cache";
 import type { InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 
@@ -82,6 +83,7 @@ type QueueItem = {
 
 export default function ImportInvoicesPage() {
   const router = useRouter();
+  const invalidateWorkspaceData = useInvalidateWorkspaceData();
   const [mode, setMode] = useState<"document" | "csv">("document");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -236,6 +238,9 @@ export default function ImportInvoicesPage() {
     const response = await fetch("/api/invoices", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
+    // Faktura už je uložená -- Seznam a Přehled nesmí zůstat na staré cache.
+    void invalidateWorkspaceData();
+    router.refresh();
     const savedIndex = activeIndex;
     // Cerstvy stav z ref, ne ze zastarale closure -- jinak se muze stat, ze
     // se dalsi pripravena faktura nenajde a zbytek fronty se tise zahodi.
@@ -254,7 +259,7 @@ export default function ImportInvoicesPage() {
     else router.push("/invoices");
   }
   async function loadCsv(selected: File | null) { if (!selected) return; setCsvFile(selected); setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
-  async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); router.push("/invoices"); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
+  async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); void invalidateWorkspaceData(); router.push("/invoices"); router.refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
 
   return <AppFrame>
     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>

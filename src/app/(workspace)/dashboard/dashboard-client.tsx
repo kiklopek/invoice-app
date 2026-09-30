@@ -51,7 +51,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   // i pro jinou firmu, aniž by se přepisovaly komponenty.
   const companyName = useAccessProfile()?.companyName?.trim();
   const canManage = canManageInvoices(role);
-  const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: false });
+  const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: true });
   const error = loadError instanceof Error ? loadError.message : "";
 
   const activeCount = summary.active_count;

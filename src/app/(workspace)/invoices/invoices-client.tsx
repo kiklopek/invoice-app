@@ -11,6 +11,7 @@ import { Modal } from "@/components/modal";
 import { OptionalPaymentAssignment } from "@/components/optional-payment-assignment";
 import { assignBankPaymentToInvoice } from "@/lib/assignable-bank-payment";
 import { todayInTimeZone } from "@/lib/reminders";
+import { useInvalidateWorkspaceData } from "@/lib/workspace-cache";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import type { InvoiceListPageData } from "@/lib/invoice-list-page-data";
 import type { InvoiceListQuery } from "@/lib/invoice-list-query";
@@ -43,6 +44,7 @@ export function InvoicesClient({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const invalidateWorkspaceData = useInvalidateWorkspaceData();
   const [invoices, setInvoices] = useState<Invoice[]>(initialData.invoices);
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
@@ -136,10 +138,12 @@ export function InvoicesClient({
     data: loadedData,
     error: loadError,
     isLoading,
-    mutate: refreshInvoices,
   } = useSWR<InvoiceListPageData>(listKey, {
     fallbackData: listKey === initialKey ? initialData : undefined,
-    revalidateOnMount: listKey !== initialKey,
+    // Sdílená cache přežívá navigaci a ignoruje čerstvý fallbackData ze
+    // serveru, takže se seznam musí při připojení vždy znovu načíst. Server
+    // initialData drží první vykreslení bez načítacího záblesku.
+    revalidateOnMount: true,
   });
   const loading = isLoading && !loadedData;
 
@@ -255,7 +259,8 @@ export function InvoicesClient({
         `Úhrada faktury ${paymentCandidate.invoice_number} byla potvrzena.`,
       );
       setPaymentCandidate(null);
-      void refreshInvoices();
+      // Úhrada mění čísla i na Přehledu, ne jen v seznamu.
+      void invalidateWorkspaceData();
     } catch (cause) {
       showToast({
         variant: "error",

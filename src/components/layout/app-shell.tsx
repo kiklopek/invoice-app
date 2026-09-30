@@ -237,7 +237,6 @@ export function AppSidebar({
             <div key={item.href} className="nav-item-group">
               <Link
                 href={item.href}
-                prefetch={true}
                 aria-current={pathname === item.href ? "page" : undefined}
                 className={[
                   selected ? "active" : "",
@@ -260,7 +259,6 @@ export function AppSidebar({
                     <Link
                       key={child.href}
                       href={child.href}
-                      prefetch={true}
                       aria-current={
                         isChildActive(child.href) ? "page" : undefined
                       }
@@ -340,7 +338,6 @@ export function AppSidebar({
                     <Fragment key={item.href}>
                       <Link
                         href={item.href}
-                        prefetch={true}
                         aria-current={
                           pathname === item.href ? "page" : undefined
                         }
@@ -361,7 +358,6 @@ export function AppSidebar({
                             <Link
                               key={child.href}
                               href={child.href}
-                              prefetch={true}
                               aria-current={
                                 isChildActive(child.href) ? "page" : undefined
                               }
