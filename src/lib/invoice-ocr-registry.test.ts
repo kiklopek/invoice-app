@@ -46,6 +46,16 @@ describe("OCR company registry validation", () => {
     expect(validated.field_decisions.counterparty_ico?.candidates[0]?.value).toBe("12345678");
   });
 
+  it("rejected identity candidates keep the box of the document line they came from", async () => {
+    const result = slovakResult();
+    result.invoice.counterparty_ico = "12345678";
+    result.invoice.counterparty_dic = "";
+    const bounds = { x: 0.55, y: 0.21, width: 0.2, height: 0.012 };
+    result.field_sources.counterparty_ico = { page: 2, line: 7, text: "IČO: 12345678", method: "pdf_text", confidence: null, bounds, role: "counterparty" };
+    const validated = await validateCounterpartyWithAres(result, {} as SupabaseClient<Database>);
+    expect(validated.field_decisions.counterparty_ico?.candidates[0]).toMatchObject({ value: "12345678", page: 2, bounds });
+  });
+
   it("never prefills the account owner's IČO as the counterparty", () => {
     const result = slovakResult();
     result.invoice.counterparty_name = "R. Hlavica s.r.o.";

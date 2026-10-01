@@ -185,3 +185,124 @@ describe("přesné zdroje a poškozená textová vrstva v PDF", () => {
     expect(result.text).toMatch(/46692011/);
   }, 40_000);
 });
+
+describe("geometrie textové vrstvy PDF odpovídá zobrazené stránce", () => {
+  const LINE_A = "FAKTURA FV-2026-117 Odberatel Stavby Novak s.r.o.";
+  const LINE_B = "Celkem k uhrade 12 100,00 CZK splatnost 15.09.2026";
+  const near = (actual: number, expected: number, tolerance = 0.01) => expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
+
+  async function textPdf(setup: (page: import("pdf-lib").PDFPage, font: import("pdf-lib").PDFFont, lib: typeof import("pdf-lib")) => void) {
+    const lib = await import("pdf-lib");
+    const doc = await lib.PDFDocument.create();
+    const page = doc.addPage([600, 800]);
+    const font = await doc.embedFont(lib.StandardFonts.Helvetica);
+    setup(page, font, lib);
+    return { bytes: new Uint8Array(await doc.save()), widthOf: (text: string) => font.widthOfTextAtSize(text, 12) };
+  }
+
+  it("posunutý MediaBox: box se počítá od levého horního rohu viditelné stránky", async () => {
+    const { bytes, widthOf } = await textPdf((page, font) => {
+      page.setMediaBox(100, 200, 600, 800);
+      // 60 pt od levého okraje, účaří 100 pt od horního okraje viditelné stránky.
+      page.drawText(LINE_A, { x: 160, y: 900, size: 12, font });
+      page.drawText(LINE_B, { x: 160, y: 300, size: 12, font });
+    });
+    const result = await extractInvoiceDocumentText({ bytes, mime: "application/pdf", timeoutMs: 15_000 });
+    expect(result.ocrUsed).toBe(false);
+    const [first, second] = result.layout.pages[0].lines;
+    expect(first.text).toBe(LINE_A);
+    expect(second.text).toBe(LINE_B);
+    near(first.bounds!.x, 60 / 600);
+    near(first.bounds!.y + first.bounds!.height, 100 / 800);
+    near(first.bounds!.width, widthOf(LINE_A) / 600);
+    near(second.bounds!.x, 60 / 600);
+    near(second.bounds!.y + second.bounds!.height, 700 / 800);
+  }, 20_000);
+
+  it("stránka s /Rotate 90: box sedí na otočené (zobrazené) stránce", async () => {
+    const { bytes, widthOf } = await textPdf((page, font, lib) => {
+      page.setRotation(lib.degrees(90));
+      // Text otočený o 90° proti směru hodinek se po otočení stránky čte vodorovně.
+      // Zobrazená stránka má 800 × 600; bod (x, y) stránky leží v náhledu na (y, x).
+      page.drawText(LINE_A, { x: 450, y: 50, size: 12, font, rotate: lib.degrees(90) });
+      page.drawText(LINE_B, { x: 500, y: 50, size: 12, font, rotate: lib.degrees(90) });
+    });
+    const result = await extractInvoiceDocumentText({ bytes, mime: "application/pdf", timeoutMs: 15_000 });
+    expect(result.ocrUsed).toBe(false);
+    const layoutPage = result.layout.pages[0];
+    expect([layoutPage.width, layoutPage.height]).toEqual([800, 600]);
+    const [first, second] = layoutPage.lines;
+    expect(first.text).toBe(LINE_A);
+    expect(second.text).toBe(LINE_B);
+    near(first.bounds!.x, 50 / 800);
+    near(first.bounds!.y + first.bounds!.height, 450 / 600);
+    near(first.bounds!.width, widthOf(LINE_A) / 800);
+    expect(first.bounds!.height).toBeLessThan(0.03);
+    near(second.bounds!.y + second.bounds!.height, 500 / 600);
+  }, 20_000);
+
+  it("bez transformace zůstává geometrie beze změny (svislá osa PDF zdola nahoru)", () => {
+    const page = layoutPdfPage([{ str: "Celkem", transform: [12, 0, 0, 12, 60, 700], width: 40, height: 12 }], 1, 600, 800);
+    const bounds = page.lines[0].bounds!;
+    expect([bounds.x, bounds.y, bounds.width, bounds.height].map(value => Number(value.toFixed(9))))
+      .toEqual([0.1, (800 - 700 - 12) / 800, 40 / 600, 12 / 800].map(value => Number(value.toFixed(9))));
+  });
+});
+
+describe("geometrie OCR obrázku odpovídá obrázku, který vidí prohlížeč", () => {
+  const W = 1400;
+  const H = 700;
+  const svg = (body: string) => Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><g font-family="Arial" fill="black" font-size="54">${body}</g></svg>`);
+  const LEFT = '<text x="40" y="80">FAKTURA FV-2026-007</text>';
+  const RIGHT = '<text x="900" y="200">Celkem 12 100 CZK</text>';
+  // Skutečná poloha inkoustu v původním obrázku (normalizovaně), změřená
+  // ořezem bílé plochy -- nezávisle na OCR.
+  async function inkBox(body: string) {
+    const { info } = await sharp(await sharp(svg(body)).png().toBuffer()).trim({ background: "#ffffff", threshold: 40 }).toBuffer({ resolveWithObject: true });
+    const x = -(info.trimOffsetLeft ?? 0) / W;
+    const y = -(info.trimOffsetTop ?? 0) / H;
+    return { x, y, right: x + info.width / W, bottom: y + info.height / H };
+  }
+
+  it("odečte bílý okraj přidaný pro Tesseract, takže box sedí na inkoustu textu", async () => {
+    const [left, right] = await Promise.all([inkBox(LEFT), inkBox(RIGHT)]);
+    const image = await sharp(svg(LEFT + RIGHT)).png().toBuffer();
+    const result = await extractInvoiceDocumentText({ bytes: new Uint8Array(image), mime: "image/png", timeoutMs: 40_000 });
+    const page = result.layout.pages[0];
+    const tolerance = 0.004;
+    const leftLines = page.lines.filter(line => /FAKTURA|FV-2026/.test(line.text) && line.bounds);
+    const rightLines = page.lines.filter(line => /Celkem|12\s?100|CZK/.test(line.text) && !/FAKTURA/.test(line.text) && line.bounds);
+    expect(leftLines.length).toBeGreaterThan(0);
+    expect(rightLines.length).toBeGreaterThan(0);
+    // Řádek začínající u levého horního rohu: levý a horní okraj přesně.
+    const first = leftLines.find(line => line.text.startsWith("FAKTURA"))!;
+    expect(Math.abs(first.bounds!.x - left.x)).toBeLessThanOrEqual(tolerance);
+    expect(Math.abs(first.bounds!.y - left.y)).toBeLessThanOrEqual(tolerance);
+    // Každý přečtený řádek (i z detailního průchodu na výřezu) leží uvnitř
+    // inkoustu svého textu.
+    for (const [lines, ink] of [[leftLines, left], [rightLines, right]] as const) {
+      for (const line of lines) {
+        const bounds = line.bounds!;
+        expect(bounds.x).toBeGreaterThanOrEqual(ink.x - tolerance);
+        expect(bounds.y).toBeGreaterThanOrEqual(ink.y - tolerance);
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(ink.right + tolerance);
+        expect(bounds.y + bounds.height).toBeLessThanOrEqual(ink.bottom + tolerance);
+      }
+    }
+    // Rozměr stránky v layoutu je rozměr dokumentu bez přidaného okraje.
+    expect(page.width / page.height).toBeCloseTo(W / H, 2);
+  }, 45_000);
+
+  it("zesílený průchod (jiný okraj) mapuje boxy na stejný obrázek", async () => {
+    // Šedý text na šedém pozadí: standardní průchod nestačí a vyhraje zesílený.
+    const faint = (body: string) => Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#d0d0d0"/><g font-family="Arial" fill="#9a9a9a" font-size="30">${body}</g></svg>`);
+    const body = '<text x="40" y="80">FAKTURA FV-2026-007</text>';
+    const { info } = await sharp(await sharp(faint(body)).png().toBuffer()).trim({ background: "#d0d0d0", threshold: 20 }).toBuffer({ resolveWithObject: true });
+    const ink = { x: -(info.trimOffsetLeft ?? 0) / W, y: -(info.trimOffsetTop ?? 0) / H };
+    const result = await extractInvoiceDocumentText({ bytes: new Uint8Array(await sharp(faint(body)).png().toBuffer()), mime: "image/png", timeoutMs: 40_000 });
+    expect(result.warnings).toContain("Fotografie vyžadovala zesílené OCR. Zkontrolujte předvyplněné údaje.");
+    const first = result.layout.pages[0].lines.find(line => line.text.startsWith("FAKTURA"))!;
+    expect(Math.abs(first.bounds!.x - ink.x)).toBeLessThanOrEqual(0.004);
+    expect(Math.abs(first.bounds!.y - ink.y)).toBeLessThanOrEqual(0.004);
+  }, 45_000);
+});

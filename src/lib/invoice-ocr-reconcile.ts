@@ -1,6 +1,6 @@
 import "server-only";
 
-import { deriveOcrFieldDecisions, digits, normalizeComparable, OCR_MISSING_FIELD_WARNING, type InvoiceOcrResult, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { candidateBoundsFromSource, deriveOcrFieldDecisions, digits, findLocalGeometry, normalizeComparable, OCR_MISSING_FIELD_WARNING, type InvoiceOcrResult, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { AMOUNT_ADJUSTMENT_TOLERANCE } from "@/lib/vat";
 import type { InvoiceInput } from "@/types/invoice";
 
@@ -134,6 +134,8 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
           method: source?.method ?? "ai",
           confidence: source?.confidence ?? null,
           role: source?.role ?? (field.startsWith("counterparty_") ? "counterparty" : "document"),
+          // `source` is the reading of this very value, so its box is too.
+          ...(source ? candidateBoundsFromSource(source) : {}),
         });
         conflictingCandidates[field] = [candidate(localValue, local.field_sources[field]), candidate(aiValue, ai.field_sources[field])];
         (invoice as unknown as Record<OcrFieldName, string | number>)[field] = NUMERIC_FIELDS.has(field) ? 0 : "";
@@ -171,7 +173,21 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
       // that condition (e.g. "AI nerozpoznala..." doesn't apply here since
       // AI DID find it, but no independent corroboration exists either).
       (invoice as unknown as Record<OcrFieldName, string | number>)[field] = aiValue;
-      if (ai.field_sources[field]) fieldSources[field] = ai.field_sources[field];
+      const aiSource = ai.field_sources[field];
+      if (aiSource) {
+        // The local parser may still have seen exactly this value (e.g. as one
+        // of several candidates it would not pick alone). Its position is then
+        // where the value sits in the document; the method stays "ai" because
+        // the AI is what chose it. A different local value lends nothing.
+        const geometry = findLocalGeometry(field, aiValue, {
+          source: local.field_sources[field],
+          sourceValue: localValue,
+          candidates: local.field_decisions[field]?.candidates ?? [],
+        });
+        fieldSources[field] = geometry
+          ? { ...aiSource, page: geometry.page, line: geometry.line, text: geometry.text, bounds: geometry.bounds }
+          : aiSource;
+      }
       outcome[field] = "ai_only";
     }
     // else: local-only or neither -- keep local's value/absence as-is. Local

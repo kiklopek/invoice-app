@@ -154,6 +154,30 @@ Ce1kem k uhrade: 1 210,00 Kč
     expect(needsOcrAiReview(result)).toBe(true);
   });
 
+  it("candidates found by the local parser carry the page and box of their own document line", () => {
+    const text = `FAKTURA\nOdběratel\nDvě identity s.r.o.\nIČO: 64259374\nIČO: 11764139\nE-mail: audit@example.cz\nČíslo faktury: FV-2\nDatum vystavení: 1. 9. 2026\nDatum splatnosti: 15. 9. 2026\nCelkem k úhradě: 100 Kč`;
+    const lines = text.split("\n");
+    const layout: OcrDocumentLayout = {
+      pages: [{
+        page: 2, width: 600, height: 800,
+        lines: lines.map((line, index) => ({
+          page: 2, line: index + 1, text: line, source: "pdf_text" as const, confidence: null,
+          bounds: { x: 0.1, y: 0.05 + index * 0.03, width: 0.4, height: 0.02 },
+          blocks: [{ text: line, confidence: null, x: 0.1, y: 0.05 + index * 0.03, width: 0.4, height: 0.02 }],
+        })),
+      }],
+    };
+    const result = parseInvoiceText({ text, fileUrl: "org/ambiguous.pdf", organization, layout });
+    const candidates = result.field_decisions.counterparty_ico?.candidates ?? [];
+    expect(candidates.map(candidate => candidate.value)).toEqual(["64259374", "11764139"]);
+    // Each IČO points at ITS OWN line, not at the other one.
+    expect(candidates[0]).toMatchObject({ page: 2, bounds: { x: 0.1, y: 0.05 + 3 * 0.03, width: 0.4, height: 0.02 } });
+    expect(candidates[1]).toMatchObject({ page: 2, bounds: { x: 0.1, y: 0.05 + 4 * 0.03, width: 0.4, height: 0.02 } });
+    // A field with one source carries that source's box on its candidate too.
+    expect(result.field_decisions.invoice_number?.candidates[0]).toMatchObject({ page: 2, bounds: result.field_sources.invoice_number?.bounds });
+    expect(result.field_sources.invoice_number?.bounds).not.toBeNull();
+  });
+
   it("disables only the usage quota when the organization limit is null", () => {
     expect(isOcrHourlyQuotaExceeded(null, 100_000)).toBe(false);
     expect(isOcrHourlyQuotaExceeded(20, 19)).toBe(false);

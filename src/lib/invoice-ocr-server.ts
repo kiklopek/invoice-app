@@ -58,6 +58,18 @@ async function withDeadline<T>(promise: Promise<T>, deadline: number): Promise<T
   }
 }
 
+// White margins added around the image so Tesseract sees text away from the
+// edge. Boxes must be normalised against the image WITHOUT them -- that is
+// the image the browser shows (EXIF rotation applied, like .rotate() here).
+const STANDARD_OCR_PAD = 18;
+const ENHANCED_OCR_PAD = 24;
+const DETAIL_OCR_PAD = 24;
+
+// How pixel coordinates of an image Tesseract read map onto the displayed
+// document: normalised = (pixel + offset) / size, offset removing any padding
+// and crop origin, size being the unpadded document image.
+export type OcrImageFrame = { offsetX: number; offsetY: number; width: number; height: number };
+
 async function preprocessImage(bytes: Uint8Array) {
   const input = sharp(bytes, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS });
   const metadata = await input.metadata();
@@ -82,21 +94,30 @@ async function preprocessImage(bytes: Uint8Array) {
     .grayscale()
     .normalize()
     .sharpen({ sigma: 1 })
-    .extend({ top: 18, bottom: 18, left: 18, right: 18, background: "#ffffff" })
+    .extend({ top: STANDARD_OCR_PAD, bottom: STANDARD_OCR_PAD, left: STANDARD_OCR_PAD, right: STANDARD_OCR_PAD, background: "#ffffff" })
     .png({ compressionLevel: 6 })
     .toBuffer();
-  const standardMetadata = await sharp(standard).metadata();
+  const [normalizedMetadata, standardMetadata] = await Promise.all([sharp(normalized).metadata(), sharp(standard).metadata()]);
+  const width = standardMetadata.width ?? targetWidth + 2 * STANDARD_OCR_PAD;
+  const height = standardMetadata.height ?? 3600 + 2 * STANDARD_OCR_PAD;
+  const contentWidth = normalizedMetadata.width ?? width - 2 * STANDARD_OCR_PAD;
+  const contentHeight = normalizedMetadata.height ?? height - 2 * STANDARD_OCR_PAD;
+  const frame = (pad: number): OcrImageFrame => ({ offsetX: -pad, offsetY: -pad, width: contentWidth, height: contentHeight });
 
   return {
     standard: new Uint8Array(standard),
-    width: standardMetadata.width ?? targetWidth,
-    height: standardMetadata.height ?? 3600,
+    width,
+    height,
+    contentWidth,
+    contentHeight,
+    standardFrame: frame(STANDARD_OCR_PAD),
+    enhancedFrame: frame(ENHANCED_OCR_PAD),
     enhanced: async () => new Uint8Array(await sharp(normalized, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
       .grayscale()
       .clahe({ width: 4, height: 4, maxSlope: 3 })
       .sharpen({ sigma: 1.2 })
       .threshold(180)
-      .extend({ top: 24, bottom: 24, left: 24, right: 24, background: "#ffffff" })
+      .extend({ top: ENHANCED_OCR_PAD, bottom: ENHANCED_OCR_PAD, left: ENHANCED_OCR_PAD, right: ENHANCED_OCR_PAD, background: "#ffffff" })
       .png({ compressionLevel: 6 })
       .toBuffer()),
   };
@@ -135,19 +156,50 @@ function unionBounds(blocks: OcrLayoutLine["blocks"]) {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
-export function layoutPdfPage(items: PdfTextItem[], page: number, pageWidth: number, pageHeight: number) {
+// Maps a text item into the coordinates of the page AS DISPLAYED (pdfjs
+// viewport: /Rotate applied, MediaBox/CropBox origin removed, y downwards).
+// Without this, a rotated page or a MediaBox not starting at 0,0 produced
+// boxes somewhere else than the text the browser shows.
+function viewportBox(item: PdfTextItem, viewportTransform: number[]) {
+  const [a, b, c, d, e, f] = item.transform;
+  const advanceScale = Math.hypot(a, b);
+  const fontScale = Math.hypot(c, d);
+  const width = Math.max(1, item.width ?? item.str.length * Math.max(4, (advanceScale || 8) * 0.5));
+  const height = Math.max(1, item.height ?? (fontScale || 10));
+  // Text run direction and "up" direction in PDF user space.
+  const [dirX, dirY] = advanceScale ? [a / advanceScale, b / advanceScale] : [1, 0];
+  const [upX, upY] = fontScale ? [c / fontScale, d / fontScale] : [0, 1];
+  const [va, vb, vc, vd, ve, vf] = viewportTransform;
+  const toViewport = (x: number, y: number) => [va * x + vc * y + ve, vb * x + vd * y + vf] as const;
+  const corners = [
+    toViewport(e, f),
+    toViewport(e + dirX * width, f + dirY * width),
+    toViewport(e + upX * height, f + upY * height),
+    toViewport(e + dirX * width + upX * height, f + dirY * width + upY * height),
+  ];
+  const xs = corners.map(([x]) => x);
+  const ys = corners.map(([, y]) => y);
+  const [baselineX, baselineY] = corners[0];
+  return { baselineX, baselineY, left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) };
+}
+
+// `pageWidth`/`pageHeight` are the viewport (displayed) size and
+// `viewportTransform` the pdfjs viewport.transform at the same scale. Without
+// a transform the page is taken as unrotated with its origin at 0,0.
+export function layoutPdfPage(items: PdfTextItem[], page: number, pageWidth: number, pageHeight: number, viewportTransform?: number[]) {
   const safeWidth = Math.max(1, pageWidth);
   const safeHeight = Math.max(1, pageHeight);
+  const transform = viewportTransform && viewportTransform.length >= 6 && viewportTransform.slice(0, 6).every(Number.isFinite)
+    ? viewportTransform
+    : [1, 0, 0, -1, 0, pageHeight];
   const positioned = items
     .filter(item => item.str.trim() && item.transform.length >= 6)
-    .map(item => ({
-      text: item.str.trim(),
-      x: item.transform[4],
-      y: item.transform[5],
-      width: Math.max(1, item.width ?? item.str.length * Math.max(4, Math.abs(item.transform[0] ?? 8) * 0.5)),
-      height: Math.max(1, item.height ?? Math.abs(item.transform[3] ?? 10)),
-    }))
-    .sort((left, right) => Math.abs(right.y - left.y) <= 4 ? left.x - right.x : right.y - left.y);
+    .map(item => {
+      const box = viewportBox(item, transform);
+      // y grows downwards here (viewport), so reading order is ascending y.
+      return { text: item.str.trim(), x: box.left, y: box.baselineY, box };
+    })
+    .sort((left, right) => Math.abs(right.y - left.y) <= 4 ? left.x - right.x : left.y - right.y);
   const grouped: Array<{ y: number; items: typeof positioned }> = [];
 
   for (const item of positioned) {
@@ -160,14 +212,14 @@ export function layoutPdfPage(items: PdfTextItem[], page: number, pageWidth: num
     }
   }
 
-  const lines = grouped.sort((left, right) => right.y - left.y).map((line, index): OcrLayoutLine => {
+  const lines = grouped.sort((left, right) => left.y - right.y).map((line, index): OcrLayoutLine => {
     const blocks = line.items.sort((left, right) => left.x - right.x).map(item => ({
       text: item.text,
       confidence: null,
-      x: item.x / safeWidth,
-      y: Math.max(0, (safeHeight - item.y - item.height) / safeHeight),
-      width: Math.min(1, item.width / safeWidth),
-      height: Math.min(1, item.height / safeHeight),
+      x: Math.max(0, item.box.left / safeWidth),
+      y: Math.max(0, item.box.top / safeHeight),
+      width: Math.min(1, (item.box.right - item.box.left) / safeWidth),
+      height: Math.min(1, (item.box.bottom - item.box.top) / safeHeight),
     }));
     return {
       page,
@@ -196,30 +248,44 @@ async function extractPdfPagesWithLayout(pdf: Awaited<ReturnType<typeof getDocum
     const items: PdfTextItem[] = content.items.flatMap(item => "str" in item && "transform" in item
       ? [{ str: item.str, transform: Array.from(item.transform), width: item.width, height: item.height }]
       : []);
-    pages.push(layoutPdfPage(items, pageNumber, viewport.width, viewport.height));
+    pages.push(layoutPdfPage(items, pageNumber, viewport.width, viewport.height, Array.from(viewport.transform)));
   }
   return pages;
 }
 
-function layoutOcrPage(
-  data: Awaited<ReturnType<Worker["recognize"]>>["data"],
+type OcrPixelBox = { x0: number; y0: number; x1: number; y1: number };
+type OcrRecognizedLine = { text: string; confidence: number; bbox: OcrPixelBox; words: Array<{ text: string; confidence: number; bbox: OcrPixelBox }> };
+
+// Pixel box of the image Tesseract read -> normalised box on the displayed
+// document, clipped to the page (padding is blank, nothing real lies there).
+function frameBox(bbox: OcrPixelBox, frame: OcrImageFrame) {
+  const width = Math.max(1, frame.width);
+  const height = Math.max(1, frame.height);
+  const clamp = (value: number) => Math.max(0, Math.min(1, value));
+  const left = clamp((bbox.x0 + frame.offsetX) / width);
+  const top = clamp((bbox.y0 + frame.offsetY) / height);
+  const right = clamp((bbox.x1 + frame.offsetX) / width);
+  const bottom = clamp((bbox.y1 + frame.offsetY) / height);
+  return { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}
+
+export function layoutOcrPage(
+  data: { text: string; confidence: number; blocks?: Array<{ paragraphs: Array<{ lines: OcrRecognizedLine[] }> }> | null },
   page: number,
-  width: number,
-  height: number,
+  frame: OcrImageFrame,
   startLine = 1,
-  crop?: { left: number; top: number; fullWidth: number; fullHeight: number },
 ) {
-  const fullWidth = Math.max(1, crop?.fullWidth ?? width);
-  const fullHeight = Math.max(1, crop?.fullHeight ?? height);
-  const leftOffset = crop?.left ?? 0;
-  const topOffset = crop?.top ?? 0;
   const recognizedLines = data.blocks?.flatMap(block => block.paragraphs.flatMap(paragraph => paragraph.lines)) ?? [];
-  const sourceLines = recognizedLines.length
+  // Without Tesseract's line structure the positions below are invented
+  // (evenly spaced rows), so such lines get no bounds -- the preview must
+  // never highlight a guess. The parser still gets its blocks as before.
+  const positionsKnown = recognizedLines.length > 0;
+  const sourceLines: OcrRecognizedLine[] = positionsKnown
     ? recognizedLines.map(line => ({ text: line.text, confidence: line.confidence, bbox: line.bbox, words: line.words }))
     : normalizeOcrText(data.text).split("\n").filter(Boolean).map((text, index) => ({
         text,
         confidence: data.confidence,
-        bbox: { x0: 0, y0: index * 20, x1: width, y1: (index + 1) * 20 },
+        bbox: { x0: -frame.offsetX, y0: index * 20 - frame.offsetY, x1: frame.width - frame.offsetX, y1: (index + 1) * 20 - frame.offsetY },
         words: [],
       }));
 
@@ -227,17 +293,11 @@ function layoutOcrPage(
     const blocks = line.words.length ? line.words.map(word => ({
       text: word.text,
       confidence: word.confidence,
-      x: (leftOffset + word.bbox.x0) / fullWidth,
-      y: (topOffset + word.bbox.y0) / fullHeight,
-      width: (word.bbox.x1 - word.bbox.x0) / fullWidth,
-      height: (word.bbox.y1 - word.bbox.y0) / fullHeight,
+      ...frameBox(word.bbox, frame),
     })) : [{
       text: normalizeOcrText(line.text),
       confidence: line.confidence,
-      x: (leftOffset + line.bbox.x0) / fullWidth,
-      y: (topOffset + line.bbox.y0) / fullHeight,
-      width: (line.bbox.x1 - line.bbox.x0) / fullWidth,
-      height: (line.bbox.y1 - line.bbox.y0) / fullHeight,
+      ...frameBox(line.bbox, frame),
     }];
     return {
       page,
@@ -245,7 +305,7 @@ function layoutOcrPage(
       text: normalizeOcrText(line.text),
       source: "ocr",
       confidence: line.confidence,
-      bounds: unionBounds(blocks),
+      bounds: positionsKnown ? unionBounds(blocks) : null,
       blocks,
     };
   });
@@ -303,6 +363,7 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
       const preprocessed = await withDeadline(preprocessImage(image), deadline);
       let result = await withDeadline(worker.recognize(Buffer.from(preprocessed.standard), { rotateAuto: true }, { text: true, blocks: true }), deadline);
       let confidence = Number.isFinite(result.data.confidence) ? result.data.confidence : 0;
+      let resultFrame = preprocessed.standardFrame;
 
       if (needsEnhancedPass(result.data.text, confidence) && deadline - Date.now() >= MIN_ENHANCED_PASS_TIME_MS) {
         const enhanced = await withDeadline(preprocessed.enhanced(), deadline);
@@ -313,14 +374,15 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
         if (textQuality(enhancedResult.data.text, enhancedConfidence) > textQuality(result.data.text, confidence)) {
           result = enhancedResult;
           confidence = enhancedConfidence;
+          resultFrame = preprocessed.enhancedFrame;
           enhancedPasses += 1;
         }
       }
 
       texts.push(result.data.text);
       if (Number.isFinite(confidence)) confidences.push(confidence);
-      const pageLines = layoutOcrPage(result.data, pageNumber, preprocessed.width, preprocessed.height);
-      layoutPages.push({ page: pageNumber, width: preprocessed.width, height: preprocessed.height, lines: pageLines });
+      const pageLines = layoutOcrPage(result.data, pageNumber, resultFrame);
+      layoutPages.push({ page: pageNumber, width: preprocessed.contentWidth, height: preprocessed.contentHeight, lines: pageLines });
 
       if (includeCounterpartyDetail && images.length === 1) {
         const metadata = await withDeadline(sharp(preprocessed.standard).metadata(), deadline);
@@ -330,18 +392,20 @@ async function recognizeImages(images: Uint8Array[], deadline: number, includeCo
           const left = Math.floor(width * 0.42);
           const detail = await withDeadline(sharp(preprocessed.standard)
             .extract({ left, top: 0, width: width - left, height: Math.floor(height * 0.62) })
-            .extend({ top: 24, bottom: 24, left: 24, right: 24, background: "#ffffff" })
+            .extend({ top: DETAIL_OCR_PAD, bottom: DETAIL_OCR_PAD, left: DETAIL_OCR_PAD, right: DETAIL_OCR_PAD, background: "#ffffff" })
             .png({ compressionLevel: 6 })
             .toBuffer(), deadline);
           const detailResult = await withDeadline(worker.recognize(detail, { rotateAuto: false }, { text: true, blocks: true }), deadline);
           texts.push(`ODBĚRATEL DETAIL\n${detailResult.data.text}`);
           if (Number.isFinite(detailResult.data.confidence)) confidences.push(detailResult.data.confidence);
-          pageLines.push(...layoutOcrPage(detailResult.data, pageNumber, width - left + 48, Math.floor(height * 0.62) + 48, pageLines.length + 1, {
-            left: Math.max(0, left - 24),
-            top: 0,
-            fullWidth: width,
-            fullHeight: height,
-          }));
+          // Detail pixel -> padded standard image (crop origin, minus the
+          // detail pad) -> document image (minus the standard pad).
+          pageLines.push(...layoutOcrPage(detailResult.data, pageNumber, {
+            offsetX: left - DETAIL_OCR_PAD - STANDARD_OCR_PAD,
+            offsetY: -DETAIL_OCR_PAD - STANDARD_OCR_PAD,
+            width: preprocessed.contentWidth,
+            height: preprocessed.contentHeight,
+          }, pageLines.length + 1));
         }
       }
     }

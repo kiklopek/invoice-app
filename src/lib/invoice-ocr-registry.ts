@@ -5,6 +5,7 @@ import type { Database } from "@/types/database";
 import {
   deriveOcrFieldDecisions,
   digits,
+  findLocalGeometry,
   isValidCzSkIco,
   normalizeComparable,
   type InvoiceOcrResult,
@@ -26,6 +27,8 @@ type RegistryResult = {
 
 function rejectedIdentityCandidate(result: InvoiceOcrResult, field: "counterparty_ico" | "counterparty_dic" | "counterparty_name", value: string) {
   const source = result.field_sources[field];
+  // The box is kept only when the source really is the reading of `value`.
+  const geometry = findLocalGeometry(field, value, { source, sourceValue: result.invoice[field] ?? "" });
   return {
     value,
     page: source?.page ?? 1,
@@ -33,6 +36,7 @@ function rejectedIdentityCandidate(result: InvoiceOcrResult, field: "counterpart
     method: source?.method ?? "ocr" as const,
     confidence: source?.confidence ?? null,
     role: source?.role ?? "counterparty" as const,
+    ...(geometry ? { bounds: geometry.bounds } : {}),
   };
 }
 

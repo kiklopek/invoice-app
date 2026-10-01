@@ -110,3 +110,100 @@ describe("kontroly nad výsledkem", () => {
     expect(applyOcrConsistencyChecks(result("ai", { counterparty_dic: "CZ7901011239" }), organization).invoice.counterparty_dic).toBe("CZ7901011239");
   });
 });
+
+describe("geometrie zdroje pro zvýraznění v náhledu dokladu", () => {
+  const box = (y: number) => ({ x: 0.12, y, width: 0.3, height: 0.015 });
+  // Lokální čtení, u kterého každé pole leží na vlastním řádku stránky 2.
+  function localWithBounds(overrides: Partial<InvoiceInput> = {}) {
+    const local = result("pdf_text", overrides);
+    let y = 0.1;
+    for (const field of Object.keys(local.field_sources) as OcrFieldName[]) {
+      local.field_sources[field] = { ...local.field_sources[field]!, page: 2, line: Math.round(y * 100), text: `řádek ${field}`, bounds: box(y) };
+      y += 0.03;
+    }
+    local.field_decisions = deriveOcrFieldDecisions(local.invoice, local.field_sources, []);
+    return local;
+  }
+
+  it("QR potvrdí stejnou částku: zdroj zůstane QR, ale převezme stránku a box lokálního řádku", () => {
+    const local = localWithBounds();
+    const merged = mergeOcrSources({ local, exact: [qr({ amount: 123100.2, variable_symbol: "1443260157" })], organization });
+    for (const field of ["amount", "variable_symbol"] as const) {
+      expect(merged.field_sources[field]).toMatchObject({
+        method: "qr", page: 2, line: local.field_sources[field]!.line, text: local.field_sources[field]!.text, bounds: local.field_sources[field]!.bounds,
+      });
+      expect(merged.field_decisions[field]?.candidates[0]).toMatchObject({ method: "qr", page: 2, bounds: local.field_sources[field]!.bounds });
+    }
+    expect(merged.field_decisions.amount?.status).toBe("verified");
+  });
+
+  it("ISDOC se stejným datem, IČO a jménem v jiném zápisu převezme box lokálního řádku", () => {
+    const local = localWithBounds();
+    const merged = mergeOcrSources({ local, exact: [isdoc({ due_date: "2026-09-23", counterparty_ico: "46 69 20 11", counterparty_name: "Timber & Pulp A.S." })], organization });
+    expect(merged.field_sources.due_date).toMatchObject({ method: "isdoc", page: 2, bounds: local.field_sources.due_date!.bounds });
+    expect(merged.field_sources.counterparty_ico).toMatchObject({ method: "isdoc", page: 2, bounds: local.field_sources.counterparty_ico!.bounds });
+    expect(merged.field_sources.counterparty_name).toMatchObject({ method: "isdoc", page: 2, bounds: local.field_sources.counterparty_name!.bounds });
+  });
+
+  it("částka v toleranci, ale jiná v haléřích: box se NEpůjčí, ukazoval by jiné číslo", () => {
+    const local = localWithBounds();
+    const merged = mergeOcrSources({ local, exact: [isdoc({ amount: 123100.24 })], organization });
+    // Hodnotové chování zůstává, jak bylo (tolerance pro shodu zdrojů).
+    expect(merged.invoice.amount).toBe(123100.24);
+    expect(merged.field_sources.amount).toMatchObject({ method: "isdoc", bounds: null });
+    expect(merged.field_decisions.amount?.candidates[0].bounds ?? null).toBeNull();
+  });
+
+  it("dopočtené lokální pole box nepůjčí -- leží na řádku jiné hodnoty", () => {
+    const local = localWithBounds();
+    local.field_sources.amount_without_vat = { ...local.field_sources.amount!, method: "derived" };
+    local.field_decisions = deriveOcrFieldDecisions(local.invoice, local.field_sources, []);
+    expect(local.field_decisions.amount_without_vat?.candidates[0].bounds).toBeUndefined();
+    const merged = mergeOcrSources({ local, exact: [isdoc({ amount_without_vat: 101735.7 })], organization });
+    expect(merged.field_sources.amount_without_vat).toMatchObject({ method: "isdoc", bounds: null });
+  });
+
+  it("rozpor zdrojů: box dostane jen kandidát se stejnou hodnotou jako lokální řádek", () => {
+    const local = localWithBounds();
+    const merged = mergeOcrSources({ local, exact: [isdoc({ amount: 123100.2 }), qr({ amount: 123000 })], organization });
+    const candidates = merged.field_decisions.amount?.candidates ?? [];
+    expect(candidates.map(candidate => [candidate.method, candidate.value, candidate.bounds ?? null])).toEqual([
+      ["isdoc", 123100.2, local.field_sources.amount!.bounds],
+      ["qr", 123000, null],
+      ["pdf_text", 123100.2, local.field_sources.amount!.bounds],
+    ]);
+    expect(candidates.filter(candidate => candidate.bounds).every(candidate => candidate.page === 2)).toBe(true);
+  });
+
+  it("AI shodná s lokálním čtením a QR: box lokálního řádku projde celým řetězcem", () => {
+    const local = localWithBounds();
+    const merged = mergeOcrSources({ local, ai: result("ai"), exact: [qr({ amount: 123100.2 })], organization });
+    expect(merged.field_sources.amount).toMatchObject({ method: "qr", page: 2, bounds: local.field_sources.amount!.bounds });
+  });
+
+  it("AI vyplní pole, které lokální parser nabídl jen jako kandidáta: převezme jeho box, metoda zůstane AI", () => {
+    const local = localWithBounds({ counterparty_ico: "" });
+    delete local.field_sources.counterparty_ico;
+    local.field_decisions = deriveOcrFieldDecisions(local.invoice, local.field_sources, []);
+    local.field_decisions.counterparty_ico = {
+      status: "review", confidence: 0.4, reasons: ["V potvrzené sekci odběratele bylo nalezeno více možných hodnot."],
+      candidates: [
+        { value: "46692011", page: 3, text: "IČO: 46692011", method: "pdf_text", confidence: null, role: "counterparty", bounds: box(0.5) },
+        { value: "27182818", page: 3, text: "IČO: 27182818", method: "pdf_text", confidence: null, role: "counterparty", bounds: box(0.6) },
+      ],
+    };
+    const merged = mergeOcrSources({ local, ai: result("ai"), organization });
+    expect(merged.invoice.counterparty_ico).toBe("46692011");
+    expect(merged.field_sources.counterparty_ico).toMatchObject({ method: "ai", page: 3, bounds: box(0.5) });
+  });
+
+  it("AI přebije lokální hodnotu, která se liší: box lokálního řádku se nepůjčí", () => {
+    const local = localWithBounds({ counterparty_email: "ucetni@timber-pulp.cz" });
+    local.field_sources.counterparty_email = { page: 2, line: 9, text: "ucetni@timber-pulp.cz", method: "pdf_text", confidence: 0.5, bounds: box(0.9), role: "counterparty" };
+    const ai = result("ai", { counterparty_email: "faktury@timber-pulp.cz" });
+    ai.field_sources.counterparty_email = { page: 1, line: 0, text: "faktury@timber-pulp.cz", method: "ai", confidence: 0.65, bounds: null, role: "counterparty" };
+    const merged = mergeOcrSources({ local, ai, organization });
+    expect(merged.invoice.counterparty_email).toBe("faktury@timber-pulp.cz");
+    expect(merged.field_sources.counterparty_email).toMatchObject({ method: "ai", bounds: null });
+  });
+});

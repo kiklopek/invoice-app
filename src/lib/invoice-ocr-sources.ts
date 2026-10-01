@@ -1,7 +1,9 @@
 import "server-only";
 
 import {
+  candidateBoundsFromSource,
   digits,
+  findLocalGeometry,
   isValidCzSkIco,
   normalizeComparable,
   type InvoiceOcrOrganization,
@@ -116,14 +118,18 @@ export function ocrValuesAgree(field: OcrFieldName, left: string | number, right
   }
 }
 
+// `source` must be the source OF `value` (its box then points at this value).
 function candidateFrom(field: OcrFieldName, value: string | number, source: Partial<OcrFieldSource> & { method: OcrFieldSource["method"] }): OcrFieldCandidate {
+  const page = source.page ?? 1;
+  const text = source.text ?? String(value);
   return {
     value,
-    page: source.page ?? 1,
-    text: source.text ?? String(value),
+    page,
+    text,
     method: source.method,
     confidence: source.confidence ?? null,
     role: source.role ?? (field.startsWith("counterparty_") ? "counterparty" : "document"),
+    ...candidateBoundsFromSource({ page, text, method: source.method, bounds: source.bounds ?? null }),
   };
 }
 
@@ -189,11 +195,25 @@ export function applyExactSources(base: InvoiceOcrResult, readings: ExactSourceR
     const priorConflict = !basePresent && baseDecision?.status === "review"
       && baseDecision.candidates.some(candidate => !ocrValuesAgree(field, candidate.value, primary.value));
 
-    const exactCandidates = exact.map(entry => candidateFrom(field, entry.value, {
-      method: entry.reading.method,
-      text: entry.reading.evidence?.[field] ?? `${entry.reading.label}: ${entry.value}`,
-      confidence: 0.99,
-    }));
+    // Where the document itself shows a value: the local reading of exactly
+    // that value (the field's source, or a candidate the parser offered).
+    const localGeometry = (value: string | number) => findLocalGeometry(field, value, {
+      source: basePresent ? base.field_sources[field] : undefined,
+      sourceValue: basePresent ? baseValue : undefined,
+      candidates: baseDecision?.candidates ?? [],
+    });
+    const exactCandidates = exact.map(entry => {
+      const geometry = localGeometry(entry.value);
+      return {
+        ...candidateFrom(field, entry.value, {
+          method: entry.reading.method,
+          text: entry.reading.evidence?.[field] ?? `${entry.reading.label}: ${entry.value}`,
+          confidence: 0.99,
+        }),
+        // Evidence text stays the exact source's; page + box are the document's.
+        ...(geometry ? { page: geometry.page, bounds: geometry.bounds } : {}),
+      };
+    });
 
     if (exactConflict || baseConflict || priorConflict) {
       const baseCandidates = basePresent
@@ -220,13 +240,16 @@ export function applyExactSources(base: InvoiceOcrResult, readings: ExactSourceR
       && !ocrValuesAgree(field, baseValue, primary.value);
     const value = confirmsRemainderOnly ? baseValue : field === "currency" ? String(primary.value).toUpperCase() : primary.value;
     writeField(result, field, value);
+    // The method stays the exact source (that is where the value comes from);
+    // the document line that shows the SAME value only lends its position.
+    const geometry = localGeometry(value);
     const source: OcrFieldSource = {
-      page: 1,
-      line: 0,
-      text: exactCandidates[0].text.slice(0, 240),
+      page: geometry?.page ?? 1,
+      line: geometry?.line ?? 0,
+      text: (geometry?.text ?? exactCandidates[0].text).slice(0, 240),
       method: primary.reading.method,
       confidence: 0.99,
-      bounds: null,
+      bounds: geometry?.bounds ?? null,
       role: field.startsWith("counterparty_") ? "counterparty" : "document",
     };
     result.field_sources[field] = source;

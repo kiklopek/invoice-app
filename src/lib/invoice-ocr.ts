@@ -78,6 +78,11 @@ export type OcrFieldCandidate = {
   method: OcrFieldSource["method"];
   confidence: number | null;
   role: "counterparty" | "issuer" | "document" | "unknown";
+  // Where on `page` this exact value sits (normalised 0..1, top-left origin),
+  // when the app's own parser found it in the document. Absent for values
+  // only an external source knows (ISDOC/QR/ARES/AI without a matching
+  // local reading) -- never a guess.
+  bounds?: OcrBoundingBox | null;
 };
 
 export type OcrFieldDecision = {
@@ -1053,6 +1058,86 @@ function hasOcrFieldValue(invoice: InvoiceInput, field: OcrFieldName, source?: O
   return typeof value === "number" ? value > 0 : Boolean(value?.trim());
 }
 
+// --- Geometry hand-over -----------------------------------------------------
+// The import screen highlights WHERE in the document a field's value sits.
+// Only the app's own parser knows that (layout lines with bounds). When a more
+// precise source (ISDOC, QR, ARES, AI) supplies the winning value, the box of
+// the local reading may be reused -- but ONLY if it is the very same value.
+// Value equality for agreement between sources (ocrValuesAgree) is looser on
+// purpose (money tolerance, fuzzy company names); a box borrowed through that
+// looser rule could highlight a different number than the one in the form.
+// This module never changes a value, only where a value is shown.
+
+export function ocrValuesIdenticalForGeometry(field: OcrFieldName, left: string | number, right: string | number): boolean {
+  if (field === "amount" || field === "amount_without_vat" || field === "vat_rate") {
+    const a = Number(left);
+    const b = Number(right);
+    return Number.isFinite(a) && Number.isFinite(b) && Math.round(a * 100) === Math.round(b * 100);
+  }
+  const a = String(left).trim();
+  const b = String(right).trim();
+  if (!a || !b) return false;
+  switch (field) {
+    case "issue_date":
+    case "due_date":
+      return isIsoDate(a) && a === b;
+    case "counterparty_ico":
+      return digits(a).length > 0 && digits(a) === digits(b) && !/[a-z]/i.test(a + b);
+    case "variable_symbol": {
+      const compactA = a.replace(/\s/g, "");
+      const compactB = b.replace(/\s/g, "");
+      if (/^\d+$/.test(compactA) && /^\d+$/.test(compactB)) return compactA.replace(/^0+/, "") === compactB.replace(/^0+/, "");
+      return compactA === compactB;
+    }
+    case "counterparty_dic":
+      return a.replace(/[\s-]/g, "").toUpperCase() === b.replace(/[\s-]/g, "").toUpperCase();
+    case "counterparty_email":
+      return a.toLowerCase() === b.toLowerCase();
+    case "currency":
+      return a.toUpperCase() === b.toUpperCase();
+    default: {
+      const comparableA = normalizeComparable(a);
+      return comparableA.length > 0 && comparableA === normalizeComparable(b);
+    }
+  }
+}
+
+export type OcrLocalGeometry = { page: number; line: number; text: string; bounds: OcrBoundingBox };
+
+// A box is only trusted when it was matched to this value itself. A "derived"
+// source points at the line of a DIFFERENT value it was computed from (e.g.
+// the net amount derived from the gross line), so it never lends its box.
+function geometryOf(entry: { page: number; text: string; method: OcrFieldSource["method"]; bounds?: OcrBoundingBox | null; line?: number }): OcrLocalGeometry | null {
+  if (!entry.bounds || entry.method === "derived") return null;
+  return { page: entry.page, line: entry.line ?? 0, text: entry.text, bounds: { ...entry.bounds } };
+}
+
+// Finds the local reading of exactly `value` -- first the field's own source
+// (whose value is `sourceValue`), then any candidate the parser offered.
+export function findLocalGeometry(
+  field: OcrFieldName,
+  value: string | number,
+  { source, sourceValue, candidates = [] }: { source?: OcrFieldSource; sourceValue?: string | number; candidates?: OcrFieldCandidate[] },
+): OcrLocalGeometry | null {
+  if (source && sourceValue !== undefined && ocrValuesIdenticalForGeometry(field, sourceValue, value)) {
+    const geometry = geometryOf(source);
+    if (geometry) return geometry;
+  }
+  for (const candidate of candidates) {
+    if (!ocrValuesIdenticalForGeometry(field, candidate.value, value)) continue;
+    const geometry = geometryOf(candidate);
+    if (geometry) return geometry;
+  }
+  return null;
+}
+
+// Candidate built from the source of its own value: carries that source's box
+// (page and bounds always travel together). Key omitted when there is none.
+export function candidateBoundsFromSource(source: Pick<OcrFieldSource, "page" | "text" | "method" | "bounds"> | undefined): { bounds?: OcrBoundingBox } {
+  const geometry = source ? geometryOf(source) : null;
+  return geometry ? { bounds: geometry.bounds } : {};
+}
+
 export function isValidCzSkIco(value: string | null | undefined) {
   const normalized = digits(value ?? "");
   if (!/^\d{8}$/.test(normalized)) return false;
@@ -1095,6 +1180,7 @@ export function deriveOcrFieldDecisions(
       method: source.method,
       confidence: source.confidence,
       role: source.role ?? (field.startsWith("counterparty_") ? "counterparty" : "document"),
+      ...candidateBoundsFromSource(source),
     }] : [];
     return [field, {
       status,
@@ -1368,6 +1454,8 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
           method: source?.method ?? "ocr",
           confidence: source?.confidence ?? null,
           role: "counterparty" as const,
+          // bestSource only returns a line that contains this very value.
+          ...candidateBoundsFromSource(source ?? undefined),
         };
       }),
     };
