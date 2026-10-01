@@ -15,6 +15,8 @@ const customersPage = source("src/app/(workspace)/customers/customers-client.tsx
 const czechUiSources = [
   "src/components/layout/app-shell.tsx",
   "src/components/invoice-form.tsx",
+  "src/components/document-preview.tsx",
+  "src/app/(workspace)/invoices/import/page.tsx",
   "src/app/(workspace)/dashboard/page.tsx",
   "src/app/(workspace)/dashboard/dashboard-client.tsx",
   "src/app/(workspace)/invoices/page.tsx",

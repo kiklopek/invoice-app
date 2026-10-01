@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppFrame } from "@/components/layout/app-shell";
 import { createEmptyInvoice, InvoiceForm } from "@/components/invoice-form";
 import type { InvoiceInput } from "@/types/invoice";
@@ -10,7 +10,9 @@ import { createClient } from "@/lib/supabase-browser";
 import { hasExpectedDocumentSignature, validateDocumentMetadata } from "@/lib/document-validation";
 import { Icon } from "@/components/icons";
 import { useInvalidateWorkspaceData } from "@/lib/workspace-cache";
-import type { InvoiceOcrResult } from "@/lib/invoice-ocr";
+import { DocumentPreview } from "@/components/document-preview";
+import { documentHighlightFor, type DocumentHighlight } from "@/lib/document-locate";
+import type { InvoiceOcrResult, OcrFieldCandidate, OcrFieldName } from "@/lib/invoice-ocr";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 
 // Mirrors the server-side OCR_PROVIDER switch (extract/route.ts). Next.js
@@ -92,6 +94,11 @@ export default function ImportInvoicesPage() {
   const [working, setWorking] = useState(false);
   const [documentStage, setDocumentStage] = useState<DocumentStage>("idle");
   const [message, setMessage] = useState("");
+  // Pole, na které se uživatel právě soustředí; náhled dokladu ukazuje, odkud
+  // aplikace jeho hodnotu vzala. Váže se na konkrétní soubor, takže po přepnutí
+  // dokumentu ve frontě (nebo odebrání jiného) neplatí.
+  const [activeField, setActiveField] = useState<{ file: File; field: OcrFieldName; candidate?: OcrFieldCandidate; reveal: number } | null>(null);
+  const [mobileView, setMobileView] = useState<"data" | "document">("data");
   // Fronta se cte i z asynchronnich callbacku, ktere drzi closure ze
   // starsiho renderu. Driv kvuli tomu create() hledal dalsi nepotvrzenou
   // fakturu ve zastaralem poli: mohl ji nenajit, odejit na /invoices
@@ -106,6 +113,21 @@ export default function ImportInvoicesPage() {
   const active = queue[activeIndex];
   const uploaded = active?.invoice ?? null;
   const ocrInfo = active?.ocrInfo ?? null;
+  const splitMode = mode === "document" && Boolean(uploaded && ocrInfo) && active?.status !== "error" && active?.status !== "processing" && active?.status !== "pending";
+  const documentHighlight = useMemo<DocumentHighlight | null>(() => {
+    if (!splitMode || !active || !uploaded || !activeField || activeField.file !== active.file) return null;
+    const { field, candidate } = activeField;
+    const value = (uploaded as unknown as Partial<Record<OcrFieldName, string | number>>)[field];
+    return documentHighlightFor({ field, value, source: ocrInfo?.field_sources?.[field], candidate });
+  }, [splitMode, active, uploaded, ocrInfo, activeField]);
+  function handleActiveFieldChange(field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { reveal?: boolean }) {
+    const file = active?.file;
+    if (!file || !field) { setActiveField(null); return; }
+    if (options?.reveal) setMobileView("document");
+    setActiveField(current => !options?.reveal && current && current.file === file && current.field === field && current.candidate === candidate
+      ? current
+      : { file, field, candidate, reveal: (current?.reveal ?? 0) + 1 });
+  }
   const savedInvoiceCount = queue.filter(item => item.status === "saved").length;
 
   async function requestExtraction(path: string) {
@@ -264,7 +286,7 @@ export default function ImportInvoicesPage() {
   return <AppFrame>
     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
     <div className="page-tabs invoice-import-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
-    <div className="invoice-import-workspace">
+    <div className={`invoice-import-workspace${splitMode ? " is-split" : ""}`}>
     {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong>{queue.length > 1 && <button type="button" className="btn secondary compact import-cancel" onClick={cancelProcessing}>Zastavit zpracování</button>}</div>}
     {mode === "document" ? (
       queue.length === 0 ? (
@@ -308,7 +330,12 @@ export default function ImportInvoicesPage() {
           </div>
         </section>
       ) : (
-        <>
+        <div className={splitMode ? "invoice-import-split" : "invoice-import-flow"} data-view={splitMode ? mobileView : undefined}>
+          {splitMode && <div className="invoice-import-view-tabs" role="tablist" aria-label="Údaje nebo doklad">
+            <button type="button" role="tab" aria-selected={mobileView === "data"} className={mobileView === "data" ? "active" : ""} onClick={() => setMobileView("data")}>Údaje</button>
+            <button type="button" role="tab" aria-selected={mobileView === "document"} className={mobileView === "document" ? "active" : ""} onClick={() => setMobileView("document")}>Doklad</button>
+          </div>}
+          <div className={splitMode ? "invoice-import-data-column" : "invoice-import-flow"}>
           {queue.length > 1 && (
             <>
               <div className="import-queue-summary" role="status" aria-live="polite">
@@ -333,7 +360,7 @@ export default function ImportInvoicesPage() {
                     aria-selected={index === activeIndex}
                     className={`import-queue-tab ${item.status}${index === activeIndex ? " active" : ""}`}
                     disabled={item.status === "pending" || item.status === "processing"}
-                    onClick={() => setActiveIndex(index)}
+                    onClick={() => { setActiveIndex(index); setActiveField(null); setMobileView("data"); }}
                   >
                     <span>{item.file.name}</span>
                     <small>{item.status === "pending" ? "Čeká" : item.status === "processing" ? "Zpracovávám…" : item.status === "ready" ? "Ke kontrole" : item.status === "saved" ? "Potvrzeno" : "Chyba"}</small>
@@ -367,9 +394,14 @@ export default function ImportInvoicesPage() {
               <div><strong>{ocrInfo ? "Dokument načten" : "Automatické načtení se nezdařilo"}</strong><span>{ocrInfo ? `OCR ${Math.round(ocrInfo.confidence * 100)} % · údaje před uložením zkontrolujte.` : active.error ?? "Dokument je bezpečně uložený. Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>
               {!ocrInfo && <div className="ocr-manual-actions"><button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button><a className="btn secondary compact" href="#manual-invoice-form">Vyplnit ručně</a></div>}
             </div>
-            <div id="manual-invoice-form"><InvoiceForm key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} ocrFieldDecisions={ocrInfo?.field_decisions} ocrWarnings={ocrInfo?.warnings} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
+            <div id="manual-invoice-form"><InvoiceForm onActiveFieldChange={splitMode ? handleActiveFieldChange : undefined} key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} ocrFieldDecisions={ocrInfo?.field_decisions} ocrWarnings={ocrInfo?.warnings} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
           </> : null}
-        </>
+          </div>
+          {splitMode && active && <aside className="invoice-import-preview-column" aria-label="Náhled dokladu">
+            <button type="button" className="btn secondary compact invoice-import-back-to-data" onClick={() => setMobileView("data")}>Zpět k údajům</button>
+            <DocumentPreview file={active.file} highlight={documentHighlight}/>
+          </aside>}
+        </div>
       )
     ) : <section className="page-panel import-panel csv-import-panel">
       <div className="csv-import-grid">

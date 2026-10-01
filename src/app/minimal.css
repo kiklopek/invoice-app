@@ -670,6 +670,65 @@ tr:hover td { background: #fafbf9; }
 .invoice-import-workspace { width: min(100%, 1120px); margin-inline: auto; }
 .invoice-import-workspace .import-panel,
 .invoice-import-workspace .standalone-form { width: 100%; }
+
+/* Import z dokumentu s OCR: údaje vlevo, náhled dokladu vpravo. */
+.invoice-import-workspace.is-split { width: min(100%, 1600px); }
+.invoice-import-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+/* html i body mají globálně overflow-x: hidden, a tím se body stává scroll
+   kontejnerem, který sticky náhled „zamrazí“. clip před vodorovným posunem
+   chrání stejně, ale scroll kontejner nevytváří. */
+html:has(.invoice-import-workspace.is-split), body:has(.invoice-import-workspace.is-split) { overflow-x: clip; }
+.invoice-import-data-column { min-width: 0; }
+.invoice-import-data-column .standalone-form { width: 100%; }
+.invoice-import-preview-column {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+  height: calc(100vh - 32px);
+  height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+.invoice-import-view-tabs, .invoice-import-back-to-data { display: none; }
+.document-preview { display: flex; flex-direction: column; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 8px; background: #fff; overflow: hidden; }
+.document-preview-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: #f7f9f6; font-size: 11px; }
+.document-preview-toolbar strong { flex: 1 1 120px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.document-preview-zoom { display: flex; align-items: center; gap: 6px; }
+.document-preview-zoom > span { min-width: 38px; text-align: center; }
+.document-preview-note { margin: 0; padding: 8px 12px; background: var(--amber-soft); color: var(--amber); font-size: 11px; }
+.document-preview-scroller { flex: 1; min-height: 0; overflow: auto; padding: 12px; background: #e9ece8; }
+.document-preview-state { margin: 24px auto; max-width: 320px; text-align: center; color: var(--muted); font-size: 12px; }
+.document-preview-error { display: grid; gap: 12px; justify-items: center; }
+.document-preview-pages-list { display: flex; flex-direction: column; align-items: center; }
+.document-preview-page { position: relative; flex: none; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+.document-preview-page canvas { display: block; width: 100%; height: 100%; }
+.document-preview-image { position: relative; margin-inline: auto; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+.document-preview-image img { display: block; width: 100%; height: auto; }
+.document-preview-highlight {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 2px;
+  margin: -2px;
+  border: 2px solid #d97706;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, .28);
+  pointer-events: none;
+}
+@media screen and (max-width: 1023px) {
+  .invoice-import-split { display: block; }
+  .invoice-import-view-tabs { display: flex; gap: 4px; padding: 3px; margin-bottom: 14px; background: #eef1ed; border: 1px solid var(--line); border-radius: 8px; }
+  .invoice-import-view-tabs button { flex: 1; min-height: 40px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-weight: 600; }
+  .invoice-import-view-tabs button.active { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+  .invoice-import-split[data-view="document"] .invoice-import-data-column { display: none; }
+  .invoice-import-split[data-view="data"] .invoice-import-preview-column { display: none; }
+  .invoice-import-preview-column { position: static; height: calc(100dvh - 140px); min-height: 360px; }
+  .invoice-import-back-to-data { display: inline-flex; align-self: flex-start; margin-bottom: 8px; }
+}
 .form-section { margin-bottom: 12px; padding: 22px; }
 .form-section-title > span { border-radius: 50%; background: var(--green-soft); }
 .page-tabs { display: inline-flex; padding: 3px; background: #eef1ed; border: 1px solid var(--line); border-radius: 8px; }

@@ -9,7 +9,7 @@ import { AMOUNT_ADJUSTMENT_TOLERANCE, DEFAULT_VAT_RATE, grossFromNet, netFromGro
 import { minorUnits } from "@/lib/money";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import type { ReminderPolicySummary } from "@/lib/reminder-policies";
-import { relevantOcrWarnings, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource, type OcrReminderPolicyAssignment } from "@/lib/invoice-ocr";
+import { relevantOcrWarnings, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource, type OcrReminderPolicyAssignment } from "@/lib/invoice-ocr";
 import { normalizeCounterpartyIco } from "@/lib/counterparty-reminder-preferences";
 import { alternativeOcrCandidates, ocrSourceLabel, pendingOcrConfirmations } from "@/lib/ocr-field-review";
 
@@ -75,6 +75,7 @@ export function InvoiceForm({
   ocrFieldSources,
   ocrFieldDecisions,
   ocrWarnings,
+  onActiveFieldChange,
   submitLabel = "Uložit fakturu",
   editing = false,
   onSubmit,
@@ -84,6 +85,12 @@ export function InvoiceForm({
   ocrFieldSources?: Partial<Record<OcrFieldName, OcrFieldSource>>;
   ocrFieldDecisions?: Partial<Record<OcrFieldName, OcrFieldDecision>>;
   ocrWarnings?: string[];
+  /**
+   * Import s náhledem dokladu: pole (případně konkrétní kandidát) je právě
+   * v centru pozornosti. `reveal` značí výslovné „Ukázat v dokladu“ -- na
+   * mobilu přepne na doklad. Bez propu se formulář chová jako dřív.
+   */
+  onActiveFieldChange?: (field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { reveal?: boolean }) => void;
   submitLabel?: string;
   editing?: boolean;
   onSubmit: (value: InvoiceInput) => Promise<void>;
@@ -270,14 +277,20 @@ export function InvoiceForm({
     else if (fieldName === "vat_rate") setVatRate(Number(value));
     else field(fieldName, value);
   };
+  const fieldHooks = (fieldName: OcrFieldName) => onActiveFieldChange
+    ? { onFocusCapture: () => onActiveFieldChange(fieldName), onMouseEnter: () => onActiveFieldChange(fieldName) }
+    : {};
   const ocrMeta = (fieldName: OcrFieldName) => {
     const choices = alternativeOcrCandidates(decision(fieldName), formValues[fieldName]);
     const pending = pendingConfirmations.includes(fieldName);
+    const candidateFor = (value: string | number) => decision(fieldName)?.candidates.find(candidate => String(candidate.value) === String(value));
+    const canReveal = Boolean(onActiveFieldChange && (source(fieldName) || decision(fieldName)?.candidates.length));
     return <>
       <OcrSourceNote source={source(fieldName)} decision={decision(fieldName)}/>
-      {(choices.length > 0 || pending) && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
-        {choices.map(choice => <button type="button" className="btn secondary compact" key={`${fieldName}-${choice.value}`} onClick={() => applyCandidate(fieldName, choice.value)}>Použít {choice.value} <small>({choice.sources.join(", ")})</small></button>)}
+      {(choices.length > 0 || pending || canReveal) && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
+        {choices.map(choice => <button type="button" className="btn secondary compact" key={`${fieldName}-${choice.value}`} onClick={() => applyCandidate(fieldName, choice.value)} onMouseEnter={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))} onFocus={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))}>Použít {choice.value} <small>({choice.sources.join(", ")})</small></button>)}
         {pending && <button type="button" className="btn secondary compact" onClick={() => setConfirmedFields(current => new Set([...current, fieldName]))}>Potvrdit hodnotu podle dokumentu</button>}
+        {canReveal && <button type="button" className="btn secondary compact ocr-show-in-document" onClick={() => onActiveFieldChange?.(fieldName, undefined, { reveal: true })}>Ukázat v dokladu</button>}
       </span>}
     </>;
   };
@@ -339,10 +352,10 @@ export function InvoiceForm({
       <ul>{visibleWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>
     </details>}
     <section className="form-section"><div className="form-section-title"><span>1</span><div><h2>Identifikace faktury</h2><p>Čísla, podle kterých fakturu dohledáte v účetnictví.</p></div></div><div className="form-grid">
-      <label><span>Číslo faktury *</span><input required value={form.invoice_number} onChange={e => field("invoice_number", e.target.value)} placeholder="např. FV-2026-001" autoCapitalize="off" spellCheck={false} enterKeyHint="next"/>{ocrMeta("invoice_number")}</label>
-      <label><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001" inputMode="numeric" pattern="[0-9]*" maxLength={10} enterKeyHint="next"/>{ocrMeta("variable_symbol")}</label>
-      <label><span>Datum vystavení *</span><input type="date" required value={form.issue_date} onChange={e => field("issue_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("issue_date")}</label>
-      <label><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("due_date")}</label>
+      <label {...fieldHooks("invoice_number")}><span>Číslo faktury *</span><input required value={form.invoice_number} onChange={e => field("invoice_number", e.target.value)} placeholder="např. FV-2026-001" autoCapitalize="off" spellCheck={false} enterKeyHint="next"/>{ocrMeta("invoice_number")}</label>
+      <label {...fieldHooks("variable_symbol")}><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001" inputMode="numeric" pattern="[0-9]*" maxLength={10} enterKeyHint="next"/>{ocrMeta("variable_symbol")}</label>
+      <label {...fieldHooks("issue_date")}><span>Datum vystavení *</span><input type="date" required value={form.issue_date} onChange={e => field("issue_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("issue_date")}</label>
+      <label {...fieldHooks("due_date")}><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("due_date")}</label>
       <label className="wide reminder-policy-field">
         <span>Kategorie upomínek *</span>
         <select required value={form.reminder_policy_id ?? ""} disabled={policiesLoading || Boolean(policiesError)} onChange={e => { policyManuallyChangedRef.current = true; field("reminder_policy_id", e.target.value); }}>
@@ -374,7 +387,7 @@ export function InvoiceForm({
       </label>
     </div></section>
     <section className="form-section"><div className="form-section-title"><span>2</span><div><h2>Odběratel</h2><p>Firma, která má fakturu uhradit.</p></div></div><div className="form-grid">
-      <label className="wide customer-name-field">
+      <label {...fieldHooks("counterparty_name")} className="wide customer-name-field">
         <span>Název odběratele *</span>
         <input
           required
@@ -400,14 +413,14 @@ export function InvoiceForm({
         )}
         {ocrMeta("counterparty_name")}
       </label>
-      <label><span>IČO</span><input value={form.counterparty_ico} onChange={e => field("counterparty_ico", e.target.value)} inputMode="numeric" pattern="[0-9]*" maxLength={8} enterKeyHint="next" placeholder="12345678"/>{ocrMeta("counterparty_ico")}</label>
-      <label><span>DIČ</span><input value={form.counterparty_dic} onChange={e => field("counterparty_dic", e.target.value)} autoCapitalize="characters" enterKeyHint="next" placeholder="CZ12345678"/>{ocrMeta("counterparty_dic")}</label>
-      <label className="wide"><span>E-mail pro upomínky *</span><input type="email" required value={form.counterparty_email} onChange={e => field("counterparty_email", e.target.value)} autoComplete="off" enterKeyHint="next" placeholder="fakturace@odberatel.cz"/><small>Na tuto adresu budou chodit automatické upomínky.</small>{ocrMeta("counterparty_email")}</label>
+      <label {...fieldHooks("counterparty_ico")}><span>IČO</span><input value={form.counterparty_ico} onChange={e => field("counterparty_ico", e.target.value)} inputMode="numeric" pattern="[0-9]*" maxLength={8} enterKeyHint="next" placeholder="12345678"/>{ocrMeta("counterparty_ico")}</label>
+      <label {...fieldHooks("counterparty_dic")}><span>DIČ</span><input value={form.counterparty_dic} onChange={e => field("counterparty_dic", e.target.value)} autoCapitalize="characters" enterKeyHint="next" placeholder="CZ12345678"/>{ocrMeta("counterparty_dic")}</label>
+      <label {...fieldHooks("counterparty_email")} className="wide"><span>E-mail pro upomínky *</span><input type="email" required value={form.counterparty_email} onChange={e => field("counterparty_email", e.target.value)} autoComplete="off" enterKeyHint="next" placeholder="fakturace@odberatel.cz"/><small>Na tuto adresu budou chodit automatické upomínky.</small>{ocrMeta("counterparty_email")}</label>
     </div></section>
     <section className="form-section"><div className="form-section-title"><span>3</span><div><h2>Částka a poznámka</h2><p>Hodnota pohledávky a interní informace.</p></div></div><div className="form-grid">
-      <label><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/>{ocrMeta("amount_without_vat")}</label>
-      <label><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small>{ocrMeta("vat_rate")}</label>
-      <label><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small>{ocrMeta("amount")}</label>
+      <label {...fieldHooks("amount_without_vat")}><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/>{ocrMeta("amount_without_vat")}</label>
+      <label {...fieldHooks("vat_rate")}><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small>{ocrMeta("vat_rate")}</label>
+      <label {...fieldHooks("amount")}><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small>{ocrMeta("amount")}</label>
       {(needsAmountReview || detectedPrepayment) && <div className="wide invoice-money-review">
         {needsAmountReview && <p>Výpočet ze základu a sazby: {calculatedTotal.toFixed(2)} {form.currency}. Rozdíl: {amountDifference.toFixed(2)} {form.currency}.</p>}
         {needsAmountReview && <>
@@ -421,7 +434,7 @@ export function InvoiceForm({
           <label className="invoice-money-confirm"><input required type="checkbox" checked={form.money_evidence?.initial_paid_confirmed ?? false} onChange={e => updateMoneyEvidence({ initial_paid_confirmed: e.target.checked })}/>Potvrzuji, že tyto úhrady již proběhly. Budou zapsány do evidence úhrad.</label>
         </>}
       </div>}
-      <label><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option value="" disabled>Vyberte měnu</option><option>CZK</option><option>EUR</option><option>USD</option></select>{ocrMeta("currency")}</label>
+      <label {...fieldHooks("currency")}><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option value="" disabled>Vyberte měnu</option><option>CZK</option><option>EUR</option><option>USD</option></select>{ocrMeta("currency")}</label>
       <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} enterKeyHint="done" placeholder="Volitelná poznámka pro účetní oddělení"/></label>
     </div></section>
     {submitAttempted && submitBlockers.length > 0 && <div className="form-error form-submit-blockers"><strong>Než fakturu uložíte, opravte prosím:</strong><ul>{submitBlockers.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
