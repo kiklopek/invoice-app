@@ -202,6 +202,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                         <span>
                           <strong>{customer.name}</strong>
                           <small>{customer.ico ? `IČO ${customer.ico}` : "IČO neuvedeno"}{customer.dic ? ` · DIČ ${customer.dic}` : ""}</small>
+                          {customer.address && <small>{customer.address} · ARES</small>}
                         </span>
                       </div>
                     </td>

@@ -1,4 +1,4 @@
-export const OCR_VOCABULARY_VERSION = "2026-09-30.1";
+export const OCR_VOCABULARY_VERSION = "2026-10-02.2";
 
 export type OcrConcept =
   | "counterparty"
@@ -22,14 +22,20 @@ export type OcrConcept =
 // (VS, IC, ID) in the dictionary, but match them exactly -- fuzzy matching is
 // deliberately limited to longer phrases.
 export const OCR_TERMS: Record<OcrConcept, readonly string[]> = {
-  counterparty: ["odberatel", "zakaznik", "kupujici", "objednatel", "klient", "prijemce faktury", "bill to", "sold to", "invoice to", "customer", "buyer", "purchaser"],
-  issuer: ["dodavatel", "vystavitel", "prodavajici", "zhotovitel", "supplier", "seller", "vendor", "issuer"],
-  ico: ["ico", "ic", "company id", "company number", "registration number"],
-  dic: ["dic", "ic dph", "vat id", "vat number", "tax id"],
+  counterparty: [
+    "odberatel", "zakaznik", "kupujici", "objednatel", "klient",
+    "prijemce faktury", "prijemce danoveho dokladu", "prijemce dokladu", "adresat faktury",
+    "fakturacni adresa", "fakturacni udaje odberatele", "fakturovano",
+    "bill to", "billed to", "sold to", "invoice to", "invoice recipient", "billing address",
+    "customer", "buyer", "purchaser",
+  ],
+  issuer: ["dodavatel", "vystavitel", "prodavajici", "zhotovitel", "fakturujici", "poskytovatel", "supplier", "seller", "vendor", "issuer"],
+  ico: ["ico", "ic", "identifikacni cislo", "identifikacni cislo osoby", "company id", "company number", "registration number"],
+  dic: ["dic", "ic dph", "danove identifikacni cislo", "vat id", "vat number", "tax id"],
   invoice_number: ["cislo faktury", "cislo dokladu", "faktura c", "danovy doklad c", "invoice number", "invoice no", "document number"],
   variable_symbol: ["variabilni symbol", "variabilny symbol", "var symbol", "vs", "payment reference"],
-  issue_date: ["datum vystaveni", "datum vystavenia", "den vystaveni", "vystaveno dne", "vystavene dna", "issue date", "invoice date", "date of issue"],
-  due_date: ["datum splatnosti", "splatnost", "splatne dna", "uhradte do", "due date", "payment due", "maturity date"],
+  issue_date: ["datum vystaveni", "datum vystavenia", "datum vyhotoveni", "datum vydani", "den vystaveni", "vystaveno dne", "vystavene dna", "issue date", "invoice date", "date of issue"],
+  due_date: ["datum splatnosti", "splatnost", "splatne dna", "uhradte do", "due date", "due on", "payment due", "maturity date"],
   taxable_date: ["duzp", "datum uskutecneni zdanitelneho plneni", "datum dodania", "taxable supply date"],
   net_amount: ["zaklad dane", "zaklad dph", "celkem bez dph", "celkom bez dph", "cena bez dph", "subtotal", "net amount", "tax base", "medzisucet"],
   vat: ["dph", "dan", "sazba dph", "sadzba dph", "vat", "tax amount", "tax rate"],
@@ -138,7 +144,7 @@ export function damagedLabelForm(printed: string) {
 export const OCR_PRINTED_LABELS: readonly string[] = [
   // Delší popisky první -- "ič dph" se musí opravit dřív než samotné "ič".
   "datum uskutečnění zdanitelného plnění",
-  "celkem k úhradě", "částka k úhradě", "opravný daňový doklad", "příjemce faktury",
+  "celkem k úhradě", "částka k úhradě", "opravný daňový doklad", "příjemce faktury", "příjemce daňového dokladu",
   "číslo faktury", "číslo dokladu", "daňový doklad", "základ daně", "k úhradě",
   "odběratel", "ič dph", "ičo", "dič", "ič",
 ];

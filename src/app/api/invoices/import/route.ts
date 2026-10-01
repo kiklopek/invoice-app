@@ -3,6 +3,9 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
+import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { apiError } from "@/lib/api-response";
+import { logError } from "@/lib/structured-log";
 
 const MAX_BATCH_SIZE = 250;
 
@@ -28,6 +31,16 @@ export async function POST(request: Request) {
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění importovat faktury." }, { status: 403 });
 
   const organizationId = identity.membership.organization_id;
+  const { data: issuer, error: issuerError } = await identity.service.from("organizations")
+    .select("name, email").eq("id", organizationId).single();
+  if (issuerError || !issuer) {
+    logError("Firemní údaje pro ověření importovaných příjemců upomínek se nepodařilo načíst", issuerError);
+    return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_import_issuer_read_failed");
+  }
+  const ownEmailRows = invoices.flatMap((invoice, index) => isIssuerReminderAddress(invoice.counterparty_email, issuer) ? [index + 2] : []);
+  if (ownEmailRows.length) {
+    return NextResponse.json({ error: `E-mail pro upomínky na řádku ${ownEmailRows.slice(0, 10).join(", ")} patří vaší firmě. Zadejte adresu odběratele.` }, { status: 400 });
+  }
   const { data: policy } = await identity.service.from("reminder_policies")
     .select("id, days_from_due, is_active")
     .eq("organization_id", organizationId).eq("is_default", true).is("archived_at", null).maybeSingle();

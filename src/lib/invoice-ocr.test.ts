@@ -52,6 +52,26 @@ describe("local invoice OCR parser", () => {
     expect(result.field_sources.amount).toMatchObject({ page: 1, text: "Celkem k úhradě 12 100,00 Kč" });
   });
 
+  it("přečte DIČ vedle IČO z dokladu a nepřiřadí odběrateli e-mail vystavitele", () => {
+    const result = parseInvoiceText({
+      text: `FAKTURA\nDodavatel: R. Hlavica s.r.o.\nIČO: 26296039\nPŘÍJEMCE FAKTURY:\nESTIMATIC Systems s.r.o.\nJeremenkova 763/88\n14000 Praha 4 - Podolí\nCZ - Česká republika\nDIČ: CZ02768054\nIČ: 02768054\nÚčet: 000115-8026470277/0100\nDatum vystavení: 02.09.2026\nDatum splatnosti: 16.09.2026\nCelkem k úhradě: 9 680 Kč\nEmail: kostihova@hlavica.cz`,
+      fileUrl: "org/estimatic.pdf",
+      organization: { name: "R. Hlavica s.r.o.", ico: "26296039", dic: "CZ26296039", email: "info@hlavica.cz" },
+    });
+    expect(result.invoice.counterparty_ico).toBe("02768054");
+    expect(result.invoice.counterparty_dic).toBe("CZ02768054");
+    expect(result.invoice.counterparty_email).toBe("");
+  });
+
+  it("najde doslova vytištěné CZ + IČO odběratele, když se ztratí popisek DIČ", () => {
+    const result = parseInvoiceText({
+      text: `FAKTURA\nDodavatel: R. Hlavica s.r.o.\nIČO: 26296039\nOdběratel: ESTIMATIC Systems s.r.o.\nCZ02768054\nIČ: 02768054\nDatum vystavení: 02.09.2026\nDatum splatnosti: 16.09.2026\nCelkem k úhradě: 9 680 Kč`,
+      fileUrl: "org/missing-dic-label.pdf",
+      organization: { name: "R. Hlavica s.r.o.", ico: "26296039", dic: "CZ26296039" },
+    });
+    expect(result.invoice.counterparty_dic).toBe("CZ02768054");
+  });
+
   it("extracts Slovak accounting labels without using the supplier identity", () => {
     const result = parseInvoiceText({
       text: `
@@ -321,6 +341,41 @@ Celkem k úhradě 15 660,00 Kč
     });
     expect(result.invoice.invoice_number).toBe("FV2026099");
     expect(result.invoice.invoice_number).not.toBe("Dodavatel");
+  });
+
+  it("přečte synonyma čísla, reference, dat, částek, sazby a měny", () => {
+    const result = parseInvoiceText({
+      text: `INVOICE\nSupplier: Moje firma s.r.o.\nCompany ID: 11111111\nBill to: Buyer Ltd.\nCompany ID: 22222222\nE-mail: accounts@buyer.example\nDocument number: INV-2026-051\nPayment reference: 2026051\nDatum vyhotovení: 2. 9. 2026\nDue on: 16. 9. 2026\nSubtotal: 1 000,00 EUR\nTax rate: 21 %\nGrand total: 1 210,00 EUR`,
+      fileUrl: "org/field-synonyms.pdf",
+      organization: { name: "Moje firma s.r.o.", ico: "11111111", dic: "CZ11111111" },
+    });
+    expect(result.invoice).toMatchObject({
+      invoice_number: "INV-2026-051", variable_symbol: "2026051", issue_date: "2026-09-02", due_date: "2026-09-16",
+      counterparty_name: "Buyer Ltd.", counterparty_ico: "22222222", counterparty_email: "accounts@buyer.example",
+      amount_without_vat: 1000, vat_rate: 21, amount: 1210, currency: "EUR",
+    });
+  });
+
+  it("nepřevezme hodnotu následujícího označeného pole při chybějícím čísle a datu", () => {
+    const result = parseInvoiceText({
+      text: `FAKTURA\nČíslo faktury:\nVariabilní symbol: 2026001\nDatum vystavení:\nDatum splatnosti: 16. 9. 2026\nOdběratel: Buyer Ltd.\nIČO: 22222222\nCelkem k úhradě: 1 210 Kč`,
+      fileUrl: "org/missing-adjacent-fields.pdf",
+      organization,
+    });
+    expect(result.invoice.invoice_number).toBe("");
+    expect(result.invoice.variable_symbol).toBe("2026001");
+    expect(result.invoice.issue_date).toBe("");
+    expect(result.invoice.due_date).toBe("2026-09-16");
+  });
+
+  it("nevezme sazbu DPH na dalším řádku jako chybějící celkovou částku", () => {
+    const result = parseInvoiceText({
+      text: `FAKTURA\nČíslo faktury: FV-2026-01\nOdběratel: Buyer Ltd.\nIČO: 22222222\nDatum vystavení: 2. 9. 2026\nDatum splatnosti: 16. 9. 2026\nCelkem k úhradě:\n21 %`,
+      fileUrl: "org/missing-total.pdf",
+      organization,
+    });
+    expect(result.invoice.amount).toBe(0);
+    expect(result.warnings.join(" ")).toContain("Částka k úhradě nebyla rozpoznána");
   });
 
   it("discards an implausible net amount instead of silently pairing it with the wrong VAT rate", () => {
@@ -869,6 +924,55 @@ Celkem k úhradě 9 680,00 Kč
       expect(result.invoice.counterparty_name).toBe("Martin Kresta");
       expect(result.invoice.counterparty_dic).toBe("");
       expect(result.warnings).toContain("DIČ bez jednoznačné vazby na sekci odběratele nebylo přiřazeno. Zkontrolujte DIČ ručně.");
+    });
+
+    it("finds labelled customer identity fields after the short section and pairs stacked values", () => {
+      const result = parseInvoiceText({
+        text: `FAKTURA\nDodavatel\nMoje firma s.r.o.\nIČO: 11111111\nDIČ: CZ11111111\nOdběratel\nDlouhá firma a.s.\nUlice 1\n110 00 Praha\nKontakt pro fakturaci\nPoznámka k zakázce\nDatum vystavení: 2. 9. 2026\nDatum splatnosti: 16. 9. 2026\nIČO:\n22222222\nDIČ:\nCZ22222222\nCelkem k úhradě: 1 210 Kč`,
+        fileUrl: "org/late-labels.pdf",
+        organization: { name: "Moje firma s.r.o.", ico: "11111111", dic: "CZ11111111" },
+      });
+      expect(result.invoice.counterparty_ico).toBe("22222222");
+      expect(result.invoice.counterparty_dic).toBe("CZ22222222");
+    });
+
+    it("finds a customer e-mail later in a long contact block", () => {
+      const result = parseInvoiceText({
+        text: `FAKTURA\nDodavatel\nMoje firma s.r.o.\nIČO: 11111111\nE-mail: ja@mojefirma.cz\nOdběratel\nDlouhá firma a.s.\nIČO: 22222222\nUlice 1\nPraha 1\nOddělení nákupu\nBudova A\nPatro 2\nMístnost 10\nReferenční údaj\nPoznámka\nE-mail:\nuctarna@dlouhafirma.cz\nDatum vystavení: 2. 9. 2026\nDatum splatnosti: 16. 9. 2026\nCelkem k úhradě: 1 210 Kč`,
+        fileUrl: "org/long-contact.pdf",
+        organization: { name: "Moje firma s.r.o.", ico: "11111111", dic: "CZ11111111" },
+      });
+      expect(result.invoice.counterparty_email).toBe("uctarna@dlouhafirma.cz");
+    });
+
+    it.each([
+      ["Příjemce faktury: Dlouhá firma a.s.", ""],
+      ["Příjemce daňového dokladu:", "Dlouhá firma a.s."],
+      ["Adresát faktury: Dlouhá firma a.s.", ""],
+      ["Fakturováno:", "Dlouhá firma a.s."],
+      ["Billing address:", "Dlouhá firma a.s."],
+    ])("přiřadí údaje z nadpisu %s", (heading, nextLine) => {
+      const result = parseInvoiceText({
+        text: `FAKTURA\nFakturující: Moje firma s.r.o.\nIČO: 11111111\nPříjemce zboží: Sklad Praha\n${heading}\n${nextLine ? `${nextLine}\n` : ""}IČO: 22222222\nDIČ: CZ22222222\nE-mail: faktury@dlouhafirma.cz\nDatum vystavení: 2. 9. 2026\nDatum splatnosti: 16. 9. 2026\nCelkem k úhradě: 1 210 Kč`,
+        fileUrl: "org/synonym-heading.pdf",
+        organization: { name: "Moje firma s.r.o.", ico: "11111111", dic: "CZ11111111" },
+      });
+      expect(result.invoice.counterparty_name).toBe("Dlouhá firma a.s.");
+      expect(result.invoice.counterparty_ico).toBe("22222222");
+      expect(result.invoice.counterparty_dic).toBe("CZ22222222");
+      expect(result.invoice.counterparty_email).toBe("faktury@dlouhafirma.cz");
+    });
+
+    it("čte synonyma IČO, DIČ a e-mailu i když jsou před názvem firmy", () => {
+      const result = parseInvoiceText({
+        text: `FAKTURA\nDodavatel: Moje firma s.r.o.\nIČO: 11111111\nPříjemce faktury:\nIdentifikační číslo osoby: 22222222\nDaňové identifikační číslo:\nCZ22222222\nDlouhá firma a.s.\nElektronická pošta: faktury@dlouhafirma.cz\nDatum vystavení: 2. 9. 2026\nDatum splatnosti: 16. 9. 2026\nCelkem k úhradě: 1 210 Kč`,
+        fileUrl: "org/synonym-fields.pdf",
+        organization: { name: "Moje firma s.r.o.", ico: "11111111", dic: "CZ11111111" },
+      });
+      expect(result.invoice.counterparty_name).toBe("Dlouhá firma a.s.");
+      expect(result.invoice.counterparty_ico).toBe("22222222");
+      expect(result.invoice.counterparty_dic).toBe("CZ22222222");
+      expect(result.invoice.counterparty_email).toBe("faktury@dlouhafirma.cz");
     });
 
     it("warns and lowers confidence when the counterparty IČO can't be recognized", () => {

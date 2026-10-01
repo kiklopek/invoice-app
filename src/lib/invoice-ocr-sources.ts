@@ -17,6 +17,7 @@ import {
 import { reconcileExtractions } from "@/lib/invoice-ocr-reconcile";
 import { companyNamesAgree, rejectOrganizationIdentity } from "@/lib/invoice-ocr-registry";
 import { AMOUNT_ADJUSTMENT_TOLERANCE, grossFromNet, roundMoney, vatAmountsMatch } from "@/lib/vat";
+import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
 
 // Vícezdrojové vytěžení faktury.
 //
@@ -53,6 +54,7 @@ const SOURCE_LABELS: Record<OcrFieldSource["method"], string> = {
   isdoc: "ISDOC",
   qr: "QR platba",
   ares: "ARES",
+  customer: "Uložený klient",
   ai: "AI",
   pdf_text: "text PDF",
   ocr: "OCR",
@@ -326,6 +328,14 @@ function withhold(result: InvoiceOcrResult, field: OcrFieldName, reason: string)
 export function applyOcrConsistencyChecks(input: InvoiceOcrResult, organization: InvoiceOcrOrganization): InvoiceOcrResult {
   const result = cloneResult(input);
   const invoice = result.invoice;
+
+  if (isIssuerReminderAddress(invoice.counterparty_email, organization)) {
+    const reason = "E-mail patří vystaviteli faktury; pro upomínky zadejte kontakt odběratele z jiné domény.";
+    withhold(result, "counterparty_email", reason);
+    result.warnings.push(reason);
+    const decision = result.field_decisions.counterparty_email;
+    if (decision) decision.candidates = decision.candidates.map(candidate => ({ ...candidate, role: "issuer" }));
+  }
 
   // Základ + DPH = celkem. Hodnoty zůstanou (formulář sám vynutí vysvětlení
   // a potvrzení rozdílu), ale nesmí se tvářit jako ověřené.

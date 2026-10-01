@@ -1,7 +1,7 @@
 import type { OcrBoundingBox, OcrFieldName } from "./invoice-ocr";
 
 /** Položka textové vrstvy stránky s boxem normalizovaným do 0..1 (počátek vlevo nahoře). */
-export type LayoutTextItem = { text: string; bounds: OcrBoundingBox };
+export type LayoutTextItem = { text: string; bounds: OcrBoundingBox; measureText?: (text: string) => number };
 
 export type LocateKind = "amount" | "date" | "ico" | "digits" | "text";
 
@@ -25,10 +25,11 @@ export function locateKindForField(field: OcrFieldName): LocateKind | null {
   return FIELD_KINDS[field] ?? null;
 }
 
-/** Co se má v dokladu ukázat. `bounds` z OCR má přednost; bez něj se hodnota hledá v textové vrstvě. */
+/** Zdroj a hodnota pro náhled: u PDF box slouží k rozlišení shod v textové vrstvě. */
 export type DocumentHighlight = {
   page: number;
   bounds: OcrBoundingBox | null;
+  method: string;
   text?: string;
   value?: string | number;
   kind?: LocateKind | null;
@@ -51,9 +52,13 @@ export function documentHighlightFor(input: {
   if (input.field === "currency") return null;
   const origin = input.candidate ?? input.source;
   if (!origin) return null;
+  // ARES and the saved customer are outside the document. A text match in
+  // the PDF would not prove that this external value was read there.
+  if (origin.method === "ares" || origin.method === "customer") return null;
   const kind = locateKindForField(input.field);
+  if (!kind) return null;
   const bounds = origin.method === "derived" ? null : origin.bounds ?? null;
-  return { page: origin.page, bounds, text: origin.text, value: input.candidate ? input.candidate.value : input.value, kind };
+  return { page: origin.page, bounds, method: origin.method, text: origin.text, value: input.candidate ? input.candidate.value : input.value, kind };
 }
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -86,19 +91,20 @@ function multiply(m1: number[], m2: number[]) {
  * Jde přes transformaci viewportu, takže sedí i u otočených stránek a stránek
  * s posunutým MediaBoxem; width/height jsou v jednotkách uživatelského prostoru.
  */
-export function textItemBounds(itemTransform: number[], itemWidth: number, itemHeight: number, viewport: Viewport): OcrBoundingBox {
+export function textItemBounds(itemTransform: number[], itemWidth: number, itemHeight: number, viewport: Viewport, fontAscent = 1): OcrBoundingBox {
   const tx = multiply(viewport.transform, itemTransform);
   const scale = Math.hypot(viewport.transform[0], viewport.transform[1]) || 1;
   const along = Math.hypot(tx[0], tx[1]) || 1;
   const up = Math.hypot(tx[2], tx[3]) || 1;
   const w = itemWidth * scale;
-  const h = itemHeight * scale;
+  const h = Math.max(itemHeight * scale, up);
+  const ascent = Number.isFinite(fontAscent) ? Math.min(1, Math.max(0, fontAscent)) : 1;
   const dx = (tx[0] / along) * w;
   const dy = (tx[1] / along) * w;
   const ux = (tx[2] / up) * h;
   const uy = (tx[3] / up) * h;
-  const xs = [tx[4], tx[4] + dx, tx[4] + ux, tx[4] + dx + ux];
-  const ys = [tx[5], tx[5] + dy, tx[5] + uy, tx[5] + dy + uy];
+  const xs = [tx[4] - ux * (1 - ascent), tx[4] + ux * ascent, tx[4] + dx - ux * (1 - ascent), tx[4] + dx + ux * ascent];
+  const ys = [tx[5] - uy * (1 - ascent), tx[5] + uy * ascent, tx[5] + dy - uy * (1 - ascent), tx[5] + dy + uy * ascent];
   const minX = Math.min(...xs);
   const minY = Math.min(...ys);
   return {
@@ -162,13 +168,49 @@ function matchesText(text: string, wanted: string) {
   return ` ${normalizeText(text)} `.includes(` ${wanted} `);
 }
 
+function matchingSpan(text: string, raw: string, kind: LocateKind): [number, number] | null {
+  if (kind === "amount") {
+    const wanted = typeof raw === "string" ? amountReadings(raw.replace(/[^\d.,\s -]/g, "").trim())[0] : undefined;
+    for (const match of text.matchAll(/\d{1,3}(?:[\s .,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?/g)) {
+      if (wanted !== undefined && amountReadings(match[0]).includes(wanted)) return [match.index, match.index + match[0].length];
+    }
+  } else if (kind === "date") {
+    const iso = parseDate(raw);
+    if (!iso) return null;
+    for (const match of text.matchAll(/(?<!\d)(?:\d{1,2}\s*[./]\s*\d{1,2}\s*[./]\s*\d{4}|\d{4}-\d{2}-\d{2})(?!\d)/g)) {
+      if (matchesDate(match[0], iso)) return [match.index, match.index + match[0].length];
+    }
+  } else if (kind === "ico" || kind === "digits") {
+    const wanted = raw.replace(/\D/g, "");
+    for (const match of text.matchAll(kind === "ico" ? /\d(?:[\s ]?\d)*/g : /\d+/g)) {
+      const found = match[0].replace(/\D/g, "");
+      if (found === wanted || (kind === "ico" && found === wanted.padStart(8, "0"))) return [match.index, match.index + match[0].length];
+    }
+  } else {
+    const index = text.toLocaleLowerCase("cs").indexOf(raw.toLocaleLowerCase("cs"));
+    if (index >= 0) return [index, index + raw.length];
+  }
+  return null;
+}
+
+function valueBounds(item: LayoutTextItem, raw: string, kind: LocateKind): OcrBoundingBox {
+  const span = matchingSpan(item.text, raw, kind);
+  if (!span || !item.measureText || item.bounds.width <= item.bounds.height * 1.5) return item.bounds;
+  const total = item.measureText(item.text);
+  if (!Number.isFinite(total) || total <= 0) return item.bounds;
+  const start = item.measureText(item.text.slice(0, span[0])) / total;
+  const end = item.measureText(item.text.slice(0, span[1])) / total;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return item.bounds;
+  return { ...item.bounds, x: item.bounds.x + item.bounds.width * start, width: item.bounds.width * (end - start) };
+}
+
 /**
  * Najde hodnotu pole v textové vrstvě stránky, i když je v dokladu zapsaná jinak
  * (123 100,20 vs 123100.2; 23. 9. 2026 vs 2026-09-23). Vrací box první shody
  * v pořadí čtení, nebo null. Nikdy nehádá: jednoznačně nesrovnatelné hodnoty
  * (krátká čísla, krátké texty) se nehledají vůbec.
  */
-export function locateValueInLayout(value: string | number, kind: LocateKind, items: LayoutTextItem[]): LocatedValue | null {
+export function locateValueInLayout(value: string | number, kind: LocateKind, items: LayoutTextItem[], sourceText?: string, sourceBounds?: OcrBoundingBox | null): LocatedValue | null {
   const raw = String(value).trim();
   if (!raw) return null;
   let test: ((text: string) => boolean) | null = null;
@@ -197,27 +239,53 @@ export function locateValueInLayout(value: string | number, kind: LocateKind, it
     if (wanted.replace(/ /g, "").length < 3) return null;
     test = text => matchesText(text, wanted);
   }
-  const found: Array<{ bounds: OcrBoundingBox; text: string }> = [];
-  for (const size of [1, 2, 3]) {
+  const found: Array<{ bounds: OcrBoundingBox; text: string; start: number; size: number }> = [];
+  for (let size = 1; size <= Math.min(items.length, kind === "text" ? 8 : 5); size++) {
     for (let start = 0; start + size <= items.length; start++) {
       const slice = items.slice(start, start + size);
       const text = slice.map(entry => entry.text).join(" ");
       // Širší okno se bere, jen když tutéž shodu nedává užší (už nalezená položka).
       if (size > 1 && (test(slice[0].text) || test(slice[size - 1].text))) continue;
       if (!test(text) && !(size > 1 && test(slice.map(entry => entry.text).join("")))) continue;
-      const minX = Math.min(...slice.map(entry => entry.bounds.x));
-      const minY = Math.min(...slice.map(entry => entry.bounds.y));
+      const boxes = size === 1 ? [valueBounds(slice[0], raw, kind)] : slice.map(entry => entry.bounds);
+      const minX = Math.min(...boxes.map(entry => entry.x));
+      const minY = Math.min(...boxes.map(entry => entry.y));
       found.push({
         text,
+        start,
+        size,
         bounds: {
           x: minX,
           y: minY,
-          width: Math.max(...slice.map(entry => entry.bounds.x + entry.bounds.width)) - minX,
-          height: Math.max(...slice.map(entry => entry.bounds.y + entry.bounds.height)) - minY,
+          width: Math.max(...boxes.map(entry => entry.x + entry.width)) - minX,
+          height: Math.max(...boxes.map(entry => entry.y + entry.height)) - minY,
         },
       });
     }
     if (found.length) break;
   }
-  return found.length ? { ...found[0], matches: found.length } : null;
+  if (found.length === 1) return { bounds: found[0].bounds, text: found[0].text, matches: 1 };
+  if (!found.length) return null;
+  // Stejná částka nebo datum se často opakuje. Původní řádek OCR může
+  // rozhodnout; bez jediné shody bychom zvýraznili zavádějící místo.
+  const hint = normalizeText(sourceText ?? "");
+  const contextual = hint ? found.filter(match => {
+    const text = normalizeText(match.text);
+    const before = normalizeText(items[match.start - 1]?.text ?? "");
+    const after = normalizeText(items[match.start + match.size]?.text ?? "");
+    return hint === text || hint.includes(`${before} ${text}`.trim()) && Boolean(before)
+      || hint.includes(`${text} ${after}`.trim()) && Boolean(after)
+      || text.includes(hint);
+  }) : [];
+  if (contextual.length === 1) return { bounds: contextual[0].bounds, text: contextual[0].text, matches: found.length };
+  // Box zdrojového řádku slouží pouze jako vodítko k výběru shody,
+  // nikdy ho nekreslíme přes hodnotu. Na jednom řádku mohou být dvě shody.
+  const candidates = contextual.length ? contextual : found;
+  const inSource = sourceBounds ? candidates.filter(match => {
+    const x = match.bounds.x + match.bounds.width / 2;
+    const y = match.bounds.y + match.bounds.height / 2;
+    return x >= sourceBounds.x - .01 && x <= sourceBounds.x + sourceBounds.width + .01
+      && y >= sourceBounds.y - .01 && y <= sourceBounds.y + sourceBounds.height + .01;
+  }) : [];
+  return inSource.length === 1 ? { bounds: inSource[0].bounds, text: inSource[0].text, matches: found.length } : null;
 }

@@ -23,6 +23,15 @@ describe("invoice OCR vocabulary", () => {
     expect(matchOcrConcept("Dodavatel", "counterparty")).toBeNull();
   });
 
+  it("pozná běžné názvy fakturované strany bez záměny s příjemcem zboží či platby", () => {
+    for (const label of ["Příjemce faktury", "Příjemce daňového dokladu", "Adresát faktury", "Fakturační adresa", "Fakturováno", "Billed to", "Billing address"]) {
+      expect(matchOcrConcept(label, "counterparty")?.exact).toBe(true);
+    }
+    for (const label of ["Příjemce zboží", "Příjemce platby", "Příjemce"]) {
+      expect(matchOcrConcept(label, "counterparty")).toBeNull();
+    }
+  });
+
   it("suggests only unknown labels and never stores the value behind them", () => {
     expect(findUnknownAccountingLabels("Číslo faktury: FV-1\nEvidenční značka: SECRET-123\nE-mail: user@example.cz"))
       .toEqual([{ normalized_label: "evidencni znacka", example_label: "Evidenční značka" }]);

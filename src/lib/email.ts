@@ -7,6 +7,7 @@ import { defaultReminderTemplates } from "@/lib/reminder-defaults";
 import { renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { createServiceClient } from "@/lib/supabase-server";
 import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
+import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
 
 function reminderLogoUrl() {
   const explicit = process.env.REMINDER_LOGO_URL?.trim();
@@ -43,6 +44,9 @@ export async function sendReminderEmail(params: {
       .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
       .eq("id", params.invoice.organization_id).single();
   if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
+  if (isIssuerReminderAddress(params.to, company)) {
+    throw new Error("Upomínku nelze odeslat na e-mail vystavitele faktury.");
+  }
 
   const template = params.template ?? defaultReminderTemplates[params.stage];
   const subject = interpolateReminderTemplate(template.subject, params.invoice);

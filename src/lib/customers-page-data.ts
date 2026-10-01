@@ -14,6 +14,7 @@ export type CustomerSummary = {
   name: string;
   ico: string | null;
   dic: string | null;
+  address: string | null;
   email: string | null;
   phone: string | null;
   notes: string | null;
@@ -47,7 +48,7 @@ export async function loadCustomersPageData(identity: RequestIdentity | null): P
   ] = await Promise.all([
     identity.service
       .from("customers")
-      .select("id, name, ico, dic, email, phone, notes")
+      .select("id, name, ico, dic, address, email, phone, notes")
       .eq("organization_id", organizationId)
       .order("name", { ascending: true })
       .limit(MAX_CUSTOMER_ROWS + 1),
@@ -135,6 +136,7 @@ export async function loadCustomersPageData(identity: RequestIdentity | null): P
         name: customer.name,
         ico: customer.ico,
         dic: customer.dic,
+        address: customer.address,
         email: customer.email,
         phone: customer.phone,
         notes: customer.notes,

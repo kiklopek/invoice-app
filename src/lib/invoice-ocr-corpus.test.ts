@@ -72,6 +72,21 @@ describe("OCR korpus skutečných faktur -- lokální parser", () => {
       .not.toContain(DAMAGED_TEXT_LAYER_WARNING);
   });
 
+  it("u samofakturace předvyplní e-mail z kontaktu vystavitele s potvrzením", () => {
+    const document = OCR_CORPUS.find(item => item.id === "self-billed-1443260157")!;
+    const result = parseInvoiceText({ text: document.text, fileUrl: "org/x.pdf", organization: document.organization });
+    expect(result.invoice.counterparty_email).toBe("katerina.novakova@timber-pulp.cz");
+    expect(result.field_decisions.counterparty_email).toMatchObject({ status: "review", needs_confirmation: true });
+    expect(omitUnverifiedOcrValues(result).invoice.counterparty_email).toBe("katerina.novakova@timber-pulp.cz");
+  });
+
+  it("u běžné faktury nepřiřadí odběrateli kontakt vystavitele z patičky", () => {
+    const document = OCR_CORPUS.find(item => item.id === "self-billed-1443260157")!;
+    const text = document.text.replace("VYSTAVENO ZÁKAZNÍKEM", "");
+    const result = parseInvoiceText({ text, fileUrl: "org/x.pdf", organization: document.organization });
+    expect(result.invoice.counterparty_email).toBe("");
+  });
+
   it("nevezme číslo faktury z čísla zákona ani DIČ spojené s následujícím popiskem", () => {
     const advance = OCR_CORPUS.find(document => document.id === "advance-426198")!;
     const result = parseInvoiceText({ text: advance.text, fileUrl: "org/x.pdf", organization: advance.organization });
@@ -121,7 +136,7 @@ describe("OCR korpus -- lokální parser + AI (Gemini podvržená)", () => {
     expect(merged.invoice.counterparty_ico).not.toBe("16180330");
   });
 
-  it("samofakturace: shoda lokálního parseru a AI dá ověřené hodnoty, e-mail jen z AI zůstane předvyplněný k potvrzení", () => {
+  it("samofakturace: shoda lokálního parseru a AI ověří i e-mail z kontaktu vystavitele", () => {
     const local = parseInvoiceText({ text: selfBilled.text, fileUrl: "org/x.pdf", organization: selfBilled.organization });
     const ai = aiFor(selfBilled, {
       invoice_number: "1443260157",
@@ -143,11 +158,10 @@ describe("OCR korpus -- lokální parser + AI (Gemini podvržená)", () => {
     for (const field of ["counterparty_name", "counterparty_ico", "amount", "issue_date"] as const) {
       expect(merged.field_decisions[field]?.status, field).toBe("verified");
     }
-    // Lokální parser e-mail nenašel, AI ano a nic jí neodporuje: hodnota se
-    // nesmí zahodit, ale čeká na potvrzení člověkem.
+    // Oba nezávislé zdroje přečetly stejný e-mail odběratele.
     const prefilled = omitUnverifiedOcrValues(merged);
     expect(prefilled.invoice.counterparty_email).toBe("katerina.novakova@timber-pulp.cz");
-    expect(merged.field_decisions.counterparty_email).toMatchObject({ status: "review", needs_confirmation: true });
+    expect(merged.field_decisions.counterparty_email).toMatchObject({ status: "verified" });
   });
 
   it("zálohovka: AI druh dokladu 'proforma' se převezme a číslo zákona nevyhraje nad číslem faktury", () => {

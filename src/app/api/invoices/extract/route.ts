@@ -6,7 +6,7 @@ import { hasExpectedDocumentSignature, MAX_DOCUMENT_BYTES } from "@/lib/document
 import { isOcrHourlyQuotaExceeded, needsOcrAiReview, omitUnverifiedOcrValues, parseInvoiceText, pickOcrReviewValues, type InvoiceOcrResult } from "@/lib/invoice-ocr";
 import { extractInvoiceDocumentText, LocalOcrError } from "@/lib/invoice-ocr-server";
 import { extractInvoiceWithGemini, GeminiOcrError } from "@/lib/invoice-ocr-gemini";
-import { rejectOrganizationIdentity, validateCounterpartyWithAres } from "@/lib/invoice-ocr-registry";
+import { enrichCounterpartyFromCustomer, rejectOrganizationIdentity, validateCounterpartyWithAres } from "@/lib/invoice-ocr-registry";
 import { applyOcrConsistencyChecks, mergeOcrSources, type ExactSourceReading } from "@/lib/invoice-ocr-sources";
 import { isdocToExactReading, parseIsdoc } from "@/lib/invoice-isdoc";
 import { spaydToExactReading } from "@/lib/invoice-qr";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   const { data: organization, error: organizationError } = await identity.service.from("organizations")
-    .select("name, ico, dic, ocr_hourly_limit").eq("id", organizationId).single();
+    .select("name, ico, dic, email, ocr_hourly_limit").eq("id", organizationId).single();
   if (organizationError || !organization) {
     logError("Firemní údaje pro OCR se nepodařilo načíst", organizationError);
     return apiError(request, "Firemní údaje se nepodařilo načíst.", 500, "ocr_company_read_failed");
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   // kind of thing nobody agreed to. See invoice-ocr-gemini.ts for the
   // GDPR/data-processor reasoning behind keeping this explicit.
   const ocrProvider = process.env.OCR_PROVIDER === "gemini" || process.env.OCR_PROVIDER === "hybrid" ? process.env.OCR_PROVIDER : "local";
-  const contextualMode = process.env.OCR_CONTEXTUAL_MODE === "active" ? "active" : "shadow";
+  const contextualMode = process.env.OCR_CONTEXTUAL_MODE === "shadow" ? "shadow" : "active";
   const useGemini = ocrProvider === "gemini";
   const useHybrid = ocrProvider === "hybrid";
   // OCR_AI_PRIMARY=true: in hybrid mode Gemini reads every document as the
@@ -195,7 +195,8 @@ export async function POST(request: Request) {
   if (contextualMode === "active") {
     // ARES may have filled a name or DIČ -- rerun the result checks (DIČ vs
     // IČO etc.) on the final values before deciding what the form gets.
-    extraction = omitUnverifiedOcrValues(applyOcrConsistencyChecks(registryValidated, organization));
+    const withCustomer = await enrichCounterpartyFromCustomer(registryValidated, identity.service, organization, organizationId);
+    extraction = omitUnverifiedOcrValues(applyOcrConsistencyChecks(withCustomer, organization));
   } else if (
     registryValidated.invoice.counterparty_ico !== extraction.invoice.counterparty_ico
     || registryValidated.invoice.counterparty_dic !== extraction.invoice.counterparty_dic

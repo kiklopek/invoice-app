@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import { companyNamesAgree, rejectOrganizationIdentity, validateCounterpartyWithAres } from "./invoice-ocr-registry";
+import { companyNamesAgree, mergeCustomerReminderEmail, rejectOrganizationIdentity, validateCounterpartyWithAres } from "./invoice-ocr-registry";
 import { deriveOcrFieldDecisions, type InvoiceOcrResult } from "./invoice-ocr";
 import { OCR_VOCABULARY_VERSION } from "./invoice-ocr-vocabulary";
 
@@ -113,6 +113,28 @@ describe("ARES jako nezávislý zdroj identity odběratele", () => {
     expect(validated.warnings).not.toContain("Název odběratele nebyl rozpoznán.");
   });
 
+  it("ke klientovi přenese sídlo pouze po ověření IČO v ARES", async () => {
+    const result = czechResult();
+    const lookup = vi.fn(async () => ({ status: "found" as const, cached: false,
+      subject: { ico: "46692011", name: "TIMBER & PULP a.s.", dic: "CZ46692011", address: "Dubová 38, Ivančice" } }));
+    const validated = await validateCounterpartyWithAres(result, client, { lookup });
+    expect(validated.counterparty_registered_address).toBe("Dubová 38, Ivančice");
+  });
+
+  it("ARES nerozhoduje mezi dvěma IČO odběratele", async () => {
+    const result = czechResult();
+    result.field_decisions.counterparty_ico = {
+      status: "review", confidence: 0.4, reasons: ["Více IČO"],
+      candidates: [
+        { value: "46692011", page: 1, text: "IČO 46692011", method: "ocr", confidence: 0.8, role: "counterparty" },
+        { value: "64259374", page: 1, text: "IČO 64259374", method: "ocr", confidence: 0.8, role: "counterparty" },
+      ],
+    };
+    const lookup = vi.fn();
+    expect(await validateCounterpartyWithAres(result, client, { lookup })).toBe(result);
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
   it("jiný název v dokumentu a v ARES: nic nepřepíše, obě hodnoty nabídne k volbě", async () => {
     const result = czechResult({ counterparty_name: "Úplně jiná firma s.r.o." });
     const validated = await validateCounterpartyWithAres(result, client, { lookup: found("TIMBER & PULP a.s.") });
@@ -145,5 +167,35 @@ describe("ARES jako nezávislý zdroj identity odběratele", () => {
     const validated = await validateCounterpartyWithAres(result, client, { lookup: found("TIMBER & PULP a.s.") });
     expect(validated.field_decisions.amount).toEqual(result.field_decisions.amount);
     expect(validated.field_decisions.counterparty_ico?.status).toBe("verified");
+  });
+});
+
+describe("Kontakt uloženého klienta", () => {
+  const organization = { name: "R. Hlavica s.r.o.", ico: "26296039", dic: "CZ26296039", email: "info@hlavica.cz" };
+  function result(email: string) {
+    const value = slovakResult();
+    value.invoice.counterparty_ico = "46692011";
+    value.invoice.counterparty_email = email;
+    value.field_decisions = deriveOcrFieldDecisions(value.invoice, value.field_sources, []);
+    return value;
+  }
+
+  it("předvyplní uložený e-mail pouze s povinným potvrzením", () => {
+    const merged = mergeCustomerReminderEmail(result(""), "uctarna@timber-pulp.cz", organization);
+    expect(merged.invoice.counterparty_email).toBe("uctarna@timber-pulp.cz");
+    expect(merged.field_sources.counterparty_email?.method).toBe("customer");
+    expect(merged.field_decisions.counterparty_email).toMatchObject({ status: "review", needs_confirmation: true });
+  });
+
+  it("při rozdílných adresách nepředvyplní žádnou a nabídne obě", () => {
+    const merged = mergeCustomerReminderEmail(result("nova@timber-pulp.cz"), "stara@timber-pulp.cz", organization);
+    expect(merged.invoice.counterparty_email).toBe("");
+    expect(merged.field_decisions.counterparty_email?.candidates.map(candidate => candidate.value))
+      .toEqual(["nova@timber-pulp.cz", "stara@timber-pulp.cz"]);
+  });
+
+  it("nikdy nenabídne e-mail vystavitele z uloženého klienta", () => {
+    const original = result("");
+    expect(mergeCustomerReminderEmail(original, "kostihova@hlavica.cz", organization)).toBe(original);
   });
 });

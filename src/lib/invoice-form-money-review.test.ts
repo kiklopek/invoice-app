@@ -54,12 +54,10 @@ describe("OCR stav polí", () => {
     expect(css).not.toContain(".ocr-field-meta { position: absolute;");
   });
 
-  it("drží OCR stav vlevo a textovou nápovědu hned vedle něj pod inputem", () => {
+  it("drží OCR stav pod inputem ve vlastním řádku", () => {
     const css = styles();
-    expect(css).toContain("label:has(> .ocr-field-meta) { display: grid;");
-    expect(css).toContain("grid-template-columns: auto minmax(0,1fr);");
-    expect(css).toContain("label:has(> small):has(> .ocr-field-meta) > small { grid-column: 2; grid-row: 3;");
-    expect(css).toContain("label:has(> small):has(> .ocr-field-meta) > .ocr-field-meta { grid-column: 1; grid-row: 3;");
+    expect(css).toContain("label:has(> .ocr-field-meta) { display: flex; flex-direction: column;");
+    expect(css).toContain("label:has(> .ocr-field-meta) > .ocr-field-meta { align-self: flex-start; }");
   });
 
   it("zvedá otevřenou OCR nápovědu nad sousední pole a sekce", () => {

@@ -47,21 +47,24 @@ const OCR_FIELD_LABELS: Record<OcrFieldName, string> = {
 
 type CustomerSearchResult = { id: string; name: string; ico: string | null; dic: string | null; email: string | null };
 
-function OcrSourceNote({ source, decision }: { source?: OcrFieldSource; decision?: OcrFieldDecision }) {
+function OcrSourceNote({ source, decision, ico }: { source?: OcrFieldSource; decision?: OcrFieldDecision; ico?: string }) {
   if (!source && !decision) return null;
   const method = source ? ocrSourceLabel(source.method) : "";
+  const documentSource = source && source.page > 0 && source.method !== "ares" && source.method !== "customer";
+  const aresUrl = source?.method === "ares" && /^\d{8}$/.test(ico ?? "")
+    ? `https://ares.gov.cz/ekonomicke-subjekty/res/${ico}` : null;
   const status = decision?.status ?? "review";
-  const label = status === "verified" ? "Ověřeno" : status === "missing" ? "Chybí" : "Kontrola";
+  const label = status === "verified" ? "Ověřeno" : status === "missing" ? "Doplnit" : "Zkontrolovat";
   const candidates = decision?.candidates ?? [];
   const accessibleDetails = [
-    source ? `Zdroj: strana ${source.page}${source.line ? `, řádek ${source.line}` : ""}, ${method}. ${source.text}` : "",
+    source ? `Zdroj: ${documentSource ? `strana ${source.page}${source.line ? `, řádek ${source.line}` : ""}, ` : ""}${method}. ${source.text}` : "",
     ...(decision?.reasons ?? []),
   ].filter(Boolean).join(" ");
   return <span className={`ocr-field-meta ${status}`} tabIndex={0} role="note" aria-label={`${label}. ${accessibleDetails}`}>
-    <span className="ocr-field-status">{label}{source ? ` · ${method}` : ""}</span>
-    <span className="ocr-field-info" aria-hidden="true">i</span>
+    <span className="ocr-field-status">{label}</span>
+    {source && <span className="ocr-field-origin">{source.method === "pdf_text" || source.method === "ocr" ? "Faktura" : method}</span>}
     <span className="ocr-field-tooltip" role="tooltip">
-      {source ? <span className="ocr-tooltip-section"><strong>Zdroj</strong><span>Strana {source.page}{source.line ? `, řádek ${source.line}` : ""} · {method}</span><q>{source.text}</q></span> : null}
+      {source ? <span className="ocr-tooltip-section"><strong>Zdroj</strong><span>{documentSource ? `Strana ${source.page}${source.line ? `, řádek ${source.line}` : ""} · ` : ""}{method}</span><q>{source.text}</q>{aresUrl && <a href={aresUrl} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>Otevřít záznam v ARES ↗</a>}</span> : null}
       {decision?.reasons.length ? <span className="ocr-tooltip-section"><strong>Proč zkontrolovat</strong><span>{decision.reasons.join(" ")}</span></span> : null}
       {candidates.length > 1 || (!source && candidates.length > 0) ? <span className="ocr-tooltip-section"><strong>Nalezené možnosti</strong>{candidates.map((candidate, index) => <span className="ocr-field-candidate" key={`${candidate.method}-${candidate.page}-${candidate.value}-${index}`}><b>{candidate.value}</b><small>Strana {candidate.page} · {ocrSourceLabel(candidate.method)}</small><q>{candidate.text}</q></span>)}</span> : null}
       {!source && !decision?.reasons.length && !candidates.length ? <span>OCR k tomuto poli nemá další podrobnosti.</span> : null}
@@ -86,11 +89,10 @@ export function InvoiceForm({
   ocrFieldDecisions?: Partial<Record<OcrFieldName, OcrFieldDecision>>;
   ocrWarnings?: string[];
   /**
-   * Import s náhledem dokladu: pole (případně konkrétní kandidát) je právě
-   * v centru pozornosti. `reveal` značí výslovné „Ukázat v dokladu“ -- na
-   * mobilu přepne na doklad. Bez propu se formulář chová jako dřív.
+   * Import s náhledem dokladu: hover nebo fokus pole ukazuje jeho zdroj.
+   * Na dotykovém zařízení zůstává aktivní pole viditelné po přepnutí na doklad.
    */
-  onActiveFieldChange?: (field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { reveal?: boolean }) => void;
+  onActiveFieldChange?: (field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { value?: string | number }) => void;
   submitLabel?: string;
   editing?: boolean;
   onSubmit: (value: InvoiceInput) => Promise<void>;
@@ -278,19 +280,18 @@ export function InvoiceForm({
     else field(fieldName, value);
   };
   const fieldHooks = (fieldName: OcrFieldName) => onActiveFieldChange
-    ? { onFocusCapture: () => onActiveFieldChange(fieldName), onMouseEnter: () => onActiveFieldChange(fieldName) }
+    ? { onFocusCapture: () => onActiveFieldChange(fieldName, undefined, { value: formValues[fieldName] as string | number }), onMouseEnter: () => onActiveFieldChange(fieldName, undefined, { value: formValues[fieldName] as string | number }), onMouseLeave: (event: React.MouseEvent<HTMLLabelElement>) => { if (!event.currentTarget.contains(document.activeElement)) onActiveFieldChange(null); } }
     : {};
   const ocrMeta = (fieldName: OcrFieldName) => {
     const choices = alternativeOcrCandidates(decision(fieldName), formValues[fieldName]);
     const pending = pendingConfirmations.includes(fieldName);
     const candidateFor = (value: string | number) => decision(fieldName)?.candidates.find(candidate => String(candidate.value) === String(value));
-    const canReveal = Boolean(onActiveFieldChange && (source(fieldName) || decision(fieldName)?.candidates.length));
+    const optionalMissing = decision(fieldName)?.status === "missing" && ["variable_symbol", "counterparty_ico", "counterparty_dic", "currency"].includes(fieldName);
     return <>
-      <OcrSourceNote source={source(fieldName)} decision={decision(fieldName)}/>
-      {(choices.length > 0 || pending || canReveal) && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
+      {!optionalMissing && <OcrSourceNote source={source(fieldName)} decision={decision(fieldName)} ico={form.counterparty_ico}/>}
+      {(choices.length > 0 || pending) && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
         {choices.map(choice => <button type="button" className="btn secondary compact" key={`${fieldName}-${choice.value}`} onClick={() => applyCandidate(fieldName, choice.value)} onMouseEnter={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))} onFocus={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))}>Použít {choice.value} <small>({choice.sources.join(", ")})</small></button>)}
         {pending && <button type="button" className="btn secondary compact" onClick={() => setConfirmedFields(current => new Set([...current, fieldName]))}>Potvrdit hodnotu podle dokumentu</button>}
-        {canReveal && <button type="button" className="btn secondary compact ocr-show-in-document" onClick={() => onActiveFieldChange?.(fieldName, undefined, { reveal: true })}>Ukázat v dokladu</button>}
       </span>}
     </>;
   };

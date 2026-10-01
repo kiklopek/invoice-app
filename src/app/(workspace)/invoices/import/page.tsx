@@ -97,7 +97,7 @@ export default function ImportInvoicesPage() {
   // Pole, na které se uživatel právě soustředí; náhled dokladu ukazuje, odkud
   // aplikace jeho hodnotu vzala. Váže se na konkrétní soubor, takže po přepnutí
   // dokumentu ve frontě (nebo odebrání jiného) neplatí.
-  const [activeField, setActiveField] = useState<{ file: File; field: OcrFieldName; candidate?: OcrFieldCandidate; reveal: number } | null>(null);
+  const [activeField, setActiveField] = useState<{ file: File; field: OcrFieldName; candidate?: OcrFieldCandidate; value?: string | number } | null>(null);
   const [mobileView, setMobileView] = useState<"data" | "document">("data");
   // Fronta se cte i z asynchronnich callbacku, ktere drzi closure ze
   // starsiho renderu. Driv kvuli tomu create() hledal dalsi nepotvrzenou
@@ -117,16 +117,17 @@ export default function ImportInvoicesPage() {
   const documentHighlight = useMemo<DocumentHighlight | null>(() => {
     if (!splitMode || !active || !uploaded || !activeField || activeField.file !== active.file) return null;
     const { field, candidate } = activeField;
-    const value = (uploaded as unknown as Partial<Record<OcrFieldName, string | number>>)[field];
-    return documentHighlightFor({ field, value, source: ocrInfo?.field_sources?.[field], candidate });
+    const originalValue = (uploaded as unknown as Partial<Record<OcrFieldName, string | number>>)[field];
+    const value = activeField.value ?? originalValue;
+    const source = ocrInfo?.field_sources?.[field];
+    return documentHighlightFor({ field, value, source: source && value !== undefined && String(value) !== String(originalValue) ? { ...source, bounds: null } : source, candidate });
   }, [splitMode, active, uploaded, ocrInfo, activeField]);
-  function handleActiveFieldChange(field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { reveal?: boolean }) {
+  function handleActiveFieldChange(field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { value?: string | number }) {
     const file = active?.file;
     if (!file || !field) { setActiveField(null); return; }
-    if (options?.reveal) setMobileView("document");
-    setActiveField(current => !options?.reveal && current && current.file === file && current.field === field && current.candidate === candidate
+    setActiveField(current => current && current.file === file && current.field === field && current.candidate === candidate && current.value === options?.value
       ? current
-      : { file, field, candidate, reveal: (current?.reveal ?? 0) + 1 });
+      : { file, field, candidate, value: options?.value });
   }
   const savedInvoiceCount = queue.filter(item => item.status === "saved").length;
 

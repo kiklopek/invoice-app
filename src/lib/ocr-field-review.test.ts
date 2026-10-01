@@ -31,4 +31,14 @@ describe("formulář: zdroj pole a potvrzení", () => {
     expect(alternativeOcrCandidates(decision, 0).map(candidate => [candidate.value, candidate.sources])).toEqual([[123100.2, ["ISDOC", "text"]], [123000, ["QR platba"]]]);
     expect(alternativeOcrCandidates(decision, 123000).map(candidate => candidate.value)).toEqual([123100.2]);
   });
+
+  it("nenabídne k převzetí kontakt ani identitu označenou jako vystavitel", () => {
+    const decision: OcrFieldDecision = {
+      status: "review", confidence: 0, reasons: [], candidates: [
+        { value: "kostihova@hlavica.cz", page: 1, text: "Email vystavitele", method: "ocr", confidence: null, role: "issuer" },
+        { value: "faktury@odberatel.cz", page: 1, text: "Email odběratele", method: "ocr", confidence: null, role: "counterparty" },
+      ],
+    };
+    expect(alternativeOcrCandidates(decision, "").map(candidate => candidate.value)).toEqual(["faktury@odberatel.cz"]);
+  });
 });

@@ -115,7 +115,7 @@ const selfBilledExpected = {
 
 const selfBilledMustRead: OcrFieldName[] = [
   "invoice_number", "counterparty_name", "counterparty_ico", "counterparty_dic",
-  "issue_date", "due_date", "amount_without_vat", "vat_rate", "amount", "currency",
+  "counterparty_email", "issue_date", "due_date", "amount_without_vat", "vat_rate", "amount", "currency",
 ];
 
 export const OCR_CORPUS: CorpusDocument[] = [

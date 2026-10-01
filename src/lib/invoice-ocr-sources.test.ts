@@ -80,6 +80,18 @@ describe("pořadí zdrojů ISDOC > QR > ARES > AI > text", () => {
 });
 
 describe("kontroly nad výsledkem", () => {
+  it("odmítne vlastní doménu vystavitele i z AI a ISDOC", () => {
+    const issuer = { name: "R. Hlavica s.r.o.", ico: "26296039", dic: "CZ26296039", email: "info@hlavica.cz" };
+    const ai = mergeOcrSources({ ai: result("ai", { counterparty_email: "kostihova@hlavica.cz" }), organization: issuer });
+    expect(ai.invoice.counterparty_email).toBe("");
+    expect(ai.field_decisions.counterparty_email).toMatchObject({ status: "review" });
+    expect(ai.field_decisions.counterparty_email?.candidates[0].role).toBe("issuer");
+
+    const exact = mergeOcrSources({ local: result("pdf_text"), exact: [isdoc({ counterparty_email: "kostihova@hlavica.cz" })], organization: issuer });
+    expect(exact.invoice.counterparty_email).toBe("");
+    expect(exact.warnings.join(" ")).toContain("E-mail patří vystaviteli");
+  });
+
   it("základ + DPH ≠ celkem: hodnoty zůstanou, ale čekají na potvrzení", () => {
     const checked = applyOcrConsistencyChecks(result("pdf_text", { amount: 125000 }), organization);
     for (const field of ["amount", "amount_without_vat", "vat_rate"] as const) {

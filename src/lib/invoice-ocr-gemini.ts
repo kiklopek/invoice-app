@@ -142,11 +142,12 @@ Specifika českého účetnictví, která musíš znát a nezaměňovat:
   údaj, je to očekávaný stav.
 
 - counterparty_* se týká VÝHRADNĚ odběratele (kdo má fakturu zaplatit),
-  nikdy dodavatele/vystavitele. Buď obzvlášť opatrný u counterparty_email --
-  vrať ho JEN pokud je e-mailová adresa explicitně uvedená v sekci
-  odběratele, ne kontaktní e-mail vystavitele/účetní v patičce dokumentu
-  (např. "Vystavil: ... Email: ..."), i kdyby to byl jediný e-mail na celé
-  faktuře.
+  nikdy dodavatele. Buď obzvlášť opatrný u counterparty_email: u běžné
+  faktury vrať jen e-mail explicitně uvedený u odběratele, ne kontakt
+  vystavitele/účetní z patičky. Výjimka je prokazatelná SAMOFAKTURACE
+  označená "vystaveno zákazníkem" nebo "self-billing": kontakt u "Fakturu
+  vystavil" tehdy může patřit odběrateli. Bez tohoto označení patičkový
+  e-mail nepřiřazuj odběrateli, ani když je na dokladu jediný.
 
 - Pro každou neprázdnou hodnotu vrať v objektu evidence doslovný krátký text
   z dokumentu, číslo stránky a party_role. Pokud nedokážeš uvést konkrétní

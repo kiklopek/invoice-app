@@ -541,6 +541,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          address: string | null
           created_at: string
           created_by: string | null
           dic: string | null
@@ -555,6 +556,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string
           created_by?: string | null
           dic?: string | null
@@ -569,6 +571,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string
           created_by?: string | null
           dic?: string | null

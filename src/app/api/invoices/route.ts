@@ -15,6 +15,9 @@ import {
 import { loadInvoiceListPageData } from "@/lib/invoice-list-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
 import { OCR_REVIEW_FIELDS } from "@/lib/invoice-ocr";
+import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { lookupAresSubject } from "@/lib/ares";
+import { companyNamesAgree } from "@/lib/invoice-ocr-registry";
 
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
@@ -218,6 +221,15 @@ export async function POST(request: Request) {
   }
 
   const organizationId = identity.membership.organization_id;
+  const { data: issuer, error: issuerError } = await identity.service.from("organizations")
+    .select("name, email").eq("id", organizationId).single();
+  if (issuerError || !issuer) {
+    logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError);
+    return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_issuer_read_failed");
+  }
+  if (isIssuerReminderAddress(input.counterparty_email, issuer)) {
+    return NextResponse.json({ error: "E-mail pro upomínky patří vaší firmě. Zadejte adresu odběratele." }, { status: 400 });
+  }
   let verifiedUpload: {
     id: string;
     ocr_model: string | null;
@@ -300,6 +312,18 @@ export async function POST(request: Request) {
       },
       { status },
     );
+  }
+  // The invoice trigger links the customer by IČO. Enrich only an empty
+  // registered-office field; an existing address may have been curated.
+  if (data.customer_id && input.counterparty_ico) {
+    const registry = await lookupAresSubject(input.counterparty_ico);
+    if (registry.status === "found" && registry.subject.address
+      && companyNamesAgree(input.counterparty_name, registry.subject.name)) {
+      const { error: addressError } = await identity.service.from("customers")
+        .update({ address: registry.subject.address })
+        .eq("id", data.customer_id).eq("organization_id", organizationId).is("address", null);
+      if (addressError) logError("Sídlo klienta z ARES se nepodařilo uložit", addressError, { customer_id: data.customer_id });
+    }
   }
   if (verifiedUpload) {
     await identity.service

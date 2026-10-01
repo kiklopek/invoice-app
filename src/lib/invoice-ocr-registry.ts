@@ -15,6 +15,7 @@ import {
   type OcrFieldSource,
 } from "@/lib/invoice-ocr";
 import { lookupAresSubject } from "@/lib/ares";
+import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
 
 const ARES_CACHE_MS = 30 * 24 * 60 * 60_000;
 
@@ -22,6 +23,7 @@ type RegistryResult = {
   status: "found" | "not_found" | "unavailable";
   legalName: string | null;
   dic: string | null;
+  address: string | null;
   source: "cache" | "ares" | "none";
 };
 
@@ -126,22 +128,23 @@ async function lookupAres(client: SupabaseClient<Database>, ico: string, lookup:
       status: ares.status,
       legalName,
       dic: ares.status === "found" ? ares.subject.dic : null,
+      address: ares.status === "found" ? ares.subject.address : null,
       source: ares.status === "found" && ares.cached ? "cache" : "ares",
     };
   }
-  if (ares.status === "invalid_ico") return { status: "not_found", legalName: null, dic: null, source: "none" };
+  if (ares.status === "invalid_ico") return { status: "not_found", legalName: null, dic: null, address: null, source: "none" };
   try {
     const { data: cached } = await client.from("company_registry_cache")
       .select("legal_name, lookup_status, fetched_at")
       .eq("ico", ico)
       .maybeSingle();
     if (cached && Date.parse(cached.fetched_at) >= Date.now() - ARES_CACHE_MS) {
-      return { status: cached.lookup_status === "found" ? "found" : "not_found", legalName: cached.legal_name, dic: null, source: "cache" };
+      return { status: cached.lookup_status === "found" ? "found" : "not_found", legalName: cached.legal_name, dic: null, address: null, source: "cache" };
     }
   } catch {
     // Bez cache i bez ARES: "nedostupné" níže.
   }
-  return { status: "unavailable", legalName: null, dic: null, source: "none" };
+  return { status: "unavailable", legalName: null, dic: null, address: null, source: "none" };
 }
 
 export const ARES_UNAVAILABLE_WARNING = "Registr ARES teď nebyl dostupný, identitu odběratele se nepodařilo ověřit v registru.";
@@ -158,11 +161,11 @@ function identityDecisions(result: InvoiceOcrResult, invoice: InvoiceOcrResult["
 }
 
 function aresSource(text: string): OcrFieldSource {
-  return { page: 1, line: 0, text: text.slice(0, 240), method: "ares", confidence: 0.97, bounds: null, role: "counterparty" };
+  return { page: 0, line: 0, text: text.slice(0, 240), method: "ares", confidence: 0.97, bounds: null, role: "counterparty" };
 }
 
 function aresCandidate(value: string): OcrFieldCandidate {
-  return { value, page: 1, text: `ARES: ${value}`, method: "ares", confidence: 0.97, role: "counterparty" };
+  return { value, page: 0, text: `ARES: ${value}`, method: "ares", confidence: 0.97, role: "counterparty" };
 }
 
 export async function validateCounterpartyWithAres(
@@ -172,6 +175,9 @@ export async function validateCounterpartyWithAres(
 ): Promise<InvoiceOcrResult> {
   const ico = digits(result.invoice.counterparty_ico ?? "");
   if (!ico) return result;
+  // ARES can identify every valid company on an invoice, including its
+  // issuer. It cannot choose between multiple structural OCR candidates.
+  if ((result.field_decisions.counterparty_ico?.candidates.length ?? 0) > 1) return result;
 
   // ARES is authoritative only for Czech subjects. An explicitly Slovak or
   // other foreign VAT ID must never be rejected because ARES does not know it.
@@ -285,5 +291,72 @@ export async function validateCounterpartyWithAres(
       candidates: [rejectedIdentityCandidate(result, "counterparty_dic", dicConflict), aresCandidate(registry.dic!)],
     };
   }
-  return { ...result, invoice, field_sources: fieldSources, warnings, field_decisions: fieldDecisions };
+  return { ...result, invoice, field_sources: fieldSources, warnings, field_decisions: fieldDecisions,
+    counterparty_registered_address: icoVerified ? registry.address : null };
+}
+
+/** Reuses a contact only after ARES has confirmed the counterparty's IČO. */
+export async function enrichCounterpartyFromCustomer(
+  result: InvoiceOcrResult,
+  client: SupabaseClient<Database>,
+  organization: InvoiceOcrOrganization,
+  organizationId: string,
+): Promise<InvoiceOcrResult> {
+  const ico = digits(result.invoice.counterparty_ico ?? "");
+  if (!ico || result.field_decisions.counterparty_ico?.status !== "verified") return result;
+  const { data: customer, error } = await client.from("customers")
+    .select("email").eq("organization_id", organizationId)
+    .eq("ico", ico).maybeSingle();
+  return error ? result : mergeCustomerReminderEmail(result, customer?.email, organization);
+}
+
+export function mergeCustomerReminderEmail(
+  result: InvoiceOcrResult,
+  customerEmail: string | null | undefined,
+  organization: InvoiceOcrOrganization,
+): InvoiceOcrResult {
+  const savedEmail = customerEmail?.trim().toLowerCase() ?? "";
+  if (!savedEmail || isIssuerReminderAddress(savedEmail, organization)) return result;
+  const readEmail = result.invoice.counterparty_email?.trim().toLowerCase() ?? "";
+  const documentEmail = isIssuerReminderAddress(readEmail, organization) ? "" : readEmail;
+  if (documentEmail === savedEmail) return result;
+
+  const savedCandidate: OcrFieldCandidate = {
+    value: savedEmail, page: 0, text: "Kontakt uloženého klienta", method: "customer",
+    confidence: null, role: "counterparty",
+  };
+  if (!documentEmail) {
+    const invoice = { ...result.invoice, counterparty_email: savedEmail };
+    const fieldSources = { ...result.field_sources, counterparty_email: {
+      page: 0, line: 0, text: "Kontakt uloženého klienta", method: "customer" as const,
+      confidence: null, bounds: null, role: "counterparty" as const,
+    } };
+    const decision = deriveOcrFieldDecisions(invoice, fieldSources, result.warnings).counterparty_email!;
+    return { ...result, invoice, field_sources: fieldSources, field_decisions: {
+      ...result.field_decisions, counterparty_email: {
+        ...decision, status: "review", needs_confirmation: true,
+        confidence: Math.min(decision.confidence, 0.59),
+        reasons: ["E-mail je z uloženého klienta. Potvrďte jej pro tuto fakturu."],
+        candidates: [savedCandidate],
+      },
+    } };
+  }
+
+  // Two distinct recipient addresses are not interchangeable. Require the
+  // accountant to choose one; the customer registry stays unchanged.
+  const original = result.field_decisions.counterparty_email?.candidates ?? [];
+  const source = result.field_sources.counterparty_email;
+  const documentCandidate: OcrFieldCandidate = original.find(candidate => String(candidate.value).toLowerCase() === documentEmail)
+    ?? { value: documentEmail, page: source?.page ?? 1, text: source?.text ?? documentEmail,
+      method: source?.method ?? "ocr", confidence: source?.confidence ?? null,
+      role: "counterparty", ...(source?.bounds ? { bounds: source.bounds } : {}) };
+  return { ...result, invoice: { ...result.invoice, counterparty_email: "" },
+    field_sources: { ...result.field_sources, counterparty_email: undefined },
+    field_decisions: { ...result.field_decisions, counterparty_email: {
+      status: "review", confidence: 0.4,
+      reasons: ["E-mail z faktury se liší od uloženého kontaktu klienta. Vyberte adresu pro upomínky."],
+      candidates: [documentCandidate, savedCandidate],
+    } },
+    warnings: [...new Set([...result.warnings, "E-mail z faktury se liší od uloženého kontaktu klienta."])],
+  };
 }

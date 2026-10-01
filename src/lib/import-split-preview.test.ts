@@ -7,6 +7,7 @@ const page = () => read("src/app/(workspace)/invoices/import/page.tsx");
 const form = () => read("src/components/invoice-form.tsx");
 const preview = () => read("src/components/document-preview.tsx");
 const css = () => read("src/app/minimal.css");
+const responsiveCss = () => read("src/app/styles/responsive.css");
 
 describe("import faktury: údaje vlevo, náhled dokladu vpravo", () => {
   it("rozdělí obrazovku jen u dokumentu s OCR a zachová formulář", () => {
@@ -36,13 +37,13 @@ describe("import faktury: údaje vlevo, náhled dokladu vpravo", () => {
     expect(source).toContain("Zpět k údajům");
   });
 
-  it("CSS: dva sloupce 1:1, široký workspace jen v režimu rozdělení, lepivý náhled", () => {
+  it("CSS: přehledný formulář vedle dokladu a přepínač na užším displeji", () => {
     const styles = css();
+    const responsive = responsiveCss();
     expect(styles).toContain(".invoice-import-split {");
-    expect(styles).toMatch(/\.invoice-import-split\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/);
-    expect(styles).toMatch(/\.invoice-import-workspace\.is-split\s*\{[^}]*1600px/);
     expect(styles).toMatch(/\.invoice-import-preview-column\s*\{[^}]*position:\s*sticky/);
-    expect(styles).toContain(".invoice-import-workspace { width: min(100%, 1120px);");
+    expect(responsive).toContain("minmax(0, 0.9fr) minmax(0, 1.1fr)");
+    expect(responsive).toContain("@media screen and (max-width: 1350px)");
     expect(styles).toContain(".document-preview-highlight");
   });
 });
@@ -53,7 +54,8 @@ describe("InvoiceForm: háček na aktivní pole", () => {
     expect(source).toContain("onActiveFieldChange?:");
     expect(source).toContain("onFocusCapture");
     expect(source).toContain("onMouseEnter");
-    expect(source).toContain("Ukázat v dokladu");
+    expect(source).toContain("onMouseLeave");
+    expect(source).not.toContain("Ukázat v dokladu");
     expect(source).toMatch(/onActiveFieldChange\?\.\(fieldName, candidateFor/);
   });
   it("bez propu nepřidává tlačítko ani obsluhu (ruční zadání faktury)", () => {

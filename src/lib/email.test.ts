@@ -111,6 +111,12 @@ describe("sendReminderEmail", () => {
     await send({ template: { subject: "S", body: "B", cc: ["ucetni@example.cz"] } });
     expect((sent[0].payload as { cc?: string[] }).cc).toEqual(["ucetni@example.cz"]);
   });
+
+  it("never sends a reminder to the issuer's own address or company domain", async () => {
+    await expect(send({ to: "info@example.cz" })).rejects.toThrow(/vystavitele/);
+    await expect(send({ to: "kostihova@example.cz" })).rejects.toThrow(/vystavitele/);
+    expect(sent).toHaveLength(0);
+  });
 });
 
 describe("pojistka proti odeslání z vývoje", () => {
@@ -123,15 +129,15 @@ describe("pojistka proti odeslání z vývoje", () => {
   });
 
   it("lets an allowlisted recipient through", async () => {
-    process.env.LOCAL_EMAIL_RECIPIENT_ALLOWLIST = "test-admin@hlavica.cz";
-    await send({ to: "test-admin@hlavica.cz" });
+    process.env.LOCAL_EMAIL_RECIPIENT_ALLOWLIST = "test-admin@customer.cz";
+    await send({ to: "test-admin@customer.cz" });
     expect(sent).toHaveLength(1);
   });
 
   it("checks copies too, not just the main recipient", async () => {
-    process.env.LOCAL_EMAIL_RECIPIENT_ALLOWLIST = "test-admin@hlavica.cz";
+    process.env.LOCAL_EMAIL_RECIPIENT_ALLOWLIST = "test-admin@customer.cz";
     await expect(
-      send({ to: "test-admin@hlavica.cz", template: { subject: "S", body: "B", cc: ["cizi@example.com"] } }),
+      send({ to: "test-admin@customer.cz", template: { subject: "S", body: "B", cc: ["cizi@example.com"] } }),
     ).rejects.toThrow();
     expect(sent).toHaveLength(0);
   });

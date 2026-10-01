@@ -7,6 +7,7 @@ const SOURCE_LABELS: Record<OcrFieldSource["method"], string> = {
   isdoc: "ISDOC",
   qr: "QR platba",
   ares: "ARES",
+  customer: "Uložený klient",
   ai: "AI",
   pdf_text: "text",
   ocr: "text (OCR)",
@@ -49,6 +50,7 @@ export function alternativeOcrCandidates(decision: OcrFieldDecision | undefined,
   if (!decision || decision.status !== "review") return [];
   const choices: OcrCandidateChoice[] = [];
   for (const candidate of decision.candidates) {
+    if (candidate.role === "issuer") continue;
     if (!filled(candidate.value) || (filled(current) && sameValue(candidate.value, current))) continue;
     const existing = choices.find(choice => sameValue(choice.value, candidate.value));
     const label = ocrSourceLabel(candidate.method);
