@@ -159,8 +159,9 @@ Ce1kem k uhrade: 1 210,00 Kč
     const safe = omitUnverifiedOcrValues(result);
     expect(safe.invoice.invoice_number).toBe("");
     expect(safe.invoice.amount).toBe(0);
-    expect(safe.invoice.currency).toBe("");
+    expect(safe.invoice.currency).toBe("CZK");
     expect(safe.field_decisions.currency?.status).toBe("review");
+    expect(safe.field_decisions.currency?.needs_confirmation).toBe(true);
   });
 
   it("keeps multiple customer identity candidates for review instead of hiding the ambiguity", () => {

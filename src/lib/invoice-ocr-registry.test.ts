@@ -197,5 +197,6 @@ describe("Kontakt uloženého klienta", () => {
   it("nikdy nenabídne e-mail vystavitele z uloženého klienta", () => {
     const original = result("");
     expect(mergeCustomerReminderEmail(original, "kostihova@hlavica.cz", organization)).toBe(original);
+    expect(mergeCustomerReminderEmail(original, "nespravna-adresa", organization)).toBe(original);
   });
 });

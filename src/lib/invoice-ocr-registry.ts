@@ -316,7 +316,7 @@ export function mergeCustomerReminderEmail(
   organization: InvoiceOcrOrganization,
 ): InvoiceOcrResult {
   const savedEmail = customerEmail?.trim().toLowerCase() ?? "";
-  if (!savedEmail || isIssuerReminderAddress(savedEmail, organization)) return result;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(savedEmail) || isIssuerReminderAddress(savedEmail, organization)) return result;
   const readEmail = result.invoice.counterparty_email?.trim().toLowerCase() ?? "";
   const documentEmail = isIssuerReminderAddress(readEmail, organization) ? "" : readEmail;
   if (documentEmail === savedEmail) return result;

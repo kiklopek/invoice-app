@@ -1,6 +1,7 @@
 import "server-only";
 
 import { boundedText, deriveOcrFieldDecisions, type InvoiceOcrOrganization, type InvoiceOcrResult, type OcrDocumentKind, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
+import { normalizeInvoiceCurrency } from "@/lib/invoice-currency";
 import { OCR_VOCABULARY_VERSION } from "@/lib/invoice-ocr-vocabulary";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "@/lib/vat";
 import type { InvoiceInput } from "@/types/invoice";
@@ -57,7 +58,7 @@ const EXTRACTION_SCHEMA = {
     },
     vat_rate: { type: "NUMBER", description: "Sazba DPH v procentech (21, 12 nebo 0 v ČR)." },
     amount: { type: "NUMBER", description: "Celková částka k úhradě, s DPH." },
-    currency: { type: "STRING", description: "ISO kód měny (CZK, EUR, USD), ne symbol jako Kč nebo €." },
+    currency: { type: "STRING", description: "ISO kód měny (např. CZK, EUR, USD, GBP, PLN, CHF, HUF, SEK, NOK, DKK, RON, JPY, CAD, AUD). Zápisy Kč/KC/koruna česká, €/euro, US dolar, £/libra, zł/zlotý a názvy dalších měn převeď na příslušný kód. Pokud měna není uvedena, vrať prázdný řetězec." },
     issue_date: { type: "STRING", description: "YYYY-MM-DD" },
     due_date: { type: "STRING", description: "YYYY-MM-DD" },
     document_kind: {
@@ -173,7 +174,7 @@ Specifika českého účetnictví, která musíš znát a nezaměňovat:
   235/2004 Sb.", "§ 92a", "č. 302/2008 Sb."), čísla objednávek, smluv,
   účtů ani konstantní symbol nikdy nejsou číslem faktury.
 
-- currency vracej jako ISO kód (CZK, EUR, USD), ne symbol jako "Kč" nebo "€".
+- currency vracej jako ISO kód (např. CZK, EUR, USD, GBP, PLN, CHF, HUF, SEK, NOK, DKK, RON, JPY, CAD, AUD), ne symbol jako "Kč" nebo "€". Pokud měna není uvedena, nech pole prázdné.
 
 Data vracej jako YYYY-MM-DD.`;
 
@@ -335,6 +336,8 @@ export function geminiExtractionToResult(
   const vatRate = typeof data.vat_rate === "number" && Number.isFinite(data.vat_rate) ? roundMoney(Math.max(0, Math.min(100, data.vat_rate))) : 0;
 
   const warnings: string[] = [GEMINI_OCR_DISCLOSURE];
+  const aiCurrency = normalizeInvoiceCurrency(data.currency);
+  if (data.currency && !aiCurrency) warnings.push("AI vrátila neznámou nebo nejednoznačnou měnu. Zkontrolujte ji podle dokladu.");
   // Same class of bug fixed in the local parser's e-mail extraction: nothing
   // stops an AI from reading the SUPPLIER section as the customer on an
   // unfamiliar layout. Guard the one field with a cheap, certain check --
@@ -370,7 +373,7 @@ export function geminiExtractionToResult(
     amount_without_vat: amountWithoutVat,
     vat_rate: vatRate,
     amount,
-    currency: boundedText(data.currency, 3).toUpperCase() || "CZK",
+    currency: aiCurrency ?? "",
     issue_date: isIsoDateLike(data.issue_date) ? data.issue_date : "",
     due_date: isIsoDateLike(data.due_date) ? data.due_date : "",
     source: "ocr",
@@ -421,7 +424,7 @@ export function geminiExtractionToResult(
     amount_without_vat: aiSource("amount_without_vat", data.amount_without_vat),
     vat_rate: aiSource("vat_rate", data.vat_rate),
     amount: aiSource("amount", data.amount),
-    currency: aiSource("currency", data.currency),
+    currency: aiCurrency ? aiSource("currency", data.currency) : undefined,
     issue_date: aiSource("issue_date", data.issue_date),
     due_date: aiSource("due_date", data.due_date),
   };

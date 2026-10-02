@@ -60,5 +60,7 @@ export function alternativeOcrCandidates(decision: OcrFieldDecision | undefined,
       choices.push({ value: candidate.value, sources: [label] });
     }
   }
-  return choices;
+  // A single plausible reading is prefilled by the OCR pipeline and marked
+  // for confirmation. A rejected lone reading must be typed deliberately.
+  return !filled(current) && choices.length === 1 ? [] : choices;
 }

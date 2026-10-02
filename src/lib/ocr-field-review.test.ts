@@ -39,6 +39,6 @@ describe("formulář: zdroj pole a potvrzení", () => {
         { value: "faktury@odberatel.cz", page: 1, text: "Email odběratele", method: "ocr", confidence: null, role: "counterparty" },
       ],
     };
-    expect(alternativeOcrCandidates(decision, "").map(candidate => candidate.value)).toEqual(["faktury@odberatel.cz"]);
+    expect(alternativeOcrCandidates(decision, "")).toEqual([]);
   });
 });

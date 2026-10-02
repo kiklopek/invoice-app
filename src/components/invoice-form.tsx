@@ -12,6 +12,7 @@ import type { ReminderPolicySummary } from "@/lib/reminder-policies";
 import { relevantOcrWarnings, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource, type OcrReminderPolicyAssignment } from "@/lib/invoice-ocr";
 import { normalizeCounterpartyIco } from "@/lib/counterparty-reminder-preferences";
 import { alternativeOcrCandidates, ocrSourceLabel, pendingOcrConfirmations } from "@/lib/ocr-field-review";
+import { INVOICE_CURRENCIES, normalizeInvoiceCurrency, unambiguousCurrency } from "@/lib/invoice-currency";
 
 export const createEmptyInvoice = (): InvoiceInput => ({
   invoice_number: "",
@@ -99,7 +100,19 @@ export function InvoiceForm({
 }) {
   const pathname = usePathname();
   const draftKey = JSON.stringify([pathname, initial?.file_url ?? "", initial?.invoice_number ?? ""]);
-  const [form, setForm] = useState<InvoiceInput>(() => readInvoiceDraft(draftKey) ?? initial ?? createEmptyInvoice());
+  const [form, setForm] = useState<InvoiceInput>(() => {
+    const draft = readInvoiceDraft(draftKey);
+    if (!draft) return initial ?? createEmptyInvoice();
+    // A saved draft can predate a later OCR retry for the same upload and
+    // keep an empty currency even when the new extraction found it. Preserve
+    // the person's draft when filled, but backfill that empty select from the
+    // newest OCR value or its exact source row.
+    const sourceCurrency = unambiguousCurrency(ocrFieldSources?.currency?.text ?? "")
+      ?? unambiguousCurrency(ocrFieldSources?.amount?.text ?? "");
+    // An OCR import that left the currency empty did so on purpose (several
+    // currencies, or a bare "$"): keep it empty for the person to choose.
+    return { ...draft, currency: normalizeInvoiceCurrency(draft.currency) || initial?.currency || sourceCurrency || (initial ? "" : "CZK") };
+  });
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [confirmedFields, setConfirmedFields] = useState<ReadonlySet<OcrFieldName>>(() => new Set());
@@ -435,7 +448,7 @@ export function InvoiceForm({
           <label className="invoice-money-confirm"><input required type="checkbox" checked={form.money_evidence?.initial_paid_confirmed ?? false} onChange={e => updateMoneyEvidence({ initial_paid_confirmed: e.target.checked })}/>Potvrzuji, že tyto úhrady již proběhly. Budou zapsány do evidence úhrad.</label>
         </>}
       </div>}
-      <label {...fieldHooks("currency")}><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option value="" disabled>Vyberte měnu</option><option>CZK</option><option>EUR</option><option>USD</option></select>{ocrMeta("currency")}</label>
+      <label {...fieldHooks("currency")}><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option value="" disabled>Vyberte měnu</option>{INVOICE_CURRENCIES.map(currency => <option key={currency} value={currency}>{currency}</option>)}</select>{ocrMeta("currency")}</label>
       <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} enterKeyHint="done" placeholder="Volitelná poznámka pro účetní oddělení"/></label>
     </div></section>
     {submitAttempted && submitBlockers.length > 0 && <div className="form-error form-submit-blockers"><strong>Než fakturu uložíte, opravte prosím:</strong><ul>{submitBlockers.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>}

@@ -196,7 +196,7 @@ export async function POST(request: Request) {
     // ARES may have filled a name or DIČ -- rerun the result checks (DIČ vs
     // IČO etc.) on the final values before deciding what the form gets.
     const withCustomer = await enrichCounterpartyFromCustomer(registryValidated, identity.service, organization, organizationId);
-    extraction = omitUnverifiedOcrValues(applyOcrConsistencyChecks(withCustomer, organization));
+    extraction = omitUnverifiedOcrValues(applyOcrConsistencyChecks(withCustomer, organization), organization);
   } else if (
     registryValidated.invoice.counterparty_ico !== extraction.invoice.counterparty_ico
     || registryValidated.invoice.counterparty_dic !== extraction.invoice.counterparty_dic
