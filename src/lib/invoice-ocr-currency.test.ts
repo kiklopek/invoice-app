@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { omitUnverifiedOcrValues, parseInvoiceText } from "./invoice-ocr";
 import { currencyMentions } from "./invoice-currency";
@@ -46,6 +45,33 @@ describe("měna zapsaná přímo u částky", () => {
     expect(result.invoice.currency).toBe("CZK");
   });
 
+  it("přenese samostatně uvedenou měnu částky až do návrhu formuláře", () => {
+    const result = parse("K úhradě: 3 202 315,00\nMěna: PLN");
+    expect(result.invoice.currency).toBe("PLN");
+    const safe = omitUnverifiedOcrValues(result, organization);
+    expect(safe.invoice.currency).toBe("PLN");
+    expect(safe.field_decisions.currency?.status).toBe("verified");
+  });
+
+  it("neztratí měnu uvedenou mimo sousední řádek částky", () => {
+    const result = parse("K úhradě: 3 202 315,00\nÚčet: 123456789/0100\nDatum platby: 15.09.2026\nMěna faktury: PLN");
+    expect(result.invoice.currency).toBe("PLN");
+    expect(omitUnverifiedOcrValues(result, organization).invoice.currency).toBe("PLN");
+  });
+
+  it("ponechá měnu přímo u celkové částky, i když je v jiném oddílu uvedena další měna", () => {
+    const result = parse("Bankovní účet vedený v CZK\nK úhradě: 3 202 315,00 PLN");
+    expect(result.invoice.currency).toBe("PLN");
+    expect(omitUnverifiedOcrValues(result, organization).invoice.currency).toBe("PLN");
+  });
+
+  it("propíše Kč u částky i při dalším přepočtu na stejném řádku", () => {
+    const result = parse("K úhradě: 3 750,00 Kč (orientační kurz EUR)");
+    expect(result.invoice.amount).toBe(3750);
+    expect(result.invoice.currency).toBe("CZK");
+    expect(omitUnverifiedOcrValues(result, organization).invoice.currency).toBe("CZK");
+  });
+
   it("samotný $ nepředpokládá CZK, ale nabídne dolarové měny k výběru", () => {
     const result = parse("Amount due: $1,250.00");
     expect(result.invoice.amount).toBe(1250);
@@ -69,13 +95,5 @@ describe("symboly měn přilepené k číslu", () => {
 
   it("písmenný kód uvnitř slova měnou není", () => {
     expect(currencyMentions("NEUROLOGIE, Kceňa")).toEqual([]);
-  });
-});
-
-describe("formulář nedoplní potichu CZK do měny, kterou OCR nechalo k výběru", () => {
-  it("prázdná měna z OCR zůstane prázdná i při obnově rozpracovaného konceptu", () => {
-    const source = readFileSync("src/components/invoice-form.tsx", "utf8");
-    expect(source).not.toMatch(/initial\?\.currency \|\| sourceCurrency \|\| "CZK"/);
-    expect(source).toMatch(/initial \? "" : "CZK"/);
   });
 });

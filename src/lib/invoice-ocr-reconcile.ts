@@ -2,6 +2,7 @@ import "server-only";
 
 import { candidateBoundsFromSource, deriveOcrFieldDecisions, digits, findLocalGeometry, normalizeComparable, OCR_MISSING_FIELD_WARNING, type InvoiceOcrResult, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { AMOUNT_ADJUSTMENT_TOLERANCE } from "@/lib/vat";
+import { ASSUMED_CZK_REASON } from "@/lib/invoice-currency";
 import type { InvoiceInput } from "@/types/invoice";
 
 // Fields where a silent pick between two disagreeing engines could cost the
@@ -111,7 +112,12 @@ export function reconcileExtractions(local: InvoiceOcrResult, ai: InvoiceOcrResu
   for (const field of fields) {
     const localValue = fieldValue(local.invoice, field);
     const aiValue = fieldValue(ai.invoice, field);
-    const localPresent = isPresent(localValue);
+    // A default CZK without a document source is an assumption, not a
+    // competing reading. A documented AI currency may fill it for review.
+    const localCurrencyAssumed = field === "currency" && localValue === "CZK"
+      && !local.field_sources.currency
+      && local.field_decisions.currency?.reasons.includes(ASSUMED_CZK_REASON);
+    const localPresent = isPresent(localValue) && !localCurrencyAssumed;
     const aiPresent = isPresent(aiValue);
 
     if (localPresent && aiPresent) {

@@ -1,5 +1,5 @@
 import type { InvoiceInput } from "../types/invoice";
-import { currencyMentions, DOLLAR_CURRENCIES, hasBareDollarSign, normalizeInvoiceCurrency, unambiguousCurrency } from "./invoice-currency";
+import { allowsCurrencyEvidencePrefill, ASSUMED_CZK_REASON, currencyMentions, DOLLAR_CURRENCIES, hasBareDollarSign, normalizeInvoiceCurrency, unambiguousCurrency } from "./invoice-currency";
 import { isIsoDate } from "./invoice-validation";
 import { conceptAlternation, findUnknownAccountingLabels, matchOcrConcept, OCR_VOCABULARY_VERSION, repairDroppedGlyphLabels, type OcrConcept, type OcrKeywordSuggestion } from "./invoice-ocr-vocabulary";
 import { grossFromNet, netFromGross, roundMoney, vatAmountsMatch } from "./vat";
@@ -140,7 +140,7 @@ export type InvoiceOcrOrganization = {
   email?: string | null;
 };
 
-type ParsedAmount = { value: number; currency: ReturnType<typeof unambiguousCurrency> };
+type ParsedAmount = { value: number; currency: ReturnType<typeof unambiguousCurrency>; currencyInferred?: boolean };
 
 // Both alternatives are fenced in by digit boundaries. Without them the
 // grouped-thousands alternative happily matches a *prefix* of a longer plain
@@ -156,6 +156,7 @@ const AMOUNT_SOURCE =
   "(?<!\\d)-?\\d{1,3}(?:,\\d{3})+\\.\\d{1,2}(?!\\d)"
   + "|(?<!\\d)-?\\d{1,3}(?:['\u2019]\\d{3})+(?:\\.\\d{1,2})?(?!\\d)"
   + "|(?<!\\d)-?\\d{1,3}(?:[ .\u00a0]\\d{3})*(?:[,.]\\d{1,2})?(?!\\d)|(?<!\\d)-?\\d+(?:[,.]\\d{1,2})?(?!\\d)";
+const DROPPED_CZK_AFTER_AMOUNT = new RegExp(`(?:${AMOUNT_SOURCE})\\s+K(?=\\s*(?:$|[.,;)]))`, "u");
 
 export function boundedText(value: string | null | undefined, max: number) {
   return (value ?? "").trim().slice(0, max);
@@ -227,12 +228,37 @@ function parseMoney(value: string): number | null {
   }
 }
 
+function currencyOnAmountLine(line: string, amount?: number) {
+  // A total row may also mention an exchange currency. Read the token touching
+  // the selected amount before considering currencies elsewhere on that row.
+  const amountMatches = [...line.matchAll(new RegExp(`(${AMOUNT_SOURCE})`, "giu"))];
+  for (const match of amountMatches) {
+    if (amount === undefined && amountMatches.length !== 1) break;
+    const parsed = parseMoney(match[1]);
+    if (parsed === null || (amount !== undefined && Math.abs(parsed - amount) >= 0.011)) continue;
+    const before = line.slice(0, match.index);
+    const after = line.slice(match.index + match[0].length);
+    const prefix = normalizeInvoiceCurrency(before.match(/([^\s:(),;]+)\s*$/u)?.[1]);
+    const suffix = normalizeInvoiceCurrency(after.match(/^\s*([^\s:(),;]+)/u)?.[1]);
+    if (prefix && suffix && prefix !== suffix) return { currency: null, currencyInferred: false };
+    if (suffix || prefix) return { currency: (suffix ?? prefix)!, currencyInferred: false };
+  }
+  const explicit = unambiguousCurrency(line);
+  if (explicit) return { currency: explicit, currencyInferred: false };
+  // Some PDF text layers drop č: visible "3 750,00 Kč" is read as
+  // "3 750,00 K". A lone K is accepted only immediately after an amount.
+  if (!currencyMentions(line).length && !hasBareDollarSign(line) && DROPPED_CZK_AFTER_AMOUNT.test(line)) {
+    return { currency: "CZK" as const, currencyInferred: true };
+  }
+  return { currency: null, currencyInferred: false };
+}
+
 function amountFromLine(line: string): ParsedAmount | null {
   const matches = [...line.matchAll(new RegExp(`(${AMOUNT_SOURCE})`, "giu"))];
   for (let index = matches.length - 1; index >= 0; index -= 1) {
     const value = parseMoney(matches[index][1]);
     if (value !== null && Math.abs(value) <= 999_999_999_999.99) {
-      return { value, currency: unambiguousCurrency(line) };
+      return { value, ...currencyOnAmountLine(line, value) };
     }
   }
   return null;
@@ -243,16 +269,16 @@ function firstAmountFromLine(line: string): ParsedAmount | null {
   if (!match) return null;
   const value = parseMoney(match[1]);
   return value !== null && Math.abs(value) <= 999_999_999_999.99
-    ? { value, currency: unambiguousCurrency(line) }
+    ? { value, ...currencyOnAmountLine(line, value) }
     : null;
 }
 
 function amountsFromLine(line: string) {
   return [...line.matchAll(new RegExp(`(${AMOUNT_SOURCE})`, "giu"))]
-    .map(match => {
+    .map((match): ParsedAmount | null => {
       const value = parseMoney(match[1]);
       return value !== null && Math.abs(value) <= 999_999_999_999.99
-        ? { value, currency: unambiguousCurrency(line) }
+        ? { value, ...currencyOnAmountLine(line, value) }
         : null;
     })
     .filter((amount): amount is ParsedAmount => amount !== null);
@@ -1013,8 +1039,12 @@ function standaloneCurrency(text: string) {
   return normalizeInvoiceCurrency(value);
 }
 
+function damagedCzkToken(text: string) {
+  return text.trim() === "K";
+}
+
 function currencyEvidenceNearAmount(layout: OcrDocumentLayout, amount: number) {
-  const found: Array<{ currency: NonNullable<ParsedAmount["currency"]>; source: OcrFieldSource }> = [];
+  const found: Array<{ currency: NonNullable<ParsedAmount["currency"]>; source: OcrFieldSource; inferred: boolean }> = [];
   for (const page of layout.pages) {
     for (let index = 0; index < page.lines.length; index += 1) {
       const line = page.lines[index];
@@ -1022,24 +1052,26 @@ function currencyEvidenceNearAmount(layout: OcrDocumentLayout, amount: number) {
       const amountBlocks = line.blocks.filter(block => amountsFromLine(block.text).some(candidate => Math.abs(candidate.value - amount) < 0.011));
       if (!lineHasAmount && !amountBlocks.length) continue;
 
-      const directCurrency = unambiguousCurrency(line.text);
-      if (directCurrency) found.push({ currency: directCurrency, source: sourceFromLine(line) });
+      const directCurrency = currencyOnAmountLine(line.text, amount);
+      if (directCurrency.currency) found.push({ currency: directCurrency.currency, source: sourceFromLine(line), inferred: directCurrency.currencyInferred });
 
       for (const block of line.blocks) {
-        const currency = standaloneCurrency(block.text);
+        const inferred = damagedCzkToken(block.text);
+        const currency = standaloneCurrency(block.text) ?? (inferred ? "CZK" : null);
         if (!currency) continue;
         const nearAmountBlock = amountBlocks.some(amountBlock => Math.abs(block.y - amountBlock.y) <= Math.max(block.height, amountBlock.height, 0.012)
           && Math.min(Math.abs(block.x - (amountBlock.x + amountBlock.width)), Math.abs(amountBlock.x - (block.x + block.width))) < 0.12);
         if (nearAmountBlock || !amountBlocks.length) {
-          found.push({ currency, source: { ...sourceFromLine(line), text: boundedText(block.text, 300), bounds: { x: block.x, y: block.y, width: block.width, height: block.height } } });
+          found.push({ currency, source: { ...sourceFromLine(line), text: boundedText(block.text, 300), bounds: { x: block.x, y: block.y, width: block.width, height: block.height } }, inferred });
         }
       }
 
-      if (!directCurrency && !line.blocks.some(block => standaloneCurrency(block.text))) {
+      if (!directCurrency.currency && !line.blocks.some(block => standaloneCurrency(block.text) || damagedCzkToken(block.text))) {
         for (const adjacent of [page.lines[index - 1], page.lines[index + 1]]) {
           if (!adjacent) continue;
-          const currency = standaloneCurrency(adjacent.text);
-          if (currency) found.push({ currency, source: sourceFromLine(adjacent) });
+          const inferred = damagedCzkToken(adjacent.text);
+          const currency = standaloneCurrency(adjacent.text) ?? (inferred ? "CZK" : null);
+          if (currency) found.push({ currency, source: sourceFromLine(adjacent), inferred });
         }
       }
     }
@@ -1370,24 +1402,27 @@ export function omitUnverifiedOcrValues(result: InvoiceOcrResult, organization?:
   const invoice = { ...result.invoice };
   const fieldDecisions = { ...result.field_decisions };
   const fieldSources = { ...result.field_sources };
-  // Currency can be explicitly present in the source row while a merged OCR
-  // decision still lacks `needs_confirmation`. Recover the canonical code
-  // from that exact evidence before the generic review filter clears it.
-  if (!invoice.currency) {
-    const decision = fieldDecisions.currency;
-    const hasConflict = decision?.reasons.some(reason => /různé měny|neshod|rozpor|konflikt/i.test(reason));
-    const evidenceTexts = [fieldSources.currency?.text, fieldSources.amount?.text].filter((text): text is string => Boolean(text));
-    const detected = [...new Set(evidenceTexts.map(unambiguousCurrency).filter((value): value is NonNullable<ReturnType<typeof unambiguousCurrency>> => Boolean(value)))];
-    if (!hasConflict && detected.length === 1) {
-      invoice.currency = detected[0];
-      if (decision?.status !== "verified") {
-        fieldDecisions.currency = {
-          ...(decision ?? { status: "review", confidence: 0.5, reasons: [], candidates: [] }),
-          status: "review",
-          needs_confirmation: true,
-          reasons: [...new Set([...(decision?.reasons ?? []), "Měna byla načtena z řádku částky. Potvrďte ji podle dokladu."])],
-        };
-      }
+  // The generic review filter below clears a value unless needs_confirmation
+  // is set. Keep a currency actually visible in the amount/source row, even
+  // when it was already parsed before reaching this filter.
+  const currencyDecision = fieldDecisions.currency;
+  const currencyEvidence = [fieldSources.currency?.text, fieldSources.amount?.text]
+    .filter((value): value is string => Boolean(value));
+  const detectedCurrencies = [...new Set(currencyEvidence.map(value => currencyOnAmountLine(value, invoice.amount).currency ?? standaloneCurrency(value)
+    ?? (damagedCzkToken(value) ? "CZK" : null)).filter((value): value is NonNullable<ReturnType<typeof unambiguousCurrency>> => Boolean(value)))];
+  const candidateCurrencies = [...new Set((currencyDecision?.candidates ?? [])
+    .map(candidate => normalizeInvoiceCurrency(String(candidate.value))).filter((value): value is NonNullable<ReturnType<typeof normalizeInvoiceCurrency>> => Boolean(value)))];
+  if (allowsCurrencyEvidencePrefill(currencyDecision) && candidateCurrencies.length <= 1 && detectedCurrencies.length === 1
+    && (!invoice.currency || normalizeInvoiceCurrency(invoice.currency) === detectedCurrencies[0])
+    && (candidateCurrencies.length === 0 || candidateCurrencies[0] === detectedCurrencies[0])) {
+    invoice.currency = detectedCurrencies[0];
+    if (currencyDecision?.status !== "verified") {
+      fieldDecisions.currency = {
+        ...(currencyDecision ?? { status: "review", confidence: 0.5, reasons: [], candidates: [] }),
+        status: "review",
+        needs_confirmation: true,
+        reasons: [...new Set([...(currencyDecision?.reasons ?? []), "Měna byla načtena z řádku částky. Potvrďte ji podle dokladu."])],
+      };
     }
   }
   for (const field of OCR_REVIEW_FIELDS) {
@@ -1568,6 +1603,8 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
   const netCurrencyEvidence = net ? currencyEvidenceNearAmount(documentLayout, net.value) : null;
   const grossCurrency = gross?.currency ?? grossCurrencyEvidence?.currency ?? null;
   const netCurrency = net?.currency ?? netCurrencyEvidence?.currency ?? null;
+  const currencyInferred = Boolean((grossCurrency === "CZK" && (gross?.currency ? (gross as ParsedAmount).currencyInferred : grossCurrencyEvidence?.inferred))
+    || (netCurrency === "CZK" && (net?.currency ? (net as ParsedAmount).currencyInferred : netCurrencyEvidence?.inferred)));
   const explicitCurrencies = [...new Set([grossCurrency, netCurrency].filter((value): value is NonNullable<ParsedAmount["currency"]> => Boolean(value)))];
   const documentCurrencies = [...new Set(currencyMentions(text))];
   const labeledCurrency = text.match(/(?:^|\n)\s*(?:měna|mena|currency)\s*[:.]?\s*([A-Z]{3})\b/im)?.[1];
@@ -1624,7 +1661,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     amount: grossSource ?? (netSource ? { ...netSource, method: "derived" } : undefined),
     currency: grossCurrencyEvidence?.currency === currency ? grossCurrencyEvidence.source
       : netCurrencyEvidence?.currency === currency ? netCurrencyEvidence.source
-        : [grossSource, netSource].find(source => source && unambiguousCurrency(source.text) === currency) ?? undefined,
+        : [grossSource, netSource].find(source => source && currencyOnAmountLine(source.text, amount).currency === currency) ?? undefined,
   };
 
   const invoice: InvoiceInput = {
@@ -1667,10 +1704,15 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
         value, page: 1, text: value, method: "ocr", confidence: null, role: "document" as const,
       })),
     };
+  } else if (currencyInferred && fieldDecisions.currency) {
+    fieldDecisions.currency = {
+      ...fieldDecisions.currency, status: "review", confidence: Math.min(fieldDecisions.currency.confidence, 0.59), needs_confirmation: true,
+      reasons: [...new Set([...fieldDecisions.currency.reasons, "Za částkou je v textové vrstvě jen K; v PDF pravděpodobně chybí znak č. Potvrďte měnu podle dokladu."])],
+    };
   } else if (fieldDecisions.currency && !fieldSources.currency) {
     fieldDecisions.currency = {
       ...fieldDecisions.currency, status: "review", confidence: 0.4, needs_confirmation: true,
-      reasons: [documentCurrencies.length ? "Měna byla rozpoznána mimo řádek celkové částky. Potvrďte ji podle dokladu." : "Měna není na dokladu výslovně uvedena. Předpokládá se CZK; potvrďte ji."],
+      reasons: [documentCurrencies.length ? "Měna byla rozpoznána mimo řádek celkové částky. Potvrďte ji podle dokladu." : ASSUMED_CZK_REASON],
     };
   }
   if (counterparty.emailFromSelfBilledFooter && fieldDecisions.counterparty_email) {

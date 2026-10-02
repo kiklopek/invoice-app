@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { deriveOcrFieldDecisions, omitUnverifiedOcrValues, type InvoiceOcrResult, type OcrFieldName, type OcrFieldSource } from "@/lib/invoice-ocr";
 import { OCR_VOCABULARY_VERSION } from "@/lib/invoice-ocr-vocabulary";
+import { ASSUMED_CZK_REASON } from "@/lib/invoice-currency";
 import type { InvoiceInput } from "@/types/invoice";
 import { parseConfidenceThreshold, reconcileExtractions } from "./invoice-ocr-reconcile";
 
@@ -79,6 +80,31 @@ describe("reconcileExtractions", () => {
     expect(merged.field_decisions.amount_without_vat?.candidates.map(candidate => candidate.value)).toEqual([12942.18, 15659.82]);
     expect(merged.warnings.some(w => w.includes("základ daně") && w.includes("12942.18") && w.includes("15659.82"))).toBe(true);
     expect(merged.confidence).toBeLessThanOrEqual(0.35);
+  });
+
+  it("přenese doloženou měnu z AI, když lokální CZK bylo jen předpokladem", () => {
+    const local = localResult();
+    local.field_decisions.currency = {
+      status: "review", confidence: 0.4, needs_confirmation: true,
+      reasons: [ASSUMED_CZK_REASON], candidates: [],
+    };
+    const ai = aiResult({ currency: "PLN" }, {
+      currency: { ...source("K úhradě 3 202 315,00 PLN"), method: "ai" },
+    });
+    const merged = reconcileExtractions(local, ai);
+    expect(merged.invoice.currency).toBe("PLN");
+    expect(merged.field_decisions.currency).toMatchObject({ status: "review", needs_confirmation: true });
+    expect(omitUnverifiedOcrValues(merged).invoice.currency).toBe("PLN");
+  });
+
+  it("nevybere měnu, když lokální čtení i AI dokládají různé měny", () => {
+    const local = localResult({}, { currency: source("K úhradě 3 202 315,00 Kč") });
+    const ai = aiResult({ currency: "PLN" }, {
+      currency: { ...source("K úhradě 3 202 315,00 PLN"), method: "ai" },
+    });
+    const merged = reconcileExtractions(local, ai);
+    expect(merged.invoice.currency).toBe("");
+    expect(merged.field_decisions.currency?.candidates.map(candidate => candidate.value)).toEqual(["CZK", "PLN"]);
   });
 
   it("never silently picks a winner on a counterparty_ico disagreement", () => {

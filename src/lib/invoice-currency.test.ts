@@ -55,6 +55,16 @@ describe("názvy měn na fakturách", () => {
     expect(omitUnverifiedOcrValues(result).invoice.currency).toBe("");
   });
 
+  it("neobnoví měnu z řádku částky, když doklad výslovně uvádí nepodporovanou měnu", () => {
+    const result = parseInvoiceText({
+      text: `FAKTURA\nMěna: RUB\nDodavatel: Moje firma s.r.o.\nIČO: 05829309\nOdběratel: Kupující s.r.o.\nIČO: 46692011\nCelkem k úhradě: 1 210,00 Kč`,
+      fileUrl: "org/unsupported.pdf", organization,
+    });
+    expect(result.invoice.currency).toBe("");
+    expect(result.field_decisions.currency?.reasons.join(" ")).toContain("RUB");
+    expect(omitUnverifiedOcrValues(result).invoice.currency).toBe("");
+  });
+
   it("jediný bezpečný návrh předvyplní a vyžádá potvrzení, odmítnutý ponechá prázdný", () => {
     const base = invoice("1 210,00 Kč");
     const candidate = { value: "faktury@kupujici.cz", page: 1, text: "E-mail: faktury@kupujici.cz", method: "pdf_text" as const, confidence: 0.9, role: "counterparty" as const };

@@ -1,4 +1,5 @@
 export const INVOICE_CURRENCIES = ["CZK", "EUR", "USD", "GBP", "PLN", "CHF", "HUF", "SEK", "NOK", "DKK", "RON", "JPY", "CAD", "AUD"] as const;
+export const ASSUMED_CZK_REASON = "Měna není na dokladu výslovně uvedena. Předpokládá se CZK; potvrďte ji.";
 
 type InvoiceCurrency = typeof INVOICE_CURRENCIES[number];
 
@@ -58,4 +59,18 @@ export function currencyMentions(text: string): InvoiceCurrency[] {
 export function unambiguousCurrency(text: string): InvoiceCurrency | null {
   const found = [...new Set(currencyMentions(text))];
   return found.length === 1 ? found[0] : null;
+}
+
+// Recovery from a document row is only for uncertain reading quality. A
+// decision about conflicting or unsupported currencies must not be reversed
+// just because one of the rows happens to contain a familiar symbol.
+const EVIDENCE_RECOVERY_REASONS = new Set([
+  "Zdrojový text má nízkou OCR jistotu.",
+  "Hodnota nemá dohledatelný zdrojový řádek v dokumentu.",
+  "Měna byla načtena z řádku částky. Potvrďte ji podle dokladu.",
+]);
+
+export function allowsCurrencyEvidencePrefill(decision?: { status: string; reasons: string[] }) {
+  return !decision || decision.status === "verified"
+    || decision.reasons.every(reason => EVIDENCE_RECOVERY_REASONS.has(reason));
 }
