@@ -56,6 +56,15 @@ describe("confirmAction", () => {
     await expect(pending).resolves.toBe(false);
   });
 
+  it("can use the green primary button without changing the default danger style", async () => {
+    const pending = confirmAction({ title:"T",description:"D",confirmLabel:"Zaúčtovat",confirmVariant:"primary" });
+    expect(button("Zaúčtovat")?.className).toBe("btn primary");
+    button("Zrušit")?.click();await pending;
+    const next = confirmAction({ title:"T",description:"D" });
+    expect(button("Potvrdit")?.className).toBe("btn danger");
+    button("Zrušit")?.click();await next;
+  });
+
   it("treats Escape as a refusal, never as agreement", async () => {
     // Nejnebezpečnější možná chyba: zavření dialogu klávesou by nesmělo
     // znamenat souhlas s rozesláním e-mailů nebo zaúčtováním peněz.

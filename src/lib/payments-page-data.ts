@@ -4,6 +4,7 @@ import type { RequestIdentity } from "@/lib/auth";
 import { canAccessOperations, canManageInvoices } from "@/lib/role-access";
 import { canUseGpcImport } from "@/lib/gpc-feature";
 import { PageDataError } from "@/lib/dashboard-page-data";
+import { assistanceFlags, type AssistanceFlags } from "@/lib/payment-assistance-flags";
 
 export type PaymentsPagePayment = {
   id: string;
@@ -16,6 +17,7 @@ export type PaymentsPagePayment = {
   match_status: "matched" | "split" | "unmatched" | "ambiguous";
   source: "bank_import" | "manual";
   invoice_id: string | null;
+  match_reason?: string | null;
   invoices?: { invoice_number: string; counterparty_name: string } | null;
   allocations: Array<{ invoice_id: string; amount: number; invoice_number: string; counterparty_name: string }>;
 };
@@ -34,6 +36,7 @@ export type PaymentsPageData = {
   can_manage: boolean;
   gpc_enabled: boolean;
   runtime_mode: "production-database";
+  assistance_flags?: AssistanceFlags;
 };
 
 // Shared by the initial server-rendered page load (avoids the client-side
@@ -52,16 +55,20 @@ export async function loadPaymentsPageData(
 
   const includePayments = options.includePayments !== false;
   const organizationId = identity.membership.organization_id;
+  const assistance = assistanceFlags(organizationId);
   // Dotaz se jen sestaví; odešle se až jeho awaitem níž, takže při
   // includePayments === false neproběhne vůbec.
   const paymentsQuery = identity.service
     .from("bank_payments")
     .select(
-      "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
+      assistance.mode !== "off"
+        ? "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, match_reason, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)"
+        : "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
     )
     .eq("organization_id", organizationId)
     .order("booked_on", { ascending: false })
-    .limit(100);
+    .limit(100)
+    .overrideTypes<Array<Omit<PaymentsPagePayment,"allocations">>, { merge:false }>();
   const [paymentsResult, { data: openInvoices, error: invoiceError }] = await Promise.all([
     includePayments ? paymentsQuery : null,
     identity.service
@@ -115,5 +122,6 @@ export async function loadPaymentsPageData(
     can_manage: canManageInvoices(identity.membership.role),
     gpc_enabled: canUseGpcImport(identity.membership.role),
     runtime_mode: "production-database",
+    ...(assistance.mode !== "off" || assistance.camt ? { assistance_flags: assistance } : {}),
   };
 }

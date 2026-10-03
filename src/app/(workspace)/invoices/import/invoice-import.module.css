@@ -1,0 +1,91 @@
+.page.page { background: transparent; }
+.page.page > .stage { width: 100%; max-width: 1480px; margin-inline: auto; min-width: 0; }
+.page.page :global(.invoice-import-workspace) { width: 100%; max-width: none; margin-inline: 0; }
+.header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(460px, .95fr); align-items: center; gap: 36px; margin-bottom: 24px; padding-bottom: 22px; border-bottom: 1px solid #cddbd0; }
+.page.page .header :global(.section-header) { margin: 0; }
+.page.page .header :global(.invoice-import-tabs) { width: 100%; max-width: none; margin: 0; }
+.page.page :global(.section-header) { margin: 0 0 22px; }
+.page.page :global(.section-header h1) { color: #173c2d; font-size: clamp(28px, 2.7vw, 42px); letter-spacing: -1.2px; margin: 8px 0 12px; }
+.page.page :global(.section-header > div > span) { font-size: 14px; line-height: 1.6; color: #52665a; }
+.page.page :global(.back-link) { margin-bottom: 14px; font-size: 12px; }
+.page.page :global(.invoice-import-tabs) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border: none; background: none; padding: 0; margin: 0 0 20px; max-width: 680px; }
+.page.page :global(.invoice-import-tabs button) { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 14px 20px; text-align: left; border: 1px solid #bfcec2; background: #f7faf5; color: #52665a; border-radius: 12px; white-space: normal; }
+.page.page :global(.invoice-import-tabs button.active) { background: #235c42; border-color: #235c42; color: white; }
+.page.page :global(.invoice-import-tabs button svg) { flex: 0 0 26px; width: 26px; height: 26px; }
+.page.page :global(.invoice-import-tabs button strong), .page.page :global(.invoice-import-tabs button small) { display: block; }
+.page.page :global(.invoice-import-tabs button strong) { font-size: 14px; }
+.page.page :global(.invoice-import-tabs button small) { font-size: 11px; margin-top: 4px; font-weight: 400; }
+.page.page :global(.invoice-import-tabs button.active small) { color: #d5e5d9; }
+.page.page :global(.invoice-document-import), .page.page :global(.csv-import-panel) { width: 100%; max-width: none; margin: 0; padding: 0; border: 1px solid #b5cabb; border-radius: 20px; overflow: hidden; background: #fff; }
+.page.page :global(.invoice-document-dropzone) { margin: 28px; min-height: 300px; padding: 26px; border: 2px dashed #83a08b; border-radius: 14px; background: #f0f5ee; }
+.page.page :global(.invoice-document-dropzone:hover), .page.page :global(.invoice-document-dropzone.is-dragging) { background: #e4efe2; border-color: #235c42; }
+.page.page :global(.invoice-document-dropzone:focus-within) { outline: 3px solid #74a889; outline-offset: 3px; }
+.page.page :global(.large-import-icon) { width: 58px; height: 58px; border-radius: 16px; background: #e0ebc9; color: #235c42; margin-bottom: 12px; }
+.page.page :global(.invoice-document-dropzone h2) { font-size: 25px; letter-spacing: -.6px; color: #173c2d; margin: 8px 0 12px; }
+.page.page :global(.invoice-document-dropzone p) { max-width: 690px; color: #52665a; font-size: 13px; line-height: 1.65; margin: 0; }
+.page.page :global(.import-drop-action) { background: #17462f; color: #fff; padding: 13px 22px; border-radius: 9px; font-size: 13px; margin-top: 22px; }
+.page.page :global(.invoice-document-dropzone > small) { font-size: 11px; margin-top: 12px; color: #52665a; }
+.formats { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 16px; }
+.formats > span { padding: 4px 8px; border: 1px solid #d4e0d5; border-radius: 5px; background: #fff; color: #52665a; font-size: 10px; }
+.guidance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 25px 30px; background: linear-gradient(110deg, #235c42, #153f2c); color: white; }
+.guidance > div { display: flex; align-items: flex-start; gap: 12px; }
+.guidance svg { width: 23px; height: 23px; flex: 0 0 23px; color: #d7e9b6; }
+.guidance strong, .guidance small { display: block; }
+.guidance strong { font-size: 13px; }
+.guidance small { font-size: 11px; color: #d3e3d7; line-height: 1.6; margin-top: 6px; }
+.page.page :global(.csv-import-grid) { grid-template-columns: 1fr; padding: 28px; }
+.page.page :global(.csv-import-main) { max-width: none; padding: 0; }
+.page.page :global(.csv-dropzone) { min-height: 220px; background: #f0f5ee; border: 2px dashed #83a08b; }
+.page.page :global(.csv-file-button) { background: #17462f; color: white; }
+@media (min-width: 1024px) and (min-height: 761px) {
+  .start.start { height: 100dvh; display: flex; flex-direction: column; padding-block: 28px; }
+  .start.start > .stage { height: min(86dvh, 1040px); margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
+  .start.start .header { flex-shrink: 0; }
+  .start.start :global(.invoice-import-workspace) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .start.start :global(.invoice-document-import), .start.start :global(.csv-import-panel) { flex: 1; display: flex; flex-direction: column; }
+  .start.start :global(.invoice-document-dropzone), .start.start :global(.csv-import-grid) { flex: 1; }
+  .start.start :global(.csv-import-grid) { display: flex; flex-direction: column; }
+  .start.start :global(.csv-import-main) { display: flex; flex-direction: column; flex: 1; }
+  .start.start :global(.csv-dropzone) { flex: 1; }
+}
+@media (max-width: 1023px) {
+  .header { grid-template-columns: 1fr; gap: 18px; margin-bottom: 20px; padding-bottom: 18px; }
+  .page.page :global(.invoice-document-dropzone) { margin: 20px; padding: 24px 18px; }
+  .guidance { padding: 22px; gap: 16px; }
+}
+@media (min-width: 1024px) and (max-width: 1350px) {
+  .header { grid-template-columns: minmax(0, 1fr) minmax(350px, .9fr); gap: 22px; }
+  .page.page .header :global(.invoice-import-tabs button) { padding: 12px; gap: 9px; }
+  .page.page .header :global(.invoice-import-tabs button strong) { font-size: 12px; }
+  .page.page .header :global(.invoice-import-tabs button small) { font-size: 10px; }
+  .page.page .header :global(.invoice-import-tabs button svg) { width: 21px; height: 21px; flex-basis: 21px; }
+}
+@media (max-width: 600px) {
+  .page.page :global(.invoice-import-tabs) { gap: 8px; }
+  .page.page :global(.invoice-import-tabs button) { gap: 8px; padding: 12px; min-height: 76px; }
+  .page.page :global(.invoice-import-tabs button svg) { display: none; }
+  .page.page :global(.invoice-import-tabs button strong) { font-size: 12px; }
+  .page.page :global(.invoice-import-tabs button small) { font-size: 10px; }
+  .page.page :global(.invoice-document-dropzone) { margin: 14px; padding: 22px 14px; }
+  .page.page :global(.invoice-document-dropzone h2) { font-size: 21px; }
+  .page.page :global(.invoice-document-dropzone p) { font-size: 12px; }
+  .page.page :global(.csv-import-grid) { padding: 20px; }
+  .guidance { grid-template-columns: 1fr; gap: 18px; }
+}
+@media (min-width: 1024px) and (max-height: 760px) {
+  .start.start { padding-block: 20px; }
+  .header { margin-bottom: 18px; padding-bottom: 16px; }
+  .page.page :global(.back-link) { margin-bottom: 8px; }
+  .page.page :global(.section-header) { margin-bottom: 14px; }
+  .page.page :global(.section-header h1) { font-size: 30px; margin: 5px 0 8px; }
+  .page.page :global(.invoice-import-tabs) { margin-bottom: 14px; }
+  .page.page :global(.invoice-import-tabs button) { min-height: 60px; padding-block: 10px; }
+  .page.page :global(.invoice-document-dropzone) { margin: 18px; padding: 16px; min-height: 260px; }
+  .page.page :global(.large-import-icon) { width: 42px; height: 42px; margin-bottom: 6px; }
+  .page.page :global(.import-drop-action) { margin-top: 14px; }
+  .page.page :global(.csv-import-grid) { padding: 18px; }
+  .page.page :global(.csv-import-main h2) { margin: 6px 0 10px; font-size: 23px; }
+  .page.page :global(.csv-lead) { margin: 0 0 14px; }
+  .page.page :global(.csv-dropzone) { min-height: 180px; padding: 18px; }
+  .guidance { padding: 18px 24px; }
+}

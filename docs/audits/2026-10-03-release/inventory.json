@@ -1,0 +1,789 @@
+{
+  "pages": [
+    "src/app/(auth)/forgot-password/page.tsx",
+    "src/app/(auth)/login/page.tsx",
+    "src/app/(auth)/mfa/page.tsx",
+    "src/app/(auth)/register/page.tsx",
+    "src/app/(auth)/reset-password/page.tsx",
+    "src/app/(workspace)/customers/page.tsx",
+    "src/app/(workspace)/dashboard/page.tsx",
+    "src/app/(workspace)/invoices/archive/page.tsx",
+    "src/app/(workspace)/invoices/import/page.tsx",
+    "src/app/(workspace)/invoices/new/page.tsx",
+    "src/app/(workspace)/invoices/page.tsx",
+    "src/app/(workspace)/invoices/payments/archive/page.tsx",
+    "src/app/(workspace)/invoices/payments/page.tsx",
+    "src/app/(workspace)/invoices/[id]/page.tsx",
+    "src/app/(workspace)/reminders/page.tsx",
+    "src/app/(workspace)/reports/page.tsx",
+    "src/app/(workspace)/settings/page.tsx",
+    "src/app/page.tsx"
+  ],
+  "routes": [
+    {
+      "path": "src/app/api/auth/access/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/email-mfa/send/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/email-mfa/verify/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/logout/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/password-recovery/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/registration-access/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/session-preference/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/cron/check-due/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/cron/reconcile-payments/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/customers/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/customers/search/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/customers/[id]/route.ts",
+      "methods": [
+        "PATCH"
+      ]
+    },
+    {
+      "path": "src/app/api/dashboard/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/health/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/extract/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/import/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/reminder-policy-preference/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/upload/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/upload/verify/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/activity/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/assignable-payments/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/document/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/page-data/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/pdf/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/reminders/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/send/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/assistance/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/audit/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/overlap/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/commit/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/discard/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/release/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/invoice-candidates/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "src/app/api/reminders/page-data/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/reminders/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/reports/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/company/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/email-suppressions/route.ts",
+      "methods": [
+        "GET",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/members/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/page-data/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/reminder-policies/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/reminders/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/reminders/test/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/api/webhooks/resend/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "src/app/auth/callback/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "src/app/auth/recovery/route.ts",
+      "methods": [
+        "GET"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "function": "public.valid_reminder_days",
+      "arguments": "days integer[]",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.set_default_reminder_policy",
+      "arguments": "target_org uuid, target_policy uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.refresh_reminder_next_times",
+      "arguments": "target_org uuid, automation_active boolean",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "audit_invoice_change",
+      "arguments": "",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "claim_invoice_ocr",
+      "arguments": "target_upload_id uuid, target_user_id uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "add_organization_member",
+      "arguments": "target_org uuid, new_email text, new_role text, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "update_organization_member_role",
+      "arguments": "target_org uuid, target_member uuid, new_role text, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "delete_organization_member",
+      "arguments": "target_org uuid, target_member uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "restore_organization_member_after_auth_delete_failure",
+      "arguments": "target_org uuid, target_member uuid, target_user uuid, target_email text, target_role text, target_created timestamptz, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "record_reminder_sent",
+      "arguments": "target_invoice_id uuid, sent_time timestamptz, next_time timestamptz",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "complete_reminder_send",
+      "arguments": "target_log_id uuid, provider_id text, sent_time timestamptz, next_time timestamptz",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "process_resend_delivery_event",
+      "arguments": "webhook_event_id text, webhook_event_type text, message_id text, event_time timestamptz, event_error text",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "save_default_reminder_settings",
+      "arguments": "target_org uuid, new_days integer[], template_data jsonb, new_active boolean, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "import_and_reconcile_bank_payments",
+      "arguments": "target_org uuid, actor_user uuid, payment_rows jsonb",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "assign_bank_payment",
+      "arguments": "target_org uuid, target_payment uuid, target_invoice uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "unassign_bank_payment",
+      "arguments": "target_org uuid, target_payment uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "reopen_paid_invoice",
+      "arguments": "target_org uuid, target_invoice uuid, actor_user uuid, new_status text, next_time timestamptz",
+      "migration": "supabase/migrations/20260916000000_unify_payment_ledger.sql"
+    },
+    {
+      "function": "list_invoices_page",
+      "arguments": "target_org uuid, actor_user uuid, search_query text default null, status_filter text default null, currency_filter text default null, issue_from date default null, issue_to date default null, page_number integer default 1, page_size integer default 25",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "invoice_report_summary",
+      "arguments": "target_org uuid, actor_user uuid, report_from date, report_to date, date_basis text, currency_filter text, status_filter text default null, customer_filter text default null, as_of_date date default current_date",
+      "migration": "supabase/migrations/20260920121948_report_vat_dso_yoy_breakdown.sql"
+    },
+    {
+      "function": "invoice_report_rows_page",
+      "arguments": "target_org uuid, actor_user uuid, report_from date, report_to date, date_basis text, currency_filter text, status_filter text default null, customer_filter text default null, page_number integer default 1, page_size integer default 500",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "dashboard_summary",
+      "arguments": "target_org uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260919140000_dashboard_action_items.sql"
+    },
+    {
+      "function": "delete_invoice_safely",
+      "arguments": "target_org uuid, target_invoice uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260916000000_unify_payment_ledger.sql"
+    },
+    {
+      "function": "private.is_org_member",
+      "arguments": "target_org uuid",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "private.has_org_role",
+      "arguments": "target_org uuid, allowed_roles text[]",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "create_email_mfa_challenge",
+      "arguments": "target_challenge uuid, target_user uuid, target_session uuid, target_code_hash text, target_expires_at timestamptz",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "verify_email_mfa_challenge",
+      "arguments": "target_challenge uuid, target_user uuid, target_session uuid, candidate_hash text",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "remember_ocr_reminder_policy",
+      "arguments": "",
+      "migration": "supabase/migrations/20260916010000_remember_reminder_policy_for_all_sources.sql"
+    },
+    {
+      "function": "consume_auth_rate_limit",
+      "arguments": "target_action text, target_subject_hash text, target_max_attempts integer, target_window_seconds integer",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.schedule_reminder_jobs",
+      "arguments": "target_jobs jsonb, target_invoice_updates jsonb, target_now timestamptz default now(",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.claim_reminder_jobs",
+      "arguments": "target_organizations uuid[], target_worker uuid, target_limit integer default 25, target_lease_seconds integer default 900, target_now timestamptz default now(",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.complete_claimed_reminder_send",
+      "arguments": "target_log_id uuid, target_lease_token uuid, provider_id text, sent_time timestamptz, next_time timestamptz",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.fail_claimed_reminder_job",
+      "arguments": "target_log_id uuid, target_lease_token uuid, failure_message text, retry_time timestamptz, failed_time timestamptz default now(",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.skip_claimed_reminder_job",
+      "arguments": "target_log_id uuid, target_lease_token uuid, skipped_time timestamptz default now(",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.release_claimed_reminder_jobs",
+      "arguments": "target_lease_token uuid, target_log_ids uuid[], released_time timestamptz default now(",
+      "migration": "supabase/migrations/20260808000000_baseline_schema.sql"
+    },
+    {
+      "function": "public.sync_legacy_bank_payment_allocation",
+      "arguments": "",
+      "migration": "supabase/migrations/20260915095449_add_bank_statement_imports.sql"
+    },
+    {
+      "function": "public.create_bank_statement_preview",
+      "arguments": "target_org uuid, actor_user uuid, import_data jsonb, entry_rows jsonb",
+      "migration": "supabase/migrations/20260915095449_add_bank_statement_imports.sql"
+    },
+    {
+      "function": "public.save_bank_statement_allocations",
+      "arguments": "target_org uuid, actor_user uuid, target_import uuid, expected_revision integer, reviewed_entries jsonb, allocation_rows jsonb",
+      "migration": "supabase/migrations/20260930195017_gpc_unrelated_rows.sql"
+    },
+    {
+      "function": "public.commit_bank_statement_import",
+      "arguments": "target_org uuid, actor_user uuid, target_import uuid, expected_revision integer, acknowledge_account_mismatch boolean default false",
+      "migration": "supabase/migrations/20260916000000_unify_payment_ledger.sql"
+    },
+    {
+      "function": "public.unassign_bank_payment_allocations",
+      "arguments": "target_org uuid, target_payment uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260915095449_add_bank_statement_imports.sql"
+    },
+    {
+      "function": "public.save_default_reminder_settings_versioned",
+      "arguments": "target_org uuid, new_days integer[], template_data jsonb, new_active boolean, actor_user uuid, expected_event uuid",
+      "migration": "supabase/migrations/20260915095449_add_bank_statement_imports.sql"
+    },
+    {
+      "function": "public.list_invoices_page_filtered",
+      "arguments": "target_org uuid, actor_user uuid, search_query text default null, status_filter text default null, currency_filter text default null, issue_from date default null, issue_to date default null, due_from date default null, due_to date default null, amount_min numeric default null, amount_max numeric default null, payment_state text default null, bank_match_state text default null, page_number integer default 1, page_size integer default 25",
+      "migration": "supabase/migrations/20260915095449_add_bank_statement_imports.sql"
+    },
+    {
+      "function": "public.list_open_invoice_candidates",
+      "arguments": "target_org uuid, actor_user uuid, search_query text default null, page_number integer default 1, page_size integer default 25",
+      "migration": "supabase/migrations/20260915095449_add_bank_statement_imports.sql"
+    },
+    {
+      "function": "confirm_manual_payment",
+      "arguments": "target_org uuid, target_invoice uuid, actor_user uuid, payment_amount numeric, paid_on date",
+      "migration": "supabase/migrations/20260916000000_unify_payment_ledger.sql"
+    },
+    {
+      "function": "remember_customer_from_invoice",
+      "arguments": "",
+      "migration": "supabase/migrations/20260919124500_customer_registry_no_duplicates.sql"
+    },
+    {
+      "function": "public.save_default_reminder_settings_versioned",
+      "arguments": "target_org uuid, new_days integer[], template_data jsonb, new_active boolean, actor_user uuid, expected_event uuid default null",
+      "migration": "supabase/migrations/20260917010000_fix_reminder_settings_expected_event_default.sql"
+    },
+    {
+      "function": "payment_reconciliation_summary",
+      "arguments": "target_org uuid, actor_user uuid, report_from date, report_to date",
+      "migration": "supabase/migrations/20260920140127_reconciliation_mismatch_visibility.sql"
+    },
+    {
+      "function": "public.validate_invoice_money_evidence",
+      "arguments": "",
+      "migration": "supabase/migrations/20260920090000_tolerate_rounding_adjustment.sql"
+    },
+    {
+      "function": "public.record_initial_invoice_payment",
+      "arguments": "",
+      "migration": "supabase/migrations/20260919133000_reconciliation_integrity_guards.sql"
+    },
+    {
+      "function": "public.audit_invoice_money",
+      "arguments": "target_org uuid",
+      "migration": "supabase/migrations/20260918111705_robust_reconciliation.sql"
+    },
+    {
+      "function": "public.audit_payment_allocation",
+      "arguments": "",
+      "migration": "supabase/migrations/20260918111705_robust_reconciliation.sql"
+    },
+    {
+      "function": "public.reconcile_bank_statement",
+      "arguments": "target_org uuid, actor_user uuid, target_import uuid, expected_revision integer, automatic_only boolean default false, acknowledge_account_mismatch boolean default false",
+      "migration": "supabase/migrations/20260930195017_gpc_unrelated_rows.sql"
+    },
+    {
+      "function": "public.run_bank_reconciliation_jobs",
+      "arguments": "",
+      "migration": "supabase/migrations/20260930195017_gpc_unrelated_rows.sql"
+    },
+    {
+      "function": "public.create_bank_statement_preview",
+      "arguments": "target_org uuid,actor_user uuid,import_data jsonb,entry_rows jsonb",
+      "migration": "supabase/migrations/20260918220000_single_engine_version.sql"
+    },
+    {
+      "function": "private.is_learnable_account",
+      "arguments": "account text",
+      "migration": "supabase/migrations/20260918150000_learn_statement_account_identity.sql"
+    },
+    {
+      "function": "private.names_match",
+      "arguments": "payer text, counterparty text",
+      "migration": "supabase/migrations/20260918180000_name_amount_auto_match.sql"
+    },
+    {
+      "function": "private.matching_engine_version",
+      "arguments": "",
+      "migration": "supabase/migrations/20260918220000_single_engine_version.sql"
+    },
+    {
+      "function": "public.release_statement_entry",
+      "arguments": "target_org uuid, actor_user uuid, target_entry uuid",
+      "migration": "supabase/migrations/20260918230000_release_statement_entry.sql"
+    },
+    {
+      "function": "public.dashboard_summary",
+      "arguments": "target_org uuid, actor_user uuid",
+      "migration": "supabase/migrations/20260919094355_expand_dashboard_scroll_lists.sql"
+    },
+    {
+      "function": "private.customer_is_disposable",
+      "arguments": "target_customer uuid",
+      "migration": "supabase/migrations/20260919124500_customer_registry_no_duplicates.sql"
+    },
+    {
+      "function": "forget_orphaned_customer",
+      "arguments": "",
+      "migration": "supabase/migrations/20260919124500_customer_registry_no_duplicates.sql"
+    },
+    {
+      "function": "public.audit_invoice_money_change",
+      "arguments": "",
+      "migration": "supabase/migrations/20260919133000_reconciliation_integrity_guards.sql"
+    },
+    {
+      "function": "private.guard_automatic_payment",
+      "arguments": "",
+      "migration": "supabase/migrations/20260919133000_reconciliation_integrity_guards.sql"
+    },
+    {
+      "function": "public.create_bank_statement_preview_v1",
+      "arguments": "target_org uuid, actor_user uuid, import_data jsonb, entry_rows jsonb",
+      "migration": "supabase/migrations/20260920140111_gpc_account_checksum_unverified.sql"
+    },
+    {
+      "function": "public.discard_bank_statement_import",
+      "arguments": "target_org uuid, actor_user uuid, target_import uuid, expected_revision integer, reason text default null",
+      "migration": "supabase/migrations/20260922175746_discard_bank_statement_import.sql"
+    },
+    {
+      "function": "public.remember_customer_from_invoice",
+      "arguments": "",
+      "migration": "supabase/migrations/20261001235711_customer_ares_address_contact_guard.sql"
+    },
+    {
+      "function": "private.assistance_require_actor",
+      "arguments": "target_org uuid,actor_user uuid",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "private.assistance_enqueue",
+      "arguments": "target_org uuid, force_request boolean default false",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.configure_payment_assistance",
+      "arguments": "target_org uuid,new_mode text,new_memory boolean,new_reevaluation boolean",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "private.assistance_changed",
+      "arguments": "",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.payment_assistance_inputs",
+      "arguments": "target_org uuid",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.claim_payment_assistance_job",
+      "arguments": "target_org uuid",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.finish_payment_assistance_job",
+      "arguments": "target_org uuid,token uuid,expected_generation bigint,proposals jsonb,error_code text,elapsed_ms integer",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.request_payment_assistance",
+      "arguments": "target_org uuid,actor_user uuid",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.payment_assistance_overview",
+      "arguments": "target_org uuid,actor_user uuid",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.set_payment_assistance_waiting",
+      "arguments": "target_org uuid,actor_user uuid,target_payment uuid,waiting boolean",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.save_payment_payer_memory",
+      "arguments": "target_org uuid,actor_user uuid,target_memory uuid,expected_revision integer,ico text,new_account text,new_name text,new_reference text,sources uuid[],new_active boolean",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "public.decide_payment_assistance",
+      "arguments": "target_org uuid,actor_user uuid,target_proposal uuid,accept boolean",
+      "migration": "supabase/migrations/20261003101756_payment_assistance.sql"
+    },
+    {
+      "function": "private.assistance_normalize_account",
+      "arguments": "raw text",
+      "migration": "supabase/migrations/20261003103140_camt_statement_evidence.sql"
+    },
+    {
+      "function": "private.assistance_cross_format_guard",
+      "arguments": "",
+      "migration": "supabase/migrations/20261003103140_camt_statement_evidence.sql"
+    },
+    {
+      "function": "private.assistance_overlap_booking_guard",
+      "arguments": "",
+      "migration": "supabase/migrations/20261003103140_camt_statement_evidence.sql"
+    },
+    {
+      "function": "public.create_camt_statement_preview",
+      "arguments": "target_org uuid,actor_user uuid,import_data jsonb,entry_rows jsonb",
+      "migration": "supabase/migrations/20261003103140_camt_statement_evidence.sql"
+    },
+    {
+      "function": "public.acknowledge_statement_overlap",
+      "arguments": "target_org uuid,actor_user uuid,target_entry uuid,expected_revision integer",
+      "migration": "supabase/migrations/20261003103140_camt_statement_evidence.sql"
+    }
+  ],
+  "cron": [
+    {
+      "path": "/api/cron/reconcile-payments",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/check-due",
+      "schedule": "0 6 * * *"
+    }
+  ],
+  "roles": [
+    "admin",
+    "accounting",
+    "viewer"
+  ],
+  "external_services": [
+    "Supabase Auth/Postgres/Storage",
+    "Resend",
+    "ARES",
+    "Gemini (optional OCR)",
+    "Vercel hosting/crons"
+  ],
+  "note": "Inventory is not evidence that each path has passed a live scenario."
+}

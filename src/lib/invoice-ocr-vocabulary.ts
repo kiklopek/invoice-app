@@ -1,10 +1,11 @@
-export const OCR_VOCABULARY_VERSION = "2026-10-02.2";
+export const OCR_VOCABULARY_VERSION = "2026-10-03.1";
 
 export type OcrConcept =
   | "counterparty"
   | "issuer"
   | "ico"
   | "dic"
+  | "currency"
   | "invoice_number"
   | "variable_symbol"
   | "issue_date"
@@ -30,16 +31,17 @@ export const OCR_TERMS: Record<OcrConcept, readonly string[]> = {
     "customer", "buyer", "purchaser",
   ],
   issuer: ["dodavatel", "vystavitel", "prodavajici", "zhotovitel", "fakturujici", "poskytovatel", "supplier", "seller", "vendor", "issuer"],
-  ico: ["ico", "ic", "identifikacni cislo", "identifikacni cislo osoby", "company id", "company number", "registration number"],
-  dic: ["dic", "ic dph", "danove identifikacni cislo", "vat id", "vat number", "tax id"],
-  invoice_number: ["cislo faktury", "cislo dokladu", "faktura c", "danovy doklad c", "invoice number", "invoice no", "document number"],
-  variable_symbol: ["variabilni symbol", "variabilny symbol", "var symbol", "vs", "payment reference"],
+  ico: ["ico", "ic", "i c o", "i c", "identifikacni cislo", "identifikacni cislo osoby", "identifikator firmy", "company id", "company number", "company registration number", "registration number"],
+  dic: ["dic", "d i c", "ic dph", "i c dph", "danove identifikacni cislo", "danove cislo", "vat id", "vat number", "vat registration number", "tax id", "tax identification number"],
+  currency: ["mena", "mena dokladu", "mena faktury", "fakturacni mena", "currency", "invoice currency", "billing currency"],
+  invoice_number: ["cislo faktury", "cislo dokladu", "evidencni cislo faktury", "faktura c", "danovy doklad c", "invoice number", "invoice no", "document number", "document reference"],
+  variable_symbol: ["variabilni symbol", "variabilny symbol", "var symbol", "vs", "payment reference", "reference platby", "referencni cislo platby"],
   issue_date: ["datum vystaveni", "datum vystavenia", "datum vyhotoveni", "datum vydani", "den vystaveni", "vystaveno dne", "vystavene dna", "issue date", "invoice date", "date of issue"],
-  due_date: ["datum splatnosti", "splatnost", "splatne dna", "uhradte do", "due date", "due on", "payment due", "maturity date"],
+  due_date: ["datum splatnosti", "splatnost", "splatne dna", "uhradte do", "termin uhrady", "datum uhrady do", "due date", "due on", "payment due", "maturity date", "pay by"],
   taxable_date: ["duzp", "datum uskutecneni zdanitelneho plneni", "datum dodania", "taxable supply date"],
-  net_amount: ["zaklad dane", "zaklad dph", "celkem bez dph", "celkom bez dph", "cena bez dph", "subtotal", "net amount", "tax base", "medzisucet"],
+  net_amount: ["zaklad dane", "zaklad dph", "celkem bez dph", "celkom bez dph", "cena bez dph", "castka bez dane", "subtotal", "net amount", "tax base", "medzisucet", "total excluding vat", "total excl vat"],
   vat: ["dph", "dan", "sazba dph", "sadzba dph", "vat", "tax amount", "tax rate"],
-  gross_amount: ["celkem k uhrade", "celkom k uhrade", "castka k uhrade", "suma na uhradu", "k uhrade", "celkem s dph", "celkom s dph", "grand total", "total due", "amount due", "balance due"],
+  gross_amount: ["celkem k uhrade", "celkom k uhrade", "castka k uhrade", "suma na uhradu", "k uhrade", "celkem s dph", "celkom s dph", "celkova castka k zaplaceni", "grand total", "total due", "amount due", "balance due", "total including vat", "total incl vat"],
   paid_amount: ["uhrazeno", "uhradene", "zaplaceno", "zaplatene", "zaloha", "prepayment", "paid"],
   remaining_amount: ["zbyva uhradit", "zostava uhradit", "nedoplatek", "balance due", "remaining amount"],
   negative_party_context: ["dodavatel", "vystavitel", "vystavil", "prodavajici", "kontakt", "bankovni spojeni", "bankove spojenie", "prijemce zbozi", "ship to"],
@@ -100,7 +102,7 @@ export function matchOcrConcept(value: string, concept: OcrConcept): OcrConceptM
     const term = normalizeOcrKeyword(rawTerm);
     if (normalized === term || normalized.includes(` ${term} `) || normalized.startsWith(`${term} `) || normalized.endsWith(` ${term}`)) {
       const match = { concept, term: rawTerm, matched: term, exact: true, score: 1 } satisfies OcrConceptMatch;
-      if (!best || match.score > best.score) best = match;
+      if (!best || match.score > best.score || (match.score === best.score && match.matched.length > best.matched.length)) best = match;
       continue;
     }
     const termWords = term.split(" ");

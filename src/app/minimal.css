@@ -3179,6 +3179,10 @@ th,
 .customer-invoices-link {
   display: block;
   color: inherit;
+  text-decoration: none;
+}
+.customer-invoices-link strong {
+  text-decoration: underline;
 }
 .customer-invoices-link:hover strong {
   color: var(--green);

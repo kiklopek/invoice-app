@@ -1,0 +1,80 @@
+/* One continuous background for every page in the authenticated workspace. */
+.app-shell > .workspace-background {
+  --ring-x: 99%;
+  --ring-y: 2%;
+  --second-x: 1%;
+  --second-y: 101%;
+  --dots-x: 85%;
+  --dots-y: 22%;
+  --glow-x: 94%;
+  --glow-y: 8%;
+  position: fixed;
+  inset: 0 0 0 232px;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at var(--glow-x) var(--glow-y), rgba(187, 211, 171, .55), transparent 44%),
+    radial-gradient(ellipse at 4% 94%, rgba(135, 177, 148, .32), transparent 45%),
+    radial-gradient(ellipse at 56% 55%, rgba(255, 255, 255, .6), transparent 55%),
+    linear-gradient(150deg, #f8f8f2, #e9f0e5);
+}
+.workspace-background::before,
+.workspace-background::after { content: ""; position: absolute; border-radius: 50%; }
+.workspace-background::before {
+  width: clamp(330px, 30vw, 560px);
+  aspect-ratio: 1;
+  left: var(--ring-x);
+  top: var(--ring-y);
+  transform: translate(-50%, -50%);
+  border: 64px solid rgba(36, 95, 66, .065);
+}
+.workspace-background::after {
+  width: clamp(300px, 28vw, 470px);
+  aspect-ratio: 1;
+  left: var(--second-x);
+  top: var(--second-y);
+  transform: translate(-50%, -50%);
+  border: 54px solid rgba(36, 95, 66, .06);
+}
+.workspace-background-dots {
+  position: absolute;
+  left: var(--dots-x);
+  top: var(--dots-y);
+  width: 140px;
+  height: 110px;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 24% 28%, rgba(36, 95, 66, .12) 0 9px, transparent 10px),
+    radial-gradient(circle at 78% 60%, rgba(157, 184, 117, .22) 0 18px, transparent 19px),
+    radial-gradient(circle at 40% 87%, rgba(168, 111, 45, .15) 0 5px, transparent 6px);
+}
+.workspace-background[data-variant="dashboard"] { --ring-x: 92%; --ring-y: 12%; --second-x: 5%; --second-y: 104%; --dots-x: 9%; --dots-y: 25%; }
+.workspace-background[data-variant="invoices"] { --ring-x: 103%; --ring-y: 35%; --second-x: 12%; --second-y: 104%; --dots-x: 83%; --dots-y: 10%; --glow-x: 80%; }
+.workspace-background[data-variant="invoice-detail"] { --ring-x: 3%; --ring-y: 15%; --second-x: 95%; --second-y: 95%; --dots-x: 87%; --dots-y: 20%; --glow-x: 14%; --glow-y: 24%; }
+.workspace-background[data-variant="compose"] { --ring-x: 94%; --ring-y: 2%; --second-x: 4%; --second-y: 87%; --dots-x: 17%; --dots-y: 12%; --glow-x: 20%; --glow-y: 14%; }
+.workspace-background[data-variant="import"] { --ring-x: 103%; --ring-y: 80%; --second-x: 2%; --second-y: 4%; --dots-x: 88%; --dots-y: 15%; --glow-y: 70%; }
+.workspace-background[data-variant="invoice-archive"] { --ring-x: 5%; --ring-y: 100%; --second-x: 96%; --second-y: 6%; --dots-x: 15%; --dots-y: 19%; --glow-x: 30%; --glow-y: 80%; }
+.workspace-background[data-variant="payments"] { --dots-x: 83%; --dots-y: 16%; }
+.workspace-background[data-variant="payment-archive"] { --ring-x: 100%; --ring-y: 94%; --second-x: 3%; --second-y: 8%; --dots-x: 88%; --dots-y: 17%; --glow-y: 80%; }
+.workspace-background[data-variant="customers"] { --ring-x: 96%; --ring-y: 20%; --second-x: 8%; --second-y: 100%; --dots-x: 13%; --dots-y: 14%; --glow-x: 85%; --glow-y: 35%; }
+.workspace-background[data-variant="reports"] { --ring-x: 2%; --ring-y: 9%; --second-x: 97%; --second-y: 97%; --dots-x: 86%; --dots-y: 12%; --glow-x: 78%; --glow-y: 80%; }
+.workspace-background[data-variant="reminders"] { --ring-x: 101%; --ring-y: 48%; --second-x: 3%; --second-y: 98%; --dots-x: 12%; --dots-y: 15%; --glow-x: 90%; --glow-y: 45%; }
+.workspace-background[data-variant="settings"] { --ring-x: 95%; --ring-y: 3%; --second-x: 5%; --second-y: 88%; --dots-x: 87%; --dots-y: 83%; --glow-x: 70%; --glow-y: 12%; }
+.app-shell:has(> .workspace-background) > .content {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+@media (min-width: 1024px) and (max-width: 1180px) {
+  .app-shell > .workspace-background { left: 208px; }
+}
+@media (max-width: 1023px) {
+  .app-shell > .workspace-background { left: 0; }
+  .workspace-background::before { width: 300px; border-width: 46px; }
+  .workspace-background::after { width: 270px; border-width: 42px; }
+  .workspace-background-dots { width: 95px; height: 80px; opacity: .7; }
+}
+@media print {
+  .app-shell > .workspace-background { display: none; }
+}

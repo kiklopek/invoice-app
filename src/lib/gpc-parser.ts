@@ -20,6 +20,8 @@ export interface GpcPreviewEntry {
   fingerprint: string;
   payment?: PaymentImportRow;
   transactionCode?: string;
+  /** Original CAMT field provenance; GPC/CSV do not populate this. */
+  provenance?: { namespace: string; statement_id: string; entry_index: number; transaction_index: number; bank_reference: string | null; end_to_end: string | null };
 }
 
 export interface GpcParseResult {

@@ -602,11 +602,22 @@ function conceptLineMatches(line: string, concept: OcrConcept) {
   return matchOcrConcept(label, concept) ?? matchOcrConcept(line, concept);
 }
 
+// Read only after the matched label. Searching the whole line can mistake a
+// word in the label for a reference, or take a number from an earlier field.
+function conceptRemainder(line: string, concept: OcrConcept) {
+  const match = conceptLineMatches(line, concept);
+  if (!match) return null;
+  const pattern = match.matched.split(" ").map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[\\s:;,.#()[\\]{}\\/_-]+");
+  const location = stripDiacritics(line).match(new RegExp(`(?<![a-z0-9])${pattern}(?![a-z])`, "iu"));
+  if (!location || /[:\d]/.test(line.slice(0, location.index))) return null;
+  return line.slice((location.index ?? 0) + location[0].length).replace(/^[\s:;.#=-]+/, "").trim();
+}
+
 function findConceptValue(lines: string[], concept: OcrConcept, valuePattern: RegExp, requireDigit = false) {
   for (let index = 0; index < lines.length; index += 1) {
-    const match = conceptLineMatches(lines[index], concept);
-    if (!match || match.exact) continue;
-    const afterColon = lines[index].includes(":") ? lines[index].slice(lines[index].indexOf(":") + 1) : lines[index];
+    const afterColon = conceptRemainder(lines[index], concept);
+    if (afterColon === null) continue;
     const sameLine = afterColon.match(valuePattern)?.[1] ?? "";
     if (sameLine && (!requireDigit || /\d/.test(sameLine))) return sameLine.trim();
     const nextLine = bareNextValue(lines[index + 1] ?? "", "number") ? lines[index + 1].match(valuePattern)?.[1] ?? "" : "";
@@ -617,9 +628,9 @@ function findConceptValue(lines: string[], concept: OcrConcept, valuePattern: Re
 
 function findConceptDate(lines: string[], concept: "issue_date" | "due_date") {
   for (let index = 0; index < lines.length; index += 1) {
-    const match = conceptLineMatches(lines[index], concept);
-    if (!match || match.exact) continue;
-    const sameLine = parseDate(lines[index]);
+    const remainder = conceptRemainder(lines[index], concept);
+    if (remainder === null) continue;
+    const sameLine = parseDate(remainder);
     if (sameLine) return sameLine;
     const nextLine = bareNextValue(lines[index + 1] ?? "", "date") ? parseDate(lines[index + 1]) : "";
     if (nextLine) return nextLine;
@@ -629,9 +640,10 @@ function findConceptDate(lines: string[], concept: "issue_date" | "due_date") {
 
 function findConceptAmount(lines: string[], concept: "net_amount" | "gross_amount") {
   for (let index = 0; index < lines.length; index += 1) {
-    const match = conceptLineMatches(lines[index], concept);
-    if (!match || match.exact) continue;
-    const sameLine = amountFromLine(lines[index]);
+    if (looksLikeTableHeading(stripDiacritics(lines[index]))) continue;
+    const remainder = conceptRemainder(lines[index], concept);
+    if (remainder === null) continue;
+    const sameLine = amountFromLine(remainder);
     if (sameLine) return sameLine;
     const nextLine = bareNextValue(lines[index + 1] ?? "", "amount") ? amountFromLine(lines[index + 1]) : null;
     if (nextLine) return nextLine;
@@ -698,10 +710,19 @@ const EMAIL_LABEL = /\b(?:e[ -]?mail|mail|emailov[áa]\s+adresa|elektronick[áa]
 // Read labelled facts throughout the document, including a value printed on
 // the next line. The short party section above is useful for finding a name,
 // but invoices often put registration and contact details much further down.
-function scanLabeledValues(lines: string[], pattern: RegExp, label: RegExp, normalize: (value: string) => string, bareValue: RegExp) {
+function scanLabeledValues(lines: string[], pattern: RegExp, label: RegExp, normalize: (value: string) => string, bareValue: RegExp, concept?: "ico" | "dic") {
   const found: Array<{ value: string; line: number }> = [];
   lines.forEach((line, index) => {
     for (const match of line.matchAll(pattern)) found.push({ value: normalize(match[1]), line: index });
+    if (concept && !(concept === "ico" && conceptLineMatches(line, "dic"))) {
+      const remainder = conceptRemainder(line, concept);
+      if (remainder !== null) {
+        if (bareValue.test(remainder)) found.push({ value: normalize(remainder), line: index });
+        else if (!remainder && bareValue.test(lines[index + 1]?.trim() ?? "")) {
+          found.push({ value: normalize(lines[index + 1]), line: index + 1 });
+        }
+      }
+    }
     if (!label.test(line) || found.some(item => item.line === index) || index + 1 >= lines.length) return;
     // A label by itself can precede its value, but never borrow a different
     // labelled field or a party heading from the next line.
@@ -840,8 +861,8 @@ function findCounterparty(
   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
 
   const issuerSectionText = issuerSection.join("\n");
-  const issuerIcos = new Set(uniqueMatches(issuerSectionText, ICO_PATTERN, digits).filter(value => value.length === 8));
-  const issuerDics = new Set(uniqueMatches(issuerSectionText, DIC_PATTERN, value => value.replace(/[\s-]/g, "").toUpperCase()));
+  const issuerIcos = new Set(scanLabeledValues(issuerSection, ICO_PATTERN, new RegExp(`${ICO_LABEL_WORDS}\\s*[:.]?\\s*$`, "iu"), digits, /^\d[\d\s]{6,10}$/u, "ico").map(item => item.value).filter(value => value.length === 8));
+  const issuerDics = new Set(scanLabeledValues(issuerSection, DIC_PATTERN, new RegExp(`${DIC_LABEL_WORDS}\\s*[:.]?\\s*$`, "iu"), value => value.replace(/[\s-]/g, "").toUpperCase(), /^[A-Z]{2}\s*[A-Z0-9][A-Z0-9\s-]{5,18}$/iu, "dic").map(item => item.value));
   const issuerNames = new Set(issuerSection.map(line => normalizeComparable(line)).filter(Boolean));
   const issuerEmails = new Set(uniqueMatches(issuerSectionText, EMAIL_PATTERN, value => value.toLowerCase()));
 
@@ -900,10 +921,10 @@ function findCounterparty(
     if (columnsDiffer) return belongsToCounterpartyColumn(value);
     return contactPartyAtLine[line] === "counterparty";
   };
-  const labeledIcos = scanLabeledValues(lines, ICO_PATTERN, new RegExp(String.raw`${ICO_LABEL_WORDS}\s*[:.]?\s*$`, "iu"), digits, /^\d[\d\s]{6,10}$/u)
+  const labeledIcos = scanLabeledValues(lines, ICO_PATTERN, new RegExp(String.raw`${ICO_LABEL_WORDS}\s*[:.]?\s*$`, "iu"), digits, /^\d[\d\s]{6,10}$/u, "ico")
     .filter(item => item.value.length === 8);
   const labeledDics = scanLabeledValues(lines, DIC_PATTERN, new RegExp(String.raw`${DIC_LABEL_WORDS}\s*[:.]?\s*$`, "iu"),
-    value => value.replace(/[\s-]/g, "").toUpperCase(), /^[A-Z]{2}\s*[A-Z0-9][A-Z0-9\s-]{5,18}$/iu);
+    value => value.replace(/[\s-]/g, "").toUpperCase(), /^[A-Z]{2}\s*[A-Z0-9][A-Z0-9\s-]{5,18}$/iu, "dic");
   const labeledEmails = scanLabeledValues(lines, EMAIL_PATTERN, EMAIL_LABEL, value => value.toLowerCase(), /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/iu);
 
   const structuralIcoCandidates = [...new Set([...uniqueMatches(`${sectionText}\n${text}`, ICO_PATTERN, digits), ...labeledIcos.map(item => item.value)])]
@@ -1607,13 +1628,24 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     || (netCurrency === "CZK" && (net?.currency ? (net as ParsedAmount).currencyInferred : netCurrencyEvidence?.inferred)));
   const explicitCurrencies = [...new Set([grossCurrency, netCurrency].filter((value): value is NonNullable<ParsedAmount["currency"]> => Boolean(value)))];
   const documentCurrencies = [...new Set(currencyMentions(text))];
-  const labeledCurrency = text.match(/(?:^|\n)\s*(?:měna|mena|currency)\s*[:.]?\s*([A-Z]{3})\b/im)?.[1];
-  const unsupportedCurrency = labeledCurrency && !normalizeInvoiceCurrency(labeledCurrency) ? labeledCurrency.toUpperCase() : null;
+  const labeledCurrencyEntries = documentLayout.pages.flatMap(page => page.lines.flatMap((line, index) => {
+    const remainder = conceptRemainder(line.text, "currency");
+    if (remainder === null) return [];
+    const valueLine = remainder ? line : page.lines[index + 1];
+    if (!valueLine) return [];
+    const value = remainder || valueLine.text.trim();
+    const code = normalizeInvoiceCurrency(value);
+    if (!code && !/^[A-Z]{3}$/iu.test(value)) return [];
+    return [{ currency: code, unsupported: code ? null : value.toUpperCase(), source: sourceFromLine(valueLine) }];
+  }));
+  const labeledCurrencies = [...new Set(labeledCurrencyEntries.map(entry => entry.currency).filter((value): value is NonNullable<ParsedAmount["currency"]> => Boolean(value)))];
+  const unsupportedCurrency = labeledCurrencyEntries.find(entry => entry.unsupported)?.unsupported;
   // A bare "$" is a printed currency, just not a specific one. Assuming CZK
   // here would turn a dollar invoice into a koruna receivable.
   const dollarOnly = !explicitCurrencies.length && !documentCurrencies.length && hasBareDollarSign(text);
-  const currencyConflict = explicitCurrencies.length > 1 || (!explicitCurrencies.length && documentCurrencies.length > 1) || Boolean(unsupportedCurrency) || dollarOnly;
-  const currency = currencyConflict ? "" : explicitCurrencies[0] ?? (documentCurrencies.length === 1 ? documentCurrencies[0] : "CZK");
+  const currencyConflict = new Set([...explicitCurrencies, ...labeledCurrencies]).size > 1
+    || (!explicitCurrencies.length && !labeledCurrencies.length && documentCurrencies.length > 1) || Boolean(unsupportedCurrency) || dollarOnly;
+  const currency = currencyConflict ? "" : explicitCurrencies[0] ?? labeledCurrencies[0] ?? (documentCurrencies.length === 1 ? documentCurrencies[0] : "CZK");
 
   if (kind !== "issued_invoice") warnings.unshift("Dokument nemusí být běžná vydaná faktura. Před uložením ověřte jeho typ.");
   // A mismatch here is expected and harmless for a business that legitimately
@@ -1661,7 +1693,8 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     amount: grossSource ?? (netSource ? { ...netSource, method: "derived" } : undefined),
     currency: grossCurrencyEvidence?.currency === currency ? grossCurrencyEvidence.source
       : netCurrencyEvidence?.currency === currency ? netCurrencyEvidence.source
-        : [grossSource, netSource].find(source => source && currencyOnAmountLine(source.text, amount).currency === currency) ?? undefined,
+        : labeledCurrencyEntries.find(entry => entry.currency === currency)?.source
+          ?? [grossSource, netSource].find(source => source && currencyOnAmountLine(source.text, amount).currency === currency) ?? undefined,
   };
 
   const invoice: InvoiceInput = {
@@ -1709,7 +1742,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
       ...fieldDecisions.currency, status: "review", confidence: Math.min(fieldDecisions.currency.confidence, 0.59), needs_confirmation: true,
       reasons: [...new Set([...fieldDecisions.currency.reasons, "Za částkou je v textové vrstvě jen K; v PDF pravděpodobně chybí znak č. Potvrďte měnu podle dokladu."])],
     };
-  } else if (fieldDecisions.currency && !fieldSources.currency) {
+  } else if (fieldDecisions.currency && (!fieldSources.currency || (labeledCurrencies.length > 0 && !explicitCurrencies.length))) {
     fieldDecisions.currency = {
       ...fieldDecisions.currency, status: "review", confidence: 0.4, needs_confirmation: true,
       reasons: [documentCurrencies.length ? "Měna byla rozpoznána mimo řádek celkové částky. Potvrďte ji podle dokladu." : ASSUMED_CZK_REASON],

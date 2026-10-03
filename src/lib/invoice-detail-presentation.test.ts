@@ -7,7 +7,7 @@ const page = readFileSync(
   "utf8",
 );
 const css = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
-const layoutCss = readFileSync(join(process.cwd(), "src", "app", "minimal.css"), "utf8");
+const layoutCss = readFileSync(join(process.cwd(), "src", "app", "minimal.css"), "utf8").replace(/\r\n/g,"\n");
 
 describe("invoice detail amount summary", () => {
   it("shows the net amount as the primary value and gross amount as secondary", () => {

@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-10-03T15:46:41.692Z",
+  "results": [
+    {
+      "name": "typecheck",
+      "exit_code": 0,
+      "duration_ms": 11189
+    },
+    {
+      "name": "lint",
+      "exit_code": 0,
+      "duration_ms": 43382
+    },
+    {
+      "name": "unit",
+      "exit_code": 0,
+      "duration_ms": 50406
+    },
+    {
+      "name": "migrations",
+      "exit_code": 0,
+      "duration_ms": 148
+    }
+  ]
+}

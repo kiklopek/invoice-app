@@ -1,0 +1,271 @@
+.page {
+  --dashboard-aside-width: 320px;
+}
+
+.page :global(.dashboard-command) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, clamp(510px, 40%, 650px));
+}
+
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--dashboard-aside-width));
+  gap: 16px;
+  min-width: 0;
+}
+
+.side.readOnly {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.page .side :global(.dashboard-signal-grid) {
+  container: dashboard-signals / inline-size;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+.page .side :global(.dashboard-signal) {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.page .side :global(.dashboard-signal > div) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px 16px;
+  margin-left: 0;
+}
+
+.page .side :global(.dashboard-signal small) {
+  grid-column: 1;
+  grid-row: 1;
+  color: #171717;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.page .side :global(.dashboard-signal strong) {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(20px, 1.5vw, 26px);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.page .side :global(.dashboard-signal p) {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+  color: #65736b;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@container dashboard-signals (max-width: 460px) {
+  .page .side :global(.dashboard-signal) {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .page .side :global(.dashboard-signal > div) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .page .side :global(.dashboard-signal strong) {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .page .side :global(.dashboard-signal p) {
+    grid-row: 3;
+  }
+}
+
+.page .side :global(.dashboard-signal-icon) {
+  flex-shrink: 0;
+}
+
+.page .side :global(.dashboard-actions) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.page :global(.topbar > div),
+.page :global(.panel-head > div) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.page :global(.dashboard-balance-topline),
+.page :global(.dashboard-balance-actions) {
+  flex-wrap: wrap;
+}
+
+.page :global(.dashboard-balance-actions a) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.page :global(.dashboard-timeline-item section p) {
+  overflow-wrap: anywhere;
+}
+
+/* Choose invoice cards from the actual panel width, including tablets. */
+@container dashboard-invoices (max-width: 850px) {
+  .page :global(.dashboard-invoice-table > table) {
+    display: none !important;
+  }
+
+  .page :global(.dashboard-invoice-compact-list) {
+    display: grid;
+  }
+}
+
+.page :global(.dashboard-invoice-table table) {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.page :global(.dashboard-invoice-table td),
+.page :global(.dashboard-invoice-table th),
+.page :global(.dashboard-invoice-table td strong),
+.page :global(.dashboard-invoice-table td small),
+.page :global(.dashboard-invoice-table .status) {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.page :global(.dashboard-invoice-compact-amount) {
+  min-width: 0;
+}
+
+.page :global(.dashboard-invoice-compact-amount strong),
+.page :global(.dashboard-invoice-compact-meta > span),
+.page :global(.dashboard-invoice-compact-statuses .status) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.page :global(.dashboard-invoice-compact-meta > span > strong) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Keep the smaller signal cards compact beside the desktop sidebar. */
+@media screen and (min-width: 1181px) and (max-width: 1599px) {
+  .page .side :global(.dashboard-signal) {
+    padding: 12px;
+  }
+}
+
+/* A short window or wrapped totals must never hide the growing lists. */
+@media screen and (min-width: 1181px) {
+  .page :global(.dashboard-workspace) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--dashboard-aside-width));
+  }
+
+  .page {
+    height: 100dvh;
+    min-height: 780px !important;
+    overflow: visible;
+  }
+
+  .page :global(.dashboard-workspace) {
+    flex: 1 1 0;
+    min-height: 280px !important;
+  }
+
+  .page :global(.dashboard-invoice-table),
+  .page :global(.dashboard-attention-panel .timeline) {
+    max-height: none;
+  }
+}
+
+.page .side :global(.dashboard-actions .btn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  min-height: 64px;
+  padding: 14px 16px;
+  border-radius: 15px;
+  font-size: 14px;
+  white-space: normal;
+  text-align: center;
+}
+
+.page .side :global(.dashboard-actions .btn svg) {
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.page .side :global(.dashboard-actions .btn.secondary) {
+  background: #e2efe4;
+  border-color: #c6dccb;
+  color: var(--green-dark);
+}
+
+.page .side :global(.dashboard-actions .btn.secondary:hover) {
+  background: #d3e7d7;
+  border-color: #abcbb3;
+}
+
+@media (max-width: 1180px) {
+  .page :global(.dashboard-command) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .side {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page .side :global(.dashboard-actions .btn) {
+    min-height: 52px;
+  }
+
+  .page .side :global(.dashboard-actions) {
+    grid-template-rows: none;
+  }
+
+  .page :global(.dashboard-invoice-compact-row) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "customer" "amount" "meta" "statuses";
+    gap: 9px;
+  }
+
+  .page :global(.dashboard-invoice-compact-amount),
+  .page :global(.dashboard-invoice-compact-statuses) {
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .page :global(.invoice-panel > .panel-head) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+}

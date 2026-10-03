@@ -216,7 +216,7 @@ describe("mobile application layout", () => {
     expect(css).toContain(".debtor-table table");
     expect(css).toContain(".invoice-import-preview table");
     expect(css).toContain(".payments-page .gpc-safety-card { display: none; }");
-    expect(responsiveCss).toContain('"invoice customer amount payment status"');
+    expect(responsiveCss).toMatch(/\.archive-invoice-table \.invoice-row\.is-paid \{[\s\S]*?"customer invoice"[\s\S]*?"amount payment"[\s\S]*?"issue due"/);
     expect(responsiveCss).toMatch(/"customer invoice"\s+"amount payment"\s+"issue due"/);
     expect(responsiveCss).toContain(".archive-invoice-table .archive-invoice-paid-at");
     expect(responsiveCss).toContain(".archive-invoice-table .invoice-row.is-paid");
@@ -262,7 +262,7 @@ describe("mobile application layout", () => {
     expect(responsiveCss).toContain("min-height: 46px");
     expect(responsiveCss).toContain("background: #fff !important");
     expect(responsiveCss).toContain("text-align: right");
-    expect(responsiveCss).toContain("grid-template-columns: minmax(0, 1fr) max-content");
+    expect(responsiveCss).toMatch(/\.active-invoice-table \.invoice-card-action \{ grid-template-columns: minmax\(0, 1fr\); gap: 10px; \}/);
     expect(responsiveCss).toContain("grid-column: 2");
     expect(responsiveCss).toContain("justify-content: flex-end");
     expect(responsiveCss).toContain("justify-self: end");

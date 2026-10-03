@@ -1,0 +1,47 @@
+name: Release audit (HTTPS staging required)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RELEASE_AUDIT: 'true'
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_MFA_EMAIL: ${{ secrets.E2E_MFA_EMAIL }}
+      E2E_MFA_PASSWORD: ${{ secrets.E2E_MFA_PASSWORD }}
+      E2E_ALLOW_UNAUTHENTICATED: 'false'
+      E2E_ALLOW_ADMIN_RECOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Refuse missing staging configuration
+        run: node scripts/validate-release-staging.mjs
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - run: mkdir -p .cache
+      - run: pnpm test:e2e --reporter=json > .cache/release-e2e.json
+      - name: Refuse skipped or flaky critical scenarios
+        if: always()
+        run: node scripts/assert-release-e2e.mjs .cache/release-e2e.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-audit-browser-evidence
+          path: |
+            .cache/release-e2e.json
+            test-results/
+          retention-days: 7

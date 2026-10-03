@@ -5,9 +5,10 @@ type ConfirmActionOptions = {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmVariant?: "danger" | "primary";
 };
 
-export function confirmAction({ title, description, confirmLabel = "Potvrdit", cancelLabel = "Zrušit" }: ConfirmActionOptions) {
+export function confirmAction({ title, description, confirmLabel = "Potvrdit", cancelLabel = "Zrušit", confirmVariant = "danger" }: ConfirmActionOptions) {
   return new Promise<boolean>((resolve) => {
     const dialog = document.createElement("dialog");
     const titleId = `confirm-title-${crypto.randomUUID()}`;
@@ -30,7 +31,7 @@ export function confirmAction({ title, description, confirmLabel = "Potvrdit", c
     cancel.className = "btn secondary";
     cancel.textContent = cancelLabel;
     confirm.type = "button";
-    confirm.className = "btn danger";
+    confirm.className = `btn ${confirmVariant}`;
     confirm.textContent = confirmLabel;
     actions.className = "confirm-dialog-actions";
     actions.append(cancel, confirm);

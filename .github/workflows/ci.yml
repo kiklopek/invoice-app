@@ -44,13 +44,14 @@ jobs:
           APP_BASE_URL: https://ci.example.com
           REMINDER_EMAIL_FROM: Splatno CI <ci@example.com>
           AUTH_EMAIL_FROM: Splatno CI <ci@example.com>
-          AUTH_EMAIL_DELIVERY_ENABLED: "false"
+          AUTH_EMAIL_DELIVERY_ENABLED: "true"
+          EMAIL_MFA_BYPASS_EMAILS: ""
       # Vsechny projekty krome desktop-safari bezi na Chromiu (i Pixel 5 --
       # Playwright ho emuluje pres Chromium, ne pres skutecny Android
       # prohlizec). desktop-safari pouziva WebKit. Kdyz CI instaluje jen
       # chromium, kazdy test na desktop-safari selze uz na startu prohlizece
       # -- to neni 35 nesouvisejicich chyb, je to jedna chybejici zavislost.
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
       # Krok driv bezel uplne bez env, takze dev server nemel zadne pripojeni
       # k Supabase a KAZDY workspace test se tise preskocil -- realne bezel
       # jediny test a CI pritom svitilo zelene.

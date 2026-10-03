@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateProductionEnv } from "../../scripts/validate-production-env.mjs";
+import { prepareNextEnv } from "../../scripts/prepare-next-env.mjs";
 
 const validProductionEnv = {
   NODE_ENV: "production",
@@ -18,6 +19,11 @@ const validProductionEnv = {
 } as const;
 
 describe("production environment validation", () => {
+  it("does not let build/start evade production validation when NODE_ENV is missing", () => {
+    expect(() => prepareNextEnv("build", {})).toThrow("Produkční konfigurace");
+    expect(() => prepareNextEnv("start", { NODE_ENV:"development" })).toThrow("Produkční konfigurace");
+    expect(prepareNextEnv("dev", {})).toEqual({ NODE_ENV:"development" });
+  });
   it("accepts a complete production configuration", () => {
     expect(validateProductionEnv(validProductionEnv)).toEqual([]);
   });

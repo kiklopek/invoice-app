@@ -148,7 +148,7 @@ export default function InvoiceArchivePage() {
                 <thead>
                   <tr>
                     <th>Faktura</th><th>Odběratel</th><th>Částka</th><th>Vystavení</th>
-                    <th>Splatnost</th><th>Datum úhrady</th><th>Stav</th>
+                    <th>Splatnost</th><th>Datum úhrady</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,7 +175,6 @@ export default function InvoiceArchivePage() {
                       <td data-label="Vystavení" className="archive-invoice-issued">{date(invoice.issue_date)}</td>
                       <td data-label="Splatnost" className="archive-invoice-due">{date(invoice.due_date)}</td>
                       <td data-label="Datum úhrady" className="archive-invoice-paid-at">{invoice.status === "paid" ? date(invoice.paid_at) : "—"}</td>
-                      <td data-label="Stav" className="archive-invoice-status"><span className={`status ${invoice.status}`}>{invoice.status === "paid" ? "Zaplaceno" : "Stornováno"}</span></td>
                     </tr>
                   ))}
                 </tbody>

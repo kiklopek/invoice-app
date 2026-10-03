@@ -27,6 +27,7 @@ import {
 } from "@/lib/use-access-role";
 import { profileInitials } from "@/lib/user-display";
 import "./mobile-navigation.css";
+import "./workspace-background.css";
 
 type NavChild = { href: string; label: string };
 type NavItem = {
@@ -459,10 +460,29 @@ export function AppShell({
   initialProfile: AccessProfile | null;
 }) {
   const [invoiceCount, setInvoiceCount] = useState<number>();
+  const pathname = usePathname();
+  const backgroundVariant = pathname === "/invoices"
+    ? "invoices"
+    : pathname.startsWith("/invoices/payments/archive")
+      ? "payment-archive"
+      : pathname.startsWith("/invoices/payments")
+        ? "payments"
+        : pathname === "/invoices/new"
+          ? "compose"
+          : pathname === "/invoices/import"
+            ? "import"
+            : pathname === "/invoices/archive"
+              ? "invoice-archive"
+              : pathname.startsWith("/invoices/")
+                ? "invoice-detail"
+                : pathname.split("/")[1] || "dashboard";
   return (
     <AccessProfileProvider profile={initialProfile}>
       <InvoiceCountContext.Provider value={setInvoiceCount}>
         <div className="app-shell">
+          <div className="workspace-background" data-variant={backgroundVariant} aria-hidden="true">
+            <span className="workspace-background-dots" />
+          </div>
           <AppSidebar
             invoiceCount={invoiceCount}
             initialProfile={initialProfile}

@@ -105,6 +105,89 @@
   overflow-wrap: anywhere;
 }
 
+/* Invoice controls follow the available panel width, including split windows. */
+@media screen {
+  .invoice-list-header { flex-wrap: wrap; }
+  .invoice-list-header > div { min-width: 0; max-width: 100%; }
+  .invoice-list-filter-panel {
+    min-width: 0;
+    padding: clamp(12px, 1.5vw, 20px);
+    container-type: inline-size;
+  }
+
+  .invoice-list-filter-panel .filter-row {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+    gap: 12px;
+  }
+
+  .invoice-list-filter-panel .filter-row label,
+  .invoice-list-filter-panel .filter-row .export-button {
+    min-width: 0;
+    max-width: 100%;
+    grid-column: auto;
+  }
+
+  .invoice-list-filter-panel .filter-row label.grow {
+    grid-column: 1 / -1;
+  }
+
+  .invoice-list-filter-panel .filter-row input,
+  .invoice-list-filter-panel .filter-row select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    min-height: 42px;
+    font-size: 13px;
+  }
+
+  .invoice-list-filter-panel .export-button {
+    height: auto;
+    min-height: 42px;
+    padding: 9px 12px;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .invoice-list-header > div:first-child { flex: 1 1 280px; }
+  .invoice-list-header .invoice-list-actions { flex: 1 1 480px; flex-wrap: wrap; justify-content: flex-end; }
+}
+
+@media screen and (max-width: 1023px), screen and (max-height: 600px) {
+  .invoice-list-filter-disclosure { display: block; min-width: 0; margin-bottom: 12px; }
+  .invoice-list-filter-disclosure .mobile-disclosure-toggle {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .invoice-list-filter-disclosure .mobile-disclosure-content { display: none; padding-top: 8px; }
+  .invoice-list-filter-disclosure.is-open .mobile-disclosure-content { display: block; }
+  .invoice-list-filter-disclosure .filter-panel { margin-bottom: 0; }
+}
+
+@media screen and (max-width: 767px) {
+  .invoice-list-filter-panel .filter-row {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+    gap: 10px;
+  }
+  .invoice-list-filter-panel .filter-row input,
+  .invoice-list-filter-panel .filter-row select { min-height: 44px; font-size: 16px; }
+  .invoice-list-filter-panel .export-button { grid-column: 1 / -1; }
+}
+
 .invoice-list-table {
   container-name: invoice-table;
   container-type: inline-size;
@@ -941,7 +1024,7 @@
   }
 
   .active-invoice-table .invoice-card-due {
-    min-width: 126px !important;
+    min-width: 0 !important;
   }
 
   .active-invoice-table .invoice-card-amount::before,
@@ -1015,7 +1098,7 @@
     display: grid !important;
     grid-area: footer;
     grid-column: 1 / -1 !important;
-    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
     gap: 10px;
     justify-self: stretch;
@@ -1034,7 +1117,7 @@
     grid-column: 2;
     grid-row: 1;
     min-width: 0;
-    width: max-content;
+    width: 100%;
     align-items: center;
     justify-content: flex-end;
     justify-self: end;
@@ -1222,7 +1305,7 @@
   }
 
   .active-invoice-table .invoice-card-due {
-    min-width: 116px !important;
+    min-width: 0 !important;
   }
 
   .active-invoice-table .quick-payment-button {
@@ -1404,10 +1487,10 @@
 @media screen and (min-width: 768px) {
   @container invoice-table (max-width: 1180px) {
     .archive-invoice-table tr {
-      grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr) 118px;
+      grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr);
       grid-template-areas:
-        "invoice customer amount payment status"
-        "issue due amount payment status" !important;
+        "invoice customer amount payment"
+        "issue due amount payment" !important;
       gap: 8px 16px;
       padding: 13px 14px;
     }
@@ -1469,8 +1552,7 @@
       grid-template-areas:
         "customer invoice"
         "amount payment"
-        "issue due"
-        "status status" !important;
+        "issue due" !important;
       gap: 8px 10px;
     }
 
@@ -1529,9 +1611,8 @@
     grid-template-areas:
       "customer invoice"
       "amount payment"
-      "issue due"
-      "status status" !important;
-    grid-template-rows: 54px 68px 44px max-content;
+      "issue due" !important;
+    grid-template-rows: 54px 68px 44px;
     grid-auto-rows: max-content;
     align-content: start;
     align-items: stretch;
@@ -1664,7 +1745,7 @@
 
   .archive-invoice-table tr {
     padding: 11px !important;
-    grid-template-rows: 50px 64px 42px max-content;
+    grid-template-rows: 50px 64px 42px;
     gap: 6px 8px;
   }
 
@@ -1708,4 +1789,140 @@
   .archive-invoice-table .invoice-row.is-paid .archive-invoice-status {
     display: none !important;
   }
+}
+
+/* Keep long amounts and multiple statuses inside their cells at every size. */
+@media screen {
+  .active-invoice-table { min-width: 0; max-width: 100%; }
+  .active-invoice-table td { vertical-align: middle; }
+  .active-invoice-table th:nth-child(3),
+  .active-invoice-table .invoice-card-amount { text-align: center; }
+  .active-invoice-table .invoice-card-number strong,
+  .active-invoice-table .invoice-card-number small,
+  .active-invoice-table .invoice-card-customer strong,
+  .active-invoice-table .invoice-card-customer small {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .active-invoice-table td.invoice-card-amount strong,
+  .active-invoice-table td.invoice-card-amount small {
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+  }
+  .active-invoice-table .invoice-card-status { white-space: normal; text-align: center; }
+  .active-invoice-table .status {
+    justify-content: center;
+    max-width: 100%;
+    margin: 3px 0;
+    padding: 7px 10px;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    text-align: center;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  @container invoice-table (max-width: 1180px) {
+    .active-invoice-table .invoice-row {
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1fr);
+      grid-template-areas:
+        "invoice customer amount status"
+        "issue due reminder action";
+      gap: 16px;
+      padding: 16px;
+    }
+    .active-invoice-table .invoice-card-amount {
+      align-items: center;
+      padding: 8px 12px !important;
+      text-align: center;
+    }
+    .active-invoice-table .invoice-card-amount strong { font-size: clamp(16px, 1.8cqi, 22px); }
+    .active-invoice-table .invoice-card-status { justify-self: stretch; }
+    .active-invoice-table .invoice-card-reminders { transform: none; padding: 8px !important; }
+    .active-invoice-table .invoice-card-issued,
+    .active-invoice-table .invoice-card-due { white-space: normal !important; }
+    .active-invoice-table .invoice-card-action { min-width: 0; }
+    .active-invoice-table .invoice-mobile-action-status { display: none; }
+  }
+
+  @container invoice-table (max-width: 820px) {
+    .active-invoice-table .invoice-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        "invoice status"
+        "customer customer"
+        "amount due"
+        "issue reminder"
+        "action action";
+      gap: 14px;
+    }
+    .active-invoice-table .invoice-card-status { justify-self: end; }
+    .active-invoice-table .invoice-card-amount,
+    .active-invoice-table .invoice-card-due {
+      display: flex !important;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 80px;
+      padding: 12px !important;
+      border: 0 !important;
+      border-radius: 10px;
+      background: #f5f8f5 !important;
+      text-align: center;
+    }
+    .active-invoice-table .invoice-card-amount strong { font-size: 18px; }
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .active-invoice-table .invoice-row > td { min-width: 0 !important; max-width: 100%; }
+  .active-invoice-table .invoice-card-number a { max-width: 100%; overflow-wrap: anywhere; }
+  .active-invoice-table .invoice-card-issued { margin-right: 0; flex-wrap: wrap; }
+  .active-invoice-table .invoice-card-reminders { margin-left: 0; }
+  .active-invoice-table .invoice-card-amount strong { font-size: clamp(14px, 3.8vw, 18px); }
+  .active-invoice-table .invoice-card-amount small { margin-top: 5px; font-size: 11px; }
+  .active-invoice-table .invoice-card-action { padding-top: 12px !important; border-top: 1px solid #e7ece8 !important; }
+  .active-invoice-table .invoice-mobile-action-status { max-width: 100%; gap: 6px; }
+  .active-invoice-table .quick-payment-button { padding: 10px 12px; white-space: normal; line-height: 1.4; }
+}
+
+@media screen and (max-width: 479px) {
+  .active-invoice-table .invoice-row,
+  .active-invoice-table .invoice-row.is-paid {
+    grid-template-areas:
+      "customer customer"
+      "invoice invoice"
+      "amount amount"
+      "due due"
+      "issued reminder"
+      "footer footer";
+    gap: 10px;
+  }
+  .active-invoice-table .invoice-row.is-paid {
+    grid-template-areas:
+      "customer customer"
+      "invoice invoice"
+      "amount amount"
+      "due due"
+      "issued reminder";
+  }
+  .active-invoice-table .invoice-card-number { text-align: left; }
+  .active-invoice-table .invoice-card-number a { min-height: 0; justify-content: flex-start; }
+  .active-invoice-table .invoice-card-customer { padding-bottom: 0 !important; }
+  .active-invoice-table .invoice-card-amount,
+  .active-invoice-table .invoice-card-due { min-height: 72px !important; }
+  .active-invoice-table .invoice-card-action { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .active-invoice-table .invoice-mobile-action-status {
+    grid-column: 1;
+    grid-row: 1;
+    justify-content: center;
+    justify-self: stretch;
+    margin: 0;
+  }
+  .active-invoice-table .quick-payment-button { grid-column: 1; grid-row: 2; }
 }

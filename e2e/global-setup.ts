@@ -1,6 +1,6 @@
 import { chromium, type FullConfig, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 export const STORAGE_STATE = "e2e/.auth/state.json";
@@ -104,11 +104,15 @@ export default async function globalSetup(config: FullConfig) {
   loadEnvFile();
   const email = process.env.E2E_EMAIL || DEFAULT_EMAIL;
   const password = process.env.E2E_PASSWORD;
+  if (process.env.RELEASE_AUDIT === "true" && (!password || process.env.E2E_ALLOW_UNAUTHENTICATED === "true")) {
+    throw new Error("Release audit requires explicit staging login credentials and forbids unauthenticated skips.");
+  }
 
   // Starou session vždy zahodíme -- přihlášení s prošlou session je horší
   // než žádné, protože testy pak padají na nesouvisejících místech.
   rmSync(STORAGE_STATE, { force: true });
   mkdirSync(dirname(STORAGE_STATE), { recursive: true });
+  writeFileSync(STORAGE_STATE, JSON.stringify({ cookies: [], origins: [] }));
 
   const baseURL = config.projects[0]?.use?.baseURL ?? "http://127.0.0.1:3000";
   const browser = await chromium.launch();
@@ -116,9 +120,10 @@ export default async function globalSetup(config: FullConfig) {
   try {
     const signedIn = password
       ? await signInWithPassword(page, email, password)
-      : await signInWithAdminToken(page, email);
+      : process.env.E2E_ALLOW_ADMIN_RECOVERY === "false" ? false : await signInWithAdminToken(page, email);
 
     if (!signedIn) {
+      if (process.env.RELEASE_AUDIT === "true") throw new Error("Release staging login failed; critical scenarios cannot be skipped.");
       // Nepadáme: specy samy rozhodnou, jestli je chybějící session tvrdá
       // chyba (výchozí) nebo vědomě povolená výjimka.
       console.warn("[e2e] Session se nepodařilo vytvořit — workspace testy poběží bez přihlášení.");
@@ -129,6 +134,8 @@ export default async function globalSetup(config: FullConfig) {
     await warmRoutes(page);
   } catch (cause) {
     rmSync(STORAGE_STATE, { force: true });
+    if (process.env.RELEASE_AUDIT === "true") throw cause;
+    writeFileSync(STORAGE_STATE, JSON.stringify({ cookies: [], origins: [] }));
     console.warn(`[e2e] Přihlášení účtu ${email} selhalo: ${cause instanceof Error ? cause.message : String(cause)}`);
   } finally {
     await browser.close();

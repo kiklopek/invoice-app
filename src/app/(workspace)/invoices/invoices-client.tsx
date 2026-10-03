@@ -273,7 +273,7 @@ export function InvoicesClient({
 
   return (
     <AppFrame invoiceCount={loading ? undefined : activeCount}>
-      <header className="section-header">
+      <header className="section-header invoice-list-header">
         <div>
           <p>POHLEDÁVKY</p>
           <h1>Faktury</h1>
@@ -303,9 +303,9 @@ export function InvoicesClient({
       {notice && <p className="form-success">{notice}</p>}
       <MobileDisclosure
         label="Filtry a export"
-        className="mobile-filter-disclosure"
+        className="mobile-filter-disclosure invoice-list-filter-disclosure"
       >
-        <section className="page-panel filter-panel">
+        <section className="page-panel filter-panel invoice-list-filter-panel">
           <div className="filter-row">
             <label className="grow">
               <span>Hledat</span>
@@ -522,20 +522,6 @@ export function InvoicesClient({
                       <strong>
                         {money(Number(invoice.amount), invoice.currency)}
                       </strong>
-                      {Number(invoice.paid_amount) > 0 &&
-                      invoice.status !== "cancelled" ? (
-                        <small>
-                          Zbývá{" "}
-                          {money(
-                            Math.max(
-                              0,
-                              Number(invoice.amount) -
-                                Number(invoice.paid_amount),
-                            ),
-                            invoice.currency,
-                          )}
-                        </small>
-                      ) : null}
                     </td>
                     <td data-label="Vystaveno" className="invoice-card-issued">{date(invoice.issue_date)}</td>
                     <td

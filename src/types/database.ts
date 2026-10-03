@@ -1,3 +1,4 @@
+import type { AssistanceTable, AssistanceSettingsRow, PayerMemoryRow, AssistanceProposalRow, AssistanceJobRow, AssistanceEventRow } from "./payment-assistance";
 export type Json =
   | string
   | number
@@ -34,6 +35,11 @@ export type Database = {
   }
   public: {
     Tables: {
+      payment_assistance_settings: AssistanceTable<AssistanceSettingsRow>
+      payment_payer_memory: AssistanceTable<PayerMemoryRow>
+      payment_assistance_proposals: AssistanceTable<AssistanceProposalRow>
+      payment_assistance_jobs: AssistanceTable<AssistanceJobRow>
+      payment_assistance_events: AssistanceTable<AssistanceEventRow>
       auth_request_events: {
         Row: {
           action: string
@@ -152,6 +158,7 @@ export type Database = {
       }
       bank_payments: {
         Row: {
+          assistance_waiting: boolean
           amount: number
           booked_on: string
           counterparty_account: string | null
@@ -173,6 +180,7 @@ export type Database = {
           variable_symbol: string | null
         }
         Insert: {
+          assistance_waiting?: boolean
           amount: number
           booked_on: string
           counterparty_account?: string | null
@@ -194,6 +202,7 @@ export type Database = {
           variable_symbol?: string | null
         }
         Update: {
+          assistance_waiting?: boolean
           amount?: number
           booked_on?: string
           counterparty_account?: string | null
@@ -1567,6 +1576,17 @@ export type Database = {
         Returns: Json
       }
       run_bank_reconciliation_jobs: { Args: Record<PropertyKey, never>; Returns: Json }
+      configure_payment_assistance: { Args: { target_org: string; new_mode: string; new_memory: boolean; new_reevaluation: boolean }; Returns: undefined }
+      payment_assistance_overview: { Args: { target_org: string; actor_user: string }; Returns: Json }
+      create_camt_statement_preview: { Args: { target_org: string; actor_user: string; import_data: Json; entry_rows: Json }; Returns: Json }
+      acknowledge_statement_overlap: { Args: { target_org: string; actor_user: string; target_entry: string; expected_revision: number }; Returns: undefined }
+      payment_assistance_inputs: { Args: { target_org: string }; Returns: Json }
+      claim_payment_assistance_job: { Args: { target_org: string }; Returns: Json }
+      finish_payment_assistance_job: { Args: { target_org: string; token: string; expected_generation: number; proposals: Json; error_code: string | null; elapsed_ms: number }; Returns: undefined }
+      request_payment_assistance: { Args: { target_org: string; actor_user: string }; Returns: undefined }
+      set_payment_assistance_waiting: { Args: { target_org: string; actor_user: string; target_payment: string; waiting: boolean }; Returns: undefined }
+      save_payment_payer_memory: { Args: { target_org: string; actor_user: string; target_memory: string | null; expected_revision: number; ico: string; new_account: string | null; new_name: string | null; new_reference: string | null; sources: string[]; new_active: boolean }; Returns: string }
+      decide_payment_assistance: { Args: { target_org: string; actor_user: string; target_proposal: string; accept: boolean }; Returns: Json }
       discard_bank_statement_import: {
         Args: { target_org: string; actor_user: string; target_import: string; expected_revision: number; reason?: string | null }
         Returns: Json

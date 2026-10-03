@@ -27,10 +27,10 @@ describe("MFA and bank statement UI regressions", () => {
     expect(css).toContain(".auth-text-button { display: block;");
   });
 
-  it("explains GPC totals and exposes every wizard state", () => {
+  it("explains GPC totals and names the current import stage in the file summary", () => {
     expect(gpcImport).toContain("const activeImportStep =");
     expect(gpcImport).toContain(
-      'aria-current={index === activeImportStep ? "step" : undefined}',
+      '["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]',
     );
     expect(gpcImport).toContain("Příchozí CZK platby připravené ke kontrole.");
     expect(gpcImport).toContain("Odchozí, cizoměnové nebo duplicitní řádky.");

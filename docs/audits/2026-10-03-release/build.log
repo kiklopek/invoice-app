@@ -1,0 +1,98 @@
+▲ Next.js 16.3.6 (webpack)
+- Environments: .env.local
+✓ Running next.config.js took 43ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 28.9s
+  Running TypeScript ...
+  Finished TypeScript in 15.5s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/60) ...
+  Generating static pages using 3 workers (15/60) 
+  Generating static pages using 3 workers (30/60) 
+  Generating static pages using 3 workers (45/60) 
+✓ Generating static pages using 3 workers (60/60) in 3.4s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/access
+├ ƒ /api/auth/email-mfa/send
+├ ƒ /api/auth/email-mfa/verify
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/password-recovery
+├ ƒ /api/auth/registration-access
+├ ƒ /api/auth/session-preference
+├ ƒ /api/cron/check-due
+├ ƒ /api/cron/reconcile-payments
+├ ƒ /api/customers
+├ ƒ /api/customers/[id]
+├ ƒ /api/customers/search
+├ ƒ /api/dashboard
+├ ƒ /api/health
+├ ƒ /api/invoices
+├ ƒ /api/invoices/[id]
+├ ƒ /api/invoices/[id]/activity
+├ ƒ /api/invoices/[id]/assignable-payments
+├ ƒ /api/invoices/[id]/document
+├ ƒ /api/invoices/[id]/page-data
+├ ƒ /api/invoices/[id]/pdf
+├ ƒ /api/invoices/[id]/reminders
+├ ƒ /api/invoices/[id]/reminders/[reminderId]/retry
+├ ƒ /api/invoices/[id]/send
+├ ƒ /api/invoices/extract
+├ ƒ /api/invoices/import
+├ ƒ /api/invoices/reminder-policy-preference
+├ ƒ /api/invoices/upload
+├ ƒ /api/invoices/upload/verify
+├ ƒ /api/payments
+├ ƒ /api/payments/assistance
+├ ƒ /api/payments/audit
+├ ƒ /api/payments/imports
+├ ƒ /api/payments/imports/[id]
+├ ƒ /api/payments/imports/[id]/commit
+├ ƒ /api/payments/imports/[id]/discard
+├ ƒ /api/payments/imports/[id]/release
+├ ƒ /api/payments/imports/overlap
+├ ƒ /api/payments/invoice-candidates
+├ ƒ /api/reminders
+├ ƒ /api/reminders/page-data
+├ ƒ /api/reports
+├ ƒ /api/settings/company
+├ ƒ /api/settings/email-suppressions
+├ ƒ /api/settings/members
+├ ƒ /api/settings/page-data
+├ ƒ /api/settings/reminder-policies
+├ ƒ /api/settings/reminders
+├ ƒ /api/settings/reminders/test
+├ ƒ /api/webhooks/resend
+├ ○ /apple-icon.png
+├ ƒ /auth/callback
+├ ƒ /auth/recovery
+├ ƒ /customers
+├ ƒ /dashboard
+├ ○ /forgot-password
+├ ○ /icon.png
+├ ƒ /invoices
+├ ƒ /invoices/[id]
+├ ƒ /invoices/archive
+├ ƒ /invoices/import
+├ ƒ /invoices/new
+├ ƒ /invoices/payments
+├ ƒ /invoices/payments/archive
+├ ○ /login
+├ ○ /mfa
+├ ○ /register
+├ ƒ /reminders
+├ ƒ /reports
+├ ○ /reset-password
+└ ƒ /settings
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

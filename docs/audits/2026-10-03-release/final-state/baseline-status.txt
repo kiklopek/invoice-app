@@ -1,0 +1,87 @@
+ M .env.example
+ M .github/workflows/ci.yml
+ M .gitignore
+ M e2e/global-setup.ts
+ M e2e/staging-auth.spec.ts
+ M next-env.d.ts
+ M package.json
+ M playwright.config.ts
+ M pnpm-lock.yaml
+ M scripts/next-clean-env.mjs
+ M src/app/(workspace)/dashboard/dashboard-client.tsx
+ M src/app/(workspace)/invoices/archive/page.tsx
+ M src/app/(workspace)/invoices/import/page.tsx
+ M src/app/(workspace)/invoices/invoices-client.tsx
+ M src/app/(workspace)/invoices/layout.tsx
+ M src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx
+ M src/app/(workspace)/invoices/payments/gpc-import-panel.tsx
+ M src/app/(workspace)/invoices/payments/payments-client.tsx
+ M src/app/(workspace)/reports/layout.tsx
+ M src/app/api/cron/reconcile-payments/route.ts
+ M src/app/api/payments/imports/route.ts
+ M src/app/minimal.css
+ M src/app/styles/responsive.css
+ M src/components/layout/app-shell.tsx
+ M src/lib/confirm-action.test.ts
+ M src/lib/confirm-action.ts
+ M src/lib/gpc-parser.ts
+ M src/lib/import-ui-regressions.test.ts
+ M src/lib/invoice-detail-presentation.test.ts
+ M src/lib/invoice-ocr-vocabulary.ts
+ M src/lib/invoice-ocr.ts
+ M src/lib/mobile-responsive.test.ts
+ M src/lib/payment-import.ts
+ M src/lib/payment-unrelated-rows.test.ts
+ M src/lib/payments-page-data.ts
+ M src/lib/pdfjs-assets.test.ts
+ M src/lib/production-env.test.ts
+ M src/types/database.ts
+ M supabase/tests/reconciliation_integrity_guards.sql
+ M supabase/tests/robust_reconciliation.sql
+?? .github/workflows/release-audit.yml
+?? .pnpm-store/
+?? docs/audits/2026-10-03-release/
+?? docs/payment-assistance-rollout.md
+?? scripts/assert-release-e2e.mjs
+?? scripts/audit-release-database.mjs
+?? scripts/build-release-audit.mjs
+?? scripts/dashboard-responsive-check.mjs
+?? scripts/inventory-release-audit.mjs
+?? scripts/invoice-import-layout-check.mjs
+?? scripts/invoice-responsive-check.mjs
+?? scripts/payment-assistance-db-fixture.mjs
+?? scripts/payment-layout-check.mjs
+?? scripts/prepare-next-env.mjs
+?? scripts/preview-payment-assistance.mjs
+?? scripts/preview-release-public.mjs
+?? scripts/release-audit-env.mjs
+?? scripts/run-release-audit.mjs
+?? scripts/test-payment-assistance-concurrency.mjs
+?? scripts/test-payment-assistance-db.mjs
+?? scripts/validate-release-staging.mjs
+?? src/app/(workspace)/dashboard/dashboard-summary.module.css
+?? src/app/(workspace)/invoices/import/invoice-import.module.css
+?? src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.test.tsx
+?? src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.tsx
+?? src/app/(workspace)/invoices/payments/archive/payment-assistance.module.css
+?? src/app/(workspace)/invoices/payments/gpc-import-panel.test.tsx
+?? src/app/(workspace)/invoices/payments/payments-upload.module.css
+?? src/app/api/payments/assistance/
+?? src/app/api/payments/imports/overlap/
+?? src/components/layout/workspace-background.css
+?? src/lib/camt-statement-parser.test.ts
+?? src/lib/camt-statement-parser.ts
+?? src/lib/invoice-ocr-label-values.test.ts
+?? src/lib/payment-assistance-flags.test.ts
+?? src/lib/payment-assistance-flags.ts
+?? src/lib/payment-assistance-server.ts
+?? src/lib/payment-assistance.test.ts
+?? src/lib/payment-assistance.ts
+?? src/lib/release-audit.test.ts
+?? src/types/payment-assistance.ts
+?? supabase/migrations/20261003101756_payment_assistance.sql
+?? supabase/migrations/20261003103140_camt_statement_evidence.sql
+?? supabase/migrations/20261003152613_release_security_permissions.sql
+?? supabase/tests/camt_statement_evidence.sql
+?? supabase/tests/payment_assistance.sql
+?? supabase/tests/release_security_permissions.sql

@@ -1,0 +1,1582 @@
+diff --git a/.env.example b/.env.example
+index 57a64b1..8994215 100644
+--- a/.env.example
++++ b/.env.example
+@@ -51,6 +51,17 @@ GPC_IMPORT_ROLES=admin,accounting
+ # -----------------------------------------------------------------------------
+ PAYMENT_RECONCILIATION_MODE=automatic
+ 
++# Doplňkové návrhy: stávající v5 automatiku tento režim nemění.
++# off = vypnuto, shadow = porovnávání bez úhrad, review = člověkem potvrzované návrhy.
++# Každá novinka navíc vyžaduje explicitní seznam UUID firem (oddělený čárkami).
++PAYMENT_ASSISTANCE_MODE=off
++PAYMENT_ASSISTANCE_ORGANIZATIONS=
++PAYMENT_PAYER_MEMORY_ENABLED=false
++PAYMENT_REEVALUATION_ENABLED=false
++PAYMENT_CAMT_ENABLED=false
++# Zapnout až po ověření skutečného anonymizovaného exportu KB, ne syntetických testů.
++PAYMENT_CAMT_KB_SAMPLE_VERIFIED=false
++
+ # -----------------------------------------------------------------------------
+ # Rozpoznávání údajů z nahraných faktur (OCR)
+ # "local" (výchozí) = lokální parser (pdfjs/tesseract + pravidla), nic
+diff --git a/.gitignore b/.gitignore
+index 21aaf04..d5c5002 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -10,6 +10,7 @@ node_modules
+ supabase/.temp/
+ test-results/
+ playwright-report/
++.cache/
+ 
+ # Local agent/vector-DB tooling artifacts, unrelated to the app
+ /agentdb.rvf
+diff --git a/next-env.d.ts b/next-env.d.ts
+index ce4e94a..a419cbe 100644
+--- a/next-env.d.ts
++++ b/next-env.d.ts
+@@ -1,7 +1,7 @@
+ /// <reference types="next" />
+ /// <reference types="next/image-types/global" />
+-import "./.next/types/routes.d.ts";
+-import "./.next/types/root-params.d.ts";
++import "./.next/dev/types/routes.d.ts";
++import "./.next/dev/types/root-params.d.ts";
+ 
+ // NOTE: This file should not be edited
+ // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+diff --git a/package.json b/package.json
+index 4d1dde8..db244da 100644
+--- a/package.json
++++ b/package.json
+@@ -40,6 +40,7 @@
+     "react-dom": "19.2.8",
+     "regenerator-runtime": "0.13.11",
+     "resend": "6.18.1",
++    "saxes": "6.0.0",
+     "sharp": "0.35.4",
+     "svix": "1.99.1",
+     "swr": "2.5.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index ab6455f..65620d5 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -68,6 +68,9 @@ importers:
+       resend:
+         specifier: 6.18.1
+         version: 6.18.1
++      saxes:
++        specifier: 6.0.0
++        version: 6.0.0
+       sharp:
+         specifier: 0.35.4
+         version: 0.35.4(@types/node@26.1.2)
+diff --git a/src/app/(workspace)/dashboard/dashboard-client.tsx b/src/app/(workspace)/dashboard/dashboard-client.tsx
+index f0a4d70..158385b 100644
+--- a/src/app/(workspace)/dashboard/dashboard-client.tsx
++++ b/src/app/(workspace)/dashboard/dashboard-client.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import Link from "next/link";
++import styles from "./dashboard-summary.module.css";
+ import { useRouter } from "next/navigation";
+ import useSWR from "swr";
+ import { AppFrame } from "@/components/layout/app-shell";
+@@ -59,28 +60,12 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+   const upcoming = summary.upcoming;
+ 
+   return (
+-    <AppFrame invoiceCount={activeCount} className="content dashboard-page">
++    <AppFrame invoiceCount={activeCount} className={`content dashboard-page ${styles.page}`}>
+         <header className="topbar">
+           <div>
+             <p>{companyName ? `${companyName} · účetní oddělení` : "Účetní oddělení"}</p>
+             <h1>Finanční přehled</h1>
+           </div>
+-          {canManage ? <div className="top-actions dashboard-actions">
+-            <Link
+-              className="btn secondary dashboard-document-upload"
+-              href="/invoices/import"
+-            >
+-              <Icon name="upload" />
+-              Nahrát dokument
+-            </Link>
+-            <Link
+-              className="btn primary dashboard-add-invoice"
+-              href="/invoices/new"
+-            >
+-              <Icon name="plus" />
+-              Přidat fakturu
+-            </Link>
+-          </div> : null}
+         </header>
+         <section className="dashboard-command" aria-label="Souhrn pohledávek">
+           <article className="dashboard-balance-card">
+@@ -95,6 +80,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+               <Link href="/reports">Otevřít reporty</Link>
+             </div>
+           </article>
++          <div className={`${styles.side}${canManage ? "" : ` ${styles.readOnly}`}`}>
+           <div className="dashboard-signal-grid">
+             <article className="dashboard-signal critical">
+               <span className="dashboard-signal-icon"><Icon name="clock" /></span>
+@@ -109,6 +95,27 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+               <div><small>Odeslané upomínky</small><strong>{summary.reminders_sent}</strong><p>Automaticky evidováno</p></div>
+             </article>
+           </div>
++          {canManage ? <div className="top-actions dashboard-actions">
++            <Link
++              className="btn primary dashboard-document-upload"
++              href="/invoices/import"
++            >
++              <Icon name="upload" />
++              Nahrát dokument
++            </Link>
++            <Link
++              className="btn secondary dashboard-add-invoice"
++              href="/invoices/new"
++            >
++              <Icon name="plus" />
++              Přidat fakturu
++            </Link>
++            <Link className="btn secondary" href="/invoices/payments">
++              <Icon name="bank" />
++              Spárovat platby
++            </Link>
++          </div> : null}
++          </div>
+         </section>
+         <section className="workspace-grid dashboard-workspace">
+           <div className="panel invoice-panel">
+@@ -159,12 +166,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+                           <strong>
+                             {money(Number(invoice.amount), invoice.currency)}
+                           </strong>
+-                          {Number(invoice.paid_amount) > 0 &&
+-                          invoice.status !== "cancelled" ? (
+-                            <small>
+-                              Zbývá {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
+-                            </small>
+-                          ) : null}
+                         </td>
+                         <td data-label="Splatnost">
+                           <strong
+@@ -203,11 +204,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+                       </span>
+                       <span className="dashboard-invoice-compact-amount">
+                         <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
+-                        {Number(invoice.paid_amount) > 0 && invoice.status !== "cancelled" ? (
+-                          <small>
+-                            Zbývá {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
+-                          </small>
+-                        ) : null}
+                       </span>
+                       <span className="dashboard-invoice-compact-meta">
+                         <span aria-label={`Faktura ${invoice.invoice_number}`} title="Číslo faktury">
+@@ -239,7 +235,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+               </div>
+             )}
+           </div>
+-          <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure">
++          <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure" defaultOpen>
+             <aside className="panel activity-panel dashboard-attention-panel">
+               <div className="panel-head">
+                 <div>
+@@ -286,9 +282,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
+                   <p className="empty-box">Žádné nadcházející upomínky.</p>
+                 )}
+               </div>
+-              {canManage ? <Link className="full-link" href="/reminders">
+-                Spravovat pravidla upomínek →
+-              </Link> : null}
+             </aside>
+           </MobileDisclosure>
+         </section>
+diff --git a/src/app/(workspace)/invoices/archive/page.tsx b/src/app/(workspace)/invoices/archive/page.tsx
+index 22dca26..19464dd 100644
+--- a/src/app/(workspace)/invoices/archive/page.tsx
++++ b/src/app/(workspace)/invoices/archive/page.tsx
+@@ -148,7 +148,7 @@ export default function InvoiceArchivePage() {
+                 <thead>
+                   <tr>
+                     <th>Faktura</th><th>Odběratel</th><th>Částka</th><th>Vystavení</th>
+-                    <th>Splatnost</th><th>Datum úhrady</th><th>Stav</th>
++                    <th>Splatnost</th><th>Datum úhrady</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+@@ -175,7 +175,6 @@ export default function InvoiceArchivePage() {
+                       <td data-label="Vystavení" className="archive-invoice-issued">{date(invoice.issue_date)}</td>
+                       <td data-label="Splatnost" className="archive-invoice-due">{date(invoice.due_date)}</td>
+                       <td data-label="Datum úhrady" className="archive-invoice-paid-at">{invoice.status === "paid" ? date(invoice.paid_at) : "—"}</td>
+-                      <td data-label="Stav" className="archive-invoice-status"><span className={`status ${invoice.status}`}>{invoice.status === "paid" ? "Zaplaceno" : "Stornováno"}</span></td>
+                     </tr>
+                   ))}
+                 </tbody>
+diff --git a/src/app/(workspace)/invoices/import/page.tsx b/src/app/(workspace)/invoices/import/page.tsx
+index 44fce91..2ad2c0e 100644
+--- a/src/app/(workspace)/invoices/import/page.tsx
++++ b/src/app/(workspace)/invoices/import/page.tsx
+@@ -14,6 +14,7 @@ import { DocumentPreview } from "@/components/document-preview";
+ import { documentHighlightFor, type DocumentHighlight } from "@/lib/document-locate";
+ import type { InvoiceOcrResult, OcrFieldCandidate, OcrFieldName } from "@/lib/invoice-ocr";
+ import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
++import styles from "./invoice-import.module.css";
+ 
+ // Mirrors the server-side OCR_PROVIDER switch (extract/route.ts). Next.js
+ // only exposes env vars prefixed NEXT_PUBLIC_ to client code, and this is a
+@@ -284,9 +285,14 @@ export default function ImportInvoicesPage() {
+   async function loadCsv(selected: File | null) { if (!selected) return; setCsvFile(selected); setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
+   async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); void invalidateWorkspaceData(); router.push("/invoices"); router.refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
+ 
+-  return <AppFrame>
++  const isStart = mode === "document" ? queue.length === 0 : !csvFile;
++
++  return <AppFrame className={`content section-page ${styles.page} ${isStart ? styles.start : ""}`}>
++    <div className={styles.stage}>
++    <div className={styles.header}>
+     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
+-    <div className="page-tabs invoice-import-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
++    <div className="page-tabs invoice-import-tabs" aria-label="Způsob importu"><button type="button" aria-pressed={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}><Icon name="document"/><span><strong>Dokumenty faktur</strong><small>PDF, fotografie nebo sken</small></span></button><button type="button" aria-pressed={mode === "csv"} className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}><Icon name="statement"/><span><strong>Hromadný import</strong><small>Více faktur ze souboru CSV</small></span></button></div>
++    </div>
+     <div className={`invoice-import-workspace${splitMode ? " is-split" : ""}`}>
+     {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong>{queue.length > 1 && <button type="button" className="btn secondary compact import-cancel" onClick={cancelProcessing}>Zastavit zpracování</button>}</div>}
+     {mode === "document" ? (
+@@ -302,7 +308,7 @@ export default function ImportInvoicesPage() {
+               setMessage("");
+             })}
+           >
+-            <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
++            <input type="file" aria-label="Vybrat dokumenty faktur" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
+             <span className="large-import-icon"><Icon name="document"/></span>
+             <h2>Vyberte dokumenty faktur</h2>
+             <p>
+@@ -315,7 +321,9 @@ export default function ImportInvoicesPage() {
+             </p>
+             <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
+             <small>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
++            <span className={styles.formats}><span>PDF</span><span>JPG</span><span>PNG</span><span>WEBP</span><span>Do 10 MB / soubor</span></span>
+           </label>
++          <ImportGuidance mode="document" />
+         </section>
+       ) : !queue.some(item => item.status !== "pending") ? (
+         <section className="page-panel import-panel">
+@@ -416,7 +424,7 @@ export default function ImportInvoicesPage() {
+             onDragLeave={() => setDragActive(false)}
+             onDrop={(event) => acceptDroppedFiles(event, (files) => void loadCsv(files[0] ?? null))}
+           >
+-            <input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/>
++            <input type="file" aria-label="Vybrat CSV s fakturami" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/>
+             <span className="csv-dropzone-icon"><Icon name={csvFile ? "check" : "upload"}/></span>
+             <strong>{csvFile ? csvFile.name : "Vyberte CSV soubor"}</strong>
+             <small>{csvFile ? `${(csvFile.size / 1024).toFixed(1)} kB · kliknutím můžete soubor změnit` : "Klikněte nebo soubor přetáhněte do této plochy"}</small>
+@@ -424,9 +432,19 @@ export default function ImportInvoicesPage() {
+           </label>
+         </div>
+       </div>
++      {!csvFile && <ImportGuidance mode="csv" />}
+       {rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><div className="csv-import-footer"><span><Icon name="check"/>Soubor je připravený k importu</span><button className="btn primary" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></div></>}
+     </section>}
+     {message && <p className="form-error">{message}</p>}
+     </div>
++    </div>
+   </AppFrame>;
+ }
++
++function ImportGuidance({ mode }: { mode: "document" | "csv" }) {
++  return <aside className={styles.guidance} aria-label="Jak import probíhá">
++    <div><Icon name="upload"/><span><strong>{mode === "document" ? "Jeden dokument i celá dávka" : "Faktury v jednom souboru"}</strong><small>{mode === "document" ? "Vyberte více souborů najednou." : "Nahrajte export ve formátu CSV."}</small></span></div>
++    <div><Icon name="document"/><span><strong>{mode === "document" ? "Údaje načteme za vás" : "Nejprve přehledný náhled"}</strong><small>{mode === "document" ? "Předvyplněnou fakturu zkontrolujete." : "Před uložením uvidíte načtené faktury."}</small></span></div>
++    <div><Icon name="check"/><span><strong>Uložení pod vaší kontrolou</strong><small>{mode === "document" ? "Každou fakturu výslovně potvrdíte." : "Import uložíte až po potvrzení."}</small></span></div>
++  </aside>;
++}
+diff --git a/src/app/(workspace)/invoices/invoices-client.tsx b/src/app/(workspace)/invoices/invoices-client.tsx
+index be9b327..5299840 100644
+--- a/src/app/(workspace)/invoices/invoices-client.tsx
++++ b/src/app/(workspace)/invoices/invoices-client.tsx
+@@ -273,7 +273,7 @@ export function InvoicesClient({
+ 
+   return (
+     <AppFrame invoiceCount={loading ? undefined : activeCount}>
+-      <header className="section-header">
++      <header className="section-header invoice-list-header">
+         <div>
+           <p>POHLEDÁVKY</p>
+           <h1>Faktury</h1>
+@@ -303,9 +303,9 @@ export function InvoicesClient({
+       {notice && <p className="form-success">{notice}</p>}
+       <MobileDisclosure
+         label="Filtry a export"
+-        className="mobile-filter-disclosure"
++        className="mobile-filter-disclosure invoice-list-filter-disclosure"
+       >
+-        <section className="page-panel filter-panel">
++        <section className="page-panel filter-panel invoice-list-filter-panel">
+           <div className="filter-row">
+             <label className="grow">
+               <span>Hledat</span>
+@@ -522,20 +522,6 @@ export function InvoicesClient({
+                       <strong>
+                         {money(Number(invoice.amount), invoice.currency)}
+                       </strong>
+-                      {Number(invoice.paid_amount) > 0 &&
+-                      invoice.status !== "cancelled" ? (
+-                        <small>
+-                          Zbývá{" "}
+-                          {money(
+-                            Math.max(
+-                              0,
+-                              Number(invoice.amount) -
+-                                Number(invoice.paid_amount),
+-                            ),
+-                            invoice.currency,
+-                          )}
+-                        </small>
+-                      ) : null}
+                     </td>
+                     <td data-label="Vystaveno" className="invoice-card-issued">{date(invoice.issue_date)}</td>
+                     <td
+diff --git a/src/app/(workspace)/invoices/layout.tsx b/src/app/(workspace)/invoices/layout.tsx
+index 4090f0c..31bcc97 100644
+--- a/src/app/(workspace)/invoices/layout.tsx
++++ b/src/app/(workspace)/invoices/layout.tsx
+@@ -1,10 +1,8 @@
+ import type { ReactNode } from "react";
+-import { InvoiceAreaBackground } from "./invoice-area-background";
+ 
+ export default function InvoicesLayout({ children }: { children: ReactNode }) {
+   return (
+     <>
+-      <InvoiceAreaBackground />
+       {children}
+     </>
+   );
+diff --git a/src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx b/src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx
+index fcee25a..483b63d 100644
+--- a/src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx
++++ b/src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx
+@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api-client";
+ import type { PaymentsPageData, PaymentsPagePayment, PaymentsPageOpenInvoice } from "@/lib/payments-page-data";
+ import { proposePaymentMatch } from "@/lib/payment-matching";
+ import { StatementArchive } from "./statement-archive";
++import { PaymentAssistancePanel } from "./payment-assistance-panel";
+ 
+ type SavedPayment = PaymentsPagePayment;
+ type OpenInvoice = PaymentsPageOpenInvoice;
+@@ -335,6 +336,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
+                   <strong>{money(Number(payment.amount), payment.currency)}</strong>
+                   <span className={`payment-match ${payment.match_status}`}>{statusLabel[payment.match_status]}</span>
+                   {payment.source === "manual" && <small>Ručně potvrzeno</small>}
++                  {payment.match_reason?.startsWith("Automaticky podle jména") && <small>Shoda jména a částky neurčuje záměr plátce. Ověřte ji, pokud ještě nejsou nahrané všechny jeho faktury.</small>}
+                 </div>
+                 <div className="payment-history-action">
+                   {payment.invoice_id || payment.allocations?.length ? (
+@@ -369,6 +371,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
+         )}
+       </section>
+ 
++      {canManage && initialData.assistance_flags && initialData.assistance_flags.mode !== "off" && <PaymentAssistancePanel flags={initialData.assistance_flags} payments={history} onConfirmed={refreshPayments} />}
+       <StatementArchive />
+     </AppFrame>
+   );
+diff --git a/src/app/(workspace)/invoices/payments/gpc-import-panel.tsx b/src/app/(workspace)/invoices/payments/gpc-import-panel.tsx
+index 825b3e1..7abfee4 100644
+--- a/src/app/(workspace)/invoices/payments/gpc-import-panel.tsx
++++ b/src/app/(workspace)/invoices/payments/gpc-import-panel.tsx
+@@ -22,6 +22,8 @@ type Invoice = {
+   variable_symbol: string | null;
+ };
+ type PreviewEntry = {
++  overlap_warning?: boolean;
++  overlap_acknowledged_by?: string | null;
+   bank_payment_id?: string | null;
+   processing_error?: string | null;
+   line_number: number;
+@@ -131,10 +133,12 @@ export function GpcImportPanel({
+   invoices,
+   canManage,
+   onCommitted,
++  camtEnabled = false,
+ }: {
+   invoices: Invoice[];
+   canManage: boolean;
+   onCommitted: () => void;
++  camtEnabled?: boolean;
+ }) {
+   const [preview, setPreview] = useState<Preview | null>(null);
+   const [selected, setSelected] = useState<Record<string, string[]>>({});
+@@ -188,7 +192,7 @@ export function GpcImportPanel({
+   // Shown right next to it, so a disabled button always says why.
+   const confirmBlockedReason =
+     preview?.account_mismatch && !accountAck
+-      ? "Nejdřív potvrďte, že jste ověřili nesoulad bankovního účtu (políčko vedle)."
++      ? "Nejdřív potvrďte kontrolu bankovního účtu ve upozornění nahoře."
+       : null;
+   const activeImportStep =
+     preview?.import.status === "committed"
+@@ -518,6 +522,7 @@ export function GpcImportPanel({
+       title: "Zaúčtovat platby k fakturám?",
+       description: commitOutcome(reviewedEntries, submission.unrelated_entry_ids.length),
+       confirmLabel: "Zaúčtovat",
++      confirmVariant: "primary",
+     }))) return;
+     setWorking(true);
+     setError("");
+@@ -554,6 +559,7 @@ export function GpcImportPanel({
+         },
+         45_000,
+       );
++      const completed = result.status === "committed" && result.remaining === 0 && !result.errors?.length;
+       setDone(
+         `${result.status === "committed" ? "Import je dokončený" : "Průběh byl uložen"}: ${result.imported} plateb, ${result.matched} přiřazených položek.${result.unrelated ? ` ${result.unrelated} řádků nesouvisí s fakturami a jako platby se nezapsaly.` : ""}${result.remaining ? ` Zbývá ${result.remaining} položek.` : ""}`,
+       );
+@@ -571,9 +577,18 @@ export function GpcImportPanel({
+           : current,
+       );
+       onCommitted();
+-      const updated = await apiFetch<PreviewDetail>(`/api/payments/imports/${preview.import.id}?page=${previewPage}`);
+-      setPreview(current => current ? { ...current, import: updated.import, entries: updated.entries, totals: updated.totals, total_entries: updated.total_entries } : current);
+-      setLoadedEntries(Object.fromEntries(updated.entries.map(entry => [entry.fingerprint, entry])));
++      if (completed) {
++        await upload(null);
++        setDone("Import proběhl úspěšně.");
++        if (queueIndex + 1 >= fileQueue.length) {
++          setFileQueue([]);
++          setQueueIndex(0);
++        }
++      } else {
++        const updated = await apiFetch<PreviewDetail>(`/api/payments/imports/${preview.import.id}?page=${previewPage}`);
++        setPreview(current => current ? { ...current, import: updated.import, entries: updated.entries, totals: updated.totals, total_entries: updated.total_entries } : current);
++        setLoadedEntries(Object.fromEntries(updated.entries.map(entry => [entry.fingerprint, entry])));
++      }
+       const refreshed = await apiFetch<{ imports: ArchiveItem[] }>(
+         "/api/payments/imports",
+       );
+@@ -614,14 +629,15 @@ export function GpcImportPanel({
+             <div className="gpc-upload-column">
+               <div className="gpc-title-row">
+                 <span className="payments-section-number">01</span>
+-                <div><span className="gpc-eyebrow">AUTOMATICKÉ PÁROVÁNÍ</span><h2 id="gpc-import-title">Nahrát bankovní výpis</h2></div>
++                <div><span className="gpc-eyebrow">ZAČNĚTE VÝPISEM</span><h2 id="gpc-import-title">Nahrát bankovní výpis</h2></div>
+               </div>
+-              <p className="gpc-lead">Bezpečně zpracuje příchozí CZK platby, chybný variabilní symbol i jednu platbu rozdělenou mezi více faktur. Podporovány jsou výpisy GPC i CSV.</p>
++              <p className="gpc-lead">Vyberte výpis z internetového bankovnictví. Příchozí platby v CZK porovnáme s otevřenými fakturami.</p>
+               <label className={`gpc-dropzone ${working ? "is-working" : ""}`}>
+                 <input
+                   type="file"
++                  aria-label="Vybrat bankovní výpis ve formátu GPC nebo CSV"
+                   multiple
+-                  accept=".gpc,.csv,application/octet-stream,text/plain,text/csv"
++                  accept={camtEnabled ? ".gpc,.csv,.xml,application/octet-stream,text/plain,text/csv,application/xml,text/xml" : ".gpc,.csv,application/octet-stream,text/plain,text/csv"}
+                   disabled={!canManage || working}
+                   onChange={(event) => {
+                     const files = Array.from(event.target.files ?? []);
+@@ -632,18 +648,21 @@ export function GpcImportPanel({
+                   }}
+                 />
+                 <span className="gpc-dropzone-icon"><Icon name="upload" /></span>
+-                <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Vyberte soubor (lze i více najednou)"}</strong>
+-                <small>{canManage ? "Klikněte a vyberte soubor z počítače" : "Import vyžaduje roli účetní nebo administrátor"}</small>
++                <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Váš výpis. Přehledné platby."}</strong>
++                <small>{canManage ? "Můžete vybrat jeden i více souborů najednou" : "Import vyžaduje roli účetní nebo administrátor"}</small>
++                <span className="gpc-select-file" aria-hidden="true">{working ? "Zpracovávám soubor…" : "Vybrat bankovní výpis"}<Icon name="arrow-right" /></span>
++                <span className="gpc-file-formats"><span>GPC</span><span>CSV</span><small>Export z vašeho bankovnictví</small></span>
+                 {fileQueue.length > 1 && <small className="gpc-queue-progress">Výpis {Math.min(queueIndex + 1, fileQueue.length)} z {fileQueue.length}</small>}
+               </label>
++              <div className="gpc-upload-note"><Icon name="check" /><span>Po nahrání uvidíte návrhy shod i položky, které potřebují vaši kontrolu.</span></div>
+             </div>
+             <aside className="gpc-safety-card">
+               <span className="gpc-safety-icon"><Icon name="check" /></span>
+-              <h3>Nejdřív kontrola, potom zápis</h3>
++              <h3>Párování pod kontrolou</h3>
+               <ol>
+-                <li><strong>Nejprve vyhodnocení.</strong><span>Ve stínovém režimu se úhrady zapisují až po potvrzení. Zapnutý automat zpracuje jednoznačné shody na pozadí.</span></li>
+-                <li><strong>Sporné platby zůstanou ruční.</strong><span>U každé položky vidíte důvod návrhu i případný konflikt.</span></li>
+-                <li><strong>Každá úhrada samostatně.</strong><span>Chybná položka nezruší již dokončené nezávislé úhrady.</span></li>
++                <li><strong>Najdeme odpovídající faktury</strong><span>U návrhů uvidíte důvod shody. Zvládnete i chybný variabilní symbol nebo rozdělení platby.</span></li>
++                <li><strong>Vyřešíte nejasné položky</strong><span>Sporné platby čekají na ruční kontrolu. Každou úhradu zpracujeme samostatně.</span></li>
++                <li><strong>Potvrdíte zaúčtování</strong><span>V režimu kontroly se úhrady zapíší po potvrzení. Při zapnutém automatu se jednoznačné shody zpracují na pozadí.</span></li>
+               </ol>
+             </aside>
+           </div>
+@@ -682,28 +701,9 @@ export function GpcImportPanel({
+             )}
+           </div>
+         )}
+-        <div className="gpc-progress-wrap">
+-          <span>Průběh zpracování</span>
+-          <div className="import-steps" aria-label="Průběh importu">
+-            {["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"].map(
+-              (step, index) => (
+-                <span
+-                  className={[
+-                    index <= activeImportStep ? "active" : "",
+-                    index === activeImportStep ? "current" : "",
+-                  ].filter(Boolean).join(" ")}
+-                  aria-current={index === activeImportStep ? "step" : undefined}
+-                  key={step}
+-                >
+-                  {index + 1}. {step}
+-                </span>
+-              ),
+-            )}
+-          </div>
+-        </div>
+         {error && <p className="form-error">{error}</p>}
+-        {done && <p className="form-success">{done}</p>}
+-        {preview?.import.status === "committed" && queueIndex + 1 < fileQueue.length && (
++        {done && <p className="form-success" role="status">{done}</p>}
++        {(preview?.import.status === "committed" || (!preview && done)) && queueIndex + 1 < fileQueue.length && (
+           <button type="button" className="btn primary gpc-queue-next" onClick={continueQueue}>
+             Pokračovat dalším výpisem ({queueIndex + 2} z {fileQueue.length})
+           </button>
+@@ -856,6 +856,18 @@ export function GpcImportPanel({
+                         )}
+                       </p>
+                     )}
++                    {entry.overlap_warning && !entry.overlap_acknowledged_by && isOpen && <div className="form-error" role="alert">
++                      <p>Možná duplicita z jiného formátu výpisu. Před zaúčtováním ověřte původní transakci.</p>
++                      <button type="button" className="btn secondary compact" disabled={working || !persisted} onClick={async () => {
++                        if (!persisted || !await confirmAction({ title:"Potvrdit kontrolu možné duplicity?",description:"Ověřili jste původní výpis a tato položka představuje další samostatnou platbu?",confirmLabel:"Ano, je to další platba" })) return;
++                        setWorking(true); setError("");
++                        try {
++                          const result = await apiFetch<{ revision:number }>("/api/payments/imports/overlap",{ method:"POST",headers:{ "content-type":"application/json" },body:JSON.stringify({ entry_id:persisted.id,revision:preview.import.revision }) });
++                          setPreview(current => current ? { ...current,import:{ ...current.import,revision:result.revision },entries:current.entries.map(row => row.fingerprint === entry.fingerprint ? { ...row,overlap_acknowledged_by:"confirmed" } : row) } : current);
++                        } catch (cause) { setError(cause instanceof Error ? cause.message : "Kontrolu se nepodařilo uložit."); }
++                        finally { setWorking(false); }
++                      }}>Ověřeno: jde o další platbu</button>
++                    </div>}
+                     {hasReviewableProposal ? (
+                       <div className="gpc-proposal-row">
+                         {entry.proposal_reason ? <small>{entry.proposal_reason}</small> : null}
+@@ -1113,22 +1125,6 @@ export function GpcImportPanel({
+                     Potvrzením se platby zapíšou k vybraným fakturám, platby bez faktury se uloží jako nespárované.
+                     Řádky označené „Nesouvisí s fakturami“ se jako platby nezapíšou.
+                   </span>
+-                  {/* The same acknowledgement as in the warning at the top --
+-                      that one scrolls out of sight on a long statement, and
+-                      the button then looked broken for no visible reason. */}
+-                  {preview.account_mismatch && (
+-                    <label className="gpc-confirm-ack">
+-                      <input
+-                        type="checkbox"
+-                        checked={accountAck}
+-                        onChange={(event) => setAccountAck(event.target.checked)}
+-                      />
+-                      <span>
+-                        Ověřil(a) jsem, že výpis{preview.statement_account ? ` z účtu ${preview.statement_account}` : ""} patří
+-                        firmě, přestože se účet liší od nastaveného{preview.expected_account ? ` (${preview.expected_account})` : ""}.
+-                      </span>
+-                    </label>
+-                  )}
+                 </div>
+                 <div className="gpc-confirm-action">
+                   <button
+diff --git a/src/app/(workspace)/invoices/payments/payments-client.tsx b/src/app/(workspace)/invoices/payments/payments-client.tsx
+index 1c4639c..c513a73 100644
+--- a/src/app/(workspace)/invoices/payments/payments-client.tsx
++++ b/src/app/(workspace)/invoices/payments/payments-client.tsx
+@@ -6,6 +6,7 @@ import { AppFrame } from "@/components/layout/app-shell";
+ import { Icon } from "@/components/icons";
+ import type { PaymentsPageData } from "@/lib/payments-page-data";
+ import { GpcImportPanel } from "./gpc-import-panel";
++import styles from "./payments-upload.module.css";
+ 
+ // Tato podstránka slouží výhradně k nahrání a zpracování bankovního výpisu.
+ // Zaúčtované platby a archiv výpisů mají vlastní podstránku
+@@ -15,19 +16,20 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData
+   const gpcEnabled = initialData.gpc_enabled;
+ 
+   return (
+-    <AppFrame className="content section-page payments-page payments-upload-page">
++    <AppFrame className={`content section-page payments-page payments-upload-page ${styles.page}`}>
++      <div className={styles.stage}>
+       <header className="section-header payments-hero">
+         <div className="payments-hero-copy">
+           <p>BANKOVNÍ PÁROVÁNÍ</p>
+-          <h1>Nahrání bankovního výpisu</h1>
+-          <span>Nahrajte výpis, zkontrolujte návrhy párování a potvrďte import. Hotové platby najdete na druhé podstránce.</span>
++          <h1>Spárujte platby s fakturami</h1>
++          <span>Od bankovního výpisu k uhrazeným fakturám. Nahrajte soubor a projděte navržené shody.</span>
+         </div>
+         <div className="payments-hero-side">
+           <Link href="/invoices/payments/archive" className="payments-switch payments-switch-archive">
+             <span className="payments-switch-icon"><Icon name="statement" /></span>
+             <span className="payments-switch-copy">
+               <strong>Platby a archiv</strong>
+-              <small>Zaúčtované platby, ruční párování a uložené výpisy</small>
++              <small>Historie úhrad a uložené výpisy</small>
+             </span>
+             <span className="payments-switch-arrow" aria-hidden="true"><Icon name="arrow-right" /></span>
+           </Link>
+@@ -40,6 +42,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData
+           invoices={initialData.open_invoices}
+           canManage={initialData.can_manage}
+           onCommitted={() => setCommitted(true)}
++          camtEnabled={initialData.assistance_flags?.camt ?? false}
+         />
+       ) : (
+         <section className="page-panel payments-unavailable">
+@@ -57,6 +60,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData
+           <Link href="/invoices/payments/archive">Platby a archiv</Link>.
+         </p>
+       )}
++      </div>
+     </AppFrame>
+   );
+ }
+diff --git a/src/app/(workspace)/reports/layout.tsx b/src/app/(workspace)/reports/layout.tsx
+index 40b5b57..4a87c10 100644
+--- a/src/app/(workspace)/reports/layout.tsx
++++ b/src/app/(workspace)/reports/layout.tsx
+@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
+ export default function ReportsLayout({ children }: { children: ReactNode }) {
+   return (
+     <>
+-      <div className="report-area-background" aria-hidden="true" />
+       {children}
+     </>
+   );
+diff --git a/src/app/api/cron/reconcile-payments/route.ts b/src/app/api/cron/reconcile-payments/route.ts
+index c22c3b1..5f6118e 100644
+--- a/src/app/api/cron/reconcile-payments/route.ts
++++ b/src/app/api/cron/reconcile-payments/route.ts
+@@ -1,13 +1,15 @@
+ import { NextResponse } from "next/server";
+ import { createServiceClient } from "@/lib/supabase-server";
+ import { logError, requestId } from "@/lib/structured-log";
++import { runAssistanceJobs } from "@/lib/payment-assistance-server";
+ 
+ export const maxDuration = 60;
+ export async function GET(request: Request) {
+   const secret = process.env.CRON_SECRET;
+   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`)
+     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+-  const { data, error } = await createServiceClient().rpc("run_bank_reconciliation_jobs");
++  const service = createServiceClient();
++  const { data, error } = await service.rpc("run_bank_reconciliation_jobs");
+   if (error) {
+     // Bezi jednou denne (Hobby plan povoluje cron nejvyse jednou za den --
+     // "*/5 * * * *" tu byl pres tucet commitu a KAZDY nasazeni na produkci
+@@ -18,5 +20,7 @@ export async function GET(request: Request) {
+     logError("Automatické párování plateb selhalo", error, { request_id: requestId(request) });
+     return NextResponse.json({ error: "Zpracování plateb selhalo." }, { status: 500 });
+   }
++  // The optional worker catches its own failures and never changes v5 results.
++  await runAssistanceJobs(service);
+   return NextResponse.json({ results: data });
+ }
+diff --git a/src/app/api/payments/imports/route.ts b/src/app/api/payments/imports/route.ts
+index f06c4dd..c6cc12e 100644
+--- a/src/app/api/payments/imports/route.ts
++++ b/src/app/api/payments/imports/route.ts
+@@ -4,6 +4,8 @@ import { logError } from "@/lib/structured-log";
+ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
+ import { parseGpc } from "@/lib/gpc-parser";
+ import { parseCsvStatement } from "@/lib/csv-statement-parser";
++import { parseCamtStatement } from "@/lib/camt-statement-parser";
++import { assistanceFlags } from "@/lib/payment-assistance-flags";
+ import {
+   proposePaymentMatch,
+   resolveBatchConflicts,
+@@ -84,11 +86,11 @@ export async function POST(request: Request) {
+   const form = await request.formData().catch(() => null);
+   const file = form?.get("file");
+   const fileName = file instanceof File ? file.name.toLowerCase() : "";
+-  const sourceFormat: "gpc" | "csv" | null = fileName.endsWith(".gpc")
++  const sourceFormat: "gpc" | "csv" | "camt053" | null = fileName.endsWith(".gpc")
+     ? "gpc"
+     : fileName.endsWith(".csv")
+       ? "csv"
+-      : null;
++      : fileName.endsWith(".xml") && assistanceFlags(identity.membership.organization_id).camt ? "camt053" : null;
+   if (!(file instanceof File) || !sourceFormat) {
+     return NextResponse.json(
+       { error: "Vyberte soubor s příponou .gpc nebo .csv.", request_id: id },
+@@ -103,7 +105,7 @@ export async function POST(request: Request) {
+ 
+   try {
+     const bytes = new Uint8Array(await file.arrayBuffer());
+-    const parsed = sourceFormat === "gpc" ? parseGpc(bytes) : parseCsvStatement(bytes);
++    const parsed = sourceFormat === "gpc" ? parseGpc(bytes) : sourceFormat === "csv" ? parseCsvStatement(bytes) : parseCamtStatement(bytes);
+     const org = identity.membership.organization_id;
+     const [
+       { data: company, error: companyError },
+@@ -256,6 +258,7 @@ export async function POST(request: Request) {
+         line_number: entry.line,
+         record_type: entry.recordType,
+         fingerprint: entry.fingerprint,
++        ...(sourceFormat === "camt053" ? { bank_reference: entry.payment?.bank_reference ?? null, provenance: entry.provenance ?? null } : {}),
+         disposition: entry.disposition,
+         reason: entry.reason ?? null,
+         external_id: entry.payment?.external_id ?? null,
+@@ -292,7 +295,7 @@ export async function POST(request: Request) {
+         "Originální GPC soubor se nepodařilo uložit do soukromého archivu.",
+       );
+     const { data, error } = await identity.service.rpc(
+-      "create_bank_statement_preview",
++      sourceFormat === "camt053" ? "create_camt_statement_preview" : "create_bank_statement_preview",
+       {
+         target_org: org,
+         actor_user: identity.user.id,
+@@ -306,7 +309,7 @@ export async function POST(request: Request) {
+           accepted_count: parsed.totals.accepted,
+           ignored_count: parsed.totals.ignored,
+           error_count: parsed.totals.errors,
+-          automation_mode: process.env.PAYMENT_RECONCILIATION_MODE === "automatic" ? "automatic" : "shadow",
++          automation_mode: sourceFormat !== "camt053" && process.env.PAYMENT_RECONCILIATION_MODE === "automatic" ? "automatic" : "shadow",
+         },
+         entry_rows: entries as unknown as Json,
+       },
+@@ -341,7 +344,7 @@ export async function POST(request: Request) {
+     // is the normal way to retry, and the second upload is exactly when a
+     // statement that never got booked most needs to be. The RPC skips entries
+     // that already carry a payment, so running it again is harmless.
+-    if (process.env.PAYMENT_RECONCILIATION_MODE === "automatic" && result.status === "review") {
++    if (sourceFormat !== "camt053" && process.env.PAYMENT_RECONCILIATION_MODE === "automatic" && result.status === "review") {
+       const { error: bookingError } = await identity.service.rpc("reconcile_bank_statement", {
+         target_org: org,
+         actor_user: identity.user.id,
+diff --git a/src/app/styles/responsive.css b/src/app/styles/responsive.css
+index 8f9c03e..8c5d47e 100644
+--- a/src/app/styles/responsive.css
++++ b/src/app/styles/responsive.css
+@@ -105,6 +105,89 @@
+   overflow-wrap: anywhere;
+ }
+ 
++/* Invoice controls follow the available panel width, including split windows. */
++@media screen {
++  .invoice-list-header { flex-wrap: wrap; }
++  .invoice-list-header > div { min-width: 0; max-width: 100%; }
++  .invoice-list-filter-panel {
++    min-width: 0;
++    padding: clamp(12px, 1.5vw, 20px);
++    container-type: inline-size;
++  }
++
++  .invoice-list-filter-panel .filter-row {
++    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
++    gap: 12px;
++  }
++
++  .invoice-list-filter-panel .filter-row label,
++  .invoice-list-filter-panel .filter-row .export-button {
++    min-width: 0;
++    max-width: 100%;
++    grid-column: auto;
++  }
++
++  .invoice-list-filter-panel .filter-row label.grow {
++    grid-column: 1 / -1;
++  }
++
++  .invoice-list-filter-panel .filter-row input,
++  .invoice-list-filter-panel .filter-row select {
++    width: 100%;
++    min-width: 0;
++    max-width: 100%;
++    height: auto;
++    min-height: 42px;
++    font-size: 13px;
++  }
++
++  .invoice-list-filter-panel .export-button {
++    height: auto;
++    min-height: 42px;
++    padding: 9px 12px;
++    white-space: normal;
++    text-align: center;
++  }
++}
++
++@media screen and (min-width: 768px) {
++  .invoice-list-header > div:first-child { flex: 1 1 280px; }
++  .invoice-list-header .invoice-list-actions { flex: 1 1 480px; flex-wrap: wrap; justify-content: flex-end; }
++}
++
++@media screen and (max-width: 1023px), screen and (max-height: 600px) {
++  .invoice-list-filter-disclosure { display: block; min-width: 0; margin-bottom: 12px; }
++  .invoice-list-filter-disclosure .mobile-disclosure-toggle {
++    display: flex;
++    width: 100%;
++    min-height: 44px;
++    align-items: center;
++    justify-content: space-between;
++    gap: 12px;
++    padding: 10px 14px;
++    border: 1px solid var(--line);
++    border-radius: 10px;
++    background: #fff;
++    color: var(--ink);
++    font: inherit;
++    font-size: 13px;
++    font-weight: 650;
++  }
++  .invoice-list-filter-disclosure .mobile-disclosure-content { display: none; padding-top: 8px; }
++  .invoice-list-filter-disclosure.is-open .mobile-disclosure-content { display: block; }
++  .invoice-list-filter-disclosure .filter-panel { margin-bottom: 0; }
++}
++
++@media screen and (max-width: 767px) {
++  .invoice-list-filter-panel .filter-row {
++    grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
++    gap: 10px;
++  }
++  .invoice-list-filter-panel .filter-row input,
++  .invoice-list-filter-panel .filter-row select { min-height: 44px; font-size: 16px; }
++  .invoice-list-filter-panel .export-button { grid-column: 1 / -1; }
++}
++
+ .invoice-list-table {
+   container-name: invoice-table;
+   container-type: inline-size;
+@@ -941,7 +1024,7 @@
+   }
+ 
+   .active-invoice-table .invoice-card-due {
+-    min-width: 126px !important;
++    min-width: 0 !important;
+   }
+ 
+   .active-invoice-table .invoice-card-amount::before,
+@@ -1015,7 +1098,7 @@
+     display: grid !important;
+     grid-area: footer;
+     grid-column: 1 / -1 !important;
+-    grid-template-columns: minmax(0, 1fr) max-content;
++    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+     align-items: center;
+     gap: 10px;
+     justify-self: stretch;
+@@ -1034,7 +1117,7 @@
+     grid-column: 2;
+     grid-row: 1;
+     min-width: 0;
+-    width: max-content;
++    width: 100%;
+     align-items: center;
+     justify-content: flex-end;
+     justify-self: end;
+@@ -1222,7 +1305,7 @@
+   }
+ 
+   .active-invoice-table .invoice-card-due {
+-    min-width: 116px !important;
++    min-width: 0 !important;
+   }
+ 
+   .active-invoice-table .quick-payment-button {
+@@ -1404,10 +1487,10 @@
+ @media screen and (min-width: 768px) {
+   @container invoice-table (max-width: 1180px) {
+     .archive-invoice-table tr {
+-      grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr) 118px;
++      grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr);
+       grid-template-areas:
+-        "invoice customer amount payment status"
+-        "issue due amount payment status" !important;
++        "invoice customer amount payment"
++        "issue due amount payment" !important;
+       gap: 8px 16px;
+       padding: 13px 14px;
+     }
+@@ -1469,8 +1552,7 @@
+       grid-template-areas:
+         "customer invoice"
+         "amount payment"
+-        "issue due"
+-        "status status" !important;
++        "issue due" !important;
+       gap: 8px 10px;
+     }
+ 
+@@ -1529,9 +1611,8 @@
+     grid-template-areas:
+       "customer invoice"
+       "amount payment"
+-      "issue due"
+-      "status status" !important;
+-    grid-template-rows: 54px 68px 44px max-content;
++      "issue due" !important;
++    grid-template-rows: 54px 68px 44px;
+     grid-auto-rows: max-content;
+     align-content: start;
+     align-items: stretch;
+@@ -1664,7 +1745,7 @@
+ 
+   .archive-invoice-table tr {
+     padding: 11px !important;
+-    grid-template-rows: 50px 64px 42px max-content;
++    grid-template-rows: 50px 64px 42px;
+     gap: 6px 8px;
+   }
+ 
+@@ -1709,3 +1790,139 @@
+     display: none !important;
+   }
+ }
++
++/* Keep long amounts and multiple statuses inside their cells at every size. */
++@media screen {
++  .active-invoice-table { min-width: 0; max-width: 100%; }
++  .active-invoice-table td { vertical-align: middle; }
++  .active-invoice-table th:nth-child(3),
++  .active-invoice-table .invoice-card-amount { text-align: center; }
++  .active-invoice-table .invoice-card-number strong,
++  .active-invoice-table .invoice-card-number small,
++  .active-invoice-table .invoice-card-customer strong,
++  .active-invoice-table .invoice-card-customer small {
++    max-width: 100%;
++    white-space: normal;
++    overflow-wrap: anywhere;
++  }
++  .active-invoice-table td.invoice-card-amount strong,
++  .active-invoice-table td.invoice-card-amount small {
++    max-width: 100%;
++    white-space: normal !important;
++    overflow-wrap: anywhere;
++    line-height: 1.4;
++    font-variant-numeric: tabular-nums;
++  }
++  .active-invoice-table .invoice-card-status { white-space: normal; text-align: center; }
++  .active-invoice-table .status {
++    justify-content: center;
++    max-width: 100%;
++    margin: 3px 0;
++    padding: 7px 10px;
++    white-space: normal !important;
++    overflow-wrap: anywhere;
++    line-height: 1.35;
++    text-align: center;
++  }
++}
++
++@media screen and (min-width: 768px) {
++  @container invoice-table (max-width: 1180px) {
++    .active-invoice-table .invoice-row {
++      grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1fr);
++      grid-template-areas:
++        "invoice customer amount status"
++        "issue due reminder action";
++      gap: 16px;
++      padding: 16px;
++    }
++    .active-invoice-table .invoice-card-amount {
++      align-items: center;
++      padding: 8px 12px !important;
++      text-align: center;
++    }
++    .active-invoice-table .invoice-card-amount strong { font-size: clamp(16px, 1.8cqi, 22px); }
++    .active-invoice-table .invoice-card-status { justify-self: stretch; }
++    .active-invoice-table .invoice-card-reminders { transform: none; padding: 8px !important; }
++    .active-invoice-table .invoice-card-issued,
++    .active-invoice-table .invoice-card-due { white-space: normal !important; }
++    .active-invoice-table .invoice-card-action { min-width: 0; }
++    .active-invoice-table .invoice-mobile-action-status { display: none; }
++  }
++
++  @container invoice-table (max-width: 820px) {
++    .active-invoice-table .invoice-row {
++      grid-template-columns: repeat(2, minmax(0, 1fr));
++      grid-template-areas:
++        "invoice status"
++        "customer customer"
++        "amount due"
++        "issue reminder"
++        "action action";
++      gap: 14px;
++    }
++    .active-invoice-table .invoice-card-status { justify-self: end; }
++    .active-invoice-table .invoice-card-amount,
++    .active-invoice-table .invoice-card-due {
++      display: flex !important;
++      flex-direction: column;
++      justify-content: center;
++      align-items: center;
++      min-height: 80px;
++      padding: 12px !important;
++      border: 0 !important;
++      border-radius: 10px;
++      background: #f5f8f5 !important;
++      text-align: center;
++    }
++    .active-invoice-table .invoice-card-amount strong { font-size: 18px; }
++  }
++}
++
++@media screen and (max-width: 767px) {
++  .active-invoice-table .invoice-row > td { min-width: 0 !important; max-width: 100%; }
++  .active-invoice-table .invoice-card-number a { max-width: 100%; overflow-wrap: anywhere; }
++  .active-invoice-table .invoice-card-issued { margin-right: 0; flex-wrap: wrap; }
++  .active-invoice-table .invoice-card-reminders { margin-left: 0; }
++  .active-invoice-table .invoice-card-amount strong { font-size: clamp(14px, 3.8vw, 18px); }
++  .active-invoice-table .invoice-card-amount small { margin-top: 5px; font-size: 11px; }
++  .active-invoice-table .invoice-card-action { padding-top: 12px !important; border-top: 1px solid #e7ece8 !important; }
++  .active-invoice-table .invoice-mobile-action-status { max-width: 100%; gap: 6px; }
++  .active-invoice-table .quick-payment-button { padding: 10px 12px; white-space: normal; line-height: 1.4; }
++}
++
++@media screen and (max-width: 479px) {
++  .active-invoice-table .invoice-row,
++  .active-invoice-table .invoice-row.is-paid {
++    grid-template-areas:
++      "customer customer"
++      "invoice invoice"
++      "amount amount"
++      "due due"
++      "issued reminder"
++      "footer footer";
++    gap: 10px;
++  }
++  .active-invoice-table .invoice-row.is-paid {
++    grid-template-areas:
++      "customer customer"
++      "invoice invoice"
++      "amount amount"
++      "due due"
++      "issued reminder";
++  }
++  .active-invoice-table .invoice-card-number { text-align: left; }
++  .active-invoice-table .invoice-card-number a { min-height: 0; justify-content: flex-start; }
++  .active-invoice-table .invoice-card-customer { padding-bottom: 0 !important; }
++  .active-invoice-table .invoice-card-amount,
++  .active-invoice-table .invoice-card-due { min-height: 72px !important; }
++  .active-invoice-table .invoice-card-action { grid-template-columns: minmax(0, 1fr); gap: 10px; }
++  .active-invoice-table .invoice-mobile-action-status {
++    grid-column: 1;
++    grid-row: 1;
++    justify-content: center;
++    justify-self: stretch;
++    margin: 0;
++  }
++  .active-invoice-table .quick-payment-button { grid-column: 1; grid-row: 2; }
++}
+diff --git a/src/components/layout/app-shell.tsx b/src/components/layout/app-shell.tsx
+index 065f9b2..85145e8 100644
+--- a/src/components/layout/app-shell.tsx
++++ b/src/components/layout/app-shell.tsx
+@@ -27,6 +27,7 @@ import {
+ } from "@/lib/use-access-role";
+ import { profileInitials } from "@/lib/user-display";
+ import "./mobile-navigation.css";
++import "./workspace-background.css";
+ 
+ type NavChild = { href: string; label: string };
+ type NavItem = {
+@@ -459,10 +460,29 @@ export function AppShell({
+   initialProfile: AccessProfile | null;
+ }) {
+   const [invoiceCount, setInvoiceCount] = useState<number>();
++  const pathname = usePathname();
++  const backgroundVariant = pathname === "/invoices"
++    ? "invoices"
++    : pathname.startsWith("/invoices/payments/archive")
++      ? "payment-archive"
++      : pathname.startsWith("/invoices/payments")
++        ? "payments"
++        : pathname === "/invoices/new"
++          ? "compose"
++          : pathname === "/invoices/import"
++            ? "import"
++            : pathname === "/invoices/archive"
++              ? "invoice-archive"
++              : pathname.startsWith("/invoices/")
++                ? "invoice-detail"
++                : pathname.split("/")[1] || "dashboard";
+   return (
+     <AccessProfileProvider profile={initialProfile}>
+       <InvoiceCountContext.Provider value={setInvoiceCount}>
+         <div className="app-shell">
++          <div className="workspace-background" data-variant={backgroundVariant} aria-hidden="true">
++            <span className="workspace-background-dots" />
++          </div>
+           <AppSidebar
+             invoiceCount={invoiceCount}
+             initialProfile={initialProfile}
+diff --git a/src/lib/confirm-action.test.ts b/src/lib/confirm-action.test.ts
+index cda111b..837ac9a 100644
+--- a/src/lib/confirm-action.test.ts
++++ b/src/lib/confirm-action.test.ts
+@@ -56,6 +56,15 @@ describe("confirmAction", () => {
+     await expect(pending).resolves.toBe(false);
+   });
+ 
++  it("can use the green primary button without changing the default danger style", async () => {
++    const pending = confirmAction({ title:"T",description:"D",confirmLabel:"Zaúčtovat",confirmVariant:"primary" });
++    expect(button("Zaúčtovat")?.className).toBe("btn primary");
++    button("Zrušit")?.click();await pending;
++    const next = confirmAction({ title:"T",description:"D" });
++    expect(button("Potvrdit")?.className).toBe("btn danger");
++    button("Zrušit")?.click();await next;
++  });
++
+   it("treats Escape as a refusal, never as agreement", async () => {
+     // Nejnebezpečnější možná chyba: zavření dialogu klávesou by nesmělo
+     // znamenat souhlas s rozesláním e-mailů nebo zaúčtováním peněz.
+diff --git a/src/lib/confirm-action.ts b/src/lib/confirm-action.ts
+index 4f31a13..cbce5f1 100644
+--- a/src/lib/confirm-action.ts
++++ b/src/lib/confirm-action.ts
+@@ -5,9 +5,10 @@ type ConfirmActionOptions = {
+   description: string;
+   confirmLabel?: string;
+   cancelLabel?: string;
++  confirmVariant?: "danger" | "primary";
+ };
+ 
+-export function confirmAction({ title, description, confirmLabel = "Potvrdit", cancelLabel = "Zrušit" }: ConfirmActionOptions) {
++export function confirmAction({ title, description, confirmLabel = "Potvrdit", cancelLabel = "Zrušit", confirmVariant = "danger" }: ConfirmActionOptions) {
+   return new Promise<boolean>((resolve) => {
+     const dialog = document.createElement("dialog");
+     const titleId = `confirm-title-${crypto.randomUUID()}`;
+@@ -30,7 +31,7 @@ export function confirmAction({ title, description, confirmLabel = "Potvrdit", c
+     cancel.className = "btn secondary";
+     cancel.textContent = cancelLabel;
+     confirm.type = "button";
+-    confirm.className = "btn danger";
++    confirm.className = `btn ${confirmVariant}`;
+     confirm.textContent = confirmLabel;
+     actions.className = "confirm-dialog-actions";
+     actions.append(cancel, confirm);
+diff --git a/src/lib/gpc-parser.ts b/src/lib/gpc-parser.ts
+index bca5569..28c0fb7 100644
+--- a/src/lib/gpc-parser.ts
++++ b/src/lib/gpc-parser.ts
+@@ -20,6 +20,8 @@ export interface GpcPreviewEntry {
+   fingerprint: string;
+   payment?: PaymentImportRow;
+   transactionCode?: string;
++  /** Original CAMT field provenance; GPC/CSV do not populate this. */
++  provenance?: { namespace: string; statement_id: string; entry_index: number; transaction_index: number; bank_reference: string | null; end_to_end: string | null };
+ }
+ 
+ export interface GpcParseResult {
+diff --git a/src/lib/invoice-detail-presentation.test.ts b/src/lib/invoice-detail-presentation.test.ts
+index 9ae07fb..617454f 100644
+--- a/src/lib/invoice-detail-presentation.test.ts
++++ b/src/lib/invoice-detail-presentation.test.ts
+@@ -7,7 +7,7 @@ const page = readFileSync(
+   "utf8",
+ );
+ const css = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
+-const layoutCss = readFileSync(join(process.cwd(), "src", "app", "minimal.css"), "utf8");
++const layoutCss = readFileSync(join(process.cwd(), "src", "app", "minimal.css"), "utf8").replace(/\r\n/g,"\n");
+ 
+ describe("invoice detail amount summary", () => {
+   it("shows the net amount as the primary value and gross amount as secondary", () => {
+diff --git a/src/lib/invoice-ocr-vocabulary.ts b/src/lib/invoice-ocr-vocabulary.ts
+index 5ec34e4..4134a01 100644
+--- a/src/lib/invoice-ocr-vocabulary.ts
++++ b/src/lib/invoice-ocr-vocabulary.ts
+@@ -1,10 +1,11 @@
+-export const OCR_VOCABULARY_VERSION = "2026-10-02.2";
++export const OCR_VOCABULARY_VERSION = "2026-10-03.1";
+ 
+ export type OcrConcept =
+   | "counterparty"
+   | "issuer"
+   | "ico"
+   | "dic"
++  | "currency"
+   | "invoice_number"
+   | "variable_symbol"
+   | "issue_date"
+@@ -30,16 +31,17 @@ export const OCR_TERMS: Record<OcrConcept, readonly string[]> = {
+     "customer", "buyer", "purchaser",
+   ],
+   issuer: ["dodavatel", "vystavitel", "prodavajici", "zhotovitel", "fakturujici", "poskytovatel", "supplier", "seller", "vendor", "issuer"],
+-  ico: ["ico", "ic", "identifikacni cislo", "identifikacni cislo osoby", "company id", "company number", "registration number"],
+-  dic: ["dic", "ic dph", "danove identifikacni cislo", "vat id", "vat number", "tax id"],
+-  invoice_number: ["cislo faktury", "cislo dokladu", "faktura c", "danovy doklad c", "invoice number", "invoice no", "document number"],
+-  variable_symbol: ["variabilni symbol", "variabilny symbol", "var symbol", "vs", "payment reference"],
++  ico: ["ico", "ic", "i c o", "i c", "identifikacni cislo", "identifikacni cislo osoby", "identifikator firmy", "company id", "company number", "company registration number", "registration number"],
++  dic: ["dic", "d i c", "ic dph", "i c dph", "danove identifikacni cislo", "danove cislo", "vat id", "vat number", "vat registration number", "tax id", "tax identification number"],
++  currency: ["mena", "mena dokladu", "mena faktury", "fakturacni mena", "currency", "invoice currency", "billing currency"],
++  invoice_number: ["cislo faktury", "cislo dokladu", "evidencni cislo faktury", "faktura c", "danovy doklad c", "invoice number", "invoice no", "document number", "document reference"],
++  variable_symbol: ["variabilni symbol", "variabilny symbol", "var symbol", "vs", "payment reference", "reference platby", "referencni cislo platby"],
+   issue_date: ["datum vystaveni", "datum vystavenia", "datum vyhotoveni", "datum vydani", "den vystaveni", "vystaveno dne", "vystavene dna", "issue date", "invoice date", "date of issue"],
+-  due_date: ["datum splatnosti", "splatnost", "splatne dna", "uhradte do", "due date", "due on", "payment due", "maturity date"],
++  due_date: ["datum splatnosti", "splatnost", "splatne dna", "uhradte do", "termin uhrady", "datum uhrady do", "due date", "due on", "payment due", "maturity date", "pay by"],
+   taxable_date: ["duzp", "datum uskutecneni zdanitelneho plneni", "datum dodania", "taxable supply date"],
+-  net_amount: ["zaklad dane", "zaklad dph", "celkem bez dph", "celkom bez dph", "cena bez dph", "subtotal", "net amount", "tax base", "medzisucet"],
++  net_amount: ["zaklad dane", "zaklad dph", "celkem bez dph", "celkom bez dph", "cena bez dph", "castka bez dane", "subtotal", "net amount", "tax base", "medzisucet", "total excluding vat", "total excl vat"],
+   vat: ["dph", "dan", "sazba dph", "sadzba dph", "vat", "tax amount", "tax rate"],
+-  gross_amount: ["celkem k uhrade", "celkom k uhrade", "castka k uhrade", "suma na uhradu", "k uhrade", "celkem s dph", "celkom s dph", "grand total", "total due", "amount due", "balance due"],
++  gross_amount: ["celkem k uhrade", "celkom k uhrade", "castka k uhrade", "suma na uhradu", "k uhrade", "celkem s dph", "celkom s dph", "celkova castka k zaplaceni", "grand total", "total due", "amount due", "balance due", "total including vat", "total incl vat"],
+   paid_amount: ["uhrazeno", "uhradene", "zaplaceno", "zaplatene", "zaloha", "prepayment", "paid"],
+   remaining_amount: ["zbyva uhradit", "zostava uhradit", "nedoplatek", "balance due", "remaining amount"],
+   negative_party_context: ["dodavatel", "vystavitel", "vystavil", "prodavajici", "kontakt", "bankovni spojeni", "bankove spojenie", "prijemce zbozi", "ship to"],
+@@ -100,7 +102,7 @@ export function matchOcrConcept(value: string, concept: OcrConcept): OcrConceptM
+     const term = normalizeOcrKeyword(rawTerm);
+     if (normalized === term || normalized.includes(` ${term} `) || normalized.startsWith(`${term} `) || normalized.endsWith(` ${term}`)) {
+       const match = { concept, term: rawTerm, matched: term, exact: true, score: 1 } satisfies OcrConceptMatch;
+-      if (!best || match.score > best.score) best = match;
++      if (!best || match.score > best.score || (match.score === best.score && match.matched.length > best.matched.length)) best = match;
+       continue;
+     }
+     const termWords = term.split(" ");
+diff --git a/src/lib/invoice-ocr.ts b/src/lib/invoice-ocr.ts
+index 16c3375..03791c3 100644
+--- a/src/lib/invoice-ocr.ts
++++ b/src/lib/invoice-ocr.ts
+@@ -602,11 +602,22 @@ function conceptLineMatches(line: string, concept: OcrConcept) {
+   return matchOcrConcept(label, concept) ?? matchOcrConcept(line, concept);
+ }
+ 
++// Read only after the matched label. Searching the whole line can mistake a
++// word in the label for a reference, or take a number from an earlier field.
++function conceptRemainder(line: string, concept: OcrConcept) {
++  const match = conceptLineMatches(line, concept);
++  if (!match) return null;
++  const pattern = match.matched.split(" ").map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
++    .join("[\\s:;,.#()[\\]{}\\/_-]+");
++  const location = stripDiacritics(line).match(new RegExp(`(?<![a-z0-9])${pattern}(?![a-z])`, "iu"));
++  if (!location || /[:\d]/.test(line.slice(0, location.index))) return null;
++  return line.slice((location.index ?? 0) + location[0].length).replace(/^[\s:;.#=-]+/, "").trim();
++}
++
+ function findConceptValue(lines: string[], concept: OcrConcept, valuePattern: RegExp, requireDigit = false) {
+   for (let index = 0; index < lines.length; index += 1) {
+-    const match = conceptLineMatches(lines[index], concept);
+-    if (!match || match.exact) continue;
+-    const afterColon = lines[index].includes(":") ? lines[index].slice(lines[index].indexOf(":") + 1) : lines[index];
++    const afterColon = conceptRemainder(lines[index], concept);
++    if (afterColon === null) continue;
+     const sameLine = afterColon.match(valuePattern)?.[1] ?? "";
+     if (sameLine && (!requireDigit || /\d/.test(sameLine))) return sameLine.trim();
+     const nextLine = bareNextValue(lines[index + 1] ?? "", "number") ? lines[index + 1].match(valuePattern)?.[1] ?? "" : "";
+@@ -617,9 +628,9 @@ function findConceptValue(lines: string[], concept: OcrConcept, valuePattern: Re
+ 
+ function findConceptDate(lines: string[], concept: "issue_date" | "due_date") {
+   for (let index = 0; index < lines.length; index += 1) {
+-    const match = conceptLineMatches(lines[index], concept);
+-    if (!match || match.exact) continue;
+-    const sameLine = parseDate(lines[index]);
++    const remainder = conceptRemainder(lines[index], concept);
++    if (remainder === null) continue;
++    const sameLine = parseDate(remainder);
+     if (sameLine) return sameLine;
+     const nextLine = bareNextValue(lines[index + 1] ?? "", "date") ? parseDate(lines[index + 1]) : "";
+     if (nextLine) return nextLine;
+@@ -629,9 +640,10 @@ function findConceptDate(lines: string[], concept: "issue_date" | "due_date") {
+ 
+ function findConceptAmount(lines: string[], concept: "net_amount" | "gross_amount") {
+   for (let index = 0; index < lines.length; index += 1) {
+-    const match = conceptLineMatches(lines[index], concept);
+-    if (!match || match.exact) continue;
+-    const sameLine = amountFromLine(lines[index]);
++    if (looksLikeTableHeading(stripDiacritics(lines[index]))) continue;
++    const remainder = conceptRemainder(lines[index], concept);
++    if (remainder === null) continue;
++    const sameLine = amountFromLine(remainder);
+     if (sameLine) return sameLine;
+     const nextLine = bareNextValue(lines[index + 1] ?? "", "amount") ? amountFromLine(lines[index + 1]) : null;
+     if (nextLine) return nextLine;
+@@ -698,10 +710,19 @@ const EMAIL_LABEL = /\b(?:e[ -]?mail|mail|emailov[áa]\s+adresa|elektronick[áa]
+ // Read labelled facts throughout the document, including a value printed on
+ // the next line. The short party section above is useful for finding a name,
+ // but invoices often put registration and contact details much further down.
+-function scanLabeledValues(lines: string[], pattern: RegExp, label: RegExp, normalize: (value: string) => string, bareValue: RegExp) {
++function scanLabeledValues(lines: string[], pattern: RegExp, label: RegExp, normalize: (value: string) => string, bareValue: RegExp, concept?: "ico" | "dic") {
+   const found: Array<{ value: string; line: number }> = [];
+   lines.forEach((line, index) => {
+     for (const match of line.matchAll(pattern)) found.push({ value: normalize(match[1]), line: index });
++    if (concept && !(concept === "ico" && conceptLineMatches(line, "dic"))) {
++      const remainder = conceptRemainder(line, concept);
++      if (remainder !== null) {
++        if (bareValue.test(remainder)) found.push({ value: normalize(remainder), line: index });
++        else if (!remainder && bareValue.test(lines[index + 1]?.trim() ?? "")) {
++          found.push({ value: normalize(lines[index + 1]), line: index + 1 });
++        }
++      }
++    }
+     if (!label.test(line) || found.some(item => item.line === index) || index + 1 >= lines.length) return;
+     // A label by itself can precede its value, but never borrow a different
+     // labelled field or a party heading from the next line.
+@@ -840,8 +861,8 @@ function findCounterparty(
+   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
+ 
+   const issuerSectionText = issuerSection.join("\n");
+-  const issuerIcos = new Set(uniqueMatches(issuerSectionText, ICO_PATTERN, digits).filter(value => value.length === 8));
+-  const issuerDics = new Set(uniqueMatches(issuerSectionText, DIC_PATTERN, value => value.replace(/[\s-]/g, "").toUpperCase()));
++  const issuerIcos = new Set(scanLabeledValues(issuerSection, ICO_PATTERN, new RegExp(`${ICO_LABEL_WORDS}\\s*[:.]?\\s*$`, "iu"), digits, /^\d[\d\s]{6,10}$/u, "ico").map(item => item.value).filter(value => value.length === 8));
++  const issuerDics = new Set(scanLabeledValues(issuerSection, DIC_PATTERN, new RegExp(`${DIC_LABEL_WORDS}\\s*[:.]?\\s*$`, "iu"), value => value.replace(/[\s-]/g, "").toUpperCase(), /^[A-Z]{2}\s*[A-Z0-9][A-Z0-9\s-]{5,18}$/iu, "dic").map(item => item.value));
+   const issuerNames = new Set(issuerSection.map(line => normalizeComparable(line)).filter(Boolean));
+   const issuerEmails = new Set(uniqueMatches(issuerSectionText, EMAIL_PATTERN, value => value.toLowerCase()));
+ 
+@@ -900,10 +921,10 @@ function findCounterparty(
+     if (columnsDiffer) return belongsToCounterpartyColumn(value);
+     return contactPartyAtLine[line] === "counterparty";
+   };
+-  const labeledIcos = scanLabeledValues(lines, ICO_PATTERN, new RegExp(String.raw`${ICO_LABEL_WORDS}\s*[:.]?\s*$`, "iu"), digits, /^\d[\d\s]{6,10}$/u)
++  const labeledIcos = scanLabeledValues(lines, ICO_PATTERN, new RegExp(String.raw`${ICO_LABEL_WORDS}\s*[:.]?\s*$`, "iu"), digits, /^\d[\d\s]{6,10}$/u, "ico")
+     .filter(item => item.value.length === 8);
+   const labeledDics = scanLabeledValues(lines, DIC_PATTERN, new RegExp(String.raw`${DIC_LABEL_WORDS}\s*[:.]?\s*$`, "iu"),
+-    value => value.replace(/[\s-]/g, "").toUpperCase(), /^[A-Z]{2}\s*[A-Z0-9][A-Z0-9\s-]{5,18}$/iu);
++    value => value.replace(/[\s-]/g, "").toUpperCase(), /^[A-Z]{2}\s*[A-Z0-9][A-Z0-9\s-]{5,18}$/iu, "dic");
+   const labeledEmails = scanLabeledValues(lines, EMAIL_PATTERN, EMAIL_LABEL, value => value.toLowerCase(), /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/iu);
+ 
+   const structuralIcoCandidates = [...new Set([...uniqueMatches(`${sectionText}\n${text}`, ICO_PATTERN, digits), ...labeledIcos.map(item => item.value)])]
+@@ -1607,13 +1628,24 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
+     || (netCurrency === "CZK" && (net?.currency ? (net as ParsedAmount).currencyInferred : netCurrencyEvidence?.inferred)));
+   const explicitCurrencies = [...new Set([grossCurrency, netCurrency].filter((value): value is NonNullable<ParsedAmount["currency"]> => Boolean(value)))];
+   const documentCurrencies = [...new Set(currencyMentions(text))];
+-  const labeledCurrency = text.match(/(?:^|\n)\s*(?:měna|mena|currency)\s*[:.]?\s*([A-Z]{3})\b/im)?.[1];
+-  const unsupportedCurrency = labeledCurrency && !normalizeInvoiceCurrency(labeledCurrency) ? labeledCurrency.toUpperCase() : null;
++  const labeledCurrencyEntries = documentLayout.pages.flatMap(page => page.lines.flatMap((line, index) => {
++    const remainder = conceptRemainder(line.text, "currency");
++    if (remainder === null) return [];
++    const valueLine = remainder ? line : page.lines[index + 1];
++    if (!valueLine) return [];
++    const value = remainder || valueLine.text.trim();
++    const code = normalizeInvoiceCurrency(value);
++    if (!code && !/^[A-Z]{3}$/iu.test(value)) return [];
++    return [{ currency: code, unsupported: code ? null : value.toUpperCase(), source: sourceFromLine(valueLine) }];
++  }));
++  const labeledCurrencies = [...new Set(labeledCurrencyEntries.map(entry => entry.currency).filter((value): value is NonNullable<ParsedAmount["currency"]> => Boolean(value)))];
++  const unsupportedCurrency = labeledCurrencyEntries.find(entry => entry.unsupported)?.unsupported;
+   // A bare "$" is a printed currency, just not a specific one. Assuming CZK
+   // here would turn a dollar invoice into a koruna receivable.
+   const dollarOnly = !explicitCurrencies.length && !documentCurrencies.length && hasBareDollarSign(text);
+-  const currencyConflict = explicitCurrencies.length > 1 || (!explicitCurrencies.length && documentCurrencies.length > 1) || Boolean(unsupportedCurrency) || dollarOnly;
+-  const currency = currencyConflict ? "" : explicitCurrencies[0] ?? (documentCurrencies.length === 1 ? documentCurrencies[0] : "CZK");
++  const currencyConflict = new Set([...explicitCurrencies, ...labeledCurrencies]).size > 1
++    || (!explicitCurrencies.length && !labeledCurrencies.length && documentCurrencies.length > 1) || Boolean(unsupportedCurrency) || dollarOnly;
++  const currency = currencyConflict ? "" : explicitCurrencies[0] ?? labeledCurrencies[0] ?? (documentCurrencies.length === 1 ? documentCurrencies[0] : "CZK");
+ 
+   if (kind !== "issued_invoice") warnings.unshift("Dokument nemusí být běžná vydaná faktura. Před uložením ověřte jeho typ.");
+   // A mismatch here is expected and harmless for a business that legitimately
+@@ -1661,7 +1693,8 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
+     amount: grossSource ?? (netSource ? { ...netSource, method: "derived" } : undefined),
+     currency: grossCurrencyEvidence?.currency === currency ? grossCurrencyEvidence.source
+       : netCurrencyEvidence?.currency === currency ? netCurrencyEvidence.source
+-        : [grossSource, netSource].find(source => source && currencyOnAmountLine(source.text, amount).currency === currency) ?? undefined,
++        : labeledCurrencyEntries.find(entry => entry.currency === currency)?.source
++          ?? [grossSource, netSource].find(source => source && currencyOnAmountLine(source.text, amount).currency === currency) ?? undefined,
+   };
+ 
+   const invoice: InvoiceInput = {
+@@ -1709,7 +1742,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
+       ...fieldDecisions.currency, status: "review", confidence: Math.min(fieldDecisions.currency.confidence, 0.59), needs_confirmation: true,
+       reasons: [...new Set([...fieldDecisions.currency.reasons, "Za částkou je v textové vrstvě jen K; v PDF pravděpodobně chybí znak č. Potvrďte měnu podle dokladu."])],
+     };
+-  } else if (fieldDecisions.currency && !fieldSources.currency) {
++  } else if (fieldDecisions.currency && (!fieldSources.currency || (labeledCurrencies.length > 0 && !explicitCurrencies.length))) {
+     fieldDecisions.currency = {
+       ...fieldDecisions.currency, status: "review", confidence: 0.4, needs_confirmation: true,
+       reasons: [documentCurrencies.length ? "Měna byla rozpoznána mimo řádek celkové částky. Potvrďte ji podle dokladu." : ASSUMED_CZK_REASON],
+diff --git a/src/lib/payment-import.ts b/src/lib/payment-import.ts
+index ae755ab..b77ece1 100644
+--- a/src/lib/payment-import.ts
++++ b/src/lib/payment-import.ts
+@@ -60,6 +60,9 @@ export interface PaymentImportRow {
+   // account number failed the Czech mod-11 check on both candidate readings.
+   counterparty_account_verified?: boolean;
+   note?: string;
++  /** Present only for the separately gated CAMT parser. */
++  bank_reference?: string;
++  statement_account?: string;
+ }
+ 
+ function splitCsvRow(row: string, delimiter: string) {
+diff --git a/src/lib/payment-unrelated-rows.test.ts b/src/lib/payment-unrelated-rows.test.ts
+index d68ef75..353041f 100644
+--- a/src/lib/payment-unrelated-rows.test.ts
++++ b/src/lib/payment-unrelated-rows.test.ts
+@@ -216,7 +216,7 @@ function definitionsOf(name: string) {
+   const pattern = new RegExp(`create (?:or replace )?function public\\.${name}\\(`, "gi");
+   const found: Array<{ file: string; body: string }> = [];
+   for (const file of migrationFiles) {
+-    const sql = readFileSync(join(migrationsDir, file), "utf8");
++    const sql = readFileSync(join(migrationsDir, file), "utf8").replace(/\r\n/g, "\n");
+     for (const match of sql.matchAll(pattern)) {
+       const start = match.index ?? 0;
+       const end = sql.indexOf("end $$;", start);
+diff --git a/src/lib/payments-page-data.ts b/src/lib/payments-page-data.ts
+index df3b938..217232e 100644
+--- a/src/lib/payments-page-data.ts
++++ b/src/lib/payments-page-data.ts
+@@ -4,6 +4,7 @@ import type { RequestIdentity } from "@/lib/auth";
+ import { canAccessOperations, canManageInvoices } from "@/lib/role-access";
+ import { canUseGpcImport } from "@/lib/gpc-feature";
+ import { PageDataError } from "@/lib/dashboard-page-data";
++import { assistanceFlags, type AssistanceFlags } from "@/lib/payment-assistance-flags";
+ 
+ export type PaymentsPagePayment = {
+   id: string;
+@@ -16,6 +17,7 @@ export type PaymentsPagePayment = {
+   match_status: "matched" | "split" | "unmatched" | "ambiguous";
+   source: "bank_import" | "manual";
+   invoice_id: string | null;
++  match_reason?: string | null;
+   invoices?: { invoice_number: string; counterparty_name: string } | null;
+   allocations: Array<{ invoice_id: string; amount: number; invoice_number: string; counterparty_name: string }>;
+ };
+@@ -34,6 +36,7 @@ export type PaymentsPageData = {
+   can_manage: boolean;
+   gpc_enabled: boolean;
+   runtime_mode: "production-database";
++  assistance_flags?: AssistanceFlags;
+ };
+ 
+ // Shared by the initial server-rendered page load (avoids the client-side
+@@ -52,16 +55,20 @@ export async function loadPaymentsPageData(
+ 
+   const includePayments = options.includePayments !== false;
+   const organizationId = identity.membership.organization_id;
++  const assistance = assistanceFlags(organizationId);
+   // Dotaz se jen sestaví; odešle se až jeho awaitem níž, takže při
+   // includePayments === false neproběhne vůbec.
+   const paymentsQuery = identity.service
+     .from("bank_payments")
+     .select(
+-      "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
++      assistance.mode !== "off"
++        ? "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, match_reason, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)"
++        : "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
+     )
+     .eq("organization_id", organizationId)
+     .order("booked_on", { ascending: false })
+-    .limit(100);
++    .limit(100)
++    .overrideTypes<Array<Omit<PaymentsPagePayment,"allocations">>, { merge:false }>();
+   const [paymentsResult, { data: openInvoices, error: invoiceError }] = await Promise.all([
+     includePayments ? paymentsQuery : null,
+     identity.service
+@@ -115,5 +122,6 @@ export async function loadPaymentsPageData(
+     can_manage: canManageInvoices(identity.membership.role),
+     gpc_enabled: canUseGpcImport(identity.membership.role),
+     runtime_mode: "production-database",
++    ...(assistance.mode !== "off" || assistance.camt ? { assistance_flags: assistance } : {}),
+   };
+ }
+diff --git a/src/lib/pdfjs-assets.test.ts b/src/lib/pdfjs-assets.test.ts
+index aa1c461..9c2e430 100644
+--- a/src/lib/pdfjs-assets.test.ts
++++ b/src/lib/pdfjs-assets.test.ts
+@@ -1,14 +1,21 @@
+-import { existsSync, readdirSync, statSync } from "node:fs";
++import { existsSync, readdirSync, readFileSync } from "node:fs";
+ import { join } from "node:path";
+ import { describe, expect, it } from "vitest";
+ 
+ // Náhled dokladu bere worker, cmaps, fonty a WASM dekodéry z public/pdfjs/ (CSP
+ // nepouští CDN). Po upgradu pdfjs-dist je třeba je znovu zkopírovat:
+ // node scripts/sync-pdfjs-assets.mjs
++// Git may check text assets out with CRLF on Windows. Compare complete
++// contents rather than sizes; binary files must still match byte for byte.
++function assetBytes(path: string) {
++  const bytes = readFileSync(path);
++  return /\.(?:mjs|js)$/.test(path) || /LICENSE[^/\\]*$/.test(path)
++    ? Buffer.from(bytes.toString("utf8").replace(/\r\n/g,"\n")) : bytes;
++}
+ describe("public/pdfjs odpovídá nainstalovanému pdfjs-dist", () => {
+   it("worker: stejná velikost jako v balíčku", () => {
+-    expect(statSync(join(process.cwd(), "public/pdfjs/pdf.worker.min.mjs")).size)
+-      .toBe(statSync(join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.min.mjs")).size);
++    expect(assetBytes(join(process.cwd(), "public/pdfjs/pdf.worker.min.mjs"))
++      .equals(assetBytes(join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.min.mjs")))).toBe(true);
+   });
+   for (const dir of ["cmaps", "standard_fonts", "wasm", "iccs"]) {
+     it(`${dir}: stejné soubory ve stejné velikosti`, () => {
+@@ -16,7 +23,7 @@ describe("public/pdfjs odpovídá nainstalovanému pdfjs-dist", () => {
+       const copy = join(process.cwd(), "public/pdfjs", dir);
+       expect(existsSync(copy), `${copy} chybí`).toBe(true);
+       for (const name of readdirSync(copy)) {
+-        expect(statSync(join(copy, name)).size, name).toBe(statSync(join(source, name)).size);
++        expect(assetBytes(join(copy, name)).equals(assetBytes(join(source, name))), name).toBe(true);
+       }
+       // quickjs-eval (skripty uvnitř PDF) se záměrně nekopíruje.
+       const expected = readdirSync(source).filter(name => !name.startsWith("quickjs-eval"));
+diff --git a/src/types/database.ts b/src/types/database.ts
+index 8455262..0fa017a 100644
+--- a/src/types/database.ts
++++ b/src/types/database.ts
+@@ -1,3 +1,4 @@
++import type { AssistanceTable, AssistanceSettingsRow, PayerMemoryRow, AssistanceProposalRow, AssistanceJobRow, AssistanceEventRow } from "./payment-assistance";
+ export type Json =
+   | string
+   | number
+@@ -34,6 +35,11 @@ export type Database = {
+   }
+   public: {
+     Tables: {
++      payment_assistance_settings: AssistanceTable<AssistanceSettingsRow>
++      payment_payer_memory: AssistanceTable<PayerMemoryRow>
++      payment_assistance_proposals: AssistanceTable<AssistanceProposalRow>
++      payment_assistance_jobs: AssistanceTable<AssistanceJobRow>
++      payment_assistance_events: AssistanceTable<AssistanceEventRow>
+       auth_request_events: {
+         Row: {
+           action: string
+@@ -152,6 +158,7 @@ export type Database = {
+       }
+       bank_payments: {
+         Row: {
++          assistance_waiting: boolean
+           amount: number
+           booked_on: string
+           counterparty_account: string | null
+@@ -173,6 +180,7 @@ export type Database = {
+           variable_symbol: string | null
+         }
+         Insert: {
++          assistance_waiting?: boolean
+           amount: number
+           booked_on: string
+           counterparty_account?: string | null
+@@ -194,6 +202,7 @@ export type Database = {
+           variable_symbol?: string | null
+         }
+         Update: {
++          assistance_waiting?: boolean
+           amount?: number
+           booked_on?: string
+           counterparty_account?: string | null
+@@ -1567,6 +1576,17 @@ export type Database = {
+         Returns: Json
+       }
+       run_bank_reconciliation_jobs: { Args: Record<PropertyKey, never>; Returns: Json }
++      configure_payment_assistance: { Args: { target_org: string; new_mode: string; new_memory: boolean; new_reevaluation: boolean }; Returns: undefined }
++      payment_assistance_overview: { Args: { target_org: string; actor_user: string }; Returns: Json }
++      create_camt_statement_preview: { Args: { target_org: string; actor_user: string; import_data: Json; entry_rows: Json }; Returns: Json }
++      acknowledge_statement_overlap: { Args: { target_org: string; actor_user: string; target_entry: string; expected_revision: number }; Returns: undefined }
++      payment_assistance_inputs: { Args: { target_org: string }; Returns: Json }
++      claim_payment_assistance_job: { Args: { target_org: string }; Returns: Json }
++      finish_payment_assistance_job: { Args: { target_org: string; token: string; expected_generation: number; proposals: Json; error_code: string | null; elapsed_ms: number }; Returns: undefined }
++      request_payment_assistance: { Args: { target_org: string; actor_user: string }; Returns: undefined }
++      set_payment_assistance_waiting: { Args: { target_org: string; actor_user: string; target_payment: string; waiting: boolean }; Returns: undefined }
++      save_payment_payer_memory: { Args: { target_org: string; actor_user: string; target_memory: string | null; expected_revision: number; ico: string; new_account: string | null; new_name: string | null; new_reference: string | null; sources: string[]; new_active: boolean }; Returns: string }
++      decide_payment_assistance: { Args: { target_org: string; actor_user: string; target_proposal: string; accept: boolean }; Returns: Json }
+       discard_bank_statement_import: {
+         Args: { target_org: string; actor_user: string; target_import: string; expected_revision: number; reason?: string | null }
+         Returns: Json
+diff --git a/supabase/tests/reconciliation_integrity_guards.sql b/supabase/tests/reconciliation_integrity_guards.sql
+index bbeae02..4dbda6f 100644
+--- a/supabase/tests/reconciliation_integrity_guards.sql
++++ b/supabase/tests/reconciliation_integrity_guards.sql
+@@ -6,7 +6,7 @@ declare org uuid:=gen_random_uuid(); actor uuid:=gen_random_uuid(); first_id uui
+   response jsonb; result jsonb; rows jsonb; failed boolean:=false;
+ begin
+   insert into auth.users(id,email) values(actor,'integrity-test@hlavica.cz');
+-  insert into public.organizations(id,name) values(org,'Integrity test');
++  insert into public.organizations(id,name,ico) values(org,'Integrity test','12345678');
+   insert into public.organization_members(organization_id,user_id,email,role) values(org,actor,'integrity-test@hlavica.cz','admin');
+   insert into public.invoices(id,organization_id,invoice_number,counterparty_name,counterparty_email,
+     amount_without_vat,vat_rate,amount,currency,issue_date,due_date,created_by,money_evidence)
+diff --git a/supabase/tests/robust_reconciliation.sql b/supabase/tests/robust_reconciliation.sql
+index b75f048..12870ae 100644
+--- a/supabase/tests/robust_reconciliation.sql
++++ b/supabase/tests/robust_reconciliation.sql
+@@ -6,7 +6,7 @@ declare org uuid:=gen_random_uuid(); actor uuid:=gen_random_uuid(); invoice_id u
+   statement uuid; response jsonb; result jsonb; rows jsonb; paid numeric;
+ begin
+   insert into auth.users(id,email) values(actor,'reconciliation-test@hlavica.cz');
+-  insert into public.organizations(id,name) values(org,'Reconciliation test');
++  insert into public.organizations(id,name,ico) values(org,'Reconciliation test','12345678');
+   insert into public.organization_members(organization_id,user_id,email,role) values(org,actor,'reconciliation-test@hlavica.cz','admin');
+   insert into public.invoices(id,organization_id,invoice_number,counterparty_name,counterparty_email,
+     amount_without_vat,vat_rate,amount,currency,issue_date,due_date,variable_symbol,created_by,money_evidence)

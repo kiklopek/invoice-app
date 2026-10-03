@@ -60,6 +60,9 @@ export interface PaymentImportRow {
   // account number failed the Czech mod-11 check on both candidate readings.
   counterparty_account_verified?: boolean;
   note?: string;
+  /** Present only for the separately gated CAMT parser. */
+  bank_reference?: string;
+  statement_account?: string;
 }
 
 function splitCsvRow(row: string, delimiter: string) {

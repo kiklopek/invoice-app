@@ -1,0 +1,202 @@
+{
+  "scope": "local PostgreSQL, synthetic data; not HTTPS/Auth/API/staging load",
+  "count": 300000,
+  "steps": [
+    {
+      "name": "seed invoices",
+      "ms": 1774
+    },
+    {
+      "name": "insert invoices",
+      "ms": 156725
+    },
+    {
+      "name": "insert payments",
+      "ms": 29804
+    },
+    {
+      "name": "insert 2 allocations/payment",
+      "ms": 98960
+    },
+    {
+      "name": "verify independent ledger totals",
+      "ms": 268
+    }
+  ],
+  "security": [
+    {
+      "name": "cross organization invoice read",
+      "status": "PASS",
+      "visible": 0
+    },
+    {
+      "name": "direct table read before app email MFA",
+      "status": "FAIL",
+      "visible": 1,
+      "note": "SQL reproduction with auth JWT context; real PostgREST token test still requires isolated Supabase staging"
+    }
+  ],
+  "read_load": {
+    "connections": 50,
+    "p95_ms": 2587,
+    "note": "SQL sessions, not authenticated browser/API sessions"
+  },
+  "concurrent_writes": {
+    "connections": 20,
+    "result": "completed",
+    "note": "independent synthetic invoices, not HTTP requests"
+  },
+  "list_query_plan": [
+    {
+      "Plan": {
+        "Node Type": "Limit",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Startup Cost": 15807.57,
+        "Total Cost": 15813.4,
+        "Plan Rows": 50,
+        "Plan Width": 32,
+        "Actual Startup Time": 117.398,
+        "Actual Total Time": 124.748,
+        "Actual Rows": 50,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 5485,
+        "Shared Read Blocks": 3695,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Gather Merge",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 15807.57,
+            "Total Cost": 44979.54,
+            "Plan Rows": 250028,
+            "Plan Width": 32,
+            "Actual Startup Time": 117.398,
+            "Actual Total Time": 124.743,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Workers Planned": 2,
+            "Workers Launched": 2,
+            "Shared Hit Blocks": 5485,
+            "Shared Read Blocks": 3695,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 14807.55,
+                "Total Cost": 15120.08,
+                "Plan Rows": 125014,
+                "Plan Width": 32,
+                "Actual Startup Time": 79.026,
+                "Actual Total Time": 79.029,
+                "Actual Rows": 39,
+                "Actual Loops": 3,
+                "Sort Key": [
+                  "issue_date DESC",
+                  "id"
+                ],
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 32,
+                "Sort Space Type": "Memory",
+                "Shared Hit Blocks": 5485,
+                "Shared Read Blocks": 3695,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Workers": [
+                  {
+                    "Worker Number": 0,
+                    "Sort Method": "top-N heapsort",
+                    "Sort Space Used": 32,
+                    "Sort Space Type": "Memory"
+                  },
+                  {
+                    "Worker Number": 1,
+                    "Sort Method": "top-N heapsort",
+                    "Sort Space Used": 32,
+                    "Sort Space Type": "Memory"
+                  }
+                ],
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": true,
+                    "Async Capable": false,
+                    "Relation Name": "invoices",
+                    "Alias": "invoices",
+                    "Startup Cost": 0,
+                    "Total Cost": 10654.67,
+                    "Plan Rows": 125014,
+                    "Plan Width": 32,
+                    "Actual Startup Time": 0.013,
+                    "Actual Total Time": 58.521,
+                    "Actual Rows": 100000,
+                    "Actual Loops": 3,
+                    "Filter": "(organization_id = '2696ac99-d8c0-400a-8c26-99d6ad9c2d33'::uuid)",
+                    "Rows Removed by Filter": 0,
+                    "Shared Hit Blocks": 5397,
+                    "Shared Read Blocks": 3695,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Workers": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 52,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.357,
+      "Triggers": [],
+      "Execution Time": 124.774
+    }
+  ],
+  "assistance": {
+    "status": "BLOCKED",
+    "reason": "assistance_input_limit"
+  },
+  "financial_note": "Fixture intentionally starts with unpaid invoice cache; allocation total tested independently. No claim that cached paid_amount already equals ledger."
+}

@@ -22,6 +22,8 @@ type Invoice = {
   variable_symbol: string | null;
 };
 type PreviewEntry = {
+  overlap_warning?: boolean;
+  overlap_acknowledged_by?: string | null;
   bank_payment_id?: string | null;
   processing_error?: string | null;
   line_number: number;
@@ -131,10 +133,12 @@ export function GpcImportPanel({
   invoices,
   canManage,
   onCommitted,
+  camtEnabled = false,
 }: {
   invoices: Invoice[];
   canManage: boolean;
   onCommitted: () => void;
+  camtEnabled?: boolean;
 }) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [selected, setSelected] = useState<Record<string, string[]>>({});
@@ -188,7 +192,7 @@ export function GpcImportPanel({
   // Shown right next to it, so a disabled button always says why.
   const confirmBlockedReason =
     preview?.account_mismatch && !accountAck
-      ? "Nejdřív potvrďte, že jste ověřili nesoulad bankovního účtu (políčko vedle)."
+      ? "Nejdřív potvrďte kontrolu bankovního účtu ve upozornění nahoře."
       : null;
   const activeImportStep =
     preview?.import.status === "committed"
@@ -518,6 +522,7 @@ export function GpcImportPanel({
       title: "Zaúčtovat platby k fakturám?",
       description: commitOutcome(reviewedEntries, submission.unrelated_entry_ids.length),
       confirmLabel: "Zaúčtovat",
+      confirmVariant: "primary",
     }))) return;
     setWorking(true);
     setError("");
@@ -554,6 +559,7 @@ export function GpcImportPanel({
         },
         45_000,
       );
+      const completed = result.status === "committed" && result.remaining === 0 && !result.errors?.length;
       setDone(
         `${result.status === "committed" ? "Import je dokončený" : "Průběh byl uložen"}: ${result.imported} plateb, ${result.matched} přiřazených položek.${result.unrelated ? ` ${result.unrelated} řádků nesouvisí s fakturami a jako platby se nezapsaly.` : ""}${result.remaining ? ` Zbývá ${result.remaining} položek.` : ""}`,
       );
@@ -571,9 +577,18 @@ export function GpcImportPanel({
           : current,
       );
       onCommitted();
-      const updated = await apiFetch<PreviewDetail>(`/api/payments/imports/${preview.import.id}?page=${previewPage}`);
-      setPreview(current => current ? { ...current, import: updated.import, entries: updated.entries, totals: updated.totals, total_entries: updated.total_entries } : current);
-      setLoadedEntries(Object.fromEntries(updated.entries.map(entry => [entry.fingerprint, entry])));
+      if (completed) {
+        await upload(null);
+        setDone("Import proběhl úspěšně.");
+        if (queueIndex + 1 >= fileQueue.length) {
+          setFileQueue([]);
+          setQueueIndex(0);
+        }
+      } else {
+        const updated = await apiFetch<PreviewDetail>(`/api/payments/imports/${preview.import.id}?page=${previewPage}`);
+        setPreview(current => current ? { ...current, import: updated.import, entries: updated.entries, totals: updated.totals, total_entries: updated.total_entries } : current);
+        setLoadedEntries(Object.fromEntries(updated.entries.map(entry => [entry.fingerprint, entry])));
+      }
       const refreshed = await apiFetch<{ imports: ArchiveItem[] }>(
         "/api/payments/imports",
       );
@@ -614,14 +629,15 @@ export function GpcImportPanel({
             <div className="gpc-upload-column">
               <div className="gpc-title-row">
                 <span className="payments-section-number">01</span>
-                <div><span className="gpc-eyebrow">AUTOMATICKÉ PÁROVÁNÍ</span><h2 id="gpc-import-title">Nahrát bankovní výpis</h2></div>
+                <div><span className="gpc-eyebrow">ZAČNĚTE VÝPISEM</span><h2 id="gpc-import-title">Nahrát bankovní výpis</h2></div>
               </div>
-              <p className="gpc-lead">Bezpečně zpracuje příchozí CZK platby, chybný variabilní symbol i jednu platbu rozdělenou mezi více faktur. Podporovány jsou výpisy GPC i CSV.</p>
+              <p className="gpc-lead">Vyberte výpis z internetového bankovnictví. Příchozí platby v CZK porovnáme s otevřenými fakturami.</p>
               <label className={`gpc-dropzone ${working ? "is-working" : ""}`}>
                 <input
                   type="file"
+                  aria-label="Vybrat bankovní výpis ve formátu GPC nebo CSV"
                   multiple
-                  accept=".gpc,.csv,application/octet-stream,text/plain,text/csv"
+                  accept={camtEnabled ? ".gpc,.csv,.xml,application/octet-stream,text/plain,text/csv,application/xml,text/xml" : ".gpc,.csv,application/octet-stream,text/plain,text/csv"}
                   disabled={!canManage || working}
                   onChange={(event) => {
                     const files = Array.from(event.target.files ?? []);
@@ -632,18 +648,21 @@ export function GpcImportPanel({
                   }}
                 />
                 <span className="gpc-dropzone-icon"><Icon name="upload" /></span>
-                <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Vyberte soubor (lze i více najednou)"}</strong>
-                <small>{canManage ? "Klikněte a vyberte soubor z počítače" : "Import vyžaduje roli účetní nebo administrátor"}</small>
+                <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Váš výpis. Přehledné platby."}</strong>
+                <small>{canManage ? "Můžete vybrat jeden i více souborů najednou" : "Import vyžaduje roli účetní nebo administrátor"}</small>
+                <span className="gpc-select-file" aria-hidden="true">{working ? "Zpracovávám soubor…" : "Vybrat bankovní výpis"}<Icon name="arrow-right" /></span>
+                <span className="gpc-file-formats"><span>GPC</span><span>CSV</span><small>Export z vašeho bankovnictví</small></span>
                 {fileQueue.length > 1 && <small className="gpc-queue-progress">Výpis {Math.min(queueIndex + 1, fileQueue.length)} z {fileQueue.length}</small>}
               </label>
+              <div className="gpc-upload-note"><Icon name="check" /><span>Po nahrání uvidíte návrhy shod i položky, které potřebují vaši kontrolu.</span></div>
             </div>
             <aside className="gpc-safety-card">
               <span className="gpc-safety-icon"><Icon name="check" /></span>
-              <h3>Nejdřív kontrola, potom zápis</h3>
+              <h3>Párování pod kontrolou</h3>
               <ol>
-                <li><strong>Nejprve vyhodnocení.</strong><span>Ve stínovém režimu se úhrady zapisují až po potvrzení. Zapnutý automat zpracuje jednoznačné shody na pozadí.</span></li>
-                <li><strong>Sporné platby zůstanou ruční.</strong><span>U každé položky vidíte důvod návrhu i případný konflikt.</span></li>
-                <li><strong>Každá úhrada samostatně.</strong><span>Chybná položka nezruší již dokončené nezávislé úhrady.</span></li>
+                <li><strong>Najdeme odpovídající faktury</strong><span>U návrhů uvidíte důvod shody. Zvládnete i chybný variabilní symbol nebo rozdělení platby.</span></li>
+                <li><strong>Vyřešíte nejasné položky</strong><span>Sporné platby čekají na ruční kontrolu. Každou úhradu zpracujeme samostatně.</span></li>
+                <li><strong>Potvrdíte zaúčtování</strong><span>V režimu kontroly se úhrady zapíší po potvrzení. Při zapnutém automatu se jednoznačné shody zpracují na pozadí.</span></li>
               </ol>
             </aside>
           </div>
@@ -682,28 +701,9 @@ export function GpcImportPanel({
             )}
           </div>
         )}
-        <div className="gpc-progress-wrap">
-          <span>Průběh zpracování</span>
-          <div className="import-steps" aria-label="Průběh importu">
-            {["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"].map(
-              (step, index) => (
-                <span
-                  className={[
-                    index <= activeImportStep ? "active" : "",
-                    index === activeImportStep ? "current" : "",
-                  ].filter(Boolean).join(" ")}
-                  aria-current={index === activeImportStep ? "step" : undefined}
-                  key={step}
-                >
-                  {index + 1}. {step}
-                </span>
-              ),
-            )}
-          </div>
-        </div>
         {error && <p className="form-error">{error}</p>}
-        {done && <p className="form-success">{done}</p>}
-        {preview?.import.status === "committed" && queueIndex + 1 < fileQueue.length && (
+        {done && <p className="form-success" role="status">{done}</p>}
+        {(preview?.import.status === "committed" || (!preview && done)) && queueIndex + 1 < fileQueue.length && (
           <button type="button" className="btn primary gpc-queue-next" onClick={continueQueue}>
             Pokračovat dalším výpisem ({queueIndex + 2} z {fileQueue.length})
           </button>
@@ -856,6 +856,18 @@ export function GpcImportPanel({
                         )}
                       </p>
                     )}
+                    {entry.overlap_warning && !entry.overlap_acknowledged_by && isOpen && <div className="form-error" role="alert">
+                      <p>Možná duplicita z jiného formátu výpisu. Před zaúčtováním ověřte původní transakci.</p>
+                      <button type="button" className="btn secondary compact" disabled={working || !persisted} onClick={async () => {
+                        if (!persisted || !await confirmAction({ title:"Potvrdit kontrolu možné duplicity?",description:"Ověřili jste původní výpis a tato položka představuje další samostatnou platbu?",confirmLabel:"Ano, je to další platba" })) return;
+                        setWorking(true); setError("");
+                        try {
+                          const result = await apiFetch<{ revision:number }>("/api/payments/imports/overlap",{ method:"POST",headers:{ "content-type":"application/json" },body:JSON.stringify({ entry_id:persisted.id,revision:preview.import.revision }) });
+                          setPreview(current => current ? { ...current,import:{ ...current.import,revision:result.revision },entries:current.entries.map(row => row.fingerprint === entry.fingerprint ? { ...row,overlap_acknowledged_by:"confirmed" } : row) } : current);
+                        } catch (cause) { setError(cause instanceof Error ? cause.message : "Kontrolu se nepodařilo uložit."); }
+                        finally { setWorking(false); }
+                      }}>Ověřeno: jde o další platbu</button>
+                    </div>}
                     {hasReviewableProposal ? (
                       <div className="gpc-proposal-row">
                         {entry.proposal_reason ? <small>{entry.proposal_reason}</small> : null}
@@ -1113,22 +1125,6 @@ export function GpcImportPanel({
                     Potvrzením se platby zapíšou k vybraným fakturám, platby bez faktury se uloží jako nespárované.
                     Řádky označené „Nesouvisí s fakturami“ se jako platby nezapíšou.
                   </span>
-                  {/* The same acknowledgement as in the warning at the top --
-                      that one scrolls out of sight on a long statement, and
-                      the button then looked broken for no visible reason. */}
-                  {preview.account_mismatch && (
-                    <label className="gpc-confirm-ack">
-                      <input
-                        type="checkbox"
-                        checked={accountAck}
-                        onChange={(event) => setAccountAck(event.target.checked)}
-                      />
-                      <span>
-                        Ověřil(a) jsem, že výpis{preview.statement_account ? ` z účtu ${preview.statement_account}` : ""} patří
-                        firmě, přestože se účet liší od nastaveného{preview.expected_account ? ` (${preview.expected_account})` : ""}.
-                      </span>
-                    </label>
-                  )}
                 </div>
                 <div className="gpc-confirm-action">
                   <button

@@ -216,7 +216,7 @@ function definitionsOf(name: string) {
   const pattern = new RegExp(`create (?:or replace )?function public\\.${name}\\(`, "gi");
   const found: Array<{ file: string; body: string }> = [];
   for (const file of migrationFiles) {
-    const sql = readFileSync(join(migrationsDir, file), "utf8");
+    const sql = readFileSync(join(migrationsDir, file), "utf8").replace(/\r\n/g, "\n");
     for (const match of sql.matchAll(pattern)) {
       const start = match.index ?? 0;
       const end = sql.indexOf("end $$;", start);

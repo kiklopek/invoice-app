@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api-client";
 import type { PaymentsPageData, PaymentsPagePayment, PaymentsPageOpenInvoice } from "@/lib/payments-page-data";
 import { proposePaymentMatch } from "@/lib/payment-matching";
 import { StatementArchive } from "./statement-archive";
+import { PaymentAssistancePanel } from "./payment-assistance-panel";
 
 type SavedPayment = PaymentsPagePayment;
 type OpenInvoice = PaymentsPageOpenInvoice;
@@ -335,6 +336,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
                   <strong>{money(Number(payment.amount), payment.currency)}</strong>
                   <span className={`payment-match ${payment.match_status}`}>{statusLabel[payment.match_status]}</span>
                   {payment.source === "manual" && <small>Ručně potvrzeno</small>}
+                  {payment.match_reason?.startsWith("Automaticky podle jména") && <small>Shoda jména a částky neurčuje záměr plátce. Ověřte ji, pokud ještě nejsou nahrané všechny jeho faktury.</small>}
                 </div>
                 <div className="payment-history-action">
                   {payment.invoice_id || payment.allocations?.length ? (
@@ -369,6 +371,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
         )}
       </section>
 
+      {canManage && initialData.assistance_flags && initialData.assistance_flags.mode !== "off" && <PaymentAssistancePanel flags={initialData.assistance_flags} payments={history} onConfirmed={refreshPayments} />}
       <StatementArchive />
     </AppFrame>
   );

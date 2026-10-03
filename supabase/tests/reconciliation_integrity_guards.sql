@@ -6,7 +6,7 @@ declare org uuid:=gen_random_uuid(); actor uuid:=gen_random_uuid(); first_id uui
   response jsonb; result jsonb; rows jsonb; failed boolean:=false;
 begin
   insert into auth.users(id,email) values(actor,'integrity-test@hlavica.cz');
-  insert into public.organizations(id,name) values(org,'Integrity test');
+  insert into public.organizations(id,name,ico) values(org,'Integrity test','12345678');
   insert into public.organization_members(organization_id,user_id,email,role) values(org,actor,'integrity-test@hlavica.cz','admin');
   insert into public.invoices(id,organization_id,invoice_number,counterparty_name,counterparty_email,
     amount_without_vat,vat_rate,amount,currency,issue_date,due_date,created_by,money_evidence)

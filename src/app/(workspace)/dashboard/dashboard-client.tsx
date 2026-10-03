@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import styles from "./dashboard-summary.module.css";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
@@ -59,28 +60,12 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const upcoming = summary.upcoming;
 
   return (
-    <AppFrame invoiceCount={activeCount} className="content dashboard-page">
+    <AppFrame invoiceCount={activeCount} className={`content dashboard-page ${styles.page}`}>
         <header className="topbar">
           <div>
             <p>{companyName ? `${companyName} · účetní oddělení` : "Účetní oddělení"}</p>
             <h1>Finanční přehled</h1>
           </div>
-          {canManage ? <div className="top-actions dashboard-actions">
-            <Link
-              className="btn secondary dashboard-document-upload"
-              href="/invoices/import"
-            >
-              <Icon name="upload" />
-              Nahrát dokument
-            </Link>
-            <Link
-              className="btn primary dashboard-add-invoice"
-              href="/invoices/new"
-            >
-              <Icon name="plus" />
-              Přidat fakturu
-            </Link>
-          </div> : null}
         </header>
         <section className="dashboard-command" aria-label="Souhrn pohledávek">
           <article className="dashboard-balance-card">
@@ -95,6 +80,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
               <Link href="/reports">Otevřít reporty</Link>
             </div>
           </article>
+          <div className={`${styles.side}${canManage ? "" : ` ${styles.readOnly}`}`}>
           <div className="dashboard-signal-grid">
             <article className="dashboard-signal critical">
               <span className="dashboard-signal-icon"><Icon name="clock" /></span>
@@ -108,6 +94,27 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
               <span className="dashboard-signal-icon"><Icon name="mail" /></span>
               <div><small>Odeslané upomínky</small><strong>{summary.reminders_sent}</strong><p>Automaticky evidováno</p></div>
             </article>
+          </div>
+          {canManage ? <div className="top-actions dashboard-actions">
+            <Link
+              className="btn primary dashboard-document-upload"
+              href="/invoices/import"
+            >
+              <Icon name="upload" />
+              Nahrát dokument
+            </Link>
+            <Link
+              className="btn secondary dashboard-add-invoice"
+              href="/invoices/new"
+            >
+              <Icon name="plus" />
+              Přidat fakturu
+            </Link>
+            <Link className="btn secondary" href="/invoices/payments">
+              <Icon name="bank" />
+              Spárovat platby
+            </Link>
+          </div> : null}
           </div>
         </section>
         <section className="workspace-grid dashboard-workspace">
@@ -159,12 +166,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                           <strong>
                             {money(Number(invoice.amount), invoice.currency)}
                           </strong>
-                          {Number(invoice.paid_amount) > 0 &&
-                          invoice.status !== "cancelled" ? (
-                            <small>
-                              Zbývá {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
-                            </small>
-                          ) : null}
                         </td>
                         <td data-label="Splatnost">
                           <strong
@@ -203,11 +204,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                       </span>
                       <span className="dashboard-invoice-compact-amount">
                         <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
-                        {Number(invoice.paid_amount) > 0 && invoice.status !== "cancelled" ? (
-                          <small>
-                            Zbývá {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
-                          </small>
-                        ) : null}
                       </span>
                       <span className="dashboard-invoice-compact-meta">
                         <span aria-label={`Faktura ${invoice.invoice_number}`} title="Číslo faktury">
@@ -239,7 +235,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
               </div>
             )}
           </div>
-          <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure">
+          <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure" defaultOpen>
             <aside className="panel activity-panel dashboard-attention-panel">
               <div className="panel-head">
                 <div>
@@ -286,9 +282,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                   <p className="empty-box">Žádné nadcházející upomínky.</p>
                 )}
               </div>
-              {canManage ? <Link className="full-link" href="/reminders">
-                Spravovat pravidla upomínek →
-              </Link> : null}
             </aside>
           </MobileDisclosure>
         </section>

@@ -14,6 +14,7 @@ import { DocumentPreview } from "@/components/document-preview";
 import { documentHighlightFor, type DocumentHighlight } from "@/lib/document-locate";
 import type { InvoiceOcrResult, OcrFieldCandidate, OcrFieldName } from "@/lib/invoice-ocr";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
+import styles from "./invoice-import.module.css";
 
 // Mirrors the server-side OCR_PROVIDER switch (extract/route.ts). Next.js
 // only exposes env vars prefixed NEXT_PUBLIC_ to client code, and this is a
@@ -284,9 +285,14 @@ export default function ImportInvoicesPage() {
   async function loadCsv(selected: File | null) { if (!selected) return; setCsvFile(selected); setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
   async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); void invalidateWorkspaceData(); router.push("/invoices"); router.refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
 
-  return <AppFrame>
+  const isStart = mode === "document" ? queue.length === 0 : !csvFile;
+
+  return <AppFrame className={`content section-page ${styles.page} ${isStart ? styles.start : ""}`}>
+    <div className={styles.stage}>
+    <div className={styles.header}>
     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
-    <div className="page-tabs invoice-import-tabs"><button className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>Fotografie nebo PDF</button><button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>Hromadný import CSV</button></div>
+    <div className="page-tabs invoice-import-tabs" aria-label="Způsob importu"><button type="button" aria-pressed={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}><Icon name="document"/><span><strong>Dokumenty faktur</strong><small>PDF, fotografie nebo sken</small></span></button><button type="button" aria-pressed={mode === "csv"} className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}><Icon name="statement"/><span><strong>Hromadný import</strong><small>Více faktur ze souboru CSV</small></span></button></div>
+    </div>
     <div className={`invoice-import-workspace${splitMode ? " is-split" : ""}`}>
     {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong>{queue.length > 1 && <button type="button" className="btn secondary compact import-cancel" onClick={cancelProcessing}>Zastavit zpracování</button>}</div>}
     {mode === "document" ? (
@@ -302,7 +308,7 @@ export default function ImportInvoicesPage() {
               setMessage("");
             })}
           >
-            <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
+            <input type="file" aria-label="Vybrat dokumenty faktur" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
             <span className="large-import-icon"><Icon name="document"/></span>
             <h2>Vyberte dokumenty faktur</h2>
             <p>
@@ -315,7 +321,9 @@ export default function ImportInvoicesPage() {
             </p>
             <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
             <small>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
+            <span className={styles.formats}><span>PDF</span><span>JPG</span><span>PNG</span><span>WEBP</span><span>Do 10 MB / soubor</span></span>
           </label>
+          <ImportGuidance mode="document" />
         </section>
       ) : !queue.some(item => item.status !== "pending") ? (
         <section className="page-panel import-panel">
@@ -416,7 +424,7 @@ export default function ImportInvoicesPage() {
             onDragLeave={() => setDragActive(false)}
             onDrop={(event) => acceptDroppedFiles(event, (files) => void loadCsv(files[0] ?? null))}
           >
-            <input type="file" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/>
+            <input type="file" aria-label="Vybrat CSV s fakturami" accept=".csv,text/csv" onChange={event => loadCsv(event.target.files?.[0] ?? null)}/>
             <span className="csv-dropzone-icon"><Icon name={csvFile ? "check" : "upload"}/></span>
             <strong>{csvFile ? csvFile.name : "Vyberte CSV soubor"}</strong>
             <small>{csvFile ? `${(csvFile.size / 1024).toFixed(1)} kB · kliknutím můžete soubor změnit` : "Klikněte nebo soubor přetáhněte do této plochy"}</small>
@@ -424,9 +432,19 @@ export default function ImportInvoicesPage() {
           </label>
         </div>
       </div>
+      {!csvFile && <ImportGuidance mode="csv" />}
       {rows.length > 0 && <><div className="import-preview invoice-import-preview"><strong>Nalezeno {rows.length} faktur</strong><table><thead><tr><th>Číslo</th><th>Odběratel</th><th>Bez DPH</th><th>S DPH</th><th>Splatnost</th></tr></thead><tbody>{rows.slice(0, 8).map((row, index) => <tr key={`${row.invoice_number}-${index}`}><td data-label="Číslo">{row.invoice_number}</td><td data-label="Odběratel">{row.counterparty_name}</td><td data-label="Bez DPH">{row.amount_without_vat} {row.currency}</td><td data-label="S DPH">{row.amount} {row.currency}</td><td data-label="Splatnost">{row.due_date}</td></tr>)}</tbody></table>{rows.length > 8 && <small>…a dalších {rows.length - 8}</small>}</div><div className="csv-import-footer"><span><Icon name="check"/>Soubor je připravený k importu</span><button className="btn primary" disabled={working} onClick={importCsv}>{working ? "Importuji…" : <><Icon name="upload"/>Importovat {rows.length} faktur</>}</button></div></>}
     </section>}
     {message && <p className="form-error">{message}</p>}
     </div>
+    </div>
   </AppFrame>;
+}
+
+function ImportGuidance({ mode }: { mode: "document" | "csv" }) {
+  return <aside className={styles.guidance} aria-label="Jak import probíhá">
+    <div><Icon name="upload"/><span><strong>{mode === "document" ? "Jeden dokument i celá dávka" : "Faktury v jednom souboru"}</strong><small>{mode === "document" ? "Vyberte více souborů najednou." : "Nahrajte export ve formátu CSV."}</small></span></div>
+    <div><Icon name="document"/><span><strong>{mode === "document" ? "Údaje načteme za vás" : "Nejprve přehledný náhled"}</strong><small>{mode === "document" ? "Předvyplněnou fakturu zkontrolujete." : "Před uložením uvidíte načtené faktury."}</small></span></div>
+    <div><Icon name="check"/><span><strong>Uložení pod vaší kontrolou</strong><small>{mode === "document" ? "Každou fakturu výslovně potvrdíte." : "Import uložíte až po potvrzení."}</small></span></div>
+  </aside>;
 }

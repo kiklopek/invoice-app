@@ -4,6 +4,8 @@ import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseGpc } from "@/lib/gpc-parser";
 import { parseCsvStatement } from "@/lib/csv-statement-parser";
+import { parseCamtStatement } from "@/lib/camt-statement-parser";
+import { assistanceFlags } from "@/lib/payment-assistance-flags";
 import {
   proposePaymentMatch,
   resolveBatchConflicts,
@@ -84,11 +86,11 @@ export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   const fileName = file instanceof File ? file.name.toLowerCase() : "";
-  const sourceFormat: "gpc" | "csv" | null = fileName.endsWith(".gpc")
+  const sourceFormat: "gpc" | "csv" | "camt053" | null = fileName.endsWith(".gpc")
     ? "gpc"
     : fileName.endsWith(".csv")
       ? "csv"
-      : null;
+      : fileName.endsWith(".xml") && assistanceFlags(identity.membership.organization_id).camt ? "camt053" : null;
   if (!(file instanceof File) || !sourceFormat) {
     return NextResponse.json(
       { error: "Vyberte soubor s příponou .gpc nebo .csv.", request_id: id },
@@ -103,7 +105,7 @@ export async function POST(request: Request) {
 
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const parsed = sourceFormat === "gpc" ? parseGpc(bytes) : parseCsvStatement(bytes);
+    const parsed = sourceFormat === "gpc" ? parseGpc(bytes) : sourceFormat === "csv" ? parseCsvStatement(bytes) : parseCamtStatement(bytes);
     const org = identity.membership.organization_id;
     const [
       { data: company, error: companyError },
@@ -256,6 +258,7 @@ export async function POST(request: Request) {
         line_number: entry.line,
         record_type: entry.recordType,
         fingerprint: entry.fingerprint,
+        ...(sourceFormat === "camt053" ? { bank_reference: entry.payment?.bank_reference ?? null, provenance: entry.provenance ?? null } : {}),
         disposition: entry.disposition,
         reason: entry.reason ?? null,
         external_id: entry.payment?.external_id ?? null,
@@ -292,7 +295,7 @@ export async function POST(request: Request) {
         "Originální GPC soubor se nepodařilo uložit do soukromého archivu.",
       );
     const { data, error } = await identity.service.rpc(
-      "create_bank_statement_preview",
+      sourceFormat === "camt053" ? "create_camt_statement_preview" : "create_bank_statement_preview",
       {
         target_org: org,
         actor_user: identity.user.id,
@@ -306,7 +309,7 @@ export async function POST(request: Request) {
           accepted_count: parsed.totals.accepted,
           ignored_count: parsed.totals.ignored,
           error_count: parsed.totals.errors,
-          automation_mode: process.env.PAYMENT_RECONCILIATION_MODE === "automatic" ? "automatic" : "shadow",
+          automation_mode: sourceFormat !== "camt053" && process.env.PAYMENT_RECONCILIATION_MODE === "automatic" ? "automatic" : "shadow",
         },
         entry_rows: entries as unknown as Json,
       },
@@ -341,7 +344,7 @@ export async function POST(request: Request) {
     // is the normal way to retry, and the second upload is exactly when a
     // statement that never got booked most needs to be. The RPC skips entries
     // that already carry a payment, so running it again is harmless.
-    if (process.env.PAYMENT_RECONCILIATION_MODE === "automatic" && result.status === "review") {
+    if (sourceFormat !== "camt053" && process.env.PAYMENT_RECONCILIATION_MODE === "automatic" && result.status === "review") {
       const { error: bookingError } = await identity.service.rpc("reconcile_bank_statement", {
         target_org: org,
         actor_user: identity.user.id,
