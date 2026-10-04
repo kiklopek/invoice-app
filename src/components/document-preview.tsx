@@ -43,6 +43,7 @@ function PdfPage({ pdf, pageNumber, size, cssWidth, highlight, scroller }: {
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(pageNumber === 1);
   const cssHeight = (cssWidth / size.width) * size.height;
 
@@ -72,8 +73,33 @@ function PdfPage({ pdf, pageNumber, size, cssWidth, highlight, scroller }: {
     return () => { cancelled = true; task?.cancel(); };
   }, [pdf, pageNumber, size.width, cssWidth, visible]);
 
+  // Selectable text comes only from the original PDF, independently of OCR.
+  // Use CSS pixels here; the canvas separately accounts for devicePixelRatio.
+  useEffect(() => {
+    if (!visible) return;
+    const container = textLayerRef.current;
+    if (!container) return;
+    let cancelled = false;
+    let layer: InstanceType<PdfJs["TextLayer"]> | null = null;
+    container.replaceChildren();
+    void (async () => {
+      const [pdfjs, page] = await Promise.all([loadPdfJs(), pdf.getPage(pageNumber)]);
+      if (cancelled) return;
+      const viewport = page.getViewport({ scale: cssWidth / size.width });
+      container.style.setProperty("--total-scale-factor", String(viewport.scale));
+      layer = new pdfjs.TextLayer({
+        textContentSource: page.streamTextContent(),
+        container,
+        viewport,
+      });
+      await layer.render();
+    })().catch(() => { if (!cancelled) container.replaceChildren(); });
+    return () => { cancelled = true; layer?.cancel(); container.replaceChildren(); };
+  }, [pdf, pageNumber, size.width, cssWidth, visible]);
+
   return <div ref={wrapperRef} className="document-preview-page" data-page={pageNumber} style={{ width: cssWidth, height: cssHeight }}>
     <canvas ref={canvasRef} aria-label={`Strana ${pageNumber}`} role="img"/>
+    <div ref={textLayerRef} className="document-preview-text-layer"/>
     {highlight && <HighlightBox bounds={highlight.bounds} label={highlight.label} approximate={highlight.approximate}/>}
   </div>;
 }

@@ -707,6 +707,48 @@ html:has(.invoice-import-workspace.is-split), body:has(.invoice-import-workspace
 .document-preview-pages-list { display: flex; flex-direction: column; align-items: center; }
 .document-preview-page { position: relative; flex: none; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
 .document-preview-page canvas { display: block; width: 100%; height: 100%; }
+/* PDF.js 6 TextLayer positioning, scoped to the document preview. */
+.document-preview-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  text-align: initial;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.document-preview-text-layer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.document-preview-text-layer > :not(.markedContent),
+.document-preview-text-layer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.document-preview-text-layer .markedContent { display: contents; }
+.document-preview-text-layer ::selection { color: transparent; background: rgba(37, 99, 235, .3); }
+.document-preview-text-layer br::selection { background: transparent; }
+.document-preview-text-layer[data-main-rotation="90"] { transform: rotate(90deg) translateY(-100%); }
+.document-preview-text-layer[data-main-rotation="180"] { transform: rotate(180deg) translate(-100%, -100%); }
+.document-preview-text-layer[data-main-rotation="270"] { transform: rotate(270deg) translateX(-100%); }
 .document-preview-image { position: relative; margin-inline: auto; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
 .document-preview-image img { display: block; width: 100%; height: auto; }
 .document-preview-highlight {
