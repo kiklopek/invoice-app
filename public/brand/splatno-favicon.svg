@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+  <title id="title">Splatno</title>
+  <defs>
+    <linearGradient id="ribbon" x1="25" y1="38" x2="70" y2="66" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CDE7A4"/>
+      <stop offset="1" stop-color="#2E7D5B"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="23" fill="#12372A"/>
+  <path d="M70 16C42 15 19 27 25 45L53 34C65 29 70 24 70 16Z" fill="#CDE7A4"/>
+  <path d="M25 45L53 34C63 38 70 44 72 54L44 66C34 62 26 55 25 45Z" fill="url(#ribbon)"/>
+  <path d="M72 54C79 74 55 82 24 81C24 73 30 67 44 66L72 54Z" fill="#F7F4EA"/>
+</svg>
