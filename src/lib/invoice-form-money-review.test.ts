@@ -12,7 +12,7 @@ describe("faktura z dokumentu -- pole 'již uhrazené zálohy'", () => {
     // i když OCR (lokální i AI) nenašlo žádnou zálohu -- initial_paid zůstal
     // 0 a přesto se ukázalo needitovatelné "Zbývá k úhradě: 0.00 CZK".
     const code = source();
-    expect(code).toContain("{(needsAmountReview || detectedPrepayment) && <div className=\"wide invoice-money-review\">");
+    expect(code).toContain("{detectedPrepayment && <div className=\"wide invoice-money-review\">");
     expect(code).not.toContain("(!editing && Boolean(form.file_url))");
   });
 

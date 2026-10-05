@@ -30,6 +30,24 @@ const isdoc = (values: ExactSourceReading["values"], extra: Partial<ExactSourceR
 const qr = (values: ExactSourceReading["values"]): ExactSourceReading => ({ method: "qr", label: "QR platba", values });
 
 describe("pořadí zdrojů ISDOC > QR > ARES > AI > text", () => {
+  it.each([
+    "invoice_number", "variable_symbol", "issue_date", "due_date",
+    "counterparty_name", "counterparty_ico", "counterparty_dic",
+    "counterparty_email", "amount_without_vat", "vat_rate", "amount", "currency",
+  ] as OcrFieldName[])("předvyplní jednoznačně přečtené pole %s i s upozorněním ke kontrole", field => {
+    const reading = result("pdf_text", { counterparty_email: "ucetni@timber-pulp.cz" });
+    const value = reading.invoice[field];
+    reading.field_sources[field] = { ...reading.field_sources.counterparty_name!, text: String(value), confidence: 0.5,
+      role: field.startsWith("counterparty_") ? "counterparty" : "document" };
+    reading.field_decisions = deriveOcrFieldDecisions(reading.invoice, reading.field_sources, []);
+    expect(reading.field_decisions[field]?.status).toBe("review");
+    const prefilled = omitUnverifiedOcrValues(reading, organization);
+    expect(prefilled.invoice[field]).toBe(value);
+    expect(prefilled.field_decisions[field]).toMatchObject({ status: "review", needs_confirmation: true });
+    expect(prefilled.field_sources[field]).toEqual(reading.field_sources[field]);
+    expect(omitUnverifiedOcrValues(prefilled, organization).invoice[field]).toBe(value);
+  });
+
   it("přesný zdroj bez rozporu dá ověřené pole se svým zdrojem", () => {
     const merged = mergeOcrSources({ local: result("pdf_text"), exact: [qr({ amount: 123100.2, variable_symbol: "1443260157" })], organization });
     expect(merged.field_sources.amount?.method).toBe("qr");

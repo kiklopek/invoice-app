@@ -1,22 +1,29 @@
 import { describe, expect, it } from "vitest";
 import type { OcrFieldDecision } from "./invoice-ocr";
-import { alternativeOcrCandidates, ocrSourceLabel, pendingOcrConfirmations } from "./ocr-field-review";
+import { alternativeOcrCandidates, backfillOcrDraft, ocrSourceLabel } from "./ocr-field-review";
+import type { InvoiceInput } from "@/types/invoice";
 
 const needsConfirmation: OcrFieldDecision = { status: "review", confidence: 0.5, reasons: ["jen AI"], candidates: [], needs_confirmation: true };
 
 describe("formulář: zdroj pole a potvrzení", () => {
+  it("doplní prázdná pole staršího konceptu z nového OCR a zachová ruční změny", () => {
+    const initial: InvoiceInput = {
+      invoice_number: "FV-2026-001", variable_symbol: "2026001", issue_date: "2026-09-01", due_date: "2026-09-15",
+      counterparty_name: "Odběratel", counterparty_ico: "25322257", counterparty_dic: "CZ25322257",
+      counterparty_email: "faktury@example.cz", amount_without_vat: 1000, vat_rate: 21, amount: 1210, currency: "CZK", source: "ocr",
+    };
+    const draft = { ...initial, invoice_number: "RUČNÍ", variable_symbol: "", issue_date: "", due_date: "",
+      counterparty_name: "", counterparty_ico: "", counterparty_dic: "", counterparty_email: "", amount_without_vat: 0, amount: 0, vat_rate: 0, currency: "" };
+    const decisions = Object.fromEntries(Object.keys(initial).filter(field => field !== "source").map(field => [field, needsConfirmation]));
+    const restored = backfillOcrDraft(draft, initial, decisions);
+    expect(restored).toEqual({ ...initial, invoice_number: "RUČNÍ", vat_rate: 0 });
+    expect(draft.counterparty_dic).toBe("");
+    expect(backfillOcrDraft(draft, initial, undefined)).toEqual(draft);
+  });
+
   it("pojmenuje každý zdroj česky", () => {
     expect(["isdoc", "qr", "ares", "ai", "pdf_text", "ocr", "derived"].map(method => ocrSourceLabel(method as never)))
       .toEqual(["ISDOC", "QR platba", "ARES", "AI", "text", "text (OCR)", "dopočet"]);
-  });
-
-  it("dokud člověk hodnotu jen z jednoho zdroje nepotvrdí nebo nezmění, blokuje uložení", () => {
-    const decisions = { counterparty_email: needsConfirmation, amount: { ...needsConfirmation } };
-    const initial = { counterparty_email: "a@b.cz", amount: 3370 };
-    expect(pendingOcrConfirmations(decisions, initial, { counterparty_email: "a@b.cz", amount: 3370 }, new Set())).toEqual(["counterparty_email", "amount"]);
-    expect(pendingOcrConfirmations(decisions, initial, { counterparty_email: "a@b.cz", amount: 3370 }, new Set(["amount"]))).toEqual(["counterparty_email"]);
-    expect(pendingOcrConfirmations(decisions, initial, { counterparty_email: "jiny@b.cz", amount: 3370 }, new Set(["amount"]))).toEqual([]);
-    expect(pendingOcrConfirmations(decisions, initial, { counterparty_email: "", amount: 0 }, new Set())).toEqual([]);
   });
 
   it("nabídne ke zvolení jen hodnoty, které se liší od aktuální", () => {

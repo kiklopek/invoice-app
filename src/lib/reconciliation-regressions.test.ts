@@ -25,9 +25,9 @@ describe("reconciliation invariants", () => {
     const rows = Array.from({length:10000}, (_,i) => ({proposal_confidence:"safe", proposed_invoice_ids:[String(i % 5000)], proposal_kind:"exact", proposal_reason:"exact"}));
     expect(resolveBatchConflicts(rows).every(row => row.proposal_confidence === "review")).toBe(true);
   });
-  it("requires explicit confirmation of a document adjustment", () => {
+  it("preserves the document total without adjustment confirmation", () => {
     const input = {...invoice, counterparty_email:"test@example.cz",amount_without_vat:12942,vat_rate:21,issue_date:"2026-09-01",due_date:"2026-09-15"};
-    expect(parseInvoiceInput(input)).toBeNull();
+    expect(parseInvoiceInput(input)).toMatchObject({amount:15660});
     expect(parseInvoiceInput({...input,money_evidence:{original_total:15660,total_source:"read",adjustment:999,adjustment_reason:"Zaokrouhlení",adjustment_confirmed:true,initial_paid:0,initial_paid_confirmed:false,multi_rate:false}})).toMatchObject({amount:15660,money_evidence:{adjustment:0.18}});
   });
   it("rejects malformed amounts before computing VAT and accepts null legacy evidence", () => {

@@ -1,4 +1,5 @@
 import type { OcrFieldDecision, OcrFieldName, OcrFieldSource } from "./invoice-ocr";
+import type { InvoiceInput } from "@/types/invoice";
 
 // Pomocné funkce formuláře pro kontrolu vytěžených polí. Oddělené od React
 // komponenty, aby šly otestovat bez prohlížeče.
@@ -27,19 +28,22 @@ function filled(value: unknown) {
   return typeof value === "number" ? value !== 0 : Boolean(String(value ?? "").trim());
 }
 
-// Pole s hodnotou jen z jednoho zdroje (needs_confirmation), která ve
-// formuláři pořád drží předvyplněnou hodnotu a člověk ji ještě nepotvrdil.
-export function pendingOcrConfirmations(
+// An older draft must not hide newly extracted values on an OCR retry.
+// Preserve filled edits, including an explicitly selected zero VAT rate.
+export function backfillOcrDraft(
+  draft: InvoiceInput,
+  initial: InvoiceInput | undefined,
   decisions: Partial<Record<OcrFieldName, OcrFieldDecision>> | undefined,
-  initial: Partial<Record<OcrFieldName, unknown>> | undefined,
-  form: Partial<Record<OcrFieldName, unknown>>,
-  confirmed: ReadonlySet<OcrFieldName>,
-): OcrFieldName[] {
-  if (!decisions) return [];
-  return (Object.entries(decisions) as Array<[OcrFieldName, OcrFieldDecision | undefined]>)
-    .filter(([field, decision]) => decision?.status === "review" && decision.needs_confirmation
-      && !confirmed.has(field) && filled(form[field]) && sameValue(form[field], initial?.[field]))
-    .map(([field]) => field);
+): InvoiceInput {
+  const form = { ...draft };
+  if (!initial || !decisions) return form;
+  for (const field of Object.keys(decisions) as OcrFieldName[]) {
+    if (field === "vat_rate" && typeof form[field] === "number") continue;
+    if (!filled(form[field]) && filled(initial[field])) {
+      (form as unknown as Record<OcrFieldName, unknown>)[field] = initial[field];
+    }
+  }
+  return form;
 }
 
 export type OcrCandidateChoice = { value: string | number; sources: string[] };

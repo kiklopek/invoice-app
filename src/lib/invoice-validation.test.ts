@@ -38,7 +38,6 @@ describe("parseInvoiceInput", () => {
     expect(parseInvoiceInput({ ...validInvoice, due_date: "2026-07-31" })).toBeNull();
     expect(parseInvoiceInput({ ...validInvoice, currency: "Kč" })).toBeNull();
     expect(parseInvoiceInput({ ...validInvoice, amount: 1_000_000_000_000 })).toBeNull();
-    expect(parseInvoiceInput({ ...validInvoice, amount: 1200 })).toBeNull();
     expect(parseInvoiceInput({ ...validInvoice, vat_rate: 101 })).toBeNull();
   });
 
@@ -55,6 +54,20 @@ describe("parseInvoiceInput", () => {
       amount: 15660,
       money_evidence: { original_total: 15660, total_source: "read", adjustment: 0.18, adjustment_reason: "Zaokrouhlení na dokumentu", adjustment_confirmed: true, initial_paid: 0, initial_paid_confirmed: false, multi_rate: false },
     })).toMatchObject({ amount_without_vat: 12942, vat_rate: 21, amount: 15660 });
+  });
+
+  it("přijme rozdílný součet bez potvrzení pro import i ruční zadání", () => {
+    for (const source of ["ocr", "manual"]) {
+      for (const amount of [12403, 12000]) {
+        expect(parseInvoiceInput({ ...validInvoice, source, amount_without_vat: 10250.5, amount }))
+          .toMatchObject({ amount_without_vat: 10250.5, vat_rate: 21, amount });
+        expect(parseInvoiceInput({ ...validInvoice, source, amount_without_vat: 10250.5, amount,
+          money_evidence: { original_total: amount, total_source: "read", adjustment: 999,
+            adjustment_reason: "", adjustment_confirmed: false, initial_paid: 0,
+            initial_paid_confirmed: false, multi_rate: true },
+        })).toMatchObject({ amount, money_evidence: { adjustment_confirmed: false, adjustment_reason: "" } });
+      }
+    }
   });
 
   it("zachová kompatibilitu se starým vstupem obsahujícím pouze konečnou částku", () => {

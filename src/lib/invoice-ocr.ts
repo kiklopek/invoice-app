@@ -94,8 +94,8 @@ export type OcrFieldDecision = {
   candidates: OcrFieldCandidate[];
   // A "review" field whose value came from a single plausible source with
   // nothing contradicting it (e.g. only the AI read it, or the PDF text layer
-  // is damaged). The value stays prefilled, but the form refuses to save until
-  // a person explicitly confirms or edits it. Conflicts and rejected values
+  // is damaged). The value stays prefilled with a review tag in the form.
+  // Conflicts and rejected values
   // never carry this flag -- those are withheld from the form entirely.
   needs_confirmation?: boolean;
 };
@@ -1473,8 +1473,21 @@ export function omitUnverifiedOcrValues(result: InvoiceOcrResult, organization?:
   for (const field of OCR_REVIEW_FIELDS) {
     const decision = fieldDecisions[field];
     if (decision?.status === "verified") continue;
+    // Review describes confidence, not absence. Keep an already selected,
+    // sourced reading in the form instead of turning it into a suggestion
+    // that only appears after the person starts typing. Conflicting or
+    // rejected readings remain empty; the parser has not selected them.
+    const source = fieldSources[field];
+    const value = ocrFieldValue(invoice, field);
+    if (decision?.status === "review" && hasOcrFieldValue(invoice, field, source)
+      && source && source.role !== "issuer" && source.role !== "unknown"
+      && decision.candidates.every(candidate => candidate.role !== "issuer" && candidate.role !== "unknown"
+        && ocrValuesIdenticalForGeometry(field, candidate.value, value as string | number))) {
+      fieldDecisions[field] = { ...decision, needs_confirmation: true };
+      continue;
+    }
     // Single-source reading with nothing against it: stays prefilled, the
-    // form blocks saving until a person confirms it (see needs_confirmation).
+    // form displays a review tag (see needs_confirmation).
     if (decision?.status === "review" && decision.needs_confirmation) continue;
     (invoice as unknown as Record<OcrFieldName, string | number>)[field] = field === "amount"
       || field === "amount_without_vat"

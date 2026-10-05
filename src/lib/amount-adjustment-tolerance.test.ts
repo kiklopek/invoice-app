@@ -6,10 +6,7 @@ import { AMOUNT_ADJUSTMENT_TOLERANCE, grossFromNet } from "./vat";
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("tolerance pro rozdíl mezi zadanou a dopočítanou částkou", () => {
-  it("nevyžaduje potvrzení pro haléřové zaokrouhlení, ale drží přísnost na skutečné rozdíly", () => {
-    // Real bug: 0.04 Kč rounding remainder (routine on a multi-line invoice
-    // where each line rounds to 2 decimals before summing) forced the exact
-    // same mandatory "explain and confirm" step as a genuinely wrong amount.
+  it("rozlišuje drobné zaokrouhlení při porovnávání zdrojů OCR", () => {
     expect(AMOUNT_ADJUSTMENT_TOLERANCE).toBeGreaterThan(0);
     expect(AMOUNT_ADJUSTMENT_TOLERANCE).toBeLessThan(1); // still nowhere near "real money"
     const net = 10000, rate = 21;
@@ -19,15 +16,15 @@ describe("tolerance pro rozdíl mezi zadanou a dopočítanou částkou", () => {
     expect(Math.abs(realError - grossFromNet(net, rate))).toBeGreaterThan(AMOUNT_ADJUSTMENT_TOLERANCE);
   });
 
-  it("invoice-form.tsx a validate_invoice_money_evidence používají stejnou hodnotu", () => {
+  it("nezobrazuje výpočet ani nevyžaduje potvrzení rozdílu", () => {
     const form = source("src/components/invoice-form.tsx");
-    expect(form).toContain("Math.abs(amountDifference) > AMOUNT_ADJUSTMENT_TOLERANCE");
-    const trigger = source("supabase/migrations/20260920090000_tolerate_rounding_adjustment.sql");
-    expect(trigger).toContain("abs(difference)>0.05");
-    // 0.05 v SQL musí odpovídat AMOUNT_ADJUSTMENT_TOLERANCE v TS -- kdyby se
-    // někdy jedna hodnota změnila bez druhé, UI a databáze by se rozešly
-    // (formulář by neukázal potvrzení, které DB stejně vyžaduje, a uložení
-    // by tvrdě spadlo na unconfirmed_amount_adjustment).
-    expect(AMOUNT_ADJUSTMENT_TOLERANCE).toBe(0.05);
+    expect(form).not.toContain("needsAmountReview");
+    expect(form).not.toContain("Výpočet ze základu a sazby");
+    expect(form).not.toContain("Přepočítat celkem na");
+    expect(form).not.toContain("Důvod rozdílu");
+    const trigger = source("supabase/migrations/20261005113440_accept_invoice_total_without_adjustment_confirmation.sql");
+    expect(trigger).not.toContain("unconfirmed_amount_adjustment");
+    expect(trigger).toContain("unconfirmed_initial_payment");
+    expect(trigger).toContain("original_amount_is_immutable");
   });
 });

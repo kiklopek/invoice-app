@@ -54,8 +54,6 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     !Number.isFinite(evidence.initial_paid) || evidence.initial_paid < 0 || evidence.initial_paid > amount ||
     (evidence.initial_paid > 0 && evidence.initial_paid_confirmed !== true)
   )) return null;
-  if (difference !== 0 && (!evidence || evidence.adjustment_confirmed !== true ||
-    typeof evidence.adjustment_reason !== "string" || !evidence.adjustment_reason.trim())) return null;
 
   const optional = (key: string, maxLength: number) => {
     const result = text(body, key, maxLength);
@@ -86,8 +84,7 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
     variable_symbol: variableSymbol,
     amount_without_vat: roundMoney(amountWithoutVat),
     vat_rate: roundMoney(vatRate),
-    // Preserve the submitted document total; every nonzero difference needs
-    // explicit evidence above, rather than an implicit monetary tolerance.
+    // Preserve the submitted total independently of the base and VAT rate.
     amount: roundMoney(amount),
     ...(evidence ? { money_evidence: {
       original_total: roundMoney(evidence.original_total), total_source: evidence.total_source,

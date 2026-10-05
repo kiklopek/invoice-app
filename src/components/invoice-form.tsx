@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { clearInvoiceDraft, readInvoiceDraft, saveInvoiceDraft } from "@/lib/invoice-drafts";
 import type { InvoiceInput } from "@/types/invoice";
 import { todayInTimeZone } from "@/lib/reminders";
-import { AMOUNT_ADJUSTMENT_TOLERANCE, DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
+import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 import { minorUnits } from "@/lib/money";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import type { ReminderPolicySummary } from "@/lib/reminder-policies";
 import { relevantOcrWarnings, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource, type OcrReminderPolicyAssignment } from "@/lib/invoice-ocr";
 import { normalizeCounterpartyIco } from "@/lib/counterparty-reminder-preferences";
-import { alternativeOcrCandidates, ocrSourceLabel, pendingOcrConfirmations } from "@/lib/ocr-field-review";
+import { alternativeOcrCandidates, backfillOcrDraft, ocrSourceLabel } from "@/lib/ocr-field-review";
 import { INVOICE_CURRENCIES, normalizeInvoiceCurrency, unambiguousCurrency } from "@/lib/invoice-currency";
 
 export const createEmptyInvoice = (): InvoiceInput => ({
@@ -30,21 +30,6 @@ export const createEmptyInvoice = (): InvoiceInput => ({
   notes: "",
   source: "manual",
 });
-
-const OCR_FIELD_LABELS: Record<OcrFieldName, string> = {
-  invoice_number: "číslo faktury",
-  variable_symbol: "variabilní symbol",
-  issue_date: "datum vystavení",
-  due_date: "datum splatnosti",
-  counterparty_name: "název odběratele",
-  counterparty_ico: "IČO",
-  counterparty_dic: "DIČ",
-  counterparty_email: "e-mail",
-  amount_without_vat: "částka bez DPH",
-  vat_rate: "sazba DPH",
-  amount: "celková hodnota",
-  currency: "měna",
-};
 
 type CustomerSearchResult = { id: string; name: string; ico: string | null; dic: string | null; email: string | null };
 
@@ -111,11 +96,10 @@ export function InvoiceForm({
       ?? unambiguousCurrency(ocrFieldSources?.amount?.text ?? "");
     // An OCR import that left the currency empty did so on purpose (several
     // currencies, or a bare "$"): keep it empty for the person to choose.
-    return { ...draft, currency: normalizeInvoiceCurrency(draft.currency) || initial?.currency || sourceCurrency || (initial ? "" : "CZK") };
+    return { ...backfillOcrDraft(draft, initial, ocrFieldDecisions), currency: normalizeInvoiceCurrency(draft.currency) || initial?.currency || sourceCurrency || (initial ? "" : "CZK") };
   });
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [confirmedFields, setConfirmedFields] = useState<ReadonlySet<OcrFieldName>>(() => new Set());
   const [dirty, setDirty] = useState(() => Boolean(readInvoiceDraft(draftKey)));
   const [error, setError] = useState("");
   const [policies, setPolicies] = useState<ReminderPolicySummary[]>([]);
@@ -174,7 +158,6 @@ export function InvoiceForm({
     } }));
   }
 
-  const needsAmountReview = Math.abs(amountDifference) > AMOUNT_ADJUSTMENT_TOLERANCE;
   const detectedPrepayment = (form.money_evidence?.initial_paid ?? 0) > 0;
 
   useEffect(() => {
@@ -283,9 +266,6 @@ export function InvoiceForm({
   const source = (fieldName: OcrFieldName) => ocrFieldSources?.[fieldName];
   const decision = (fieldName: OcrFieldName) => ocrFieldDecisions?.[fieldName];
   const formValues = form as unknown as Partial<Record<OcrFieldName, unknown>>;
-  // Pole přečtená jen jedním zdrojem zůstávají předvyplněná, ale uložit je
-  // lze až poté, co je člověk potvrdí nebo přepíše (needs_confirmation).
-  const pendingConfirmations = pendingOcrConfirmations(ocrFieldDecisions, initial as unknown as Partial<Record<OcrFieldName, unknown>> | undefined, formValues, confirmedFields);
   const applyCandidate = (fieldName: OcrFieldName, value: string | number) => {
     if (fieldName === "amount") setGrossAmount(Number(value));
     else if (fieldName === "amount_without_vat") setNetAmount(Number(value));
@@ -297,14 +277,12 @@ export function InvoiceForm({
     : {};
   const ocrMeta = (fieldName: OcrFieldName) => {
     const choices = alternativeOcrCandidates(decision(fieldName), formValues[fieldName]);
-    const pending = pendingConfirmations.includes(fieldName);
     const candidateFor = (value: string | number) => decision(fieldName)?.candidates.find(candidate => String(candidate.value) === String(value));
     const optionalMissing = decision(fieldName)?.status === "missing" && ["variable_symbol", "counterparty_ico", "counterparty_dic", "currency"].includes(fieldName);
     return <>
       {!optionalMissing && <OcrSourceNote source={source(fieldName)} decision={decision(fieldName)} ico={form.counterparty_ico}/>}
-      {(choices.length > 0 || pending) && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
+      {choices.length > 0 && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
         {choices.map(choice => <button type="button" className="btn secondary compact" key={`${fieldName}-${choice.value}`} onClick={() => applyCandidate(fieldName, choice.value)} onMouseEnter={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))} onFocus={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))}>Použít {choice.value} <small>({choice.sources.join(", ")})</small></button>)}
-        {pending && <button type="button" className="btn secondary compact" onClick={() => setConfirmedFields(current => new Set([...current, fieldName]))}>Potvrdit hodnotu podle dokumentu</button>}
       </span>}
     </>;
   };
@@ -323,10 +301,8 @@ export function InvoiceForm({
   if (form.issue_date && form.due_date && form.due_date < form.issue_date) submitBlockers.push("Datum splatnosti nemůže být dřív než datum vystavení.");
   if (!(form.amount_without_vat > 0)) submitBlockers.push("Částka bez DPH musí být větší než 0.");
   if (!(form.amount > 0)) submitBlockers.push("Částka s DPH musí být větší než 0.");
-  if (Math.abs(amountDifference) > AMOUNT_ADJUSTMENT_TOLERANCE && (!form.money_evidence?.adjustment_confirmed || !form.money_evidence.adjustment_reason.trim())) submitBlockers.push("Vysvětlete a potvrďte rozdíl mezi celkovou částkou a výpočtem DPH.");
   if ((form.money_evidence?.initial_paid ?? 0) > 0 && !form.money_evidence?.initial_paid_confirmed) submitBlockers.push("Potvrďte počáteční úhrady podle dokumentu.");
   if (form.vat_rate < 0 || form.vat_rate > 100) submitBlockers.push("Sazba DPH musí být mezi 0 a 100 %.");
-  if (pendingConfirmations.length) submitBlockers.push(`Potvrďte nebo opravte údaje, které přečetl jen jeden zdroj: ${pendingConfirmations.map(name => OCR_FIELD_LABELS[name]).join(", ")}.`);
   if (policiesLoading) submitBlockers.push("Načítají se kategorie upomínek…");
   else if (policiesError) submitBlockers.push("Kategorie upomínek se nepodařilo načíst – zkuste to znovu výše.");
   else if (!policies.length) submitBlockers.push("Organizace zatím nemá žádnou aktivní kategorii upomínek – vytvořte ji v Nastavení → Upomínky.");
@@ -435,13 +411,7 @@ export function InvoiceForm({
       <label {...fieldHooks("amount_without_vat")}><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/>{ocrMeta("amount_without_vat")}</label>
       <label {...fieldHooks("vat_rate")}><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small>{ocrMeta("vat_rate")}</label>
       <label {...fieldHooks("amount")}><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small>{ocrMeta("amount")}</label>
-      {(needsAmountReview || detectedPrepayment) && <div className="wide invoice-money-review">
-        {needsAmountReview && <p>Výpočet ze základu a sazby: {calculatedTotal.toFixed(2)} {form.currency}. Rozdíl: {amountDifference.toFixed(2)} {form.currency}.</p>}
-        {needsAmountReview && <>
-          {!form.money_evidence?.multi_rate && <button type="button" className="btn secondary compact" onClick={() => { setGrossAmount(calculatedTotal); }}>Přepočítat celkem na {calculatedTotal.toFixed(2)} {form.currency}</button>}
-          <label><span>Důvod rozdílu (zaokrouhlení, více sazeb nebo jiná položka)</span><input required value={form.money_evidence?.adjustment_reason ?? ""} onChange={e => updateMoneyEvidence({ adjustment_reason: e.target.value, adjustment_confirmed: false })}/></label>
-          <label className="invoice-money-confirm"><input type="checkbox" required checked={form.money_evidence?.adjustment_confirmed ?? false} onChange={e => updateMoneyEvidence({ adjustment_confirmed: e.target.checked })}/>Potvrzuji celkovou hodnotu a rozdíl podle dokumentu.</label>
-        </>}
+      {detectedPrepayment && <div className="wide invoice-money-review">
         {editing && detectedPrepayment && <p>Počáteční úhrada při importu: {form.money_evidence?.initial_paid.toFixed(2)} {form.currency}. Opravy provádějte v evidenci plateb.</p>}
         {!editing && detectedPrepayment && <>
           <label><span>Již uhrazené zálohy / úhrady před importem</span><input type="number" min="0" max={form.amount} step="0.01" value={form.money_evidence?.initial_paid ?? 0} onChange={e => updateMoneyEvidence({ initial_paid: Number(e.target.value), initial_paid_confirmed: false })}/><small>Zbývá k úhradě: {((minorUnits(form.amount) - minorUnits(form.money_evidence?.initial_paid ?? 0)) / 100).toFixed(2)} {form.currency}</small></label>
