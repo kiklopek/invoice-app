@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit",
     "validate:env": "node scripts/validate-production-env.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "audit:ci": "corepack pnpm audit --audit-level high",
+    "audit:ci": "corepack pnpm exec vitest run src/lib/braces-security.test.ts && corepack pnpm audit --audit-level high",
     "test": "vitest run src",
     "test:e2e": "playwright test",
     "check:mobile": "node scripts/mobile-viewport-check.mjs"
@@ -68,7 +68,16 @@
   },
   "pnpm": {
     "overrides": {
-      "js-yaml": "4.3.2"
+      "js-yaml": "4.3.2",
+      "brace-expansion@>=1 <2": "1.1.21",
+      "brace-expansion@>=2 <3": "2.1.6",
+      "brace-expansion@>=4 <6": "5.0.12"
+    },
+    "patchedDependencies": {
+      "braces@3.0.3": "patches/braces@3.0.3.patch"
+    },
+    "auditConfig": {
+      "ignoreCves": ["CVE-2026-93687"]
     }
   }
 }
