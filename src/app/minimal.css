@@ -2454,6 +2454,15 @@ th,
 .mobile-disclosure,
 .mobile-disclosure-content { display: contents; }
 .mobile-disclosure-toggle { display: none; }
+.mobile-disclosure-chevron {
+  display: block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  transform-origin: center;
+  transition: transform .18s ease;
+}
+.mobile-disclosure.is-open .mobile-disclosure-chevron { transform: rotate(180deg); }
 
 @media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
   html, body {
@@ -2562,8 +2571,6 @@ th,
     font-weight: 750;
     text-align: left;
   }
-  .mobile-disclosure-chevron { flex: none; font-size: 20px; line-height: 1; transition: transform .18s ease; }
-  .mobile-disclosure.is-open .mobile-disclosure-chevron { transform: rotate(180deg); }
   .mobile-disclosure-content { display: none; padding-top: 8px; }
   .mobile-disclosure.is-open .mobile-disclosure-content { display: block; }
   .mobile-filter-disclosure .filter-panel,
