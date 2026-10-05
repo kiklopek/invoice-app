@@ -6,6 +6,70 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, clamp(510px, 40%, 650px));
 }
 
+.page :global(.dashboard-balance-card) {
+  container-type: inline-size;
+  min-height: 320px;
+  padding: 32px 36px;
+  justify-content: flex-start;
+}
+
+.page :global(.dashboard-balance-topline) {
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 1.5px;
+}
+
+.page :global(.dashboard-live-state) {
+  gap: 9px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.page :global(.dashboard-balance-card > strong) {
+  margin-top: 26px;
+  font-size: clamp(44px, 10cqi, 72px);
+  line-height: 1.08;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :global(.dashboard-balance-card > p) {
+  margin-top: 12px;
+  color: #d0e1d5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.page :global(.dashboard-balance-actions) {
+  gap: 12px 24px;
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.page :global(.dashboard-balance-actions a) {
+  justify-content: center;
+  min-height: 50px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.page :global(.dashboard-balance-actions a:first-child) {
+  gap: 24px;
+  padding: 14px 20px;
+}
+
+.page :global(.dashboard-balance-actions a:hover) {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.page :global(.dashboard-balance-actions a:focus-visible) {
+  outline: 2px solid #d0e7bb;
+  outline-offset: 5px;
+}
+
 .side {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, var(--dashboard-aside-width));
@@ -239,6 +303,32 @@
 }
 
 @media (max-width: 600px) {
+  .page :global(.dashboard-balance-card) {
+    min-height: 0;
+    padding: 26px 24px;
+  }
+
+  .page :global(.dashboard-balance-topline) {
+    gap: 12px;
+  }
+
+  .page :global(.dashboard-balance-card > strong) {
+    margin-top: 22px;
+    font-size: clamp(36px, 10cqi, 52px);
+  }
+
+  .page :global(.dashboard-balance-actions) {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 0;
+    padding-top: 24px;
+  }
+
+  .page :global(.dashboard-balance-actions a:first-child) {
+    justify-content: space-between;
+  }
+
   .side {
     grid-template-columns: minmax(0, 1fr);
   }
