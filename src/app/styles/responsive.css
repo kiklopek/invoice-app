@@ -902,10 +902,6 @@
     white-space: nowrap;
   }
 
-  .dashboard-invoice-table {
-    overflow: visible !important;
-  }
-
   .dashboard-invoice-table > table {
     display: none !important;
   }

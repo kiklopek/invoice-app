@@ -118,7 +118,7 @@ try {
   const zoomPage = await browser.newPage({ deviceScaleFactor: 2 });
   const browserErrors = [];
   page.on('pageerror', error => browserErrors.push(error.message));
-  for (role of ['admin', 'viewer']) {
+  for (role of process.argv.includes('--touch-only') ? [] : ['admin', 'viewer']) {
     for (const scenario of ['normal', 'stress', 'empty', 'error']) {
       const html = htmlFor(scenario === 'stress', scenario === 'empty', scenario === 'error');
       writeFileSync(join(output, `${role}-${scenario}.html`), html);
@@ -153,7 +153,8 @@ try {
           }
           for (const element of document.querySelectorAll('.dashboard-invoice-table, .dashboard-attention-panel .timeline')) {
             if (!fixedViewport && element.getBoundingClientRect().height > 421) problems.push({ tooTallList: element.className });
-            if (fixedViewport && element.scrollHeight > element.clientHeight + 1) {
+            if (element.scrollHeight > element.clientHeight + 1) {
+              if (!['auto', 'scroll'].includes(getComputedStyle(element).overflowY)) problems.push({ listOverflowNotScrollable: element.className });
               element.scrollTop = element.scrollHeight;
               if (element.scrollTop < element.scrollHeight - element.clientHeight - 1) problems.push({ listCannotScroll: element.className });
               element.scrollTop = 0;
@@ -227,6 +228,59 @@ try {
           await page.screenshot({ path: join(output, `${width}.png`), fullPage: true });
         }
       }
+    }
+  }
+  // Real touch gestures must scroll both collections, then continue down the page at their edge.
+  const touchPage = await browser.newPage({ isMobile: true, hasTouch: true });
+  const touchSession = await touchPage.context().newCDPSession(touchPage);
+  async function swipe(selector, direction = -1) {
+    const point = await touchPage.locator(selector).evaluate((element, direction) => {
+      const rect = element.getBoundingClientRect();
+      const top = Math.max(rect.top, 80);
+      const bottom = Math.min(rect.bottom, innerHeight);
+      return { x: rect.left + rect.width / 2, y: direction < 0 ? bottom - 25 : top + 25, distance: Math.min(200, bottom - top - 50) };
+    }, direction);
+    await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: point.x, y: point.y }] });
+    for (let step = 1; step <= 10; step++) {
+      await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: point.x, y: point.y + direction * step * point.distance / 10 }] });
+      await touchPage.waitForTimeout(16);
+    }
+    await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+  for (role of ['admin', 'viewer']) {
+    for (const [width, height] of [[320, 640], [390, 844], [768, 1024], [844, 390]]) {
+      await touchPage.goto('about:blank');
+      await touchPage.setViewportSize({ width, height });
+      await touchPage.setContent(htmlFor(false));
+      await touchPage.addStyleTag({ content: '* { scroll-behavior: auto !important; }' });
+      const failures = [];
+      for (const selector of ['.dashboard-invoice-table', '.dashboard-attention-panel .timeline']) {
+        const list = touchPage.locator(selector);
+        await list.evaluate(element => {
+          element.scrollTop = 0;
+          element.scrollIntoView({ block: 'center', behavior: 'instant' });
+        });
+        await swipe(selector);
+        try {
+          await touchPage.waitForFunction(selector => document.querySelector(selector).scrollTop > 0, selector, { timeout: 1000 });
+        } catch { failures.push({ touchCannotScroll: selector }); }
+        await touchPage.goto('about:blank');
+        await touchPage.setContent(htmlFor(false));
+        await touchPage.addStyleTag({ content: '* { scroll-behavior: auto !important; }' });
+        await list.evaluate(element => {
+          element.scrollTop = 0;
+          element.scrollIntoView({ block: 'center', behavior: 'instant' });
+        });
+        const pageScroll = await touchPage.evaluate(() => window.scrollY);
+        await swipe(selector, 1);
+        try {
+          await touchPage.waitForFunction(previous => window.scrollY < previous - 1, pageScroll, { timeout: 1000 });
+        } catch { failures.push({ touchCannotContinuePage: selector }); }
+        await touchPage.goto('about:blank');
+        await touchPage.setContent(htmlFor(false));
+        await touchPage.addStyleTag({ content: '* { scroll-behavior: auto !important; }' });
+      }
+      results.push({ role, scenario: 'touch', width, height, failures });
     }
   }
 } finally { await browser.close(); }

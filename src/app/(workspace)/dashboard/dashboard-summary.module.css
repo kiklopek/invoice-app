@@ -295,9 +295,11 @@
     flex: 0 1 auto;
     min-height: 0 !important;
     max-height: 420px;
+    overflow-x: hidden;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    overscroll-behavior: contain;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
   }
   .page.page :global(.dashboard-invoice-table > table) {
     display: table !important;
@@ -539,6 +541,7 @@
     .page.page :global(.dashboard-attention-panel .timeline) {
       flex: 1 1 0;
       max-height: none;
+      overscroll-behavior: contain;
     }
   }
   @media (min-width: 1181px) and (min-height: 700px) and (max-height: 760px) {
