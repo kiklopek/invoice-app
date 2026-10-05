@@ -10,7 +10,7 @@ const css = () => read("src/app/minimal.css");
 const responsiveCss = () => read("src/app/styles/responsive.css");
 
 describe("import faktury: údaje vlevo, náhled dokladu vpravo", () => {
-  it("rozdělí obrazovku jen u dokumentu s OCR a zachová formulář", () => {
+  it("rozdělí obrazovku u načteného dokumentu a zachová formulář i bez OCR", () => {
     const source = page();
     expect(source).toContain("invoice-import-split");
     expect(source).toContain("<DocumentPreview");

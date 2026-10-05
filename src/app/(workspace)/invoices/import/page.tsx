@@ -114,7 +114,8 @@ export default function ImportInvoicesPage() {
   const active = queue[activeIndex];
   const uploaded = active?.invoice ?? null;
   const ocrInfo = active?.ocrInfo ?? null;
-  const splitMode = mode === "document" && Boolean(uploaded && ocrInfo) && active?.status !== "error" && active?.status !== "processing" && active?.status !== "pending";
+  // The original document remains available for manual review even if OCR fails.
+  const splitMode = mode === "document" && Boolean(uploaded) && active?.status !== "error" && active?.status !== "processing" && active?.status !== "pending";
   const documentHighlight = useMemo<DocumentHighlight | null>(() => {
     if (!splitMode || !active || !uploaded || !activeField || activeField.file !== active.file) return null;
     const { field, candidate } = activeField;
