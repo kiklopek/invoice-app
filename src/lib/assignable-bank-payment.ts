@@ -6,10 +6,13 @@ export type AssignableBankPayment = {
   variable_symbol: string | null;
   counterparty_name: string | null;
   match_status: "unmatched" | "ambiguous";
+  recommended: boolean;
+  unavailable_reason: string | null;
 };
 
 export type AssignableBankPaymentsResponse = {
   payments: AssignableBankPayment[];
+  remaining_amount: number;
 };
 
 export async function assignBankPaymentToInvoice(paymentId: string, invoiceId: string) {
@@ -20,5 +23,5 @@ export async function assignBankPaymentToInvoice(paymentId: string, invoiceId: s
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Platbu se nepodařilo přiřadit.");
-  return data as { invoice_status?: string; settlement?: string };
+  return data as { invoice_status?: "pending" | "overdue" | "paid"; settlement?: string; paid_amount?: number; remaining?: number };
 }

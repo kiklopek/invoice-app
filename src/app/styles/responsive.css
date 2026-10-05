@@ -105,6 +105,26 @@
   overflow-wrap: anywhere;
 }
 
+@media screen and (min-width: 641px) {
+  .top-debtors-table th:nth-child(n + 2),
+  .top-debtors-table td:nth-child(n + 2) {
+    text-align: center;
+  }
+}
+
+/* Page headings share the same inset as the invoice list. */
+@media screen {
+  .app-shell > .content :is(.topbar, .section-header) > div:first-child:has(> h1) {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline-start: clamp(12px, 2vw, 32px);
+    overflow-wrap: anywhere;
+  }
+  .app-shell > .content :is(.customers-hero, .reminders-hero, .payments-hero) {
+    padding-inline-start: 0;
+  }
+}
+
 /* Invoice controls follow the available panel width, including split windows. */
 @media screen {
   .invoice-list-header { flex-wrap: wrap; }
@@ -467,6 +487,57 @@
     min-width: 0;
     max-width: 100%;
   }
+}
+
+@media screen and (min-width: 768px) {
+  .customers-list-table table { table-layout: fixed; }
+  .customers-list-table th:nth-child(3),
+  .customers-list-table th:nth-child(4),
+  .customers-list-table th:nth-child(5),
+  .customers-list-table th:nth-child(6),
+  .customers-list-table .customer-billing-cell,
+  .customers-list-table .customer-outstanding-cell,
+  .customers-list-table .customer-reminders-cell,
+  .customers-list-table .customer-last-invoice-cell {
+    text-align: center;
+  }
+  .customers-list-table .customer-identity { min-width: 0; }
+  .customers-list-table .customer-identity strong,
+  .customers-list-table .customer-billing-cell strong,
+  .customers-list-table .outstanding-badge,
+  .customers-list-table .reminder-policy-badge {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .customers-list-table .customer-billing-cell strong,
+  .customers-list-table .outstanding-badge { font-variant-numeric: tabular-nums; }
+}
+
+@media screen and (min-width: 1280px) {
+  .customers-list-table th:nth-child(1) { width: 24%; }
+  .customers-list-table th:nth-child(2) { width: 22%; }
+  .customers-list-table th:nth-child(3),
+  .customers-list-table th:nth-child(4) { width: 15%; }
+  .customers-list-table th:nth-child(5) { width: 13%; }
+  .customers-list-table th:nth-child(6) { width: 11%; }
+  .customers-list-table .customer-contact-cell { display: table-cell; min-width: 0; }
+  .customers-list-table .customer-email-display { max-width: 100%; white-space: normal; }
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  .customers-list-table th:nth-child(1) { width: 28%; }
+  .customers-list-table th:nth-child(3),
+  .customers-list-table th:nth-child(4),
+  .customers-list-table th:nth-child(5) { width: 19%; }
+  .customers-list-table th:nth-child(6) { width: 15%; }
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .customers-list-table th:nth-child(1) { width: 34%; }
+  .customers-list-table th:nth-child(3),
+  .customers-list-table th:nth-child(4),
+  .customers-list-table th:nth-child(5) { width: 22%; }
 }
 
 /* Tablet ponechává tabulkovou hustotu desktopu. Starší pravidla do 780 px
@@ -1485,6 +1556,16 @@
  * upomínky. Vlastní mřížka zabraňuje tomu, aby se jeho buňky skládaly do
  * oblastí určených pro aktivní faktury. */
 @media screen and (min-width: 768px) {
+  @container invoice-table (min-width: 1180.01px) {
+    .archive-invoice-table th:nth-child(4),
+    .archive-invoice-table th:nth-child(5),
+    .archive-invoice-table th:nth-child(6),
+    .archive-invoice-table .archive-invoice-issued,
+    .archive-invoice-table .archive-invoice-due,
+    .archive-invoice-table .archive-invoice-paid-at {
+      text-align: center;
+    }
+  }
   @container invoice-table (max-width: 1180px) {
     .archive-invoice-table tr {
       grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr);
@@ -1768,6 +1849,21 @@
   }
 }
 
+@media screen and (max-width: 359px) {
+  .archive-invoice-table .archive-invoice-issued,
+  .archive-invoice-table .archive-invoice-due {
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  .archive-invoice-table .archive-invoice-issued::before,
+  .archive-invoice-table .archive-invoice-due::before {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+}
+
 @media screen {
   .archive-invoice-table .invoice-row.is-paid {
     border-color: #dce4dd !important;
@@ -1827,6 +1923,34 @@
 }
 
 @media screen and (min-width: 768px) {
+  @container invoice-table (min-width: 1180.01px) {
+    .active-invoice-table table { table-layout: fixed; }
+    .active-invoice-table th:nth-child(1) { width: 13%; }
+    .active-invoice-table th:nth-child(2) { width: 18%; }
+    .active-invoice-table th:nth-child(3) { width: 16%; }
+    .active-invoice-table th:nth-child(4),
+    .active-invoice-table th:nth-child(5) { width: 10%; }
+    .active-invoice-table th:nth-child(6) { width: 8%; }
+    .active-invoice-table th:nth-child(7) { width: 12%; }
+    .active-invoice-table th:nth-child(8) { width: 13%; }
+    .active-invoice-table th:nth-child(4),
+    .active-invoice-table th:nth-child(5),
+    .active-invoice-table th:nth-child(6),
+    .active-invoice-table th:nth-child(7),
+    .active-invoice-table td.invoice-card-issued,
+    .active-invoice-table td.invoice-card-due,
+    .active-invoice-table td.invoice-card-reminders,
+    .active-invoice-table td.invoice-card-status,
+    .active-invoice-table td.invoice-card-action {
+      text-align: center;
+    }
+    .active-invoice-table td.invoice-card-status .status {
+      display: flex;
+      width: fit-content;
+      margin: 3px auto;
+    }
+  }
+
   @container invoice-table (max-width: 1180px) {
     .active-invoice-table .invoice-row {
       grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1fr);

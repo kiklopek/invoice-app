@@ -215,19 +215,17 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
     try {
       if (invoice?.status !== "paid" && selectedBankPaymentId) {
         const assignment = await assignBankPaymentToInvoice(selectedBankPaymentId, id);
-        if (assignment.invoice_status !== "paid") throw new Error("Platba byla přiřazena, ale nepokryla celý zbývající zůstatek faktury.");
         await refreshDetail();
         void invalidateWorkspaceData();
+        setNotice(assignment.settlement === "partial"
+          ? "Bankovní platba byla přiřazena jako částečná úhrada. Faktura zůstává otevřená."
+          : "Bankovní platba byla přiřazena a faktura je uhrazená.");
       } else {
         if (invoice?.status !== "paid" && !confirmWithoutBankPayment) return;
         await patch({ status: "paid", paid_on: paymentDate });
+        setNotice("Úhrada byla zapsána. Další automatické upomínky se zastavily.");
       }
       setRecordingPayment(false);
-      setNotice(
-        selectedBankPaymentId
-          ? "Bankovní platba byla přiřazena a faktura je uhrazená."
-          : "Úhrada byla zapsána. Další automatické upomínky se zastavily.",
-      );
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Úhradu se nepodařilo zapsat.",
@@ -570,7 +568,9 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
             <p>
               {invoice.status === "paid"
                 ? "Změna se promítne do přehledů a reportů."
-                : "Faktura bude označena jako zaplacená a automatické upomínky se zastaví."}
+                : selectedBankPaymentId
+                  ? "Bankovní platba se přiřadí k faktuře. Upomínky se zastaví po úplné úhradě."
+                  : "Faktura bude označena jako zaplacená a automatické upomínky se zastaví."}
             </p>
           </div>
           <button

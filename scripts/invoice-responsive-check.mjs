@@ -13,13 +13,13 @@ import { chromium } from "@playwright/test";
 const require = createRequire(import.meta.url);
 const output = join(tmpdir(), "invoice-responsive-check");
 mkdirSync(output, { recursive: true });
-const invoices = ["overdue", "pending", "paid", "cancelled"].map((status, index) => ({
+const invoices = ["overdue", "pending", "paid", "cancelled", "pending", "overdue"].map((status, index) => ({
   id: `stress-${index}`, status,
   invoice_number: index === 0 ? "FV-2026-DLOUHECISLOFAKTURY-123456789" : `FV-2026-${index + 1}`,
   variable_symbol: "20261234567890123456",
   counterparty_name: index === 0 ? "Mezinárodní stavební a obchodní společnost s velmi dlouhým názvem s.r.o." : "Zákazník s.r.o.",
   counterparty_email: "fakturace.dlouhaadresa@velmidlouhadomena-zakaznika.example.cz",
-  amount: index === 0 ? 999999999999.99 : 1234567.89,
+  amount: [999999999999.99, 1234567.89, 1234567.89, 9999999999, 999999999999999, 23887][index],
   paid_amount: status === "paid" ? 1234567.89 : 123456.78,
   currency: index === 0 ? "CHF" : "CZK", issue_date: "2026-09-01", due_date: "2026-10-15", reminders_sent: 12,
 }));
@@ -89,6 +89,22 @@ try {
         }
         const amount = row.querySelector(".invoice-card-amount");
         if (getComputedStyle(amount).display === "flex" && getComputedStyle(amount).textAlign !== "center") problems.push({ alignment: "amount is not centered" });
+        const amountText = amount.querySelector("strong");
+        if (amountText.getBoundingClientRect().bottom > amount.getBoundingClientRect().bottom + 1) problems.push({ amountClipped: true });
+        if (getComputedStyle(row).display === "table-row") {
+          const headers = row.closest("table").querySelectorAll("th");
+          for (const [index, selector] of [[2, ".invoice-card-amount strong"], [5, ".invoice-card-reminders > span"], [6, ".invoice-card-status .status"]]) {
+            const range = document.createRange();
+            range.selectNodeContents(headers[index]);
+            const heading = range.getBoundingClientRect();
+            for (const value of row.querySelectorAll(selector)) {
+              const rect = value.getBoundingClientRect();
+              if (!rect.width || !rect.height) continue;
+              const offset = Math.abs((heading.left + heading.right - rect.left - rect.right) / 2);
+              if (offset > 1) problems.push({ misalignedColumn: headers[index].textContent, offset });
+            }
+          }
+        }
       }
       return problems;
     });

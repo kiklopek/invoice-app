@@ -7,6 +7,7 @@ import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PAGE_SIZE = 500;
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -24,24 +25,42 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     logError("Fakturu se nepodařilo načíst", invoiceError);
     return apiError(request, "Fakturu se nepodařilo načíst.", 500, "assignable_payments_invoice_read_failed");
   }
-  if (!invoice || !["pending", "overdue"].includes(invoice.status)) return NextResponse.json({ payments: [] }, { headers: { "cache-control": "private, no-store" } });
+  if (!invoice || !["pending", "overdue"].includes(invoice.status)) return NextResponse.json({ payments: [], remaining_amount: 0 }, { headers: { "cache-control": "private, no-store" } });
 
-  const remaining = (minorUnits(Number(invoice.amount)) - minorUnits(Number(invoice.paid_amount))) / 100;
-  if (remaining <= 0) return NextResponse.json({ payments: [] }, { headers: { "cache-control": "private, no-store" } });
-  const { data, error: paymentsError } = await identity.service.from("bank_payments")
-    .select("id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status")
-    .eq("organization_id", organizationId)
-    .in("match_status", ["unmatched", "ambiguous"])
-    .eq("currency", invoice.currency)
-    .eq("amount", remaining)
-    .order("booked_on", { ascending: false })
-    .limit(100);
-  if (paymentsError) {
-    logError("Platby se nepodařilo načíst", paymentsError);
-    return apiError(request, "Platby se nepodařilo načíst.", 500, "assignable_payments_read_failed");
+  const remaining = minorUnits(invoice.amount) - minorUnits(invoice.paid_amount);
+  if (remaining <= 0) return NextResponse.json({ payments: [], remaining_amount: 0 }, { headers: { "cache-control": "private, no-store" } });
+  const payments: AssignableBankPayment[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data, error: paymentsError } = await identity.service.from("bank_payments")
+      .select("id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status")
+      .eq("organization_id", organizationId)
+      .in("match_status", ["unmatched", "ambiguous"])
+      .is("invoice_id", null)
+      .order("booked_on", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (paymentsError) {
+      logError("Platby se nepodařilo načíst", paymentsError);
+      return apiError(request, "Platby se nepodařilo načíst.", 500, "assignable_payments_read_failed");
+    }
+    for (const payment of data ?? []) {
+      const amount = minorUnits(payment.amount);
+      const sameCurrency = payment.currency === invoice.currency;
+      payments.push({
+        ...payment,
+        match_status: payment.match_status as AssignableBankPayment["match_status"],
+        amount: Number(payment.amount),
+        recommended: sameCurrency && amount === remaining,
+        unavailable_reason: !sameCurrency
+          ? "Jiná měna než na faktuře"
+          : amount > remaining ? "Částka převyšuje zbývající úhradu" : null,
+      });
+    }
+    if (!data || data.length < PAGE_SIZE) break;
   }
+  payments.sort((a, b) => Number(b.recommended) - Number(a.recommended));
   return NextResponse.json(
-    { payments: (data ?? []).map((payment) => ({ ...payment, amount: Number(payment.amount) })) as AssignableBankPayment[] },
+    { payments, remaining_amount: remaining / 100 },
     { headers: { "cache-control": "private, no-store" } },
   );
 }

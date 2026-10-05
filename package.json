@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "node scripts/next-clean-env.mjs dev",
+    "dev": "node scripts/next-clean-env.mjs dev --webpack",
     "dev:webpack": "node scripts/next-clean-env.mjs dev --webpack",
     "build": "node scripts/next-clean-env.mjs build --webpack",
     "start": "node scripts/next-clean-env.mjs start",

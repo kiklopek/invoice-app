@@ -36,14 +36,19 @@ const statusLabel = {
   paid: "Zaplaceno",
   cancelled: "Stornováno",
 };
-const formatTotals = (totals: Record<string, number>) => {
+function CurrencyTotals({ totals }: { totals: Record<string, number> }) {
   const rows = Object.entries(totals).sort(([a], [b]) => a.localeCompare(b));
-  return rows.length
-    ? rows
-        .map(([currency, amount]) => money(Number(amount), currency))
-        .join(" + ")
-    : money(0);
-};
+  return (
+    <span className="dashboard-currency-totals">
+      {(rows.length ? rows : [["CZK", 0] as const]).map(([currency, amount], index) => (
+        <span className="dashboard-currency-total" key={currency}>
+          {index > 0 ? <span className="dashboard-currency-separator">+ </span> : null}
+          {money(Number(amount), currency)}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 export function DashboardClient({ initialData }: { initialData: DashboardPageData }) {
   const router = useRouter();
@@ -73,8 +78,10 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
               <span>CELKOVĚ K ÚHRADĚ</span>
               <span className="dashboard-live-state"><i /> Aktuální stav</span>
             </div>
-            <strong>{formatTotals(summary.open_totals)}</strong>
-            <p>{activeCount} aktivních faktur čeká na úplné uhrazení</p>
+            <div className="dashboard-balance-summary">
+              <strong><CurrencyTotals totals={summary.open_totals} /></strong>
+              <p>{activeCount} aktivních faktur čeká na úplné uhrazení</p>
+            </div>
             <div className="dashboard-balance-actions">
               <Link href="/invoices">Zobrazit pohledávky <span>→</span></Link>
               <Link href="/reports">Otevřít reporty</Link>
@@ -84,11 +91,11 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
           <div className="dashboard-signal-grid">
             <article className="dashboard-signal critical">
               <span className="dashboard-signal-icon"><Icon name="clock" /></span>
-              <div><small>Po splatnosti</small><strong>{formatTotals(summary.overdue_totals)}</strong><p>{summary.overdue_count} {summary.overdue_count === 1 ? "faktura vyžaduje" : "faktur vyžaduje"} pozornost</p></div>
+              <div><small>Po splatnosti</small><strong><CurrencyTotals totals={summary.overdue_totals} /></strong><p>{summary.overdue_count} {summary.overdue_count === 1 ? "faktura vyžaduje" : "faktur vyžaduje"} pozornost</p></div>
             </article>
             <article className="dashboard-signal positive">
               <span className="dashboard-signal-icon"><Icon name="check" /></span>
-              <div><small>Celkem přijato</small><strong>{formatTotals(summary.paid_totals)}</strong><p>Včetně částečných úhrad</p></div>
+              <div><small>Celkem přijato</small><strong><CurrencyTotals totals={summary.paid_totals} /></strong><p>Včetně částečných úhrad</p></div>
             </article>
             <article className="dashboard-signal neutral">
               <span className="dashboard-signal-icon"><Icon name="mail" /></span>
@@ -245,9 +252,10 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
                 </div>
                 <span
                   aria-label={`${upcoming.length} upozornění`}
+                  role="img"
                   className="dashboard-attention-count"
                 >
-                  {upcoming.length}
+                  <Icon name="alert" /><span aria-hidden="true">{upcoming.length}</span>
                 </span>
               </div>
               <div className="timeline">

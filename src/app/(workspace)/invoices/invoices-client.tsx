@@ -230,6 +230,17 @@ export function InvoicesClient({
       let data: { invoice?: Invoice; error?: string } = {};
       if (selectedBankPaymentId) {
         const assignment = await assignBankPaymentToInvoice(selectedBankPaymentId, paymentCandidate.id);
+        if (assignment.settlement === "partial") {
+          setInvoices((current) => current.map((item) => item.id === paymentCandidate.id ? {
+            ...item,
+            paid_amount: assignment.paid_amount ?? item.paid_amount,
+            status: assignment.invoice_status ?? item.status,
+          } : item));
+          setNotice(`Bankovní platba byla přiřazena k faktuře ${paymentCandidate.invoice_number} jako částečná úhrada. Faktura zůstává otevřená.`);
+          setPaymentCandidate(null);
+          void invalidateWorkspaceData();
+          return;
+        }
         if (assignment.invoice_status !== "paid") throw new Error("Platba byla přiřazena, ale nepokryla celý zbývající zůstatek faktury.");
       } else {
         if (!confirmWithoutBankPayment) return;
@@ -620,8 +631,9 @@ export function InvoicesClient({
                   {paymentCandidate.invoice_number}?
                 </h2>
                 <p>
-                  Faktura bude označena jako zaplacená zvoleným dnem a
-                  automatické upomínky se zastaví.
+                  {selectedBankPaymentId
+                    ? "Bankovní platba se přiřadí k faktuře. Upomínky se zastaví po úplné úhradě."
+                    : "Faktura bude označena jako zaplacená zvoleným dnem a automatické upomínky se zastaví."}
                 </p>
               </div>
               <button

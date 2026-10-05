@@ -34,6 +34,8 @@ export function OptionalPaymentAssignment({
     { revalidateOnFocus: false },
   );
   const payments = data?.payments ?? [];
+  const recommended = payments.filter((payment) => payment.recommended);
+  const otherPayments = payments.filter((payment) => !payment.recommended);
   const selected = payments.find((payment) => payment.id === selectedPaymentId);
 
   return <section className="payment-assignment-choice" aria-labelledby="payment-assignment-title">
@@ -51,13 +53,18 @@ export function OptionalPaymentAssignment({
           if (event.target.value) onConfirmWithoutPayment(false);
         }}
       >
-        <option value="">{isLoading ? "Načítám vhodné platby…" : payments.length ? "Bez přiřazení platby" : "Žádná odpovídající platba"}</option>
-        {payments.map((payment) => <option key={payment.id} value={payment.id}>
-          {shortDate(payment.booked_on)} · {money(payment.amount, payment.currency)} · {payment.counterparty_name || "Neznámý plátce"}{payment.variable_symbol ? ` · VS ${payment.variable_symbol}` : ""}
-        </option>)}
+        <option value="">{isLoading ? "Načítám nepřiřazené platby…" : payments.length ? "Bez přiřazení platby" : "Žádná nepřiřazená platba"}</option>
+        {[{ label: "Doporučené platby", payments: recommended }, { label: "Ostatní nepřiřazené platby", payments: otherPayments }].map((group) => group.payments.length ? (
+          <optgroup key={group.label} label={group.label}>
+            {group.payments.map((payment) => <option key={payment.id} value={payment.id} disabled={Boolean(payment.unavailable_reason)}>
+              {shortDate(payment.booked_on)} · {money(payment.amount, payment.currency)} · {payment.counterparty_name || "Neznámý plátce"}{payment.variable_symbol ? ` · VS ${payment.variable_symbol}` : ""}{payment.unavailable_reason ? ` — ${payment.unavailable_reason}` : ""}
+            </option>)}
+          </optgroup>
+        ) : null)}
       </select>
-      {error ? <small className="payment-assignment-error" role="alert">Vhodné platby se nepodařilo načíst. Úhradu můžete potvrdit bez přiřazení.</small> : null}
+      {error ? <small className="payment-assignment-error" role="alert">Nepřiřazené platby se nepodařilo načíst. Úhradu můžete potvrdit bez přiřazení.</small> : null}
       {selected ? <small>Datum úhrady se převezme z banky: {shortDate(selected.booked_on)}.</small> : null}
+      {selected && data && selected.amount < data.remaining_amount ? <small>Platba pokryje část úhrady. Zbývá doplatit {money(data.remaining_amount - selected.amount, selected.currency)}.</small> : null}
     </label>
     {!selectedPaymentId ? <label className="payment-without-assignment-confirm">
       <input type="checkbox" checked={confirmWithoutPayment} onChange={(event) => onConfirmWithoutPayment(event.target.checked)}/>
