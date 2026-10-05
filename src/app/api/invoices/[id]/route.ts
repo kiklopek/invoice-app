@@ -11,7 +11,7 @@ import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import { minorUnits } from "@/lib/money";
 import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
-import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 
 // Chyby 5xx tady znamenají, že uživatel nemá co opravit -- musí se ozvat.
 // Proto jdou přes apiError(), které vrátí request_id v těle i v hlavičce
@@ -85,7 +85,7 @@ export async function PATCH(request: Request, { params }: Context) {
     logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError);
     return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_issuer_read_failed");
   }
-  if (isIssuerReminderAddress(input.counterparty_email, issuer)) {
+  if (isBlockedReminderRecipient(input.counterparty_email, issuer)) {
     return NextResponse.json({ error: "E-mail pro upomínky patří vaší firmě. Zadejte adresu odběratele." }, { status: 400 });
   }
   if (minorUnits(input.money_evidence?.initial_paid ?? 0) !== minorUnits(existing.money_evidence?.initial_paid ?? 0)) {

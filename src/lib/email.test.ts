@@ -68,6 +68,16 @@ const send = async (extra: Record<string, unknown> = {}) => {
 };
 
 describe("sendReminderEmail", () => {
+  it("sends to the testing mailbox only when enabled, retaining other issuer blocks", async () => {
+    const ownCompany = { ...company, email: "info@hlavica.cz" };
+    delete process.env.ALLOW_ADAM_REMINDER_TEST_EMAIL;
+    await expect(send({ to: "adam@hlavica.cz", company: ownCompany })).rejects.toThrow(/vystavitele/);
+    process.env.ALLOW_ADAM_REMINDER_TEST_EMAIL = "true";
+    await send({ to: "adam@hlavica.cz", company: ownCompany });
+    expect(sent[0].payload.to).toBe("adam@hlavica.cz");
+    await expect(send({ to: "info@hlavica.cz", company: ownCompany })).rejects.toThrow(/vystavitele/);
+    expect(sent).toHaveLength(1);
+  });
   it("passes an idempotency key, so a retry cannot deliver twice", async () => {
     await send();
     expect(sent[0].options.idempotencyKey).toBe("reminder-abc");

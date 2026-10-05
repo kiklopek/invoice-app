@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { companyNamesAgree, mergeCustomerReminderEmail, rejectOrganizationIdentity, validateCounterpartyWithAres } from "./invoice-ocr-registry";
@@ -171,6 +171,7 @@ describe("ARES jako nezávislý zdroj identity odběratele", () => {
 });
 
 describe("Kontakt uloženého klienta", () => {
+  afterEach(() => vi.unstubAllEnvs());
   const organization = { name: "R. Hlavica s.r.o.", ico: "26296039", dic: "CZ26296039", email: "info@hlavica.cz" };
   function result(email: string) {
     const value = slovakResult();
@@ -198,5 +199,14 @@ describe("Kontakt uloženého klienta", () => {
     const original = result("");
     expect(mergeCustomerReminderEmail(original, "kostihova@hlavica.cz", organization)).toBe(original);
     expect(mergeCustomerReminderEmail(original, "nespravna-adresa", organization)).toBe(original);
+  });
+  it("offers the enabled saved testing contact for confirmation, without trusting document issuer email", () => {
+    vi.stubEnv("ALLOW_ADAM_REMINDER_TEST_EMAIL", "true");
+    const merged = mergeCustomerReminderEmail(result("info@hlavica.cz"), "adam@hlavica.cz", organization);
+    expect(merged.invoice.counterparty_email).toBe("adam@hlavica.cz");
+    expect(merged.field_decisions.counterparty_email).toMatchObject({ status: "review", needs_confirmation: true });
+    vi.stubEnv("ALLOW_ADAM_REMINDER_TEST_EMAIL", "false");
+    const original = result("");
+    expect(mergeCustomerReminderEmail(original, "adam@hlavica.cz", organization)).toBe(original);
   });
 });

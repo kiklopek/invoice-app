@@ -4,7 +4,7 @@ import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { logError } from "@/lib/structured-log";
 import { sendReminderEmail } from "@/lib/email";
-import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 import type { ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { generateInvoicePdf, invoicePdfFilename } from "@/lib/invoice-pdf";
 import {
@@ -394,7 +394,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
 
     const invoice = currentInvoice as (Invoice & InvoiceReminderPolicy) | null;
     const suppressed = invoice ? suppressedRecipients.has(`${job.organization_id}\0${invoice.counterparty_email.toLowerCase()}`) : false;
-    const ownRecipient = invoice && isIssuerReminderAddress(invoice.counterparty_email, companies.get(job.organization_id) ?? {});
+    const ownRecipient = invoice && isBlockedReminderRecipient(invoice.counterparty_email, companies.get(job.organization_id) ?? {});
     const eligibility = invoice
       ? evaluateReminderEligibility({ invoice, suppressed, today, scheduledFor: job.scheduled_for, stage: job.stage })
       : { eligible: false as const, reason: "invoice_not_open" as const };

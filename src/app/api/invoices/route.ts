@@ -15,7 +15,7 @@ import {
 import { loadInvoiceListPageData } from "@/lib/invoice-list-page-data";
 import { PageDataError } from "@/lib/dashboard-page-data";
 import { OCR_REVIEW_FIELDS } from "@/lib/invoice-ocr";
-import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 import { lookupAresSubject } from "@/lib/ares";
 import { companyNamesAgree } from "@/lib/invoice-ocr-registry";
 
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
     logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError);
     return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_issuer_read_failed");
   }
-  if (isIssuerReminderAddress(input.counterparty_email, issuer)) {
+  if (isBlockedReminderRecipient(input.counterparty_email, issuer)) {
     return NextResponse.json({ error: "E-mail pro upomínky patří vaší firmě. Zadejte adresu odběratele." }, { status: 400 });
   }
   let verifiedUpload: {

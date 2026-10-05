@@ -52,6 +52,11 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
   const [phoneDraft, setPhoneDraft] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailNotice, setEmailNotice] = useState<{ id: string; text: string } | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
 
@@ -101,9 +106,38 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
     });
   }, [customers, query, sort]);
   function startEditingPhone(customer: CustomerSummary) {
+    setEditingEmailId(null);
     setEditingPhoneId(customer.id);
     setPhoneDraft(customer.phone ?? "");
     setPhoneError(null);
+  }
+
+  function startEditingEmail(customer: CustomerSummary) {
+    setEditingPhoneId(null);
+    setEditingEmailId(customer.id);
+    setEmailDraft(customer.email ?? "");
+    setEmailError(null);
+    setEmailNotice(null);
+  }
+
+  async function saveEmail(id: string) {
+    if (savingEmail) return;
+    setSavingEmail(true);
+    setEmailError(null);
+    try {
+      const result = await apiFetch<{ updated_invoice_count: number }>(`/api/customers/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: emailDraft.trim() }),
+      });
+      await mutate();
+      setEditingEmailId(null);
+      setEmailNotice({ id, text: `E-mail uložen. Aktualizované neuhrazené faktury: ${result.updated_invoice_count}.` });
+    } catch (cause) {
+      setEmailError(cause instanceof Error ? cause.message : "E-mail se nepodařilo uložit.");
+    } finally {
+      setSavingEmail(false);
+    }
   }
 
   async function savePhone(id: string) {
@@ -208,7 +242,35 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                     </td>
                     <td data-label="Kontakt" className="customer-contact-cell">
                       <div className="customer-contact-details">
-                        {customer.email && <small>{customer.email}</small>}
+                        {editingEmailId === customer.id ? (
+                          <form className="customer-email-form" onSubmit={(event) => { event.preventDefault(); void saveEmail(customer.id); }}>
+                            <span className="customer-email-edit">
+                              <input
+                                autoFocus
+                                type="email"
+                                required
+                                maxLength={254}
+                                autoComplete="email"
+                                aria-label={`E-mail zákazníka ${customer.name}`}
+                                value={emailDraft}
+                                onChange={(event) => setEmailDraft(event.target.value)}
+                                onKeyDown={(event) => { if (event.key === "Escape" && !savingEmail) setEditingEmailId(null); }}
+                                placeholder="E-mail"
+                                disabled={savingEmail}
+                              />
+                              <button type="submit" disabled={savingEmail} aria-label="Uložit e-mail"><Icon name="check" /></button>
+                              <button type="button" onClick={() => setEditingEmailId(null)} disabled={savingEmail} aria-label="Zrušit úpravu e-mailu">×</button>
+                            </span>
+                            <small>Změní se i příjemce upomínek u neuhrazených faktur.</small>
+                            {emailError && <small className="red-text" role="alert">{emailError}</small>}
+                          </form>
+                        ) : (
+                          <button type="button" className="customer-email-display" onClick={() => startEditingEmail(customer)} disabled={!canManage || savingEmail || savingPhone} aria-label={`Upravit e-mail zákazníka ${customer.name}`}>
+                            {customer.email || (canManage ? "+ Přidat e-mail" : "E-mail neuveden")}
+                            {canManage && <Icon name="edit" />}
+                          </button>
+                        )}
+                        {emailNotice?.id === customer.id && <small role="status">{emailNotice.text}</small>}
                         {editingPhoneId === customer.id ? (
                           <span className="customer-phone-edit">
                             <input
@@ -225,7 +287,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                             <button type="button" onClick={() => savePhone(customer.id)} disabled={savingPhone} aria-label="Uložit telefon"><Icon name="check" /></button>
                           </span>
                         ) : (
-                          <button type="button" className="customer-phone-display" onClick={() => canManage && startEditingPhone(customer)} disabled={!canManage}>
+                          <button type="button" className="customer-phone-display" onClick={() => canManage && startEditingPhone(customer)} disabled={!canManage || savingEmail || savingPhone}>
                             {customer.phone || (canManage ? "+ Přidat telefon" : "Telefon neuveden")}
                           </button>
                         )}

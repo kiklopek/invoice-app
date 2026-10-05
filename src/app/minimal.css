@@ -3216,6 +3216,15 @@ th,
 .customer-phone-edit input { height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 11px; width: 120px; }
 .customer-phone-edit button { display: grid; place-items: center; width: 26px; height: 26px; border: none; border-radius: 6px; background: var(--green-soft); color: var(--green); cursor: pointer; }
 .customer-phone-edit button svg { width: 14px; height: 14px; }
+.customer-email-display { display: inline-flex; align-items: center; gap: 5px; border: none; background: none; padding: 0; font: inherit; color: var(--muted); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.customer-email-display svg { width: 12px; height: 12px; flex-shrink: 0; }
+.customer-email-display:hover:not(:disabled) { color: var(--green); text-decoration: underline; }
+.customer-email-display:disabled { cursor: default; }
+.customer-email-form { display: flex; flex-direction: column; gap: 4px; max-width: 280px; }
+.customer-email-edit { display: flex; align-items: center; gap: 6px; }
+.customer-email-edit input { height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 11px; width: 180px; min-width: 0; }
+.customer-email-edit button { display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; border: none; border-radius: 6px; background: var(--green-soft); color: var(--green); cursor: pointer; }
+.customer-email-edit button svg { width: 14px; height: 14px; }
 .customer-billing-cell strong { font-size: 10px; }
 .customer-billing-cell small { margin-top: 3px; color: var(--muted); font-size: 8px; }
 .customer-invoices-link {

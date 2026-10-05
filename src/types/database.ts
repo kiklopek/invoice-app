@@ -1575,6 +1575,10 @@ export type Database = {
         Args: { target_org: string; actor_user: string; target_import: string; expected_revision: number; automatic_only?: boolean; acknowledge_account_mismatch?: boolean }
         Returns: Json
       }
+      update_customer_contact: {
+        Args: { target_org: string; actor_user: string; target_customer: string; change_email?: boolean; new_email?: string | null; change_phone?: boolean; new_phone?: string | null }
+        Returns: Json
+      }
       run_bank_reconciliation_jobs: { Args: Record<PropertyKey, never>; Returns: Json }
       configure_payment_assistance: { Args: { target_org: string; new_mode: string; new_memory: boolean; new_reevaluation: boolean }; Returns: undefined }
       payment_assistance_overview: { Args: { target_org: string; actor_user: string }; Returns: Json }

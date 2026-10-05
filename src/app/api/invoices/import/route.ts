@@ -3,7 +3,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     logError("Firemní údaje pro ověření importovaných příjemců upomínek se nepodařilo načíst", issuerError);
     return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_import_issuer_read_failed");
   }
-  const ownEmailRows = invoices.flatMap((invoice, index) => isIssuerReminderAddress(invoice.counterparty_email, issuer) ? [index + 2] : []);
+  const ownEmailRows = invoices.flatMap((invoice, index) => isBlockedReminderRecipient(invoice.counterparty_email, issuer) ? [index + 2] : []);
   if (ownEmailRows.length) {
     return NextResponse.json({ error: `E-mail pro upomínky na řádku ${ownEmailRows.slice(0, 10).join(", ")} patří vaší firmě. Zadejte adresu odběratele.` }, { status: 400 });
   }

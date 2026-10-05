@@ -16,6 +16,7 @@ import {
 } from "@/lib/invoice-ocr";
 import { lookupAresSubject } from "@/lib/ares";
 import { isIssuerReminderAddress } from "@/lib/reminder-recipient-safety";
+import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 
 const ARES_CACHE_MS = 30 * 24 * 60 * 60_000;
 
@@ -316,7 +317,7 @@ export function mergeCustomerReminderEmail(
   organization: InvoiceOcrOrganization,
 ): InvoiceOcrResult {
   const savedEmail = customerEmail?.trim().toLowerCase() ?? "";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(savedEmail) || isIssuerReminderAddress(savedEmail, organization)) return result;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(savedEmail) || isBlockedReminderRecipient(savedEmail, organization)) return result;
   const readEmail = result.invoice.counterparty_email?.trim().toLowerCase() ?? "";
   const documentEmail = isIssuerReminderAddress(readEmail, organization) ? "" : readEmail;
   if (documentEmail === savedEmail) return result;
