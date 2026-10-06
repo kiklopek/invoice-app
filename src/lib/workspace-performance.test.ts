@@ -65,8 +65,18 @@ describe("workspace navigation performance", () => {
   // Kontrola session, kontrola MFA a načtení členství na sobě nezávisí.
   it("ověřuje session, MFA a členství jedním kolem, ne třemi", () => {
     const auth = source("src/lib/auth.ts");
-    const parallel = /await Promise\.all\(\[[\s\S]*?hasServerLoginSession[\s\S]*?hasVerifiedEmailMfa[\s\S]*?organization_members[\s\S]*?\]\)/;
+    const parallel = /Promise\.all\(\[[\s\S]*?hasServerLoginSession[\s\S]*?hasVerifiedEmailMfa[\s\S]*?organization_members[\s\S]*?\]\)/;
     expect(auth).toMatch(parallel);
+  });
+
+  // getUser() (síťové kolo na Supabase Auth) běží souběžně s těmi třemi
+  // čteními. Změřeno 6. 10. na 30 párech se serverovým klientem z
+  // @supabase/ssr: sériově medián 161 ms, souběžně 83 ms. Dotaz do databáze
+  // na auth zámek nečeká -- ten serializuje jen volání auth mezi sebou (viz
+  // poznámka níž). Bezpečnostní pořadí hlídá src/lib/auth.test.ts.
+  it("spouští getUser souběžně se čteními session, MFA a členství", () => {
+    const auth = source("src/lib/auth.ts");
+    expect(auth).toMatch(/await Promise\.all\(\[\s*accessToken \? auth\.auth\.getUser\(accessToken\) : auth\.auth\.getUser\(\),\s*readChecks\(tokenEmail\),\s*\]\)/);
   });
 
   // POZOR na zdánlivě stejné zrychlení o patro výš: getClaims() a getUser()
@@ -79,7 +89,8 @@ describe("workspace navigation performance", () => {
   // odpovídat skutečně načtenému uživateli.
   it("drží křížovou kontrolu tokenu proti načtenému uživateli", () => {
     const auth = source("src/lib/auth.ts");
-    expect(auth).toContain("claimsData.claims.sub !== data.user.id");
+    expect(auth).toContain("const userId = claims.sub;");
+    expect(auth).toContain("userId !== data.user.id");
   });
 
   // Tohle je ta podstatnější půlka: zrychlení nesmí posunout zápis, který

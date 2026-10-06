@@ -33,15 +33,10 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     ? await auth.auth.getClaims(accessToken)
     : await auth.auth.getClaims();
   if (claimsError || !claimsData?.claims?.sub) return null;
-  const { data, error } = accessToken
-    ? await auth.auth.getUser(accessToken)
-    : await auth.auth.getUser();
-  if (error || !data.user || claimsData.claims.sub !== data.user.id) return null;
+  const claims = claimsData.claims;
+  const userId = claims.sub;
 
-  const email = normalizeEmail(data.user.email);
-  if (!isAllowedCorporateEmail(email)) return null;
-
-  const sessionId = typeof claimsData.claims.session_id === "string" ? claimsData.claims.session_id : null;
+  const sessionId = typeof claims.session_id === "string" ? claims.session_id : null;
   if (!sessionId) return null;
 
   // Tyhle tři dotazy na sobě nezávisí -- stojí jen na userId, e-mailu a
@@ -59,17 +54,38 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   // bearer token has already been verified above, so the service client may
   // perform the equivalent membership lookup before the cookie is visible.
   const membershipClient = accessToken ? service : cookieAuth;
-  const [hasLoginSession, hasMfa, boundMembershipResult] = await Promise.all([
-    requireLoginSession ? hasServerLoginSession({ userId: data.user.id, sessionId }) : Promise.resolve(true),
-    requireMfa ? hasVerifiedEmailMfa({ email, userId: data.user.id, sessionId }) : Promise.resolve(true),
+  const readChecks = (email: string) => Promise.all([
+    requireLoginSession ? hasServerLoginSession({ userId, sessionId }) : Promise.resolve(true),
+    requireMfa ? hasVerifiedEmailMfa({ email, userId, sessionId }) : Promise.resolve(true),
     membershipClient
       .from("organization_members")
       .select("id, organization_id, role, email")
-      .eq("user_id", data.user.id)
+      .eq("user_id", userId)
       .eq("email", email)
       .limit(1)
       .maybeSingle(),
   ]);
+
+  // getUser() je síťové kolo na Supabase Auth (~70 ms), kdežto getClaims()
+  // ověřuje podpis ES256 lokálně. getUser() se přesto NESMÍ vynechat: je to
+  // jediná kontrola, která pozná token odvolaný na serveru (odhlášení,
+  // zablokovaný účet) -- přihlašovací session je jen podepsaná cookie.
+  // Běží proto souběžně se čteními výše, která stojí na podpisem ověřených
+  // claims. Nic se nerozhodne ani nezapíše, dokud getUser() neprojde.
+  const tokenEmail = normalizeEmail(typeof claims.email === "string" ? claims.email : null);
+  const [{ data, error }, tokenChecks] = await Promise.all([
+    accessToken ? auth.auth.getUser(accessToken) : auth.auth.getUser(),
+    readChecks(tokenEmail),
+  ]);
+  if (error || !data.user || userId !== data.user.id) return null;
+
+  const email = normalizeEmail(data.user.email);
+  if (!isAllowedCorporateEmail(email)) return null;
+
+  // Token nese e-mail z okamžiku vydání; po změně e-mailu platí ten starý až
+  // do obnovení. Rozhoduje e-mail ze serveru, čtení se pak zopakují s ním.
+  const [hasLoginSession, hasMfa, boundMembershipResult] =
+    email === tokenEmail ? tokenChecks : await readChecks(email);
 
   if (!hasLoginSession) return null;
   if (!hasMfa) return null;
