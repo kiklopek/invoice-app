@@ -235,7 +235,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                         <span className="customer-avatar" aria-hidden="true">{customer.name.trim().charAt(0).toUpperCase() || "?"}</span>
                         <span>
                           <strong>{customer.name}</strong>
-                          <small>{customer.ico ? `IČO ${customer.ico}` : "IČO neuvedeno"}{customer.dic ? ` · DIČ ${customer.dic}` : ""}</small>
+                          <small>{customer.ico ? `IČO\u00a0${customer.ico}` : "IČO neuvedeno"}{customer.dic ? ` ·\u00a0DIČ\u00a0${customer.dic}` : ""}</small>
                           {customer.address && <small>{customer.address} · ARES</small>}
                         </span>
                       </div>

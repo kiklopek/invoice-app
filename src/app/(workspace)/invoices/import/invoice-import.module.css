@@ -14,7 +14,7 @@
 .page.page :global(.invoice-import-tabs button svg) { flex: 0 0 26px; width: 26px; height: 26px; }
 .page.page :global(.invoice-import-tabs button strong), .page.page :global(.invoice-import-tabs button small) { display: block; }
 .page.page :global(.invoice-import-tabs button strong) { font-size: 14px; }
-.page.page :global(.invoice-import-tabs button small) { font-size: 11px; margin-top: 4px; font-weight: 400; }
+.page.page :global(.invoice-import-tabs button small) { font-size: 12px; margin-top: 4px; font-weight: 400; }
 .page.page :global(.invoice-import-tabs button.active small) { color: #d5e5d9; }
 .page.page :global(.invoice-document-import), .page.page :global(.csv-import-panel) { width: 100%; max-width: none; margin: 0; padding: 0; border: 1px solid #b5cabb; border-radius: 20px; overflow: hidden; background: #fff; }
 .page.page :global(.invoice-document-dropzone) { margin: 28px; min-height: 300px; padding: 26px; border: 2px dashed #83a08b; border-radius: 14px; background: #f0f5ee; }
@@ -24,15 +24,15 @@
 .page.page :global(.invoice-document-dropzone h2) { font-size: 25px; letter-spacing: -.6px; color: #173c2d; margin: 8px 0 12px; }
 .page.page :global(.invoice-document-dropzone p) { max-width: 690px; color: #52665a; font-size: 13px; line-height: 1.65; margin: 0; }
 .page.page :global(.import-drop-action) { background: #17462f; color: #fff; padding: 13px 22px; border-radius: 9px; font-size: 13px; margin-top: 22px; }
-.page.page :global(.invoice-document-dropzone > small) { font-size: 11px; margin-top: 12px; color: #52665a; }
+.page.page :global(.invoice-document-dropzone > small) { font-size: 12px; margin-top: 12px; color: #52665a; }
 .formats { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 16px; }
-.formats > span { padding: 4px 8px; border: 1px solid #d4e0d5; border-radius: 5px; background: #fff; color: #52665a; font-size: 10px; }
+.formats > span { padding: 4px 8px; border: 1px solid #d4e0d5; border-radius: 5px; background: #fff; color: #52665a; font-size: 12px; }
 .guidance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 25px 30px; background: linear-gradient(110deg, #235c42, #153f2c); color: white; }
 .guidance > div { display: flex; align-items: flex-start; gap: 12px; }
 .guidance svg { width: 23px; height: 23px; flex: 0 0 23px; color: #d7e9b6; }
 .guidance strong, .guidance small { display: block; }
 .guidance strong { font-size: 13px; }
-.guidance small { font-size: 11px; color: #d3e3d7; line-height: 1.6; margin-top: 6px; }
+.guidance small { font-size: 12px; color: #d3e3d7; line-height: 1.6; margin-top: 6px; }
 .page.page :global(.csv-import-grid) { grid-template-columns: 1fr; padding: 28px; }
 .page.page :global(.csv-import-main) { max-width: none; padding: 0; }
 .page.page :global(.csv-dropzone) { min-height: 220px; background: #f0f5ee; border: 2px dashed #83a08b; }
@@ -57,7 +57,7 @@
   .header { grid-template-columns: minmax(0, 1fr) minmax(350px, .9fr); gap: 22px; }
   .page.page .header :global(.invoice-import-tabs button) { padding: 12px; gap: 9px; }
   .page.page .header :global(.invoice-import-tabs button strong) { font-size: 12px; }
-  .page.page .header :global(.invoice-import-tabs button small) { font-size: 10px; }
+  .page.page .header :global(.invoice-import-tabs button small) { font-size: 12px; }
   .page.page .header :global(.invoice-import-tabs button svg) { width: 21px; height: 21px; flex-basis: 21px; }
 }
 @media (max-width: 600px) {
@@ -65,7 +65,7 @@
   .page.page :global(.invoice-import-tabs button) { gap: 8px; padding: 12px; min-height: 76px; }
   .page.page :global(.invoice-import-tabs button svg) { display: none; }
   .page.page :global(.invoice-import-tabs button strong) { font-size: 12px; }
-  .page.page :global(.invoice-import-tabs button small) { font-size: 10px; }
+  .page.page :global(.invoice-import-tabs button small) { font-size: 12px; }
   .page.page :global(.invoice-document-dropzone) { margin: 14px; padding: 22px 14px; }
   .page.page :global(.invoice-document-dropzone h2) { font-size: 21px; }
   .page.page :global(.invoice-document-dropzone p) { font-size: 12px; }
