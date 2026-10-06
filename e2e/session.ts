@@ -27,8 +27,32 @@ export function skipWithDesktopNavigation(testInfo: TestInfo) {
   const width = viewportWidth(testInfo);
   test.skip(
     width >= DESKTOP_NAVIGATION_MIN_WIDTH,
-    `Hamburger je jen pod ${DESKTOP_NAVIGATION_MIN_WIDTH} px, tenhle projekt má ${width} px`,
+    `Úzký displej je jen pod ${DESKTOP_NAVIGATION_MIN_WIDTH} px, tenhle projekt má ${width} px`,
   );
+}
+
+// Pod 1024 px se navigace dělí dál: tablet na výšku (768+ px, výška 600+)
+// má úzký sloupec s ikonami, telefon hamburger. Musí odpovídat media query
+// sloupce v src/components/layout/mobile-navigation.css.
+export const TABLET_RAIL_MIN_WIDTH = 768;
+const TABLET_RAIL_MIN_HEIGHT = 600;
+
+function hasTabletRail(testInfo: TestInfo) {
+  const width = viewportWidth(testInfo);
+  const height = testInfo.project.use.viewport?.height ?? 720;
+  return width >= TABLET_RAIL_MIN_WIDTH && width < DESKTOP_NAVIGATION_MIN_WIDTH && height >= TABLET_RAIL_MIN_HEIGHT;
+}
+
+export function skipWithoutHamburger(testInfo: TestInfo) {
+  const width = viewportWidth(testInfo);
+  test.skip(
+    width >= DESKTOP_NAVIGATION_MIN_WIDTH || hasTabletRail(testInfo),
+    `Hamburger je jen na telefonu, tenhle projekt má ${width} px`,
+  );
+}
+
+export function skipWithoutTabletRail(testInfo: TestInfo) {
+  test.skip(!hasTabletRail(testInfo), "Úzký sloupec s ikonami je jen na tabletu (768-1023 px)");
 }
 
 // Driv kazdy workspace spec zacinal na

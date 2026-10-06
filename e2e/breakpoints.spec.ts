@@ -33,13 +33,15 @@ test.describe("chování na hranicích breakpointů", () => {
       for (const width of WIDTHS) {
         await page.setViewportSize({ width, height: 900 });
         const state = await page.evaluate(() => {
+          // getClientRects() je prázdné i pro prvek skrytý přes rodiče --
+          // samotné display prvku by to nepoznalo.
           const visible = (selector: string) => {
             const element = document.querySelector(selector) as HTMLElement | null;
-            return Boolean(element) && getComputedStyle(element!).display !== "none";
+            return Boolean(element) && element!.getClientRects().length > 0 && getComputedStyle(element!).display !== "none";
           };
           const content = document.querySelector(".content") as HTMLElement | null;
           return {
-            hamburger: visible(".mobile-navigation-shell"),
+            hamburger: visible(".mobile-navigation-toggle"),
             desktopNav: visible(".sidebar .desktop-navigation"),
             contentMargin: content ? Number.parseInt(getComputedStyle(content).marginLeft, 10) || 0 : 0,
             scroll: document.documentElement.scrollWidth,

@@ -140,7 +140,13 @@ export function AppSidebar({
     if (!mobileNavOpen) return;
     const scrollY = window.scrollY;
     const main = document.getElementById("obsah");
-    const toggle = mobileNavToggleRef.current;
+    // Panel otevírá hamburger (mobil) nebo tlačítko Menu v úzkém sloupci
+    // (tablet). Focus se po zavření vrací tomu, které ho opravdu otevřelo.
+    const opener = document.activeElement;
+    const toggle =
+      opener instanceof HTMLButtonElement && opener.getAttribute("aria-controls") === "mobile-navigation-panel"
+        ? opener
+        : mobileNavToggleRef.current;
     const bodyStyle = {
       position: document.body.style.position,
       top: document.body.style.top,
@@ -225,6 +231,20 @@ export function AppSidebar({
       <Link href={landingPageForRole(role)} className="brand">
         <CompanyLogo className="sidebar-company-logo" />
       </Link>
+      {/* Jen na tabletu (úzký sloupec s ikonami): podstránky a účet se do
+          sloupce nevejdou, proto otevírá stejný panel jako hamburger na mobilu. */}
+      <button
+        type="button"
+        className={`rail-menu-toggle ${mobileNavOpen ? "is-open" : ""}`}
+        aria-label={mobileNavOpen ? "Zavřít navigaci" : "Otevřít celou navigaci"}
+        aria-expanded={mobileNavOpen}
+        aria-controls="mobile-navigation-panel"
+        onClick={() => setMobileNavOpen((open) => !open)}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
       <nav
         className="sidebar-nav desktop-navigation"
         data-role={role}
@@ -241,6 +261,7 @@ export function AppSidebar({
                 aria-current={pathname === item.href ? "page" : undefined}
                 className={[
                   selected ? "active" : "",
+                  active && !selected ? "section-active" : "",
                   item.href === "/dashboard" ? "nav-primary" : "",
                 ]
                   .filter(Boolean)

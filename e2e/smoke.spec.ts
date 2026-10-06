@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { requireWorkspaceSession, skipWithDesktopNavigation, skipWithoutDesktopNavigation } from "./session";
+import { requireWorkspaceSession, skipWithDesktopNavigation, skipWithoutDesktopNavigation, skipWithoutHamburger, skipWithoutTabletRail } from "./session";
 
 test("dashboard loads without browser errors", async ({ page }) => {
   const errors: string[] = [];
@@ -69,7 +69,7 @@ test.describe("odhlášený uživatel", () => {
 });
 
 test("mobilní navigace se otevře, projde a zase zavře", async ({ page }, testInfo) => {
-  skipWithDesktopNavigation(testInfo);
+  skipWithoutHamburger(testInfo);
   await page.goto("/invoices");
   if (await requireWorkspaceSession(page, "mobilní navigace")) return;
 
@@ -92,6 +92,38 @@ test("mobilní navigace se otevře, projde a zase zavře", async ({ page }, test
   await expect(page).toHaveURL(/\/reports$/);
   // A menu se po přechodu zavře samo, jinak by zůstalo přes obsah.
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("tablet má úzký sloupec s ikonami a Menu s celou navigací", async ({ page }, testInfo) => {
+  skipWithoutTabletRail(testInfo);
+  await page.goto("/invoices/archive");
+  if (await requireWorkspaceSession(page, "sloupec s ikonami")) return;
+
+  const rail = page.locator(".sidebar .desktop-navigation");
+  await expect(rail).toBeVisible();
+  await expect(page.locator(".mobile-navigation-toggle")).toBeHidden();
+  // Sloupec je úzký a obsah začíná až za ním, ne pod ním.
+  const railBox = await page.locator(".sidebar").boundingBox();
+  const contentBox = await page.locator("main").boundingBox();
+  expect(railBox!.width).toBeLessThanOrEqual(96);
+  expect(contentBox!.x).toBeGreaterThanOrEqual(railBox!.width - 1);
+  // Podstránka zvýrazní svou sekci a ikona nese jméno pro čtečky.
+  await expect(rail.getByRole("link", { name: /Faktury/ })).toHaveClass(/section-active/);
+
+  const menu = page.locator(".rail-menu-toggle");
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await menu.click();
+  const panel = page.locator("#mobile-navigation-panel");
+  await expect(panel).toBeVisible();
+  // Podstránky, které se do sloupce nevejdou, jsou dostupné z panelu.
+  await expect(panel.locator('a[href="/invoices/new"]')).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(menu).toBeFocused();
+
+  await rail.getByRole("link", { name: /Reporty/ }).click();
+  await expect(page).toHaveURL(/\/reports$/);
+  await expect(rail.getByRole("link", { name: /Reporty/ })).toHaveClass(/active/);
 });
 
 test("na úzkém displeji se nic nepřetéká do stran", async ({ page }, testInfo) => {
