@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
@@ -35,10 +36,10 @@ export function AuthShell({
       <div className={styles.card}>
         <section className={styles.formSide}>
           <div className={styles.brandRow}>
-            <span className={styles.splatno}>
+            <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
               <RibbonMark size={30} />
               <span>splatno</span>
-            </span>
+            </Link>
             <span className={styles.company}>
               <CompanyLogo className={styles.companyLogo} />
             </span>

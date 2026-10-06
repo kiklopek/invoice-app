@@ -62,6 +62,7 @@
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1;
+  text-decoration: none;
 }
 .splatno > span {
   margin-top: -3px;

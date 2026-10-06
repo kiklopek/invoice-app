@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Check, Headset } from "./landing-icons";
 import styles from "./landing.module.css";
@@ -95,9 +96,9 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
                   </li>
                 ))}
               </ul>
-              <a href={trialHref} className={plan.featured ? styles.btnPrimary : styles.btnOutline}>
+              <Link href={trialHref} className={plan.featured ? styles.btnPrimary : styles.btnOutline}>
                 Vyzkoušet zdarma
-              </a>
+              </Link>
             </article>
           );
         })}

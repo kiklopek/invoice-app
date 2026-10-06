@@ -1504,3 +1504,10 @@
     transition: none;
   }
 }
+
+.inlineLink {
+  color: var(--cta) !important;
+  font-weight: 600;
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}

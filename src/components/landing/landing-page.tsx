@@ -35,12 +35,12 @@ const caveat = Caveat({
   display: "swap",
 });
 
-// Samoobslužná registrace zatím není veřejná (registrace slouží jen pozvaným
-// uživatelům R. Hlavica), takže výzvy k vyzkoušení vedou na kontakt.
+// Landing je vstupní brána aplikace: výzvy vedou na registraci (dokončí ji jen
+// e-mail, který administrátor firmy předem pozval), přihlášení na /hlavica.
 // TODO: ověřit, že schránka existuje, než stránka půjde ven.
-const CONTACT_EMAIL = "info@splatno.cz";
-const CONTACT_HREF = `mailto:${CONTACT_EMAIL}`;
-const TRIAL_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Zájem o Splatno")}`;
+const CONTACT_HREF = "mailto:info@splatno.cz";
+const TRIAL_HREF = "/register";
+const LOGIN_HREF = "/hlavica";
 
 const nav = [
   { href: "#jak-to-funguje", label: "Jak to funguje" },
@@ -283,15 +283,15 @@ export function LandingPage() {
             ))}
           </nav>
           <div className={styles.headerActions}>
-            <Link href="/login" className={styles.loginLink}>
+            <Link href={LOGIN_HREF} className={styles.loginLink}>
               Přihlásit se
             </Link>
-            <a href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnSm}`}>
+            <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnSm}`}>
               <span>
                 Vyzkoušet<span className={styles.hideXs}> zdarma</span>
               </span>
               <ArrowRight />
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -313,9 +313,9 @@ export function LandingPage() {
                 Vy řešíte jen to, co opravdu potřebuje vaši pozornost.
               </p>
               <div className={styles.heroCtas}>
-                <a href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
+                <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
                   Vyzkoušet zdarma <ArrowRight />
-                </a>
+                </Link>
                 <a href="#jak-to-funguje" className={styles.playLink}>
                   <span className={styles.playIcon}>
                     <Play />
@@ -516,9 +516,9 @@ export function LandingPage() {
                 Splatno automaticky zpracuje jasné případy. Nejasné platby a výjimky vám přehledně
                 ukáže, abyste je mohli snadno vyřešit.
               </p>
-              <a href={TRIAL_HREF} className={styles.btnOutline}>
-                Ukázat na mých fakturách <ArrowRight />
-              </a>
+              <Link href={LOGIN_HREF} className={styles.btnOutline}>
+                Přihlásit se do aplikace <ArrowRight />
+              </Link>
             </div>
             <div className={`${styles.card} ${styles.attentionCard}`}>
               <div className={styles.dashCardHead}>
@@ -569,10 +569,10 @@ export function LandingPage() {
               <h2 className={styles.h2}>Faktury nemusíte hlídat ručně.</h2>
               <p className={styles.lead}>Splatno je pohlídá od vystavení až po zaplacení.</p>
               <div className={styles.finalCtas}>
-                <a href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
+                <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
                   Vyzkoušet zdarma <ArrowRight />
-                </a>
-                <small className={styles.muted}>Napište nám a ukážeme vám Splatno na vašich fakturách.</small>
+                </Link>
+                <small className={styles.muted}>Už máte účet? <Link href={LOGIN_HREF} className={styles.inlineLink}>Přihlaste se</Link></small>
               </div>
             </div>
             <div className={styles.finalArt} aria-hidden="true">
