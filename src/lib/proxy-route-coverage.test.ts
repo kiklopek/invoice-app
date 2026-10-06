@@ -36,6 +36,13 @@ describe("proxy route coverage", () => {
     }
   });
 
+  // splatno.cz/hlavica je prihlaseni R. Hlavica. Bez zaznamu v matcheru by
+  // proxy na teto strance vubec nebezel a prihlaseny uzivatel by misto
+  // nastenky videl znovu prihlasovaci formular.
+  it("runs on the R. Hlavica entry page", () => {
+    expect(listAfter(proxy(), "matcher:")).toContain("/hlavica");
+  });
+
   // Obe pole musi zustat v synchronizaci: matcher rozhoduje, jestli se
   // middleware vubec spusti, protectedRoute az co uvnitr udela. Chybejici
   // zaznam v kteremkoli z nich znamena nechranenou stranku.

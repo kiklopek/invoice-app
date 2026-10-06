@@ -27,7 +27,7 @@ export function safeReturnPath(raw: string | null | undefined, fallback = "/dash
   // vyznam cesty; do navigace nepatri.
   if (/[\u0000-\u001f\u007f\\]/.test(value)) return fallback;
   // Prihlasovaci stranky by delaly smycku.
-  if (/^\/(login|register|forgot-password|reset-password|mfa)(\/|\?|$)/.test(value)) return fallback;
+  if (/^\/(login|hlavica|register|forgot-password|reset-password|mfa)(\/|\?|$)/.test(value)) return fallback;
 
   return value;
 }

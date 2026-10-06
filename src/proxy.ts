@@ -33,11 +33,17 @@ function redirectWithCookies(url: URL, source: NextResponse) {
   return redirect;
 }
 
+// Přihlašovací stránky. /hlavica je vstup R. Hlavica na splatno.cz/hlavica
+// a musí se chovat stejně jako /login, jinak by přihlášený uživatel místo
+// nástěnky viděl znovu formulář a stará relace by zůstala viset.
+const LOGIN_PAGES = ["/login", "/hlavica"];
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const isLoginPage = LOGIN_PAGES.includes(pathname);
 
   const publicRoutes = [
-    "/login",
+    ...LOGIN_PAGES,
     "/register",
     "/forgot-password",
     "/reset-password",
@@ -136,7 +142,7 @@ export async function proxy(request: NextRequest) {
     response.cookies.set(EMAIL_MFA_COOKIE, "", { path: "/", maxAge: 0 });
 
     if (
-      pathname === "/login" ||
+      isLoginPage ||
       pathname === "/register" ||
       pathname === "/forgot-password"
     ) {
@@ -194,7 +200,7 @@ export async function proxy(request: NextRequest) {
     }
 
     // Plně ověřený uživatel (MFA hotové) už nemá chodit zpět na login.
-    if (pathname === "/login") {
+    if (isLoginPage) {
       if (hasMfa) {
         return redirectWithCookies(new URL("/dashboard", request.url), response);
       }
@@ -274,6 +280,7 @@ export const config = {
     "/settings/:path*",
     "/mfa",
     "/login",
+    "/hlavica",
     "/register",
     "/forgot-password",
     "/reset-password",

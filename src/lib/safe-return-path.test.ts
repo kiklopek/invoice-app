@@ -34,7 +34,7 @@ describe("safeReturnPath", () => {
   });
 
   it("refuses paths that would bounce straight back to login", () => {
-    for (const loop of ["/login", "/login?error=domain", "/mfa", "/register", "/reset-password"]) {
+    for (const loop of ["/login", "/login?error=domain", "/hlavica", "/hlavica?error=domain", "/mfa", "/register", "/reset-password"]) {
       expect(safeReturnPath(loop), loop).toBe("/dashboard");
     }
   });

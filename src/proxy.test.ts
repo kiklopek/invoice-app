@@ -153,3 +153,31 @@ describe("dvoufázové ověření", () => {
     expect(locationOf(response)).toBe("");
   });
 });
+
+// splatno.cz/hlavica je vstup R. Hlavica do jejich aplikace. Musí se chovat
+// přesně jako /login: veřejný pro nepřihlášené, plně ověřeného uživatele
+// pustit rovnou na nástěnku a starou relaci tiše odhlásit, ne poslat jinam.
+describe("vstup R. Hlavica /hlavica", () => {
+  it("is public for an anonymous visitor", async () => {
+    const response = await runProxy("/hlavica");
+    expect(response.status).toBe(200);
+    expect(locationOf(response)).toBe("");
+  });
+
+  it("sends a fully verified user straight to the dashboard", async () => {
+    authState.claims = { sub: "user-1", email: "test-admin@hlavica.cz", session_id: "s1" };
+    authState.user = { id: "user-1", email: "test-admin@hlavica.cz" };
+    const response = await runProxy("/hlavica", await signedInCookies("user-1", "s1"));
+    expect(locationOf(response)).toContain("/dashboard");
+  });
+
+  it("signs out a stale session and keeps showing the login form", async () => {
+    authState.claims = { sub: "user-1", email: "ucetni@hlavica.cz", session_id: "s1" };
+    authState.user = { id: "user-1", email: "ucetni@hlavica.cz" };
+    // Bez podepsané login-session: staré Supabase cookies samy nestačí.
+    const response = await runProxy("/hlavica");
+    expect(authState.signOutCalls).toBe(1);
+    expect(response.status).toBe(200);
+    expect(locationOf(response)).toBe("");
+  });
+});
