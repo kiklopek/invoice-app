@@ -120,10 +120,210 @@
   }
 }
 
+/* Customer heading responds to its available width and allows long text to wrap. */
+@media screen {
+  .app-shell > .content.customers-page .customers-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 20px 28px;
+    min-height: 0;
+    padding: clamp(20px, 2.5vw, 32px);
+    border-radius: 16px;
+    background: #f4f8f4;
+    box-shadow: none;
+    container: customers-heading / inline-size;
+  }
+
+  .customers-page .customers-hero::after { display: none; }
+
+  .app-shell > .content.customers-page .customers-hero > .customers-hero-copy {
+    padding-inline: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .customers-page .customers-hero-copy > p {
+    margin: 0 0 8px;
+    font-size: 12px;
+    letter-spacing: .08em;
+  }
+
+  .customers-page .customers-hero h1 {
+    margin: 0;
+    font-size: clamp(28px, 4cqi, 38px);
+    line-height: 1.15;
+  }
+
+  .customers-page .customers-hero-copy > span {
+    max-width: 65ch;
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .app-shell > .content.customers-page .customers-hero > .section-actions {
+    display: flex;
+    width: auto;
+    min-width: 0;
+    max-width: 20rem;
+  }
+
+  .customers-page .customers-hero .section-actions .btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    box-shadow: none;
+  }
+
+  @container customers-heading (max-width: 600px) {
+    .customers-hero > .customers-hero-copy,
+    .customers-hero > .section-actions { grid-column: 1 / -1; }
+
+    .app-shell > .content.customers-page .customers-hero > .section-actions {
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
+
+/* Keep the mobile payment archive heading and upload action on the same inset. */
+@media screen and (max-width: 767px) {
+  .app-shell > .content.payments-archive-page .payments-hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    gap: 20px;
+    padding: 22px 20px;
+    border-radius: 16px;
+    background: #f4f8f4;
+    box-shadow: none;
+  }
+
+  .payments-archive-page .payments-hero::after { display: none; }
+
+  .app-shell > .content.payments-archive-page .payments-hero > .payments-hero-copy {
+    padding-inline: 0;
+  }
+
+  .payments-archive-page .payments-hero-copy > p {
+    margin: 0 0 8px;
+    font-size: 11px;
+    letter-spacing: .1em;
+  }
+
+  .payments-archive-page .payments-hero h1 {
+    margin: 0;
+    font-size: clamp(26px, 7vw, 30px);
+    line-height: 1.15;
+  }
+
+  .payments-archive-page .payments-hero > .payments-hero-copy > span {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .payments-archive-page .payments-hero-side { width: 100%; align-items: stretch; }
+
+  .payments-archive-page .payments-switch-upload {
+    grid-template-columns: 36px minmax(0, 1fr) 20px;
+    max-width: none;
+    min-height: 60px;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .payments-archive-page .payments-switch-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .payments-archive-page .payments-switch-copy { min-width: 0; }
+  .payments-archive-page .payments-switch-copy small { display: none; }
+  .payments-archive-page .payments-switch-arrow { width: 20px; height: 20px; background: transparent; }
+}
+
 /* Invoice controls follow the available panel width, including split windows. */
 @media screen {
-  .invoice-list-header { flex-wrap: wrap; }
-  .invoice-list-header > div { min-width: 0; max-width: 100%; }
+  .app-shell > .content .invoice-list-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 600px);
+    align-items: center;
+    gap: 20px 28px;
+    padding-inline: clamp(12px, 2vw, 32px);
+    container: invoices-heading / inline-size;
+  }
+
+  .app-shell > .content .invoice-list-header > div {
+    grid-column: 1 / -1;
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell > .content .invoice-list-header > div:first-child:has(> h1) {
+    padding-inline: 0;
+  }
+
+  .app-shell > .content .invoice-list-header .invoice-list-actions {
+    display: grid !important;
+    grid-template-columns: minmax(max-content, 1fr) repeat(3, minmax(0, 1fr)) !important;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .app-shell > .content .invoice-list-header .invoice-list-actions .btn[href="/invoices/payments"] {
+    white-space: nowrap !important;
+    overflow-wrap: normal;
+  }
+
+  .app-shell > .content .invoice-list-header .invoice-list-actions .btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding: 11px 12px;
+    grid-column: auto;
+    grid-row: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    gap: 8px;
+  }
+
+  .app-shell > .content .invoice-list-header .invoice-list-actions .btn:only-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: auto;
+  }
+
+  @container invoices-heading (min-width: 1050px) {
+    .app-shell > .content .invoice-list-header > div { grid-column: auto; }
+  }
+
+  @container invoices-heading (max-width: 620px) {
+    .app-shell > .content .invoice-list-header .invoice-list-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .app-shell > .content .invoice-list-header .invoice-list-actions .btn.primary {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .app-shell > .content .invoice-list-header .invoice-list-actions .btn[href="/invoices/payments"] {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @container invoices-heading (max-width: 300px) {
+    .app-shell > .content .invoice-list-header .invoice-list-actions {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+  }
+
   .invoice-list-filter-panel {
     min-width: 0;
     padding: clamp(12px, 1.5vw, 20px);
@@ -164,11 +364,6 @@
     white-space: normal;
     text-align: center;
   }
-}
-
-@media screen and (min-width: 768px) {
-  .invoice-list-header > div:first-child { flex: 1 1 280px; }
-  .invoice-list-header .invoice-list-actions { flex: 1 1 480px; flex-wrap: wrap; justify-content: flex-end; }
 }
 
 @media screen and (max-width: 1023px), screen and (max-height: 600px) {
@@ -1644,7 +1839,7 @@
 
   .archive-invoice-table tbody {
     display: grid !important;
-    gap: 8px;
+    gap: 16px;
   }
 
   .archive-invoice-table tr {
@@ -1839,6 +2034,21 @@
 
   .archive-invoice-table .invoice-row.is-paid .status.paid {
     display: none !important;
+  }
+}
+
+/* Give each archived invoice a clear boundary in the mobile card list. */
+@media screen and (max-width: 767px) {
+  .archive-invoice-table {
+    background: #eef3ef;
+  }
+
+  .archive-invoice-table tbody > .invoice-row,
+  .archive-invoice-table tbody > .invoice-row.is-paid {
+    border: 1px solid #b7cbbd;
+    border-top: 4px solid var(--green);
+    border-color: var(--green) #b7cbbd #b7cbbd !important;
+    box-shadow: 0 3px 8px rgba(28, 65, 46, .08);
   }
 }
 
