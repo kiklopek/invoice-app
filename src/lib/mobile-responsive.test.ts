@@ -229,46 +229,36 @@ describe("mobile application layout", () => {
     expect(responsiveCss).toMatch(/\.archive-invoice-table \.archive-invoice-issued,[\s\S]*?\.archive-invoice-table \.archive-invoice-due \{[\s\S]*?text-align: center;/);
   });
 
-  it("uses a compact, purpose-built mobile card for active invoices", () => {
+  it("renders active invoices as responsive cards driven by the list width", () => {
     const invoiceList = source("src/app/(workspace)/invoices/invoices-client.tsx");
-    expect(invoiceList).toContain("active-invoice-table");
+    const cardsCss = source("src/app/styles/invoice-cards.css");
+    const layout = source("src/app/layout.tsx");
+    expect(layout).toContain('import "./styles/invoice-cards.css";');
+    expect(invoiceList).toContain('<ul className="invoice-card-list"');
+    expect(invoiceList).not.toContain("active-invoice-table");
     expect(invoiceList).toContain('invoice.status === "paid" ? " is-paid" : ""');
-    expect(invoiceList).toContain("invoice-card-customer");
-    expect(invoiceList).toContain("invoice-card-amount");
-    expect(invoiceList).toContain("invoice-card-due");
-    expect(invoiceList).toContain('className="invoice-card-reminders"');
+    expect(invoiceList).toContain('canConfirm ? " has-action" : ""');
+    for (const part of ["number", "customer", "meta", "issued", "due", "amount", "action"]) {
+      expect(invoiceList).toContain(`invoice-card-${part}`);
+      expect(cardsCss).toContain(`.invoice-card-${part} { grid-area: ${part}; }`);
+    }
     expect(invoiceList).toContain('<Icon name="mail" />');
-    expect(invoiceList).toContain("invoice-mobile-action-status");
-    expect(responsiveCss).toContain(".active-invoice-table .invoice-row");
-    expect(responsiveCss).toContain('"customer invoice"');
-    expect(responsiveCss).toContain('"amount due"');
-    expect(responsiveCss).toContain('"footer footer"');
-    expect(responsiveCss).toContain("font-size: clamp(20px, 2vw, 28px)");
-    expect(responsiveCss).toContain(".invoice-list-table .invoice-card-reminders svg");
-    expect(responsiveCss).toContain("minmax(160px, 1.45fr) 72px minmax(130px, 1fr)");
-    expect(responsiveCss).toContain("transform: translateX(-28px)");
-    expect(responsiveCss).toMatch(/@container invoice-table \(max-width: 820px\)[\s\S]*?\.invoice-list-table \.invoice-card-reminders \{\s*transform: none;\s*\}/);
-    expect(responsiveCss).toContain("width: auto !important");
-    expect(responsiveCss).toContain(".active-invoice-table .invoice-card-action:empty");
-    expect(responsiveCss).toContain(".active-invoice-table .invoice-row.is-paid");
-    expect(responsiveCss).toContain('"issued reminder";');
-    expect(responsiveCss).toContain("background: #eaf6ed !important");
-    expect(responsiveCss).toContain(".invoice-row.is-paid .invoice-card-action");
+    // Tlačítko jen u otevřené faktury a jen pro roli, která smí potvrzovat.
+    expect(invoiceList).toContain("const canConfirm = canManage && isOpen;");
+    // Rozložení řídí šířka seznamu, ne viewport: telefon, úzký panel, široký panel.
+    expect(cardsCss).toContain("container: invoice-cards / inline-size;");
+    expect(cardsCss).toContain("@container invoice-cards (max-width: 559px)");
+    expect(cardsCss).toContain("@container invoice-cards (min-width: 560px)");
+    expect(cardsCss).toContain("@container invoice-cards (min-width: 860px)");
+    expect(cardsCss).toMatch(/"number customer amount meta"\s+"issued due amount action"/);
+    // Telefon: částka nahoře naproti číslu, stav a tlačítko v patičce.
+    expect(cardsCss).toMatch(/"number amount"\s+"customer customer"\s+"issued due"\s+"footer footer"/);
+    expect(invoiceList).toContain('<div className="invoice-card-footer">');
+    expect(cardsCss).toContain("display: contents;");
+    expect(cardsCss).toContain("min-height: 44px");
+    expect(cardsCss).toContain("overflow-wrap: anywhere");
     expect(responsiveCss).toContain(".dashboard-invoice-table .invoice-row.is-paid");
     expect(responsiveCss).toContain(".dashboard-invoice-compact-row.is-paid .status.paid");
-    expect(responsiveCss).toContain("align-items: center");
-    expect(responsiveCss).toContain("justify-content: center");
-    expect(responsiveCss).toContain("border-left: 1px solid #e7ece8 !important");
-    expect(responsiveCss).toContain("min-height: 46px");
-    expect(responsiveCss).toContain("background: #fff !important");
-    expect(responsiveCss).toContain("text-align: right");
-    expect(responsiveCss).toMatch(/\.active-invoice-table \.invoice-card-action \{ grid-template-columns: minmax\(0, 1fr\); gap: 10px; \}/);
-    expect(responsiveCss).toContain("grid-column: 2");
-    expect(responsiveCss).toContain("justify-content: flex-end");
-    expect(responsiveCss).toContain("justify-self: end");
-    expect(responsiveCss).toContain("margin-left: auto");
-    expect(responsiveCss).toContain(".active-invoice-table .invoice-card-status");
-    expect(responsiveCss).toContain("display: none !important");
   });
 
   it("lays out customer accounting details as a compact two-column mobile summary", () => {

@@ -9,7 +9,7 @@ import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import type { DashboardPageData } from "@/lib/dashboard-page-data";
 import { canManageInvoices } from "@/lib/role-access";
-import { useAccessProfile, useAccessRole } from "@/lib/use-access-role";
+import { useAccessRole } from "@/lib/use-access-role";
 
 const money = (value: number, currency = "CZK") =>
   new Intl.NumberFormat("cs-CZ", {
@@ -55,7 +55,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   const role = useAccessRole();
   // Název firmy z profilu, ne natvrdo -- aplikace se má dát nasadit
   // i pro jinou firmu, aniž by se přepisovaly komponenty.
-  const companyName = useAccessProfile()?.companyName?.trim();
   const canManage = canManageInvoices(role);
   const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: true });
   const error = loadError instanceof Error ? loadError.message : "";
@@ -66,12 +65,9 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
 
   return (
     <AppFrame invoiceCount={activeCount} className={`content dashboard-page ${styles.page}`}>
-        <header className="topbar">
-          <div>
-            <p>{companyName ? `${companyName} · účetní oddělení` : "Účetní oddělení"}</p>
-            <h1>Finanční přehled</h1>
-          </div>
-        </header>
+        {/* Viditelná hlavička byla odebrána, aby místo dostaly panely faktur;
+            nadpis stránky zůstává pro čtečky obrazovky. */}
+        <h1 className={styles.srOnly}>Finanční přehled</h1>
         <section className="dashboard-command" aria-label="Souhrn pohledávek">
           <article className="dashboard-balance-card">
             <div className="dashboard-balance-topline">

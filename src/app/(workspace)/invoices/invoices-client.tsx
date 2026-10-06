@@ -24,8 +24,12 @@ const money = (value: number, currency: string) =>
     currency,
     maximumFractionDigits: 0,
   }).format(value);
+const cardMoney = (value: number, currency: string) =>
+  money(value, currency).replace(/[\u00a0\u202f]/g, " ");
 const date = (value: string) =>
   new Intl.DateTimeFormat("cs-CZ").format(new Date(value));
+const reminderCount = (count: number) =>
+  `${count} ${count === 1 ? "upomínka" : count < 5 ? "upomínky" : "upomínek"}`;
 const labels: Record<InvoiceStatus, string> = {
   pending: "Čeká na úhradu",
   overdue: "Po splatnosti",
@@ -485,93 +489,86 @@ export function InvoicesClient({
             </div>
           )
         ) : (
-          <div className="large-table invoice-list-table active-invoice-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Faktura</th>
-                  <th>Odběratel</th>
-                  <th>Částka</th>
-                  <th>Vystavení</th>
-                  <th>Splatnost</th>
-                  <th>Upomínky</th>
-                  <th>Stav</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((invoice) => (
-                  <tr
-                    key={invoice.id}
-                    onMouseEnter={() => prefetchInvoice(invoice.id)}
-                    onTouchStart={() => prefetchInvoice(invoice.id)}
-                    className={`invoice-row${invoice.status === "paid" ? " is-paid" : ""}`}
-                    onClick={(event) => {
-                      const target = event.target;
-                      if (
-                        target instanceof HTMLElement &&
-                        target.closest("a, button, input, select, textarea")
-                      )
-                        return;
-                      router.push(`/invoices/${invoice.id}`);
-                    }}
-                  >
-                    <td data-label="Faktura" className="invoice-card-number">
-                      <Link
-                        href={`/invoices/${invoice.id}`}
-                        onFocus={() => prefetchInvoice(invoice.id)}
-                      >
-                        <strong>{invoice.invoice_number}</strong>
-                      </Link>
-                      <small>VS {invoice.variable_symbol || "—"}</small>
-                    </td>
-                    <td data-label="Odběratel" className="invoice-card-customer">
-                      <strong>{invoice.counterparty_name}</strong>
-                      <small>{invoice.counterparty_email}</small>
-                    </td>
-                    <td data-label="Částka" className="invoice-card-amount">
-                      <strong>
-                        {money(Number(invoice.amount), invoice.currency)}
-                      </strong>
-                    </td>
-                    <td data-label="Vystaveno" className="invoice-card-issued">{date(invoice.issue_date)}</td>
-                    <td
-                      data-label="Splatnost"
-                      className={`invoice-card-due${invoice.status === "overdue" ? " red-text" : ""}`}
+          <ul className="invoice-card-list" aria-label="Faktury">
+            {invoices.map((invoice) => {
+              const isOpen = invoice.status === "pending" || invoice.status === "overdue";
+              const isPartial = isOpen && Number(invoice.paid_amount) > 0;
+              const canConfirm = canManage && isOpen;
+              return (
+                <li
+                  key={invoice.id}
+                  onMouseEnter={() => prefetchInvoice(invoice.id)}
+                  onTouchStart={() => prefetchInvoice(invoice.id)}
+                  className={`invoice-row invoice-card${invoice.status === "paid" ? " is-paid" : ""}${canConfirm ? " has-action" : ""}`}
+                  onClick={(event) => {
+                    const target = event.target;
+                    if (
+                      target instanceof HTMLElement &&
+                      target.closest("a, button, input, select, textarea")
+                    )
+                      return;
+                    router.push(`/invoices/${invoice.id}`);
+                  }}
+                >
+                  <div className="invoice-card-number">
+                    <Link
+                      href={`/invoices/${invoice.id}`}
+                      onFocus={() => prefetchInvoice(invoice.id)}
                     >
-                      {date(invoice.due_date)}
-                    </td>
-                    <td
-                      data-label="Upomínky"
-                      className="invoice-card-reminders"
-                      aria-label={`${invoice.reminders_sent} odeslaných upomínek`}
-                      title="Odeslané upomínky"
-                    >
-                      <Icon name="mail" />
-                      <span>{invoice.reminders_sent}×</span>
-                    </td>
-                    <td data-label="Stav" className="invoice-card-status">
+                      {invoice.invoice_number}
+                    </Link>
+                    <small>VS {invoice.variable_symbol || "—"}</small>
+                  </div>
+                  <div className="invoice-card-customer">
+                    <strong>{invoice.counterparty_name}</strong>
+                    <small>{invoice.counterparty_email}</small>
+                  </div>
+                  <div className="invoice-card-issued">
+                    <span className="invoice-card-label">Vystaveno</span>
+                    <span className="invoice-card-value">{date(invoice.issue_date)}</span>
+                  </div>
+                  <div className={`invoice-card-due${invoice.status === "overdue" ? " is-overdue" : ""}`}>
+                    <span className="invoice-card-label">Splatnost</span>
+                    <span className="invoice-card-value">{date(invoice.due_date)}</span>
+                  </div>
+                  <div className="invoice-card-amount">
+                    <span className="invoice-card-label">Částka</span>
+                    <span className="invoice-card-total">
+                      <strong>{cardMoney(Number(invoice.amount), invoice.currency)}</strong>
+                      {Number(invoice.paid_amount) > 0 &&
+                      invoice.status !== "cancelled" ? (
+                        <small>
+                          Zbývá{" "}
+                          {cardMoney(
+                            Math.max(
+                              0,
+                              Number(invoice.amount) -
+                                Number(invoice.paid_amount),
+                            ),
+                            invoice.currency,
+                          )}
+                        </small>
+                      ) : null}
+                    </span>
+                  </div>
+                  {/* Na telefonu patička karty, na širších kartách display: contents. */}
+                  <div className="invoice-card-footer">
+                    <div className="invoice-card-meta">
+                      {invoice.reminders_sent > 0 ? (
+                        <span className="invoice-card-reminders" title="Odeslané upomínky">
+                          <Icon name="mail" />
+                          {reminderCount(invoice.reminders_sent)}
+                        </span>
+                      ) : null}
                       <span className={`status ${invoice.status}`}>
                         {labels[invoice.status]}
                       </span>
-                      {(invoice.status === "pending" || invoice.status === "overdue") &&
-                      Number(invoice.paid_amount) > 0 ? (
+                      {isPartial ? (
                         <span className="status partial">Částečně uhrazeno</span>
                       ) : null}
-                    </td>
-                    <td className="invoice-card-action">
-                      <span className="invoice-mobile-action-status">
-                        <span className={`status ${invoice.status}`}>
-                          {labels[invoice.status]}
-                        </span>
-                        {(invoice.status === "pending" || invoice.status === "overdue") &&
-                        Number(invoice.paid_amount) > 0 ? (
-                          <span className="status partial">Částečně uhrazeno</span>
-                        ) : null}
-                      </span>
-                      {canManage &&
-                      (invoice.status === "pending" ||
-                        invoice.status === "overdue") ? (
+                    </div>
+                    {canConfirm ? (
+                      <div className="invoice-card-action">
                         <button
                           type="button"
                           className="btn primary quick-payment-button"
@@ -584,13 +581,13 @@ export function InvoicesClient({
                         >
                           Potvrdit úhradu
                         </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
       {totalPages > 1 && (
