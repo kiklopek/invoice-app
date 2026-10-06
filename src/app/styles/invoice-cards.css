@@ -1,0 +1,366 @@
+/* Karty otevřených faktur.
+ *
+ * Každá karta drží jeden vzor: identita (číslo + VS, odběratel + e-mail)
+ * a fakta ve tvaru „popisek nad hodnotou“ (vystaveno, splatnost, částka).
+ * Na telefonu stojí částka nahoře naproti číslu faktury a stav s tlačítkem
+ * tvoří patičku; na širších kartách je patička jen obal (display: contents)
+ * a stav i tlačítko mají vlastní místa v gridu. Rozložení řídí šířka seznamu
+ * (container query), ne viewport.
+ *
+ * Záměrně nepoužívá třídy .invoice-list-table / .active-invoice-table:
+ * na ně se váže rozsáhlá kaskáda tabulkových pravidel s !important. */
+
+.invoice-card-list {
+  container: invoice-cards / inline-size;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 10px;
+  list-style: none;
+  background: #f7f9f6;
+}
+
+.invoice-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "number amount"
+    "customer customer"
+    "issued due"
+    "footer footer";
+  align-items: start;
+  gap: 12px 16px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.invoice-card:hover {
+  border-color: var(--line-strong);
+  background: var(--paper);
+  box-shadow: 0 6px 18px rgba(23, 37, 29, .06);
+}
+
+.invoice-card.is-paid,
+.invoice-card.is-paid:hover {
+  border-color: #d3e6d9;
+  background: #f6fbf7;
+}
+
+.invoice-card-number { grid-area: number; }
+.invoice-card-customer { grid-area: customer; }
+.invoice-card-meta { grid-area: meta; }
+.invoice-card-issued { grid-area: issued; }
+.invoice-card-due { grid-area: due; }
+.invoice-card-amount { grid-area: amount; }
+.invoice-card-action { grid-area: action; }
+.invoice-card-footer { grid-area: footer; }
+
+.invoice-card > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Identita */
+.invoice-card .invoice-card-number a {
+  align-self: flex-start;
+  max-width: 100%;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.invoice-card .invoice-card-customer strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.invoice-card .invoice-card-number small,
+.invoice-card .invoice-card-customer small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Fakta: popisek nad hodnotou */
+.invoice-card .invoice-card-label {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.invoice-card .invoice-card-value {
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-card .invoice-card-due.is-overdue .invoice-card-value {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.invoice-card .invoice-card-total {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.invoice-card .invoice-card-total strong {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.invoice-card .invoice-card-total small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-card.is-paid .invoice-card-total strong {
+  color: #4f6357;
+}
+
+/* Metadata: upomínky a stav */
+.invoice-card .invoice-card-meta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 10px;
+}
+
+.invoice-card .invoice-card-meta .status {
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.invoice-card-reminders {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #52665a;
+  font-size: 12.5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-card-reminders svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: #688073;
+}
+
+/* Akce */
+.invoice-card .invoice-card-action {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.invoice-card .invoice-card-action .quick-payment-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Telefon: částka nahoře naproti číslu faktury, kde ji oko hledá nejdřív;
+ * stav, upomínky a kompaktní tlačítko v patičce. */
+.invoice-card .invoice-card-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e7ece8;
+}
+
+@container invoice-cards (max-width: 559px) {
+  .invoice-card .invoice-card-amount {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  /* Popisek „Částka“ je na telefonu zřejmý z pozice; čtečce zůstává. */
+  .invoice-card .invoice-card-amount .invoice-card-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .invoice-card .invoice-card-total {
+    align-items: flex-end;
+  }
+
+  .invoice-card .invoice-card-total strong {
+    font-size: clamp(17px, 6cqi, 20px);
+  }
+
+  /* Uvnitř patičky platí její dva sloupce, ne pojmenované oblasti karty. */
+  .invoice-card .invoice-card-meta,
+  .invoice-card .invoice-card-action {
+    grid-area: auto;
+  }
+
+  .invoice-card .invoice-card-meta {
+    justify-content: flex-start;
+  }
+
+  .invoice-card .invoice-card-reminders {
+    order: 1;
+  }
+
+
+  .invoice-card .invoice-card-action .quick-payment-button {
+    width: auto;
+    padding-inline: 18px;
+  }
+}
+
+/* Nejužší telefony: štítky stavu by se vedle tlačítka nevešly. */
+@container invoice-cards (max-width: 329px) {
+  .invoice-card .invoice-card-footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .invoice-card .invoice-card-action .quick-payment-button {
+    width: 100%;
+  }
+}
+
+/* Úzký panel / tablet: tři sloupce. Částka zabírá oba řádky a stojí
+ * vertikálně uprostřed karty; stav, upomínky a tlačítko tvoří patičku. */
+@container invoice-cards (min-width: 560px) {
+  .invoice-card .invoice-card-footer {
+    display: contents;
+  }
+
+  .invoice-card,
+  .invoice-card.has-action {
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-areas:
+      "number customer amount"
+      "issued due amount"
+      "meta meta meta";
+    gap: 18px 22px;
+    padding: 18px 20px;
+  }
+
+  .invoice-card.has-action {
+    grid-template-areas:
+      "number customer amount"
+      "issued due amount"
+      "meta meta action";
+  }
+
+  .invoice-card .invoice-card-amount {
+    align-self: center;
+  }
+
+  .invoice-card .invoice-card-meta {
+    align-self: stretch;
+    justify-content: flex-start;
+    padding-top: 14px;
+    border-top: 1px solid #e7ece8;
+  }
+
+  .invoice-card .invoice-card-action {
+    align-items: flex-end;
+    padding-top: 14px;
+    border-top: 1px solid #e7ece8;
+  }
+
+  /* Dělicí čára patičky vede přes mezeru mezi stavem a tlačítkem. */
+  .invoice-card.has-action .invoice-card-meta {
+    margin-right: -22px;
+    padding-right: 22px;
+  }
+
+  .invoice-card .invoice-card-action .quick-payment-button {
+    width: auto;
+    min-width: 176px;
+  }
+}
+
+/* Široký panel: částka zabírá oba řádky a stojí vertikálně uprostřed karty,
+ * vpravo nahoře stav a upomínky, vpravo dole tlačítko. Pevná šířka
+ * posledního sloupce drží sloupce zarovnané napříč kartami bez ohledu na to,
+ * jestli karta tlačítko má. */
+@container invoice-cards (min-width: 860px) {
+  .invoice-card,
+  .invoice-card.has-action {
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.3fr) minmax(0, 1fr) 236px;
+    grid-template-areas:
+      "number customer amount meta"
+      "issued due amount action";
+    gap: 18px 28px;
+    padding: 20px 24px;
+  }
+
+  .invoice-card .invoice-card-meta,
+  .invoice-card.has-action .invoice-card-meta {
+    align-self: start;
+    justify-content: flex-end;
+    margin-right: 0;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .invoice-card .invoice-card-action {
+    align-self: end;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .invoice-card .invoice-card-action .quick-payment-button {
+    width: auto;
+    min-width: 184px;
+  }
+
+  .invoice-card .invoice-card-total strong {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invoice-card { transition: none; }
+}

@@ -23,20 +23,11 @@
   .page.page :global(.dashboard-command) {
     margin-bottom: 20px;
   }
-  .page.page :global(.topbar) {
-    margin-bottom: 20px;
-  }
-  .page.page :global(.topbar > div),
   .page.page :global(.panel-head > div),
   .page.page :global(.dashboard-workspace > *),
   .page.page :global(.dashboard-timeline-item section) {
     min-width: 0;
   }
-  .page.page :global(.topbar h1) {
-    font-size: clamp(26px, 3vw, 36px);
-    line-height: 1.2;
-  }
-  .page.page :global(.topbar p),
   .page.page :global(.panel-head p),
   .page.page :global(.dashboard-panel-eyebrow),
   .page.page :global(.dashboard-timeline-item section small),
@@ -49,7 +40,6 @@
     font-size: 12px;
     line-height: 1.5;
   }
-  .page.page :global(.topbar p),
   .page.page :global(.panel-head),
   .page.page :global(.state),
   .page.page :global(.empty-box),
@@ -274,21 +264,27 @@
   .page.page :global(.dashboard-attention-panel .panel-head > div) {
     flex: 1 1 160px;
   }
+  /* Drobný čip vedle nadpisu: velikost se odvozuje od písma nadpisu panelu,
+   * aby nepřerůstal štítek „PRIORITY“ ani na telefonu, ani na desktopu. */
   .page.page :global(.dashboard-attention-count) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: auto;
     height: auto;
-    min-height: 36px;
+    min-height: 0;
     flex: 0 0 auto;
-    gap: 6px;
-    padding: 6px 10px;
-    font-size: 12px;
+    align-self: flex-start;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: clamp(11px, 1vw, 12px);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
   }
   .page.page :global(.dashboard-attention-count svg) {
-    width: 16px;
-    height: 16px;
+    width: 1.1em;
+    height: 1.1em;
+    flex: 0 0 auto;
   }
   .page.page :global(.dashboard-invoice-table),
   .page.page :global(.dashboard-attention-panel .timeline) {
@@ -465,10 +461,6 @@
       padding-block: clamp(20px, 3dvh, 32px);
       overflow: hidden;
     }
-    .page.page :global(.topbar) {
-      flex: 0 0 auto;
-      margin-bottom: 16px;
-    }
     .page.page :global(.dashboard-command) {
       flex: 0 0 clamp(280px, 40dvh, 360px);
       grid-template-columns: minmax(0, 1fr) minmax(0, min(58%, 760px));
@@ -571,4 +563,16 @@
       gap: 8px;
     }
   }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

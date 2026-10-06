@@ -1,6 +1,7 @@
 import "./globals.css";
 import "./minimal.css";
 import "./styles/responsive.css";
+import "./styles/invoice-cards.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
