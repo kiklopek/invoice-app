@@ -23,8 +23,9 @@ const mobileNavigation = source(
 
 describe("MFA and bank statement UI regressions", () => {
   it("separates MFA actions into their own rows", () => {
-    expect(mfaPage.match(/className="auth-text-button"/g)).toHaveLength(2);
-    expect(css).toContain(".auth-text-button { display: block;");
+    // Nový kód a odhlášení jsou dvě samostatná tlačítka, každé ve vlastním řádku.
+    expect(mfaPage.match(/className=\{`?\$?\{?styles\.textButton/g)).toHaveLength(2);
+    expect(mfaPage).toContain('<p className={styles.resend}');
   });
 
   it("explains GPC totals and names the current import stage in the file summary", () => {

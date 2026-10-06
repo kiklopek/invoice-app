@@ -147,3 +147,20 @@ export const Calendar = (p: IconProps) => (
     <path d="M3.5 10h17M8 3v4M16 3v4" />
   </Icon>
 );
+export const Lock = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+    <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+  </Icon>
+);
+export const User = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M5 20a7 7 0 0 1 14 0" />
+  </Icon>
+);
+export const ArrowLeft = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </Icon>
+);

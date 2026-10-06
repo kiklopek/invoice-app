@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Icon } from "@/components/icons";
-import { CompanyLogo } from "@/components/company-logo";
+import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
+import { OtpInput } from "@/components/auth/otp-input";
+import { ArrowLeft, ArrowRight } from "@/components/landing/landing-icons";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
@@ -116,67 +117,57 @@ export default function MfaPage() {
   }
 
   return (
-    <main className="login-page">
-      <section className="login-card">
-        <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
-        <div className="login-intro">
-          <span>OVĚŘENÍ E-MAILEM</span>
-          <h1>Druhé ověření</h1>
-          <p>{loading
-            ? "Odesíláme jednorázový kód…"
-            : codeAvailable
-              ? `Šestimístný kód jsme poslali na ${email || "váš firemní e-mail"}.`
-              : "Ověřovací kód zatím nebyl odeslán."}</p>
-        </div>
+    <AuthShell
+      art="phone"
+      claim={<>Vaše bezpečí<br />je pro nás důležité.</>}
+      claimSub="Dvoufázové ověření pomáhá chránit vaše data a faktury."
+    >
+      <span className={styles.eyebrow}>Ověření e-mailem</span>
+      <h1 className={styles.title}>Ověření ve 2 krocích</h1>
+      <p className={styles.sub}>
+        {loading
+          ? "Odesíláme jednorázový kód…"
+          : codeAvailable
+            ? <>Zadejte kód, který jsme vám právě poslali na e-mail <b>{email || "váš firemní e-mail"}</b>.</>
+            : "Ověřovací kód zatím nebyl odeslán."}
+      </p>
 
-        {!loading && codeAvailable && (
-          <form onSubmit={verify}>
-            <label>
-              <span>Šestimístný kód</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                required
-                autoFocus
-                placeholder="123456"
-                value={code}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-              />
-            </label>
-            <button type="submit" className="btn primary" disabled={submitting}>
-              <Icon name="check" />{submitting ? "Ověřuji…" : "Ověřit a pokračovat"}
-            </button>
-          </form>
-        )}
+      {!loading && codeAvailable && (
+        <form onSubmit={verify} className={styles.form}>
+          <OtpInput value={code} onChange={setCode} disabled={submitting} autoFocus />
+          <small className={styles.note} style={{ marginTop: -4 }}>Kód platí 10 minut, lze jej použít pouze jednou a po pěti chybných pokusech se zablokuje.</small>
+          {error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.primary} disabled={submitting || code.length !== 6}>
+            {submitting ? "Ověřuji…" : "Ověřit a pokračovat"} <ArrowRight />
+          </button>
+        </form>
+      )}
 
-        {error && <p className="form-error">{error}</p>}
-        {!loading && (
+      {(loading || !codeAvailable) && error && <p className={styles.error} style={{ marginTop: 24 }}>{error}</p>}
+
+      {!loading && (
+        <p className={styles.resend} style={{ marginTop: 22 }}>
+          Nepřišel vám kód?
           <button
             type="button"
-            className="auth-text-button"
+            className={styles.textButton}
             disabled={resending || cooldown > 0}
             onClick={() => void requestCode(true)}
-            style={{ marginTop: 16 }}
           >
-            {resending ? "Odesílám…" : cooldown > 0 ? `Poslat nový kód za ${cooldown} s` : "Poslat nový kód"}
+            {resending ? "Odesílám…" : cooldown > 0 ? `Poslat znovu (${cooldown} s)` : "Poslat znovu"}
           </button>
-        )}
-        {!loading && (
-          <button
-            type="button"
-            className="auth-text-button"
-            disabled={signingOut}
-            onClick={() => void signOutAndReturnToLogin()}
-            style={{ marginTop: 8 }}
-          >
-            {signingOut ? "Odhlašuji…" : "Odhlásit se a přihlásit jiným účtem"}
-          </button>
-        )}
-        <small className="login-security">Kód platí 10 minut, lze jej použít pouze jednou a po pěti chybných pokusech se zablokuje.</small>
-      </section>
-    </main>
+        </p>
+      )}
+      {!loading && (
+        <button
+          type="button"
+          className={`${styles.textButton} ${styles.back}`}
+          disabled={signingOut}
+          onClick={() => void signOutAndReturnToLogin()}
+        >
+          <ArrowLeft /> {signingOut ? "Odhlašuji…" : "Zpět na přihlášení jiným účtem"}
+        </button>
+      )}
+    </AuthShell>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
+import { EskoAssistant } from "@/components/esko/esko-assistant";
 import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import {
@@ -488,6 +489,7 @@ export function AppShell({
             initialProfile={initialProfile}
           />
           {children}
+          <EskoAssistant />
         </div>
       </InvoiceCountContext.Provider>
     </AccessProfileProvider>

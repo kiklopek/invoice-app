@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
-import { Icon } from "@/components/icons";
-import { CompanyLogo } from "@/components/company-logo";
+import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
+import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
 import { ALLOWED_EMAIL_DOMAIN, isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
@@ -120,32 +120,38 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-page auth-page">
-      <section className="login-card auth-card">
-        <header className="login-header">
-          <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
-          <div className="login-intro"><span>FIREMNÍ APLIKACE</span><h1>Přihlášení</h1><p>Správa faktur a pohledávek.</p></div>
-        </header>
-
-        <div className="login-body">
-          <>
-              {passwordUpdated && <p className="form-success">Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
-              <form onSubmit={signIn} className="auth-form">
-                <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)}/></label>
-                <label><span>Heslo</span><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>
-                <div className="auth-login-options">
-                  <label className="auth-remember"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)}/><span>Zapamatovat si mě</span></label>
-                  <Link href="/forgot-password">Obnovit heslo</Link>
-                </div>
-                <button type="submit" className="btn primary" disabled={submitting || !supabaseConfigured}><Icon name="check"/>{submitting ? "Přihlašuji…" : "Přihlásit se"}</button>
-                {loginFailure && <p className="form-error">E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href="/forgot-password">„Obnovit heslo“</Link>.</p>}
-                {error && <p className="form-error">{error}</p>}
-              </form>
-              <p className="auth-switch">Nemáte ještě účet? <Link href="/register">Vytvořit účet</Link></p>
-          </>
+    <AuthShell art="wave" claim={<>Méně hledání.<br />Více hotových faktur.</>}>
+      <span className={styles.eyebrow}>Firemní aplikace</span>
+      <h1 className={styles.title}>Přihlášení</h1>
+      <p className={styles.sub}>Vítejte zpět. Pokračujte ve správě faktur a pohledávek.</p>
+      <form onSubmit={signIn} className={styles.form}>
+        {passwordUpdated && <p className={styles.success}>Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
+        <label className={styles.field}>
+          <span>Firemní e-mail</span>
+          <span className={styles.control}>
+            <Mail />
+            <input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)} />
+          </span>
+        </label>
+        <label className={styles.field}>
+          <span>Heslo</span>
+          <span className={styles.control}>
+            <Lock />
+            <input type="password" autoComplete="current-password" required placeholder="Zadejte své heslo" value={password} onChange={(event) => setPassword(event.target.value)} />
+          </span>
+        </label>
+        <div className={styles.row}>
+          <label className={styles.check}><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>Zapamatovat si mě</span></label>
+          <span className={styles.link}><Link href="/forgot-password">Obnovit heslo</Link></span>
         </div>
-        <small className="login-security">Přihlášení je chráněno heslem a jednorázovým kódem zaslaným na firemní e-mail.</small>
-      </section>
-    </main>
+        {loginFailure && <p className={styles.error}>E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href="/forgot-password">„Obnovit heslo“</Link>.</p>}
+        {error && <p className={styles.error}>{error}</p>}
+        <button type="submit" className={styles.primary} disabled={submitting || !supabaseConfigured}>
+          {submitting ? "Přihlašuji…" : "Přihlásit se"} <ArrowRight />
+        </button>
+      </form>
+      <p className={styles.foot}>Ještě nemáte účet?<Link href="/register">Vytvořit účet</Link></p>
+      <p className={styles.note}>Přihlášení je chráněno heslem a jednorázovým kódem zaslaným na firemní e-mail.</p>
+    </AuthShell>
   );
 }

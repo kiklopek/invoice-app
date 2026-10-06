@@ -147,9 +147,13 @@ describe("mobile application layout", () => {
     expect(layout).toContain('viewportFit: "cover"');
   });
 
-  it("keeps the company logo and excludes the Splatno mark from the login card", () => {
+  // Přihlášení běží pod značkou Splatno (splatno.cz/hlavica), ale logo firmy
+  // musí zůstat vidět, aby uživatel poznal, kam se přihlašuje.
+  it("keeps the company logo on the login card next to the Splatno brand", () => {
     const login = source("src/app/(auth)/login/page.tsx");
-    expect(login).toContain('<CompanyLogo className="login-company-logo" />');
+    const shell = source("src/components/auth/auth-shell.tsx");
+    expect(login).toContain("<AuthShell");
+    expect(shell).toContain("<CompanyLogo");
     expect(login).not.toContain("SplatnoMark");
   });
 
