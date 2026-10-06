@@ -41,7 +41,7 @@
     "regenerator-runtime": "0.13.11",
     "resend": "6.18.1",
     "saxes": "6.0.0",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "svix": "1.99.1",
     "swr": "2.5.1",
     "tesseract.js": "7.0.0",
@@ -71,7 +71,8 @@
       "js-yaml": "4.3.2",
       "brace-expansion@>=1 <2": "1.1.21",
       "brace-expansion@>=2 <3": "2.1.6",
-      "brace-expansion@>=4 <6": "5.0.12"
+      "brace-expansion@>=4 <6": "5.0.12",
+      "source-map-js": "1.2.2"
     },
     "patchedDependencies": {
       "braces@3.0.3": "patches/braces@3.0.3.patch"
