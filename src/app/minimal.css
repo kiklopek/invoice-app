@@ -2793,6 +2793,7 @@ th,.status.large,.panel-head > a,.panel-head > button,.period-presets button,.au
 .app-error-page,
 .app-loading {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px;
