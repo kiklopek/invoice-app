@@ -39,7 +39,6 @@ describe("barvy v aplikaci splňují WCAG AA", () => {
   const pairs: { name: string; foreground: string; background: string; was: number }[] = [
     { name: "hlavička tabulky", foreground: "#69756d", background: "#f7f8f6", was: 3.86 },
     { name: "sekundární text v buňce", foreground: "#717871", background: "#ffffff", was: 2.99 },
-    { name: "tlačítko nabídky řádku", foreground: "#717872", background: "#ffffff", was: 2.64 },
     { name: "štítek Čeká na úhradu", foreground: "#94641e", background: "#f8f0df", was: 4.45 },
     { name: "tlumený text na bílé", foreground: "#66736b", background: "#ffffff", was: 4.96 },
     { name: "tlumený text na plátně", foreground: "#66736b", background: "#f5f6f2", was: 4.7 },
@@ -57,7 +56,8 @@ describe("barvy v aplikaci splňují WCAG AA", () => {
     expect(minimal).toContain("#69756d");
     expect(minimal).toContain("--amber: #94641e");
     expect(globals).toContain("#717871");
-    expect(globals).toContain("#717872");
+    // "Tlačítko nabídky řádku" (#717872, .row-menu) ze stránek zmizelo a jeho
+    // CSS se 6. 10. odstranilo jako mrtvé -- dvojice se proto už neměří.
   });
 
   it("no longer contains the colours that failed", () => {

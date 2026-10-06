@@ -4,7 +4,6 @@
  * mobilni breakpointy nikdy nepropsaly do A4 tisku.
  */
 
-.u-nowrap,
 .money {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -99,10 +98,6 @@
 
 @media screen and (min-width: 601px) and (max-width: 820px) {
   .standalone-form .form-grid { grid-template-columns: 1fr; }
-}
-
-.u-break-anywhere {
-  overflow-wrap: anywhere;
 }
 
 @media screen and (min-width: 641px) {
@@ -468,22 +463,11 @@
     left: 0;
   }
 
-  .workspace-grid,
-  .detail-page-grid,
-  .settings-grid,
-  .access-settings-grid,
-  .analytics-grid,
-  .reminders-layout,
-  .reminder-monitor-grid {
+  .workspace-grid,.detail-page-grid,.settings-grid,.access-settings-grid,.reminders-layout,.reminder-monitor-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .page-panel,
-  .panel,
-  .form-section,
-  .data-panel,
-  .analytics-card,
-  .content > * {
+  .page-panel,.panel,.form-section,.data-panel,.content > * {
     min-width: 0;
     max-width: 100%;
   }
@@ -1426,8 +1410,7 @@
     min-height: 44px;
   }
 
-  button[aria-label],
-  .icon-button {
+  button[aria-label] {
     min-width: 44px;
     min-height: 44px;
   }
@@ -1578,7 +1561,6 @@
     .archive-invoice-table .archive-invoice-issued { grid-area: issue !important; }
     .archive-invoice-table .archive-invoice-due { grid-area: due !important; }
     .archive-invoice-table .archive-invoice-paid-at { grid-area: payment !important; }
-    .archive-invoice-table .archive-invoice-status { grid-area: status !important; }
 
     .archive-invoice-table .archive-invoice-amount,
     .archive-invoice-table .archive-invoice-paid-at {
@@ -1606,20 +1588,11 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .archive-invoice-table .archive-invoice-status {
-      align-self: center;
-      justify-self: end;
-    }
-
     .archive-invoice-table .invoice-row.is-paid {
       grid-template-columns: minmax(110px, .9fr) minmax(180px, 1.35fr) minmax(150px, 1fr) minmax(130px, .9fr);
       grid-template-areas:
         "invoice customer amount payment"
         "issue due amount payment" !important;
-    }
-
-    .archive-invoice-table .invoice-row.is-paid .archive-invoice-status {
-      display: none !important;
     }
   }
 
@@ -1642,10 +1615,6 @@
     .archive-invoice-table .archive-invoice-paid-at {
       border-radius: 10px;
       background: #fafbfa !important;
-    }
-
-    .archive-invoice-table .archive-invoice-status {
-      justify-self: end;
     }
 
     .archive-invoice-table .invoice-row.is-paid {
@@ -1711,7 +1680,6 @@
   .archive-invoice-table .archive-invoice-issued { grid-area: issue !important; }
   .archive-invoice-table .archive-invoice-due { grid-area: due !important; }
   .archive-invoice-table .archive-invoice-paid-at { grid-area: payment !important; }
-  .archive-invoice-table .archive-invoice-status { grid-area: status !important; }
 
   .archive-invoice-table .archive-invoice-number::before,
   .archive-invoice-table .archive-invoice-customer::before {
@@ -1798,12 +1766,6 @@
     margin: 0 6px 0 0;
   }
 
-  .archive-invoice-table .archive-invoice-status {
-    align-self: center;
-    justify-self: center;
-    text-align: center;
-  }
-
   .archive-invoice-table .invoice-row.is-paid {
     grid-template-areas:
       "customer invoice"
@@ -1875,10 +1837,6 @@
   }
 
   .archive-invoice-table .invoice-row.is-paid .status.paid {
-    display: none !important;
-  }
-
-  .archive-invoice-table .invoice-row.is-paid .archive-invoice-status {
     display: none !important;
   }
 }

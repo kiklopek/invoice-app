@@ -35,7 +35,8 @@ describe("MFA and bank statement UI regressions", () => {
     expect(gpcImport).toContain("Příchozí CZK platby připravené ke kontrole.");
     expect(gpcImport).toContain("Odchozí, cizoměnové nebo duplicitní řádky.");
     expect(gpcImport).toContain('["duplicate", "Duplicity"]');
-    expect(css).toContain(".import-steps span.current");
+    // .import-steps z panelu zmizel v 0c6d6d1; jeho CSS se 6. 10. odstranilo
+    // jako mrtvé, takže se tu už nehlídá.
     expect(gpcImport).toContain('className="account-warning-icon"');
     expect(gpcImport).toContain("Potvrdit kontrolu");
     expect(gpcImport).toContain('className="account-warning-check"');

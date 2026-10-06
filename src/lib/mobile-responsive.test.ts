@@ -212,8 +212,8 @@ describe("mobile application layout", () => {
     expect(invoiceArchive).toContain("archive-invoice-table");
     expect(invoiceArchive).toContain("archive-invoice-paid-at");
     expect(invoiceArchive).toContain('invoice.status === "paid" ? " is-paid" : ""');
-    expect(css).toContain(".payment-preview-table table");
-    expect(css).toContain(".debtor-table table");
+    // .payment-preview-table a .debtor-table už žádná stránka nevykresluje;
+    // jejich CSS se 6. 10. odstranilo jako mrtvé.
     expect(css).toContain(".invoice-import-preview table");
     expect(css).toContain(".payments-page .gpc-safety-card { display: none; }");
     expect(responsiveCss).toMatch(/\.archive-invoice-table \.invoice-row\.is-paid \{[\s\S]*?"customer invoice"[\s\S]*?"amount payment"[\s\S]*?"issue due"/);
