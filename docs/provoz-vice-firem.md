@@ -91,6 +91,38 @@ soubory podle skutečně zapsané verze**. Postup popisuje CLAUDE.md.
 - U produkčního projektu Supabase ověřit zapnuté zálohy, ideálně Point-in-time
   recovery. Po otevření pro další firmy je to nutnost.
 
+## 3a. Předplatné, ověření firmy a provoz
+
+### Jak to funguje
+
+| Část | Chování |
+|---|---|
+| **Zkušební doba** | Nová firma má 30 dní plného provozu. Stávající firmy, včetně R. Hlavica, mají trvale aktivní předplatné. |
+| **Po skončení** | Data zůstávají. Nové faktury (ručně, importem i z PDF) nejdou přidat a server vrátí 402. Upomínky se dál plánují, ale **neodesílají**. Zůstanou ve frontě a odejdou po zaplacení. V aplikaci se 7 dní předem objeví upozornění. |
+| **Ověření firmy** | Kód se pošle do datové schránky dohledané podle IČO v ISDS. Platí 72 hodin a zadat ho jde nejvýš 5×. Bez napojení ISDS ověřuje provozovatel ručně na `/provoz`. |
+| **Nákup** (`/predplatne`) | Jen ověřená firma a jen její administrátor. Částku vždy počítá server (`src/lib/plans.ts`). |
+| **Platba kartou** | Přes Comgate. Tarif se aktivuje po oznámení z brány, které se ověří tajemstvím a navíc dotazem na stav platby. |
+| **Platba převodem** | Zákazník dostane výzvu k platbě s QR kódem e-mailem. Platbu potvrdí provozovatel na `/provoz`. |
+| **Po zaplacení** | Faktura e-mailem, číselná řada `SPF…`. |
+
+Zaplacení je v databázi idempotentní a vyžaduje přesnou částku. Druhé
+oznámení od brány předplatné neprodlouží.
+
+### Co nastavit
+
+- Proměnné `SPLATNO_SUPPLIER_*`, `COMGATE_*`, `ISDS_*` a
+  `SPLATNO_OPERATOR_EMAILS`. Popis je v `.env.example`.
+- **Comgate:** URL pro oznámení `https://splatno.cz/api/billing/comgate`.
+  Nejdřív testovací režim (`COMGATE_TEST=true`).
+- **ISDS:** přihlašovací údaje datové schránky Splatna pro webové služby.
+  Nejdřív je otestujte na czebox.cz.
+
+### Ověřeno jen proti napodobeninám
+
+Klienty Comgate a ISDS jsem psal podle REST API Comgate v2.0 a WSDL ISDS v20.
+Testy je ověřují jen proti napodobeným odpovědím. **Před ostrým provozem je
+nutný průchod v testovacích prostředích** (Comgate test, czebox.cz).
+
 ## 4. Otevřená rozhodnutí
 
 1. **Zkušební doba a placení.** „Vyzkoušet zdarma“ zatím vede na registraci
