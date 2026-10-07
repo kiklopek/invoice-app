@@ -42,7 +42,36 @@ function link(href: string, role: AccessRole | null) {
   return canAccessPage(role, href) ? href : undefined;
 }
 
-export function eskoAnswer(id: EskoQuestionId, data: DashboardData, role: AccessRole | null): EskoAnswer {
+// Firma bez jediné faktury a platby (typicky hned po onboardingu).
+export function isNewCompany(data: DashboardData) {
+  return data.active_count === 0
+    && data.overdue_count === 0
+    && data.recent.length === 0
+    && Object.keys(data.paid_totals).length === 0
+    && data.payments_needing_review === 0
+    && data.ocr_pending_confirmation === 0;
+}
+
+const FIRST_STEPS: EskoLine[] = [
+  { text: "Vystavit první fakturu", href: "/invoices/new" },
+  { text: "Nahrát faktury z PDF", href: "/invoices/import" },
+  { text: "Pozvat kolegy do firmy", href: "/settings" },
+  { text: "Nastavit upomínky (zatím jsou vypnuté)", href: "/reminders" },
+];
+
+export function eskoAnswer(
+  id: EskoQuestionId,
+  data: DashboardData,
+  role: AccessRole | null,
+  { newCompany = isNewCompany(data) }: { newCompany?: boolean } = {},
+): EskoAnswer {
+  if (id === "today" && newCompany) {
+    // Jen kroky, které role opravdu smí udělat; odkaz na zákaz nepomůže.
+    const lines = FIRST_STEPS.filter((step) => step.href && canAccessPage(role, step.href));
+    return lines.length
+      ? { text: "Firma je připravená. Začněte tady:", lines }
+      : { text: "Firma je připravená. Jakmile kolegové přidají první faktury, uvidíte je tady.", lines: [] };
+  }
   if (id === "today") {
     const lines: EskoLine[] = [];
     if (data.overdue_count > 0) {

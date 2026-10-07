@@ -126,3 +126,15 @@ describe("branded reminder email", () => {
     expect(result.html).not.toContain("DŘEVO");
   });
 });
+
+describe("reminderLogoUrl", () => {
+  // Upomínka jde jménem konkrétní firmy: cizí firma nesmí dostat logo
+  // R. Hlavica jen proto, že bylo dřív jediné.
+  it("uses only the company's own logo, never a shared default", async () => {
+    const { reminderLogoUrl } = await import("./reminder-email-template");
+    expect(reminderLogoUrl("/brand/drevohlavica.png", "https://www.splatno.cz")).toBe("https://www.splatno.cz/brand/drevohlavica.png");
+    expect(reminderLogoUrl(null, "https://www.splatno.cz")).toBeNull();
+    expect(reminderLogoUrl(undefined, "https://www.splatno.cz")).toBeNull();
+    expect(reminderLogoUrl("/brand/x.png", "")).toBeNull();
+  });
+});

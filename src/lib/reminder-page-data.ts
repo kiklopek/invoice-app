@@ -44,7 +44,7 @@ export async function loadReminderPageData(identity: RequestIdentity | null): Pr
     identity.service.from("reminder_policies").select("days_from_due, is_active").eq("organization_id", org).eq("is_default", true).maybeSingle(),
     identity.service.from("email_templates").select("stage, subject, body, reply_to, cc").eq("organization_id", org),
     identity.service.from("reminder_settings_events").select("id, actor_email, created_at").eq("organization_id", org).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1).maybeSingle(),
-    identity.service.from("organizations").select("name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur").eq("id", org).single(),
+    identity.service.from("organizations").select("name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, logo_path").eq("id", org).single(),
     identity.service.from("reminder_policies").select("id, name, is_default, days_from_due, archived_at").eq("organization_id", org).order("is_default", { ascending: false }).order("name"),
     identity.service.from("invoices").select("id, invoice_number, counterparty_name, next_reminder_at, amount, currency").eq("organization_id", org).in("status", ["pending", "overdue"]).not("next_reminder_at", "is", null).order("next_reminder_at", { ascending: true }).limit(20),
     identity.service.from("reminder_log").select("id, invoice_id, stage, scheduled_for, sent_to, attempt_count, error_message, updated_at, invoices:invoices!reminder_log_invoice_id_fkey(invoice_number, counterparty_name)").eq("organization_id", org).eq("status", "failed").order("updated_at", { ascending: false }).limit(20),

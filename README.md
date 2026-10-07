@@ -114,8 +114,6 @@ AUTH_EMAIL_DELIVERY_ENABLED=true
 RESEND_WEBHOOK_SECRET=...
 EMAIL_MFA_SECRET=nahodny-tajny-retezec-alespon-32-znaku
 APP_BASE_URL=https://VAŠE-DOMÉNA
-# Volitelné; jinak se použije /brand/drevohlavica.png z APP_BASE_URL.
-REMINDER_LOGO_URL=
 CRON_SECRET=dlouhy-nahodny-tajny-retezec
 ```
 

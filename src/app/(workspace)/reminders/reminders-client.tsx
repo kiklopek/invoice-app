@@ -308,7 +308,7 @@ export function RemindersClient({
             previewValues,
           ),
           values: previewValues,
-          logoUrl: "/brand/drevohlavica.png",
+          logoUrl: company.logo_path ?? null,
           replyTo: templates[activeStage].reply_to,
         })
       : null;

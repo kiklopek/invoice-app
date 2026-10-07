@@ -11,7 +11,19 @@ export type ReminderEmailCompany = {
   email?: string | null;
   bank_account_czk?: string | null;
   bank_account_eur?: string | null;
+  logo_path?: string | null;
 };
+
+// Logo v upomínce je logo firmy, která upomínku posílá (organizations.
+// logo_path). Firma bez loga posílá upomínku bez loga -- nikdy s cizím.
+export function reminderLogoUrl(logoPath: string | null | undefined, baseUrl: string | null | undefined) {
+  if (!logoPath || !baseUrl) return null;
+  try {
+    return new URL(logoPath, baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
 
 type RenderReminderEmailParams = {
   company: ReminderEmailCompany;

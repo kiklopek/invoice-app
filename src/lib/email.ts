@@ -4,23 +4,15 @@ import { Resend } from "resend";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 import { interpolateReminderTemplate, reminderTemplateValues } from "@/lib/reminder-template";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
-import { renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
+import { reminderLogoUrl, renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { createServiceClient } from "@/lib/supabase-server";
 import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 
-function reminderLogoUrl() {
-  const explicit = process.env.REMINDER_LOGO_URL?.trim();
-  if (explicit) return explicit;
+function appBaseUrl() {
   const configuredBase = process.env.APP_BASE_URL?.trim();
   const vercelBase = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  const base = configuredBase || (vercelBase ? `https://${vercelBase}` : "");
-  if (!base) return null;
-  try {
-    return new URL("/brand/drevohlavica.png", base).toString();
-  } catch {
-    return null;
-  }
+  return configuredBase || (vercelBase ? `https://${vercelBase}` : "");
 }
 
 export async function sendReminderEmail(params: {
@@ -41,7 +33,7 @@ export async function sendReminderEmail(params: {
   const { data: company, error: companyError } = params.company
     ? { data: params.company, error: null }
     : await service!.from("organizations")
-      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
+      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path")
       .eq("id", params.invoice.organization_id).single();
   if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
   if (isBlockedReminderRecipient(params.to, company)) {
@@ -58,7 +50,7 @@ export async function sendReminderEmail(params: {
     subject,
     message,
     values: reminderTemplateValues(params.invoice),
-    logoUrl: reminderLogoUrl(),
+    logoUrl: reminderLogoUrl((company as ReminderEmailCompany).logo_path, appBaseUrl()),
     replyTo,
   });
 

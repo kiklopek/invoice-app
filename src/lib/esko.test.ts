@@ -16,7 +16,8 @@ describe("Esko", () => {
   });
 
   it("says plainly when there is nothing to do", () => {
-    expect(eskoAnswer("today", data({}), "admin").text).toContain("Dnes nic nehoří");
+    // Zavedená firma (má historii), jen dnes nic nečeká.
+    expect(eskoAnswer("today", data({}), "admin", { newCompany: false }).text).toContain("Dnes nic nehoří");
   });
 
   // Čtenář do Plateb nesmí; odkaz, který by ho poslal na zákaz, je horší než žádný.
@@ -36,4 +37,22 @@ describe("Esko", () => {
       expect(() => eskoAnswer(question.id, data({}), "admin")).not.toThrow();
     }
   });
+
+  // Nová firma po onboardingu nemá žádná čísla. „Dnes nic nehoří“ by tam
+  // znělo jako hotovo; ve skutečnosti je potřeba začít.
+  it("guides a brand new company to its first steps instead of saying all is done", () => {
+    const answer = eskoAnswer("today", data({}), "admin", { newCompany: true });
+    expect(answer.text).toContain("Firma je připravená");
+    expect(answer.lines.map(line => line.href)).toEqual(["/invoices/new", "/invoices/import", "/settings", "/reminders"]);
+  });
+
+  it("hides first steps the role cannot do", () => {
+    const answer = eskoAnswer("today", data({}), "viewer", { newCompany: true });
+    expect(answer.lines.some(line => line.href === "/settings" || line.href === "/invoices/new")).toBe(false);
+  });
+
+  it("treats a company with any invoice as established", () => {
+    expect(eskoAnswer("today", data({ active_count: 1 }), "admin", { newCompany: false }).text).toContain("Dnes nic nehoří");
+  });
 });
+

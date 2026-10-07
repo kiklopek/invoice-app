@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: Context) {
   const invoice = invoiceData as Invoice;
 
   const { data: company, error: companyError } = await identity.service.from("organizations")
-    .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
+    .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path")
     .eq("id", organizationId).maybeSingle();
   if (companyError || !company) {
     logError("Firemní údaje pro odeslání e-mailem se nepodařilo načíst", companyError, { invoice_id: id });
