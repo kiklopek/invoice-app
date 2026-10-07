@@ -1243,6 +1243,7 @@ export type Database = {
           logo_path: string | null
           created_by: string | null
           onboarding_completed_at: string | null
+          verified_at: string | null
         }
         Insert: {
           bank_account_czk?: string | null
@@ -1263,6 +1264,7 @@ export type Database = {
           logo_path?: string | null
           created_by?: string | null
           onboarding_completed_at?: string | null
+          verified_at?: string | null
         }
         Update: {
           bank_account_czk?: string | null
@@ -1283,6 +1285,181 @@ export type Database = {
           logo_path?: string | null
           created_by?: string | null
           onboarding_completed_at?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      billing_orders: {
+        Row: {
+          id: string
+          organization_id: string
+          order_number: string
+          variable_symbol: string
+          plan: string
+          period: string
+          months: number
+          net_halere: number
+          vat_halere: number
+          gross_halere: number
+          payment_method: string
+          status: string
+          gateway_transaction_id: string | null
+          billing: Json
+          invoice_number: string | null
+          created_by: string | null
+          created_at: string
+          paid_at: string | null
+          paid_source: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id?: string
+          order_number?: string
+          variable_symbol?: string
+          plan?: string
+          period?: string
+          months?: number
+          net_halere?: number
+          vat_halere?: number
+          gross_halere?: number
+          payment_method?: string
+          status?: string
+          gateway_transaction_id?: string | null
+          billing?: Json
+          invoice_number?: string | null
+          created_by?: string | null
+          created_at?: string
+          paid_at?: string | null
+          paid_source?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          order_number?: string
+          variable_symbol?: string
+          plan?: string
+          period?: string
+          months?: number
+          net_halere?: number
+          vat_halere?: number
+          gross_halere?: number
+          payment_method?: string
+          status?: string
+          gateway_transaction_id?: string | null
+          billing?: Json
+          invoice_number?: string | null
+          created_by?: string | null
+          created_at?: string
+          paid_at?: string | null
+          paid_source?: string | null
+        }
+        Relationships: []
+      }
+      operator_actions: {
+        Row: {
+          id: string
+          operator_email: string
+          action: string
+          organization_id: string | null
+          order_id: string | null
+          note: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          operator_email?: string
+          action?: string
+          organization_id?: string | null
+          order_id?: string | null
+          note?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          operator_email?: string
+          action?: string
+          organization_id?: string | null
+          order_id?: string | null
+          note?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      organization_verifications: {
+        Row: {
+          id: string
+          organization_id: string
+          method: string
+          data_box_id: string | null
+          code_hash: string | null
+          expires_at: string | null
+          attempts: number
+          status: string
+          note: string | null
+          created_by: string | null
+          operator_email: string | null
+          created_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id?: string
+          method?: string
+          data_box_id?: string | null
+          code_hash?: string | null
+          expires_at?: string | null
+          attempts?: number
+          status?: string
+          note?: string | null
+          created_by?: string | null
+          operator_email?: string | null
+          created_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          method?: string
+          data_box_id?: string | null
+          code_hash?: string | null
+          expires_at?: string | null
+          attempts?: number
+          status?: string
+          note?: string | null
+          created_by?: string | null
+          operator_email?: string | null
+          created_at?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          organization_id: string
+          status: string
+          plan: string | null
+          period: string | null
+          trial_ends_at: string | null
+          current_period_end: string | null
+          updated_at: string
+        }
+        Insert: {
+          organization_id?: string
+          status?: string
+          plan?: string | null
+          period?: string | null
+          trial_ends_at?: string | null
+          current_period_end?: string | null
+          updated_at?: string
+        }
+        Update: {
+          organization_id?: string
+          status?: string
+          plan?: string | null
+          period?: string | null
+          trial_ends_at?: string | null
+          current_period_end?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1626,6 +1803,34 @@ export type Database = {
       audit_invoice_money: {
         Args: { target_org: string }
         Returns: { invoice_id: string; invoice_number: string; amount: number; paid_amount: number; ledger_paid: number; formula_difference: number; original_difference: number | null }[]
+      }
+      start_data_box_verification: {
+        Args: { target_org: string; actor_user: string; target_data_box: string; code_hash: string; expires_at: string }
+        Returns: Json
+      }
+      verify_data_box_code: {
+        Args: { target_org: string; actor_user: string; candidate_hash: string }
+        Returns: string
+      }
+      operator_verify_organization: {
+        Args: { target_org: string; operator_email: string; note: string }
+        Returns: Json
+      }
+      create_billing_order: {
+        Args: { target_org: string; actor_user: string; target_plan: string; target_period: string; target_months: number; net: number; vat: number; gross: number; method: string; billing: Json }
+        Returns: Json
+      }
+      attach_billing_transaction: {
+        Args: { target_order: string; transaction_id: string }
+        Returns: undefined
+      }
+      mark_billing_order_paid: {
+        Args: { target_order: string; source: string; transaction_id: string | null; paid_halere: number }
+        Returns: Json
+      }
+      operator_mark_order_paid: {
+        Args: { target_order: string; operator_email: string; note: string }
+        Returns: Json
       }
       create_organization_for_user: {
         Args: { founder_user: string; company: Json }
