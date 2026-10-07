@@ -39,9 +39,7 @@ Nové migrace:
 - `20261007124800_organization_onboarding.sql` (v produkci od 7. 10.)
 - `20261007125359_billing_and_verification.sql` (v produkci od 7. 10.)
 - `20261007125410_company_logos.sql` (v produkci od 7. 10.)
-- `20261007130000_auth_rate_limit_actions.sql` (**zatím ne**: nástroj Supabase
-  MCP u ní opakovaně vypršel; pustit ji v SQL editoru Supabase a pak soubor
-  přejmenovat podle zapsané verze)
+- `20261007132631_auth_rate_limit_actions.sql` (v produkci od 7. 10.)
 
 Další změny databáze pouštět jen po schválení. Běží tam živá data R. Hlavica.
 
