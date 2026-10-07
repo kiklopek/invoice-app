@@ -70,7 +70,10 @@ const items: NavItem[] = [
     href: "/settings",
     label: "Nastavení",
     icon: "settings",
-    children: [{ href: "/reminders", label: "Upomínky a šablony" }],
+    children: [
+      { href: "/reminders", label: "Upomínky a šablony" },
+      { href: "/predplatne", label: "Předplatné" },
+    ],
   },
 ];
 

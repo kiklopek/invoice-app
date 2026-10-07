@@ -193,6 +193,7 @@ export const config = {
     "/dashboard/:path*",
     "/customers/:path*",
     "/invoices/:path*",
+    "/predplatne/:path*",
     "/reminders/:path*",
     "/reports/:path*",
     "/settings/:path*",

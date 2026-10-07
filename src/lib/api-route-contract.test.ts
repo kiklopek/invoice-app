@@ -29,6 +29,7 @@ const CSRF_EXEMPT: Record<string, string> = {
   "/api/cron/reconcile-payments": "Jen GET, spouští Vercel cron s Bearer tokenem.",
   "/api/webhooks/resend": "Příchozí webhook od Resendu, ověřený podpisem Svix.",
   "/api/invoices/upload/verify": "Volá se hned po uploadu ve stejném toku.",
+  "/api/billing/comgate": "Oznámení od Comgate: ověřené tajemstvím obchodu a stavem platby načteným z Comgate.",
 };
 
 // Vrácení zprávy odchycené výjimky je v pořádku tam, kde ty výjimky vyhazuje
@@ -45,6 +46,7 @@ const IDENTITY_EXEMPT: Record<string, string> = {
   "/api/cron/reconcile-payments": "Cron cesta se autorizuje sdíleným tajemstvím v hlavičce Authorization.",
   "/api/webhooks/resend": "Příchozí webhook se autorizuje podpisem Svix, ne identitou uživatele.",
   "/api/health": "Diagnostika bez citlivých dat.",
+  "/api/billing/comgate": "Oznámení od platební brány, ne od uživatele; ověřené tajemstvím a dotazem na Comgate.",
   "/api/invitations/[token]": "Veřejný odkaz pozvánky: autorizuje ho jednorázový token (jen otisk v DB) a rate limit.",
 };
 

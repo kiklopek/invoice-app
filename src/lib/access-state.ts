@@ -32,7 +32,7 @@ export type RouteDecision =
   | { type: "redirect"; to: string; signOut?: true };
 
 export const LOGIN_PAGES = ["/login", "/hlavica"] as const;
-export const APP_SECTIONS = ["/dashboard", "/customers", "/invoices", "/reminders", "/reports", "/settings"] as const;
+export const APP_SECTIONS = ["/dashboard", "/customers", "/invoices", "/predplatne", "/reminders", "/reports", "/settings"] as const;
 
 function within(pathname: string, base: string) {
   return pathname === base || pathname.startsWith(`${base}/`);
