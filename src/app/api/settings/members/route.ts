@@ -7,6 +7,7 @@ import { nullableRpcString } from "@/lib/supabase-server";
 import { canManageMembers } from "@/lib/role-access";
 import { invitationErrorMessage, invitationStatus } from "@/lib/invitations";
 import { sendInvitation } from "@/lib/invitation-server";
+import { tenantEntryFor } from "@/lib/tenant-entries";
 
 const roles = ["viewer", "accounting", "admin"] as const;
 type MemberRole = typeof roles[number];
@@ -86,7 +87,18 @@ export async function POST(request: Request) {
     logError("Přidání přístupu nevrátilo potvrzeného člena", null);
     return apiError(request, "Přístup se nepodařilo bezpečně potvrdit.", 500, "member_add_unconfirmed");
   }
-  const delivery = await sendInvitation(request, identity, mutation.member.id);
+  // Firma s vlastním vstupem (R. Hlavica) funguje jako dosud: přístup se
+  // přidá a člověk se zaregistruje na jejich registraci. Pozvánka e-mailem
+  // jen na vyžádání tlačítkem „Poslat pozvánku e-mailem“.
+  const { data: organization } = await identity.service
+    .from("organizations")
+    .select("allowed_email_domain")
+    .eq("id", identity.membership.organization_id)
+    .maybeSingle();
+  const entry = tenantEntryFor(organization?.allowed_email_domain);
+  const delivery = entry
+    ? { sent: false as const, reason: "registration" as const, registrationPath: `${entry.path}/registrace` }
+    : await sendInvitation(request, identity, mutation.member.id);
   return NextResponse.json({
     member: {
       ...mutation.member,

@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
+import { currentEntryLoginPath, useEntryBrand, withEntry } from "@/lib/login-entry";
 import { ArrowRight, Lock } from "@/components/landing/landing-icons";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
 export default function ResetPasswordPage() {
+  const brand = useEntryBrand();
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -23,7 +25,7 @@ export default function ResetPasswordPage() {
     }
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.replace("/forgot-password");
+      if (!data.user) router.replace(withEntry("/forgot-password", currentEntryLoginPath() === "/hlavica" ? "hlavica" : "splatno"));
       else setChecking(false);
     });
   }, [router]);
@@ -43,11 +45,11 @@ export default function ResetPasswordPage() {
       return;
     }
     await supabase.auth.signOut();
-    window.location.assign("/login?error=password-updated");
+    window.location.assign(`${currentEntryLoginPath()}?error=password-updated`);
   }
 
   return (
-    <AuthShell art="laptop" claim="Ještě krok a jste zpět." claimSub="Nové heslo platí hned pro všechna zařízení.">
+    <AuthShell art="laptop" brand={brand} claim="Ještě krok a jste zpět." claimSub="Nové heslo platí hned pro všechna zařízení.">
       <span className={styles.eyebrow}>Nové heslo</span>
       <h1 className={styles.title}>Nastavení hesla</h1>
       <p className={styles.sub}>Zvolte nové bezpečné heslo pro svůj účet.</p>

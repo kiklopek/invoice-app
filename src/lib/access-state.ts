@@ -41,7 +41,7 @@ function within(pathname: string, base: string) {
 export function pageKind(pathname: string): PageKind {
   if (pathname === "/") return "landing";
   if ((LOGIN_PAGES as readonly string[]).includes(pathname)) return "login";
-  if (pathname === "/register" || pathname === "/forgot-password") return "signup";
+  if (pathname === "/register" || pathname === "/hlavica/registrace" || pathname === "/forgot-password") return "signup";
   if (pathname === "/reset-password") return "recovery";
   if (within(pathname, "/auth") && pathname !== "/auth") return "callback";
   if (/^\/pozvanka\/[^/]+$/.test(pathname)) return "invitation";

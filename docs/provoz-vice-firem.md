@@ -11,6 +11,12 @@ R. Hlavica přitom dál používá vlastní vstup `splatno.cz/hlavica`.
 | **Pozvání do firmy** | Admin: Nastavení → Tým → e-mail a role → potvrzení → e-mail s odkazem `splatno.cz/pozvanka/<token>` (platí 7 dní, jen jednou) |
 | **Přijetí pozvánky** | Odkaz → jméno a heslo (e-mail je daný pozvánkou) → člen firmy s rolí z pozvánky → `/dashboard`. Odkaz se počítá jako 2FA pro tuto první relaci. |
 | **Běžné přihlášení** | `/login` (obecný vzhled) nebo `/hlavica` (s logem R. Hlavica) → heslo → kód z e-mailu → aplikace |
+| **R. Hlavica** | vlastní vstup jako dosud: `/hlavica` a `/hlavica/registrace` (jen pozvaný @hlavica.cz). Přidání člověka v Nastavení → Tým e-mail neposílá, pozvánka e-mailem jen tlačítkem. 2FA i zapomenuté heslo z tohoto vstupu mají jejich logo (`?vstup=hlavica`). |
+
+Obecný vstup (`/login`, `/register`, zapomenuté heslo) s R. Hlavica nijak
+nesouvisí. Nemá jejich logo ani odkazy. Obecná registrace e-mail @hlavica.cz
+nepřijme a odkáže na `/hlavica/registrace`. Přihlásit se přes `/login` může
+každý, včetně lidí z R. Hlavica. Do dat se ale dostane jen do své firmy.
 
 O přesměrování rozhoduje jediná funkce, `src/lib/access-state.ts` (tabulka
 stavů × stránek). Používají ji proxy, layout aplikace i onboarding.
@@ -65,8 +71,8 @@ soubory podle skutečně zapsané verze**. Postup popisuje CLAUDE.md.
 - **URL Configuration:**
   - Site URL `https://splatno.cz`
   - Redirect URLs:
-    - `https://splatno.cz/auth/callback`
-    - `https://splatno.cz/auth/recovery`
+    - `https://splatno.cz/auth/callback**` (hvězdičky kvůli parametru `?vstup=hlavica`)
+    - `https://splatno.cz/auth/recovery**`
     - adresy náhledů Vercelu (`https://*-<tým>.vercel.app/auth/callback`)
 - **Emails → Confirm signup:** předmět „Potvrďte svůj e-mail ve Splatnu“, text
   zkopírovat ze souboru `supabase/templates/confirm.html`.

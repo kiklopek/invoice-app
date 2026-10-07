@@ -201,6 +201,7 @@ export const config = {
     "/mfa",
     "/login",
     "/hlavica",
+    "/hlavica/registrace",
     "/register",
     "/forgot-password",
     "/reset-password",

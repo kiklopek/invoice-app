@@ -65,6 +65,12 @@ describe("pageKind", () => {
     }
   });
 
+  it("treats the R. Hlavica registration like registration", () => {
+    expect(pageKind("/hlavica/registrace")).toBe("signup");
+    expect(routeFor("anonymous", "/hlavica/registrace")).toEqual({ type: "show" });
+    expect(routeFor("member", "/hlavica/registrace")).toEqual({ type: "redirect", to: "/dashboard" });
+  });
+
   it("does not treat look-alike paths as login pages", () => {
     expect(pageKind("/loginx")).toBe("other");
     expect(pageKind("/hlavica/../dashboard")).toBe("other");

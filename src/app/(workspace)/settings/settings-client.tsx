@@ -21,11 +21,12 @@ type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
 type Member = SettingsMember;
 
-function memberStateLabel(member: Member) {
+function memberStateLabel(member: Member, registrationEntry: boolean) {
   if (member.active) return "Aktivní";
   if (member.invitation === "pending") return "Pozván";
   if (member.invitation === "expired") return "Vypršelo";
-  return "Neodesláno";
+  // U firmy s vlastní registrací (R. Hlavica) je čekající přístup normální stav.
+  return registrationEntry ? "Připraven" : "Neodesláno";
 }
 type AccessEvent = SettingsAccessEvent;
 const accessAction = (event: AccessEvent) =>
@@ -116,6 +117,9 @@ export function SettingsClient({
   useEffect(() => {
     if (loadError instanceof Error) notifyError(loadError.message);
   }, [loadError]);
+  // Firma s vlastním vstupem (R. Hlavica): noví lidé se registrují tam,
+  // e-mail s pozvánkou odchází jen na vyžádání.
+  const registrationPath = (refreshedData ?? initialData).registration_path;
   useEffect(() => {
     if (!refreshedData || dirty) return;
     setCompany(refreshedData.company);
@@ -169,6 +173,7 @@ export function SettingsClient({
     const email = newEmail.trim().toLowerCase();
     // R6: pozvánka je e-mail třetí straně, odchází jen po potvrzení.
     if (
+      !registrationPath &&
       !(await confirmAction({
         title: `Poslat pozvánku na ${email}?`,
         description: `Odejde e-mail s odkazem do vaší firmy s rolí ${roleNames[newRole]}. Odkaz platí 7 dní a lze ho použít jen jednou.`,
@@ -180,7 +185,7 @@ export function SettingsClient({
     setSaving(true);
     setMessage(null);
     try {
-      const result = await apiFetch<{ invitation?: { sent?: boolean } }>("/api/settings/members", {
+      const result = await apiFetch<{ invitation?: { sent?: boolean; reason?: string; registrationPath?: string } }>("/api/settings/members", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -190,7 +195,9 @@ export function SettingsClient({
       });
       await refreshMembers();
       setNewEmail("");
-      if (result?.invitation?.sent) {
+      if (result?.invitation?.reason === "registration") {
+        notifyOk(`Přístup je přidaný. Uživatel se zaregistruje na splatno.cz${result.invitation.registrationPath ?? ""}.`);
+      } else if (result?.invitation?.sent) {
         notifyOk(`Pozvánka odešla na ${email}. Odkaz platí 7 dní.`);
       } else {
         notifyError(`Přístup je připravený, ale pozvánku se nepodařilo odeslat. Zkuste „Poslat znovu“.`);
@@ -442,8 +449,9 @@ export function SettingsClient({
                 <div>
                   <h2>Přístupy účetního oddělení</h2>
                   <p>
-                    Lidé ve vaší firmě a jejich oprávnění. Nový člověk dostane
-                    pozvánku e-mailem a přes odkaz si nastaví heslo.
+                    {registrationPath
+                      ? `Povolené e-maily a jejich oprávnění. Nový člověk si vytvoří účet na splatno.cz${registrationPath}.`
+                      : "Lidé ve vaší firmě a jejich oprávnění. Nový člověk dostane pozvánku e-mailem a přes odkaz si nastaví heslo."}
                   </p>
                 </div>
               </header>
@@ -457,7 +465,7 @@ export function SettingsClient({
                         <span
                           className={`member-state ${member.active ? "active" : "invited"}`}
                         >
-                          {memberStateLabel(member)}
+                          {memberStateLabel(member, Boolean(registrationPath))}
                         </span>
                         <div>
                           <strong>
@@ -477,7 +485,9 @@ export function SettingsClient({
                               disabled={saving}
                               onClick={() => resendInvitation(member)}
                             >
-                              {member.invitation === "not_sent" ? "Poslat pozvánku" : "Poslat znovu"}
+                              {registrationPath && member.invitation === "not_sent"
+                                ? "Poslat pozvánku e-mailem"
+                                : member.invitation === "not_sent" ? "Poslat pozvánku" : "Poslat znovu"}
                             </button>
                           ) : null}
                         </div>
@@ -528,7 +538,7 @@ export function SettingsClient({
                       </select>
                     </label>
                     <button className="btn primary" disabled={saving}>
-                      + Pozvat do firmy
+                      {registrationPath ? "+ Přidat přístup" : "+ Pozvat do firmy"}
                     </button>
                   </form>
                 </>

@@ -28,5 +28,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/forgot-password?error=technical", requestUrl.origin));
   }
   await setLoginSessionPreference(false, { userId: data.user.id, sessionId });
-  return NextResponse.redirect(new URL("/reset-password", requestUrl.origin));
+  const vstup = requestUrl.searchParams.get("vstup") === "hlavica" ? "?vstup=hlavica" : "";
+  return NextResponse.redirect(new URL(`/reset-password${vstup}`, requestUrl.origin));
 }

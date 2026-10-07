@@ -6,7 +6,7 @@ import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
 import { HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { rememberLoginEntry } from "@/lib/login-entry";
+import { rememberLoginEntry, withEntry } from "@/lib/login-entry";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
@@ -123,7 +123,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     rememberLoginEntry(brand === "hlavica" ? "/hlavica" : "/login");
     // Pri MFA se cil nese dal, aby se neztratil behem overeni.
     window.location.assign(
-      access.mfaBypassed ? returnTo : `/mfa?returnTo=${encodeURIComponent(returnTo)}`,
+      access.mfaBypassed ? returnTo : withEntry(`/mfa?returnTo=${encodeURIComponent(returnTo)}`, brand),
     );
   }
 
@@ -150,16 +150,16 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
         </label>
         <div className={styles.row}>
           <label className={styles.check}><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>Zapamatovat si mě</span></label>
-          <span className={styles.link}><Link href="/forgot-password">Obnovit heslo</Link></span>
+          <span className={styles.link}><Link href={withEntry("/forgot-password", brand)}>Obnovit heslo</Link></span>
         </div>
-        {loginFailure && <p className={styles.error}>E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href="/forgot-password">„Obnovit heslo“</Link>.</p>}
+        {loginFailure && <p className={styles.error}>E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href={withEntry("/forgot-password", brand)}>„Obnovit heslo“</Link>.</p>}
         {error && <p className={styles.error}>{error}</p>}
         <button type="submit" className={styles.primary} disabled={submitting || !supabaseConfigured}>
           {submitting ? "Přihlašuji…" : "Přihlásit se"} <ArrowRight />
         </button>
       </form>
       {brand === "hlavica"
-        ? <p className={styles.foot}>Nemáte přístup?<span className={styles.footText}>Požádejte administrátora o pozvánku.</span></p>
+        ? <p className={styles.foot}>Ještě nemáte účet?<Link href={`${HLAVICA_ENTRY.path}/registrace`}>Vytvořit účet</Link></p>
         : <p className={styles.foot}>Ještě nemáte účet?<Link href="/register">Založit firemní účet</Link></p>}
       <p className={styles.note}>Přihlášení je chráněno heslem a jednorázovým kódem zaslaným na váš e-mail.</p>
     </AuthShell>

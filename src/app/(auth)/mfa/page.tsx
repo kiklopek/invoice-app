@@ -6,8 +6,10 @@ import { OtpInput } from "@/components/auth/otp-input";
 import { ArrowLeft, ArrowRight } from "@/components/landing/landing-icons";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import { safeReturnPath } from "@/lib/safe-return-path";
+import { currentEntryLoginPath, useEntryBrand } from "@/lib/login-entry";
 
 export default function MfaPage() {
+  const brand = useEntryBrand();
   const requested = useRef(false);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -26,7 +28,7 @@ export default function MfaPage() {
     } catch {
       // Odhlášení serveru se nemuselo podařit; přesto uživatele vrátíme na přihlášení.
     } finally {
-      window.location.replace("/login");
+      window.location.replace(currentEntryLoginPath());
     }
   }
 
@@ -46,7 +48,7 @@ export default function MfaPage() {
         verified?: boolean;
       };
       if (response.status === 401) {
-        window.location.replace("/login");
+        window.location.replace(currentEntryLoginPath());
         return;
       }
       if (data.verified) {
@@ -119,6 +121,7 @@ export default function MfaPage() {
   return (
     <AuthShell
       art="phone"
+      brand={brand}
       claim={<>Vaše bezpečí<br />je pro nás důležité.</>}
       claimSub="Dvoufázové ověření pomáhá chránit vaše data a faktury."
     >

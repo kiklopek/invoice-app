@@ -1,4 +1,5 @@
 import "server-only";
+import { tenantEntryFor } from "@/lib/tenant-entries";
 import { invitationStatus, type InvitationStatus } from "@/lib/invitations";
 
 import type { RequestIdentity } from "@/lib/auth";
@@ -46,6 +47,8 @@ export type SettingsPageData = {
   members: SettingsMember[];
   access_events: SettingsAccessEvent[];
   current_role: AccessRole;
+  /** Firma s vlastním vstupem (R. Hlavica): noví lidé se registrují tam, pozvánka e-mailem jen na vyžádání. */
+  registration_path: string | null;
 };
 
 export const emptyCompanySettings: CompanySettings = {
@@ -71,7 +74,7 @@ export async function loadSettingsPageData(
   const companyPromise = identity.service
     .from("organizations")
     .select(
-      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, settings_revision",
+      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, settings_revision, allowed_email_domain",
     )
     .eq("id", org)
     .single();
@@ -105,10 +108,10 @@ export async function loadSettingsPageData(
     );
   return {
     company: companyResult.data
-      ? ({
-          ...companyResult.data,
-          revision: companyResult.data.settings_revision,
-        } as CompanySettings)
+      ? (({ allowed_email_domain: _domain, ...company }) => ({
+          ...company,
+          revision: company.settings_revision,
+        }) as CompanySettings)(companyResult.data)
       : emptyCompanySettings,
     members: (membersResult.error ? [] : membersResult.data ?? []).map((member) => ({
       id: member.id,
@@ -122,5 +125,9 @@ export async function loadSettingsPageData(
     })),
     access_events: (eventsResult.error ? [] : eventsResult.data ?? []) as SettingsAccessEvent[],
     current_role: identity.membership.role,
+    registration_path: (() => {
+      const entry = tenantEntryFor(companyResult.data?.allowed_email_domain);
+      return entry ? `${entry.path}/registrace` : null;
+    })(),
   };
 }

@@ -41,6 +41,7 @@ describe("proxy route coverage", () => {
   // nastenky videl znovu prihlasovaci formular.
   it("runs on the R. Hlavica entry page", () => {
     expect(listAfter(proxy(), "matcher:")).toContain("/hlavica");
+    expect(listAfter(proxy(), "matcher:")).toContain("/hlavica/registrace");
   });
 
   // Onboarding je za 2FA a pozvánka musí umět odhlásit starou relaci;

@@ -7,3 +7,11 @@ export const HLAVICA_ENTRY = {
   logo: "/brand/drevohlavica.png",
   emailDomain: "hlavica.cz",
 } as const;
+
+/**
+ * Firma, která má vlastní vstup (dnes jen R. Hlavica). Pozná se podle domény
+ * e-mailů nastavené u firmy (organizations.allowed_email_domain).
+ */
+export function tenantEntryFor(allowedEmailDomain: string | null | undefined) {
+  return allowedEmailDomain && allowedEmailDomain === HLAVICA_ENTRY.emailDomain ? HLAVICA_ENTRY : null;
+}

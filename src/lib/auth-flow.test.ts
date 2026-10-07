@@ -6,7 +6,7 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 
 describe("authentication flow", () => {
   it("checks the registration kind before creating an account", () => {
-    const register = source("src/app/(auth)/register/page.tsx");
+    const register = source("src/components/auth/register-form.tsx");
     const accessRoute = source("src/app/api/auth/registration-access/route.ts");
 
     expect(register).toContain('fetch("/api/auth/registration-access"');
@@ -23,7 +23,7 @@ describe("authentication flow", () => {
   });
 
   it("deletes removed users and requires a fresh verified registration", () => {
-    const register = source("src/app/(auth)/register/page.tsx");
+    const register = source("src/components/auth/register-form.tsx");
     const settings = source("src/app/(workspace)/settings/settings-client.tsx");
     const membersRoute = source("src/app/api/settings/members/route.ts");
 
@@ -96,14 +96,14 @@ describe("authentication flow", () => {
     // pres safeReturnPath) -- driv se returnTo generovalo, ale nikdo ho necetl.
     // Invariant zustava: duveryhodny ucet jde rovnou do aplikace, ostatni na MFA.
     const compactLogin = login.replace(/\s+/g, " ");
-    expect(compactLogin).toMatch(/access\.mfaBypassed \? returnTo : `\/mfa\?returnTo=/);
+    expect(compactLogin).toMatch(/access\.mfaBypassed \? returnTo : withEntry\(`\/mfa\?returnTo=/);
     expect(login).toContain("safeReturnPath(");
     expect(login).toContain('fetch("/api/auth/session-preference"');
     expect(login).toContain("Zapamatovat si mě");
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
     expect(source("src/app/auth/callback/route.ts")).toContain("email: session.email");
-    expect(source("src/app/(auth)/register/page.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : "/mfa"');
+    expect(source("src/components/auth/register-form.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : withEntry("/mfa", brand)');
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');
@@ -141,8 +141,8 @@ describe("authentication flow", () => {
   it("uses one neutral login error with a working password recovery link", () => {
     const login = source("src/components/auth/login-form.tsx");
     expect(login).toContain("E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na");
-    expect(login).toContain('<Link href="/forgot-password">„Obnovit heslo“</Link>');
-    expect(login).toContain('<Link href="/forgot-password">Obnovit heslo</Link>');
+    expect(login).toContain('<Link href={withEntry("/forgot-password", brand)}>„Obnovit heslo“</Link>');
+    expect(login).toContain('<Link href={withEntry("/forgot-password", brand)}>Obnovit heslo</Link>');
     expect(login).not.toContain("Případně si nastavte nové heslo");
   });
 
@@ -169,7 +169,7 @@ describe("authentication flow", () => {
     expect(tokenRoute).toContain('type: "recovery"');
     expect(tokenRoute).toContain("supabase.auth.verifyOtp");
     expect(tokenRoute).toContain("isValidEmail(data.user.email)");
-    expect(tokenRoute).toContain('new URL("/reset-password", requestUrl.origin)');
+    expect(tokenRoute).toContain("new URL(`/reset-password${vstup}`, requestUrl.origin)");
   });
 
   it("keeps recovery logs free of e-mail addresses and recovery tokens", () => {

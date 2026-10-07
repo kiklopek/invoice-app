@@ -34,8 +34,10 @@ export async function GET(request: Request) {
         userId: session.user.id,
         sessionId: session.sessionId,
       });
+      // Vstup R. Hlavica si nese svůj vzhled i na 2FA (jen vzhled).
+      const mfa = url.searchParams.get("vstup") === "hlavica" ? "/mfa?vstup=hlavica" : "/mfa";
       return NextResponse.redirect(
-        new URL(verified ? "/dashboard" : "/mfa", url.origin)
+        new URL(verified ? "/dashboard" : mfa, url.origin)
       );
     }
   }

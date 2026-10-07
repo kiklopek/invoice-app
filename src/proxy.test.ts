@@ -199,6 +199,12 @@ describe("dvoufázové ověření", () => {
 // přesně jako /login: veřejný pro nepřihlášené, plně ověřeného uživatele
 // pustit rovnou na nástěnku a starou relaci tiše odhlásit, ne poslat jinam.
 describe("vstup R. Hlavica /hlavica", () => {
+  it("keeps its own registration public", async () => {
+    const response = await runProxy("/hlavica/registrace");
+    expect(response.status).toBe(200);
+    expect(locationOf(response)).toBe("");
+  });
+
   it("is public for an anonymous visitor", async () => {
     const response = await runProxy("/hlavica");
     expect(response.status).toBe(200);

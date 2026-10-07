@@ -12,9 +12,9 @@ const neutralResponse = () => NextResponse.json({ sent: true });
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
 
-  let body: { email?: unknown };
+  let body: { email?: unknown; entry?: unknown };
   try {
-    body = (await request.json()) as { email?: unknown };
+    body = (await request.json()) as { email?: unknown; entry?: unknown };
   } catch {
     return apiError(request, "Neplatný požadavek.", 400, "invalid_request");
   }
@@ -64,6 +64,8 @@ export async function POST(request: Request) {
 
   const recoveryUrl = new URL("/auth/recovery", getPasswordRecoveryBaseUrl());
   recoveryUrl.searchParams.set("token_hash", linkData.properties.hashed_token);
+  // Vstup R. Hlavica si nese svůj vzhled i na stránku nového hesla.
+  if (body.entry === "hlavica") recoveryUrl.searchParams.set("vstup", "hlavica");
   try {
     await sendPasswordRecoveryEmail({ email, recoveryUrl: recoveryUrl.toString(), userId: userData.user.id });
   } catch (error) {

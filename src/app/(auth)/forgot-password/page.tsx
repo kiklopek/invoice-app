@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
 import { ArrowRight, Mail } from "@/components/landing/landing-icons";
 import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { loginEntryPath } from "@/lib/login-entry";
+import { useEntryBrand } from "@/lib/login-entry";
+import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 
 export default function ForgotPasswordPage() {
+  const brand = useEntryBrand();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -29,7 +31,7 @@ export default function ForgotPasswordPage() {
       const response = await fetch("/api/auth/password-recovery", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail }),
+        body: JSON.stringify({ email: normalizedEmail, entry: brand }),
       });
       if (!response.ok) {
         setError(response.status === 429
@@ -47,7 +49,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthShell art="phone" claim="Nové heslo za pár minut." claimSub="Pošleme vám bezpečný jednorázový odkaz.">
+    <AuthShell art="phone" brand={brand} claim="Nové heslo za pár minut." claimSub="Pošleme vám bezpečný jednorázový odkaz.">
       <span className={styles.eyebrow}>Obnova přístupu</span>
       <h1 className={styles.title}>Zapomenuté heslo</h1>
       <p className={styles.sub}>Pošleme vám bezpečný odkaz pro nastavení nového hesla.</p>
@@ -71,7 +73,7 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
       )}
-      <p className={styles.foot}>Heslo si pamatujete?<Link href={loginEntryPath()}>Zpět na přihlášení</Link></p>
+      <p className={styles.foot}>Heslo si pamatujete?<Link href={brand === "hlavica" ? HLAVICA_ENTRY.path : "/login"}>Zpět na přihlášení</Link></p>
     </AuthShell>
   );
 }
