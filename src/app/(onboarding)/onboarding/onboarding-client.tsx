@@ -113,6 +113,9 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
   const [verify, setVerify] = useState<VerifyState>("idle");
   const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
   const [verifyCode, setVerifyCode] = useState("");
+  // Ukládat rozpracovaný stav smíme až po jeho načtení; jinak by první
+  // vykreslení s prázdnými poli přepsalo uložený koncept.
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   useEffect(() => {
     const draft = readDraft();
@@ -121,11 +124,12 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
       setInvites(draft.invites);
       setReminders(draft.reminders);
     }
+    setDraftLoaded(true);
   }, [accountEmail]);
 
   useEffect(() => {
-    if (!created) writeDraft({ company, invites, reminders });
-  }, [company, invites, reminders, created]);
+    if (draftLoaded && !created) writeDraft({ company, invites, reminders });
+  }, [company, invites, reminders, created, draftLoaded]);
 
   useEffect(() => () => {
     if (logoPreview) URL.revokeObjectURL(logoPreview);
