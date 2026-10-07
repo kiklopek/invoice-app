@@ -128,7 +128,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
   }
 
   return (
-    <AuthShell art="wave" brand={brand} claim={<>Méně hledání.<br />Více hotových faktur.</>}>
+    <AuthShell art="wave" brand={brand} showLandingBack claim={<>Méně hledání.<br />Více hotových faktur.</>}>
       <span className={styles.eyebrow}>{brand === "hlavica" ? HLAVICA_ENTRY.name : "Firemní aplikace"}</span>
       <h1 className={styles.title}>Přihlášení</h1>
       <p className={styles.sub}>Vítejte zpět. Pokračujte ve správě faktur a pohledávek.</p>

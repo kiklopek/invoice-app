@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
-import { RibbonMark } from "@/components/landing/landing-icons";
+import { ArrowLeft, RibbonMark } from "@/components/landing/landing-icons";
 import styles from "./auth-shell.module.css";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
@@ -29,12 +29,14 @@ export function AuthShell({
   claim,
   claimSub,
   brand = "splatno",
+  showLandingBack = false,
   children,
 }: {
   art: AuthArt;
   claim: ReactNode;
   claimSub?: ReactNode;
   brand?: AuthBrand;
+  showLandingBack?: boolean;
   children: ReactNode;
 }) {
   const image = ART[art];
@@ -53,7 +55,10 @@ export function AuthShell({
               </span>
             ) : null}
           </div>
-          <div className={styles.body}>{children}</div>
+          <div className={styles.body}>
+            {showLandingBack && <Link href="/" className={styles.backHome}><ArrowLeft />Zpět na úvodní stránku</Link>}
+            {children}
+          </div>
         </section>
         <aside className={styles.artSide} aria-hidden="true">
           <Image

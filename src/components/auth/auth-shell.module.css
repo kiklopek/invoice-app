@@ -88,6 +88,30 @@
   margin-block: auto;
   padding-top: 36px;
 }
+.backHome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.backHome svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.backHome:hover {
+  color: var(--ledger);
+  text-decoration: underline;
+}
+.backHome:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid rgba(31, 106, 74, .25);
+  outline-offset: 3px;
+}
 
 .eyebrow {
   display: inline-block;

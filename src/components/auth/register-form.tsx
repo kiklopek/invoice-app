@@ -122,6 +122,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     <AuthShell
       art="laptop"
       brand={brand}
+      showLandingBack
       claim="Společně to zvládneme."
       claimSub={hlavica
         ? "Účet si vytvoříte jen s pozvánkou od administrátora vaší firmy."

@@ -3055,6 +3055,8 @@ th,
 .ocr-policy-assignment.remembered { background: var(--green-soft); border-color: #c8dfd2; color: var(--green); }
 .ocr-policy-assignment.needs-check { background: var(--amber-soft); border-color: #ead8b6; color: var(--amber); }
 #manual-invoice-form .form-grid > label { position: relative; }
+#manual-invoice-form .variable-symbol-field { position: relative; }
+#manual-invoice-form .variable-symbol-field:has(.ocr-field-meta:hover),#manual-invoice-form .variable-symbol-field:has(.ocr-field-meta:focus),#manual-invoice-form .variable-symbol-field:has(.ocr-field-meta:focus-within) { z-index: 110; }
 #manual-invoice-form .form-grid > label:has(> .ocr-field-meta) { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; }
 #manual-invoice-form .form-grid > label:has(> .ocr-field-meta) > .ocr-field-meta { align-self: flex-start; }
 #manual-invoice-form .standalone-form,#manual-invoice-form .form-section,#manual-invoice-form .form-grid { overflow: visible; }
