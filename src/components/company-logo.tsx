@@ -32,6 +32,9 @@ export function CompanyLogo({
   return (
     <Image
       src={src}
+      // Nahrané logo (/logo/<firma>?v=…) se vydává už hotové; optimalizace
+      // obrázků by kvůli parametru verze vyžadovala zvláštní povolení.
+      unoptimized={src.startsWith("/logo/")}
       alt="Logo firmy"
       width={91}
       height={85}

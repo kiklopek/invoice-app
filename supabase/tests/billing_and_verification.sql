@@ -98,7 +98,15 @@ begin
     raise exception 'Existing company lost access';
   end if;
 
-  -- 8) Klientské role nic z toho nevolají.
+  -- 8) Logo firmy: povolená je jen vlastní cesta /logo/<firma>?v=…, ne cizí adresa.
+  update public.organizations set logo_path = '/logo/' || org::text || '?v=1700000000000' where id = org;
+  begin
+    update public.organizations set logo_path = 'https://evil.example/x.png' where id = org;
+    raise exception 'expected check violation';
+  exception when check_violation then null;
+  end;
+
+  -- 9) Klientské role nic z toho nevolají.
   if has_function_privilege('authenticated', 'public.mark_billing_order_paid(uuid, text, text, bigint)', 'execute')
     or has_function_privilege('authenticated', 'public.verify_data_box_code(uuid, uuid, text)', 'execute')
     or has_function_privilege('anon', 'public.create_billing_order(uuid, uuid, text, text, integer, bigint, bigint, bigint, text, jsonb)', 'execute') then

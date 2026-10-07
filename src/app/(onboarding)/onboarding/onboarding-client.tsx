@@ -4,18 +4,32 @@ import Image from "next/image";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Bank, Check, Home, Mail, Users } from "@/components/landing/landing-icons";
+import { ArrowLeft, ArrowRight, Bank, Bell, Check, FileText, Home, Mail, Shield, Users } from "@/components/landing/landing-icons";
 import { RibbonMark } from "@/components/landing/landing-icons";
 import { isValidBankAccount, isValidIco } from "@/lib/company-validation";
 import { confirmAction } from "@/lib/confirm-action";
 import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { normalizeOnboardingCompany, validateOnboardingCompany, type OnboardingCompany } from "@/lib/onboarding";
 import { roleNames, type AccessRole } from "@/lib/role-access";
+import { defaultReminderTemplates } from "@/lib/reminder-defaults";
+import { MAX_REMINDER_CC_RECIPIENTS, parseReminderCcInput } from "@/lib/reminder-recipients";
+import { detectLogoType, MAX_LOGO_BYTES } from "@/lib/company-logo-file";
 import styles from "./onboarding.module.css";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type Reminders = { days: number[]; replyTo: string; ccText: string };
+type VerifyState = "idle" | "sending" | "sent" | "manual" | "no_data_box" | "unavailable" | "verifying" | "verified";
+
+const REMINDER_STAGES = ["before_due", "on_due", "overdue", "escalation"] as const;
+const DAY_OPTIONS = [-7, -3, -1, 0, 3, 7, 14, 30];
+const DEFAULT_REMINDERS: Reminders = { days: [-3, 0, 7, 14], replyTo: "", ccText: "" };
+
+function dayLabel(day: number) {
+  if (day === 0) return "V den splatnosti";
+  return day < 0 ? `${-day} ${-day === 1 ? "den" : "dny"} před` : `${day} ${day < 5 ? "dny" : "dní"} po`;
+}
 type Invite = { email: string; role: AccessRole };
 type AresState = "idle" | "loading" | "found" | "not_found" | "unavailable";
 
@@ -23,37 +37,52 @@ const STEPS: { title: string; sub: string }[] = [
   { title: "Vaše firma", sub: "IČO a základní údaje" },
   { title: "Kontakt", sub: "Kam vám psát" },
   { title: "Bankovní účet", sub: "Kam vám chodí platby" },
+  { title: "Upomínky", sub: "Kdy zákazníkům připomenout" },
+  { title: "Logo", sub: "Vzhled faktur a e-mailů" },
   { title: "Tým", sub: "Pozvěte kolegy" },
-  { title: "Hotovo", sub: "Kontrola a spuštění" },
+  { title: "Shrnutí", sub: "Kontrola a založení" },
+  { title: "Ověření", sub: "Přes datovou schránku" },
 ];
 
 const ART: Record<Step, { src: string; title: string; sub: string }> = {
   1: { src: "/brand/mascot/wave.webp", title: "Vítejte ve Splatnu.", sub: "Podle IČO doplníme údaje z obchodního rejstříku." },
   2: { src: "/brand/mascot/phone.webp", title: "Odpovědi vám přijdou sem.", sub: "Z tohoto e-mailu uvidí zákazníci faktury a upomínky." },
   3: { src: "/brand/mascot/laptop.webp", title: "Platby spárujeme za vás.", sub: "Číslo účtu ověříme kontrolní číslicí, ať se nepáruje na překlep." },
-  4: { src: "/brand/mascot/wave.webp", title: "Společně to zvládneme.", sub: "Kolegy pozvete teď, nebo kdykoli později v Nastavení." },
-  5: { src: "/brand/mascot/laptop.webp", title: "Faktury pod kontrolou.", sub: "Upomínky zůstanou vypnuté, dokud je sami nezapnete." },
+  4: { src: "/brand/mascot/phone.webp", title: "Ať vám nic neuteče.", sub: "Nic se neodešle bez vás: automat zapnete sami, až uvidíte, komu co půjde." },
+  5: { src: "/brand/mascot/wave.webp", title: "Vaše firma, váš vzhled.", sub: "Logo uvidí zákazníci v upomínkách a kolegové v aplikaci." },
+  6: { src: "/brand/mascot/wave.webp", title: "Společně to zvládneme.", sub: "Kolegy pozvete teď, nebo kdykoli později v Nastavení." },
+  7: { src: "/brand/mascot/laptop.webp", title: "Faktury pod kontrolou.", sub: "Firma vznikne až posledním tlačítkem." },
+  8: { src: "/brand/mascot/phone.webp", title: "Ověříme, že je to vaše firma.", sub: "Kód pošleme do datové schránky firmy podle IČO." },
 };
 
 const DRAFT_KEY = "splatno:onboarding-draft";
 const EMPTY: OnboardingCompany = normalizeOnboardingCompany({});
 
-function readDraft(): { company: OnboardingCompany; invites: Invite[] } | null {
+function readDraft(): { company: OnboardingCompany; invites: Invite[]; reminders: Reminders } | null {
   try {
     const raw = window.localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { company?: unknown; invites?: unknown };
+    const parsed = JSON.parse(raw) as { company?: unknown; invites?: unknown; reminders?: Partial<Reminders> };
     const invites = Array.isArray(parsed.invites)
       ? parsed.invites.filter((invite): invite is Invite =>
           typeof invite?.email === "string" && ["viewer", "accounting", "admin"].includes(invite?.role))
       : [];
-    return { company: normalizeOnboardingCompany(parsed.company), invites };
+    const days = Array.isArray(parsed.reminders?.days) ? parsed.reminders.days.filter((day) => DAY_OPTIONS.includes(day)) : DEFAULT_REMINDERS.days;
+    return {
+      company: normalizeOnboardingCompany(parsed.company),
+      invites,
+      reminders: {
+        days: days.length ? days : DEFAULT_REMINDERS.days,
+        replyTo: typeof parsed.reminders?.replyTo === "string" ? parsed.reminders.replyTo : "",
+        ccText: typeof parsed.reminders?.ccText === "string" ? parsed.reminders.ccText : "",
+      },
+    };
   } catch {
     return null;
   }
 }
 
-function writeDraft(value: { company: OnboardingCompany; invites: Invite[] } | null) {
+function writeDraft(value: { company: OnboardingCompany; invites: Invite[]; reminders: Reminders } | null) {
   try {
     if (value) window.localStorage.setItem(DRAFT_KEY, JSON.stringify(value));
     else window.localStorage.removeItem(DRAFT_KEY);
@@ -77,18 +106,53 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [reminders, setReminders] = useState<Reminders>(DEFAULT_REMINDERS);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [created, setCreated] = useState(false);
+  const [verify, setVerify] = useState<VerifyState>("idle");
+  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
+  const [verifyCode, setVerifyCode] = useState("");
 
   useEffect(() => {
     const draft = readDraft();
     if (draft) {
       setCompany({ ...draft.company, email: draft.company.email || accountEmail });
       setInvites(draft.invites);
+      setReminders(draft.reminders);
     }
   }, [accountEmail]);
 
   useEffect(() => {
-    writeDraft({ company, invites });
-  }, [company, invites]);
+    if (!created) writeDraft({ company, invites, reminders });
+  }, [company, invites, reminders, created]);
+
+  useEffect(() => () => {
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+  }, [logoPreview]);
+
+  async function chooseLogo(file: File | null) {
+    setError(null);
+    if (!file) {
+      setLogoFile(null);
+      setLogoPreview(null);
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) return setError("Logo může mít nejvýš 512 kB.");
+    if (!detectLogoType(new Uint8Array(await file.slice(0, 16).arrayBuffer()))) return setError("Logo musí být obrázek PNG, JPEG nebo WebP.");
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  }
+
+  function remindersProblem() {
+    if (!reminders.days.length) return "Vyberte aspoň jeden den, kdy zákazníkovi připomenout fakturu.";
+    if (reminders.replyTo && !isValidEmail(reminders.replyTo)) return "Adresa pro odpovědi nemá platný tvar.";
+    const cc = parseReminderCcInput(reminders.ccText);
+    if (cc.length > MAX_REMINDER_CC_RECIPIENTS || cc.some((email) => !isValidEmail(email))) {
+      return `Kopie: zadejte nejvýš ${MAX_REMINDER_CC_RECIPIENTS} platných adres oddělených čárkou.`;
+    }
+    return null;
+  }
 
   const allErrors = useMemo(() => validateOnboardingCompany(company), [company]);
 
@@ -149,7 +213,13 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
 
   function go(next: Step) {
     setError(null);
+    if (created) return;
+    if (next === 8) return;
     if (next > step && !validateStep(step)) return;
+    if (next > step && step === 4) {
+      const problem = remindersProblem();
+      if (problem) return setError(problem);
+    }
     setStep(next);
     setReached((current) => (next > current ? next : current));
   }
@@ -201,8 +271,31 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
       return;
     }
 
-    // Firma existuje. Pozvánky jdou po jedné; nepovedená se dá poslat znovu
-    // v Nastavení → Tým, firma tím nijak neutrpí.
+    // Firma existuje. Zbytek nastavení (upomínky, logo, pozvánky) se uloží
+    // po krocích; co se nepovede, jde dodělat v Nastavení a firma tím nijak
+    // neutrpí. Výsledek uvidí uživatel na kroku Ověření.
+    const warnings: string[] = [];
+    const cc = parseReminderCcInput(reminders.ccText);
+    const savedReminders = await fetch("/api/settings/reminders", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        active: false,
+        days: reminders.days,
+        templates: Object.fromEntries(REMINDER_STAGES.map((stage) => [stage, {
+          ...defaultReminderTemplates[stage],
+          reply_to: reminders.replyTo || company.email,
+          cc,
+        }])),
+      }),
+    }).then((saved) => saved.ok).catch(() => false);
+    if (!savedReminders) warnings.push("Nastavení upomínek se nepodařilo uložit, dokončete ho v sekci Upomínky.");
+    if (logoFile) {
+      const form = new FormData();
+      form.append("logo", logoFile);
+      const uploaded = await fetch("/api/settings/logo", { method: "POST", body: form }).then((saved) => saved.ok).catch(() => false);
+      if (!uploaded) warnings.push("Logo se nepodařilo nahrát, zkuste to v Nastavení → Firma.");
+    }
     const failed: string[] = [];
     for (const invite of invites) {
       const sent = await fetch("/api/settings/members", {
@@ -215,13 +308,48 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
       }).catch(() => false);
       if (!sent) failed.push(invite.email);
     }
+    if (failed.length) warnings.push(`Pozvánku se nepodařilo poslat na: ${failed.join(", ")}. Pošlete ji znovu v Nastavení → Tým.`);
     writeDraft(null);
-    if (failed.length) {
-      setResult(`Firma je založená. Pozvánku se nepodařilo poslat na: ${failed.join(", ")}. Pošlete ji znovu v Nastavení → Tým.`);
-      setSubmitting(false);
+    setCreated(true);
+    setResult(warnings.length ? warnings.join(" ") : null);
+    setSubmitting(false);
+    setStep(8);
+    setReached(8);
+  }
+
+  async function sendVerification() {
+    setVerify("sending");
+    setVerifyInfo(null);
+    const response = await fetch("/api/verification/data-box", { method: "POST" }).catch(() => null);
+    const data = await response?.json().catch(() => null) as { status?: string; dataBoxId?: string; error?: string; mismatch?: boolean } | null;
+    if (response?.ok && data?.status === "sent") {
+      setVerify("sent");
+      setVerifyInfo(`Kód jsme poslali do datové schránky ${data.dataBoxId}${data.mismatch ? " (podle IČO; liší se od schránky zadané v kontaktech)" : ""}. Platí 72 hodin.`);
       return;
     }
-    window.location.replace("/dashboard");
+    if (data?.status === "already_verified") {
+      setVerify("verified");
+      return;
+    }
+    setVerify(data?.status === "manual" || data?.status === "no_data_box" ? data.status : "unavailable");
+    setVerifyInfo(data?.error ?? "Ověření teď není dostupné. Zkuste to později v Nastavení → Firma.");
+  }
+
+  async function confirmVerification() {
+    setVerify("verifying");
+    const response = await fetch("/api/verification/data-box/confirm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: verifyCode }),
+    }).catch(() => null);
+    const data = await response?.json().catch(() => null) as { status?: string; message?: string; error?: string } | null;
+    if (response?.ok && data?.status === "verified") {
+      setVerify("verified");
+      setVerifyInfo(null);
+      return;
+    }
+    setVerify("sent");
+    setVerifyInfo(data?.message ?? data?.error ?? "Kód se nepodařilo ověřit.");
   }
 
   const art = ART[step];
@@ -242,7 +370,7 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
               const state = number === step ? "current" : number < reached || (number < step) ? "done" : "todo";
               return (
                 <li key={item.title} data-state={state}>
-                  <button type="button" disabled={number > reached || submitting} onClick={() => go(number)} aria-current={number === step ? "step" : undefined}>
+                  <button type="button" disabled={number > reached || submitting || created} onClick={() => go(number)} aria-current={number === step ? "step" : undefined}>
                     <span className={styles.dot}>{state === "done" ? <Check /> : number}</span>
                     <span className={styles.stepTitle}>{item.title}</span>
                     <span className={styles.stepSub}>{item.sub}</span>
@@ -256,7 +384,7 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
 
         <section className={styles.main}>
           <div className={styles.pane}>
-            <span className={styles.chip}>Krok {step} z 5</span>
+            <span className={styles.chip}>Krok {step} z 8</span>
 
             {step === 1 && (
               <>
@@ -368,6 +496,67 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
 
             {step === 4 && (
               <>
+                <h1 className={styles.title}>Kdy připomenout neuhrazenou fakturu?</h1>
+                <p className={styles.sub}>Splatno pošle zákazníkovi e-mail podle tohoto harmonogramu. Automat zůstane vypnutý, dokud ho v sekci Upomínky sami nezapnete.</p>
+                <form className={styles.form} noValidate onSubmit={(event) => { event.preventDefault(); go(5); }}>
+                  <fieldset className={styles.field} style={{ border: 0, padding: 0, margin: 0 }}>
+                    <legend className={styles.label}>Dny vzhledem ke splatnosti</legend>
+                    <div className={styles.dayGrid}>
+                      {DAY_OPTIONS.map((day) => (
+                        <label key={day} className={styles.dayOption}>
+                          <input type="checkbox" checked={reminders.days.includes(day)} onChange={(event) => setReminders((current) => ({
+                            ...current,
+                            days: event.target.checked ? [...current.days, day].sort((a, b) => a - b) : current.days.filter((item) => item !== day),
+                          }))} />
+                          <span>{dayLabel(day)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <label className={styles.field}>
+                    <span className={styles.label}>Odpovědi zákazníků chodí na <small>(prázdné = {company.email || "e-mail firmy"})</small></span>
+                    <span className={styles.control}><Mail /><input type="email" autoComplete="off" placeholder={company.email || "faktury@firma.cz"} value={reminders.replyTo} onChange={(event) => setReminders((current) => ({ ...current, replyTo: event.target.value }))} /></span>
+                  </label>
+                  <label className={styles.field}>
+                    <span className={styles.label}>Kopie upomínek <small>(nepovinné, nejvýš {MAX_REMINDER_CC_RECIPIENTS} adres)</small></span>
+                    <span className={`${styles.control} ${styles.plain}`}><input autoComplete="off" placeholder="ucetni@firma.cz, jednatel@firma.cz" value={reminders.ccText} onChange={(event) => setReminders((current) => ({ ...current, ccText: event.target.value }))} /></span>
+                  </label>
+                  <div className={styles.info}><Bell /><p><b>Texty upomínek</b> připravíme výchozí (přátelské před splatností, důraznější po ní). Upravíte je kdykoli v sekci Upomínky.</p></div>
+                  {error && <p className={styles.notice}>{error}</p>}
+                  <div className={styles.actions}>
+                    <button className={styles.back} type="button" onClick={() => go(3)}><ArrowLeft />Zpět</button>
+                    <button className={styles.primary} type="submit">Pokračovat <ArrowRight /></button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {step === 5 && (
+              <>
+                <h1 className={styles.title}>Logo vaší firmy</h1>
+                <p className={styles.sub}>Zobrazí se v aplikaci a v upomínkách vašim zákazníkům. Nepovinné, přidáte ho i později.</p>
+                <form className={styles.form} noValidate onSubmit={(event) => { event.preventDefault(); go(6); }}>
+                  <label className={styles.drop}>
+                    {logoPreview
+                      // eslint-disable-next-line @next/next/no-img-element -- náhled místního souboru (blob:)
+                      ? <img src={logoPreview} alt="Náhled loga" className={styles.logoPreview} />
+                      : <FileText />}
+                    <strong>{logoFile ? logoFile.name : "Vyberte obrázek s logem"}</strong>
+                    <small>PNG, JPEG nebo WebP, nejvýš 512 kB</small>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void chooseLogo(event.target.files?.[0] ?? null)} />
+                  </label>
+                  {logoFile ? <button type="button" className={styles.textButton} onClick={() => void chooseLogo(null)}>Odebrat logo</button> : null}
+                  {error && <p className={styles.notice}>{error}</p>}
+                  <div className={styles.actions}>
+                    <button className={styles.back} type="button" onClick={() => go(4)}><ArrowLeft />Zpět</button>
+                    <button className={styles.primary} type="submit">{logoFile ? "Pokračovat" : "Přeskočit, přidám později"} <ArrowRight /></button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {step === 6 && (
+              <>
                 <h1 className={styles.title}>Pozvěte kolegy</h1>
                 <p className={styles.sub}>Každý dostane e-mail s odkazem, nastaví si heslo a hned uvidí vaši firmu. Pozvánky odejdou až po vašem potvrzení na konci.</p>
                 <form className={styles.form} noValidate onSubmit={(event) => { event.preventDefault(); addInvite(); }}>
@@ -403,14 +592,14 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
                   )}
                   {error && <p className={styles.notice}>{error}</p>}
                   <div className={styles.actions}>
-                    <button className={styles.back} type="button" onClick={() => go(3)}><ArrowLeft />Zpět</button>
-                    <button className={styles.primary} type="button" onClick={() => go(5)}>{invites.length ? "Pokračovat" : "Přeskočit, pozvu později"} <ArrowRight /></button>
+                    <button className={styles.back} type="button" onClick={() => go(5)}><ArrowLeft />Zpět</button>
+                    <button className={styles.primary} type="button" onClick={() => go(7)}>{invites.length ? "Pokračovat" : "Přeskočit, pozvu později"} <ArrowRight /></button>
                   </div>
                 </form>
               </>
             )}
 
-            {step === 5 && (
+            {step === 7 && (
               <>
                 <h1 className={styles.title}>Zkontrolujte a spusťte</h1>
                 <p className={styles.sub}>Firma vznikne až tímto tlačítkem. Cokoli později změníte v Nastavení.</p>
@@ -430,28 +619,68 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
                     <span><b>{company.bank_account_czk || "Účet chybí"}</b><small>{company.bank_account_eur ? `EUR ${company.bank_account_eur}` : "Bez eurového účtu"}</small></span>
                     <button type="button" onClick={() => go(3)}>Upravit</button>
                   </li>
+                  <li>
+                    <span className={styles.summaryIcon}><Bell /></span>
+                    <span><b>Upomínky {reminders.days.map(dayLabel).join(", ").toLowerCase()}</b><small>Automat vypnutý · odpovědi na {reminders.replyTo || company.email}</small></span>
+                    <button type="button" onClick={() => go(4)}>Upravit</button>
+                  </li>
+                  <li data-optional={logoFile ? undefined : ""}>
+                    <span className={styles.summaryIcon}><FileText /></span>
+                    <span><b>{logoFile ? "Logo připravené" : "Bez loga"}</b><small>{logoFile ? logoFile.name : "Přidáte kdykoli v Nastavení → Firma"}</small></span>
+                    <button type="button" onClick={() => go(5)}>Upravit</button>
+                  </li>
                   <li data-optional={invites.length ? undefined : ""}>
                     <span className={styles.summaryIcon}><Users /></span>
                     <span><b>{invites.length ? `${invites.length} ${invites.length === 1 ? "pozvánka" : invites.length < 5 ? "pozvánky" : "pozvánek"}` : "Zatím bez kolegů"}</b><small>{invites.length ? invites.map((invite) => invite.email).join(", ") : "Pozvete je kdykoli v Nastavení → Tým"}</small></span>
-                    <button type="button" onClick={() => go(4)}>Upravit</button>
+                    <button type="button" onClick={() => go(6)}>Upravit</button>
                   </li>
                 </ul>
                 {error && <p className={styles.notice} style={{ marginTop: 16 }}>{error}</p>}
-                {result ? (
-                  <>
-                    <p className={styles.notice} style={{ marginTop: 16 }}>{result}</p>
-                    <div className={styles.actions} style={{ marginTop: 20 }}>
-                      <a className={styles.primary} href="/dashboard">Přejít na nástěnku <ArrowRight /></a>
-                    </div>
-                  </>
-                ) : (
+                {(
+
                   <div className={styles.actions} style={{ marginTop: 24 }}>
-                    <button className={styles.back} type="button" disabled={submitting} onClick={() => go(4)}><ArrowLeft />Zpět</button>
+                    <button className={styles.back} type="button" disabled={submitting} onClick={() => go(6)}><ArrowLeft />Zpět</button>
                     <button className={styles.primary} type="button" disabled={submitting} onClick={finish}>
                       {submitting ? "Zakládám firmu…" : "Dokončit nastavení"} <ArrowRight />
                     </button>
                   </div>
                 )}
+              </>
+            )}
+            {step === 8 && (
+              <>
+                <h1 className={styles.title}>{verify === "verified" ? "Firma je ověřená" : "Ověřte, že je to vaše firma"}</h1>
+                <p className={styles.sub}>
+                  {verify === "verified"
+                    ? "Hotovo. Firma je založená i ověřená, můžete začít."
+                    : "Firma je založená. Pošleme kód do datové schránky firmy dohledané podle IČO; kdo do ní vidí, firmu ověří. Bez ověření můžete Splatno používat ve zkušební době, k nákupu tarifu je potřeba."}
+                </p>
+                {result ? <p className={styles.notice} style={{ marginTop: 16 }}>{result}</p> : null}
+                <div className={styles.form}>
+                  {verify === "idle" || verify === "sending" ? (
+                    <button className={styles.primary} type="button" disabled={verify === "sending"} onClick={() => void sendVerification()}>
+                      <Shield /> {verify === "sending" ? "Posílám kód…" : "Poslat kód do datové schránky"}
+                    </button>
+                  ) : null}
+                  {verify === "sent" || verify === "verifying" ? (
+                    <form className={styles.form} style={{ marginTop: 0 }} noValidate onSubmit={(event) => { event.preventDefault(); void confirmVerification(); }}>
+                      <label className={styles.field}>
+                        <span className={styles.label}>Kód ze zprávy v datové schránce</span>
+                        <span className={`${styles.control} ${styles.plain}`}><input inputMode="numeric" autoComplete="one-time-code" maxLength={7} placeholder="123456" value={verifyCode} onChange={(event) => setVerifyCode(event.target.value.replace(/[^\d\s]/g, ""))} /></span>
+                      </label>
+                      <button className={styles.primary} type="submit" disabled={verify === "verifying" || verifyCode.replace(/\s/g, "").length !== 6}>
+                        {verify === "verifying" ? "Ověřuji…" : "Ověřit firmu"} <ArrowRight />
+                      </button>
+                      <button type="button" className={styles.textButton} onClick={() => void sendVerification()}>Poslat nový kód</button>
+                    </form>
+                  ) : null}
+                  {verifyInfo ? <p className={verify === "sent" || verify === "verifying" ? styles.hint : styles.notice}>{verifyInfo}</p> : null}
+                  <div className={styles.actions}>
+                    <a className={verify === "verified" ? styles.primary : styles.back} href="/dashboard">
+                      {verify === "verified" ? <>Přejít na nástěnku <ArrowRight /></> : "Ověřím později, pokračovat"}
+                    </a>
+                  </div>
+                </div>
               </>
             )}
           </div>

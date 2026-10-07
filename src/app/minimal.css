@@ -3590,6 +3590,14 @@ th,
 }
 .member-resend:disabled { color: #9aa59e; cursor: default; }
 
+/* Nastavení → Firma: ověření a logo. */
+.company-trust { margin-bottom: 16px; }
+.company-trust-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px 20px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line, #e4e9e5); }
+.company-trust-form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.company-trust-form label { display: grid; gap: 4px; }
+.company-trust-logo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+@media (max-width: 640px) { .company-trust-row { grid-template-columns: 1fr; } }
+
 @media print {
   html,
   body {
