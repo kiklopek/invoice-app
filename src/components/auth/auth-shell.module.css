@@ -464,3 +464,8 @@
     transition: none !important;
   }
 }
+
+.footText {
+  margin-left: 8px;
+  color: var(--text);
+}

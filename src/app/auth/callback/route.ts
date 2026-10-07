@@ -1,10 +1,12 @@
 import { createUserServerClient } from "@/lib/supabase-server";
-import { getRequestIdentity } from "@/lib/auth";
-import { isAllowedCorporateEmail } from "@/lib/auth-policy";
+import { getAuthenticatedSession, resolveMembership } from "@/lib/auth";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { NextResponse } from "next/server";
 
+// Odkaz z potvrzovacího e-mailu registrace (a obnovy hesla). Pozvaný člověk
+// se tu rovnou připojí ke své firmě; zakladatel firmu ještě nemá a po 2FA
+// pokračuje onboardingem. Do aplikace nikdo nevstoupí bez 2FA.
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -14,28 +16,23 @@ export async function GET(request: Request) {
     const supabase = await createUserServerClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!isAllowedCorporateEmail(userData.user?.email)) {
-        await supabase.auth.signOut();
-        return NextResponse.redirect(new URL("/login?error=domain", url.origin));
-      }
-
-      const identity = await getRequestIdentity({ requireMfa: false, requireLoginSession: false });
-      if (!identity) {
+      const session = await getAuthenticatedSession({ requireMfa: false, requireLoginSession: false });
+      if (!session) {
         await supabase.auth.signOut();
         return NextResponse.redirect(new URL("/login?error=access", url.origin));
       }
 
+      await setLoginSessionPreference(false, { userId: session.user.id, sessionId: session.sessionId });
       if (next === "/reset-password") {
-        await setLoginSessionPreference(false, { userId: identity.user.id, sessionId: identity.sessionId });
         return NextResponse.redirect(new URL(next, url.origin));
       }
 
-      await setLoginSessionPreference(false, { userId: identity.user.id, sessionId: identity.sessionId });
+      // Převezme případnou pozvánku (e-mail je právě ověřený odkazem).
+      await resolveMembership(session);
       const verified = await hasVerifiedEmailMfa({
-        email: identity.membership.email,
-        userId: identity.user.id,
-        sessionId: identity.sessionId,
+        email: session.email,
+        userId: session.user.id,
+        sessionId: session.sessionId,
       });
       return NextResponse.redirect(
         new URL(verified ? "/dashboard" : "/mfa", url.origin)

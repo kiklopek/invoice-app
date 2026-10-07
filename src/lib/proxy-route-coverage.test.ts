@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { APP_SECTIONS } from "./access-state";
 
 const proxy = () => readFileSync(join(process.cwd(), "src/proxy.ts"), "utf8");
 
@@ -23,16 +24,15 @@ const listAfter = (source: string, marker: string) => {
 
 describe("proxy route coverage", () => {
   it("guards every workspace segment", () => {
-    const protectedPaths = listAfter(proxy(), "const protectedRoute");
     for (const segment of workspaceSegments()) {
-      expect(protectedPaths).toContain(`/${segment}`);
+      expect(APP_SECTIONS as readonly string[]).toContain(`/${segment}`);
     }
   });
 
   it("matches every workspace segment in the middleware matcher", () => {
     const matcher = listAfter(proxy(), "matcher:");
-    for (const segment of workspaceSegments()) {
-      expect(matcher).toContain(`/${segment}/:path*`);
+    for (const section of APP_SECTIONS) {
+      expect(matcher).toContain(`${section}/:path*`);
     }
   });
 
@@ -43,16 +43,12 @@ describe("proxy route coverage", () => {
     expect(listAfter(proxy(), "matcher:")).toContain("/hlavica");
   });
 
-  // Obe pole musi zustat v synchronizaci: matcher rozhoduje, jestli se
-  // middleware vubec spusti, protectedRoute az co uvnitr udela. Chybejici
-  // zaznam v kteremkoli z nich znamena nechranenou stranku.
-  it("keeps both lists in sync with each other", () => {
-    const source = proxy();
-    const protectedPaths = listAfter(source, "const protectedRoute").filter(path => path !== "/mfa");
-    const matcher = listAfter(source, "matcher:");
-    for (const path of protectedPaths) {
-      expect(matcher).toContain(`${path}/:path*`);
-    }
+  // Onboarding je za 2FA a pozvánka musí umět odhlásit starou relaci;
+  // bez záznamu v matcheru by proxy na těchto stránkách vůbec neběžel.
+  it("runs on onboarding and invitation links", () => {
+    const matcher = listAfter(proxy(), "matcher:");
+    expect(matcher).toContain("/onboarding");
+    expect(matcher).toContain("/pozvanka/:path*");
   });
 });
 
@@ -61,7 +57,7 @@ describe("returnTo handling", () => {
   // ho drive vubec necetla -- uzivatel se po vyprseni session nikdy nevratil
   // tam, kam mířil. Proxy ho musi doplnit i pri vlastnim redirectu.
   it("preserves the requested path when redirecting to login", () => {
-    expect(proxy()).toContain("returnTo");
+    expect(readFileSync(join(process.cwd(), "src/lib/access-state.ts"), "utf8")).toContain("returnTo");
   });
 
   it("only follows same-site relative paths", () => {

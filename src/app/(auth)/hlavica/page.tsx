@@ -1,4 +1,7 @@
-// splatno.cz/hlavica je vstup R. Hlavica do jejich aplikace. Je to tatáž
-// přihlašovací stránka jako /login (s logem firmy); proxy.ts s oběma cestami
-// zachází stejně, takže přihlášený uživatel odsud jde rovnou na nástěnku.
-export { default } from "../login/page";
+import { LoginForm } from "@/components/auth/login-form";
+
+// splatno.cz/hlavica je vstup R. Hlavica: totéž přihlášení jako /login, jen
+// s jejich logem. Lidé z R. Hlavica se můžou přihlásit i přes /login.
+export default function HlavicaLoginPage() {
+  return <LoginForm brand="hlavica" />;
+}

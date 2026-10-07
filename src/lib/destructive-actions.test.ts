@@ -131,7 +131,11 @@ describe("produkční hygiena textů", () => {
     // Komentáře se nepočítají -- vysvětlení minulé chyby smí jméno zmínit.
     const withoutComments = (source: string) =>
       source.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter(line => !line.trim().startsWith("//")).join("\n");
-    const offenders = userFacing().filter(path => withoutComments(read(path)).includes("R. Hlavica"));
+    // Výjimka je jen tenant-entries.ts: vstup splatno.cz/hlavica je pro tu
+    // firmu udělaný záměrně a jinde se na něj odkazuje přes konstantu.
+    const offenders = userFacing()
+      .filter(path => !path.endsWith("src/lib/tenant-entries.ts"))
+      .filter(path => withoutComments(read(path)).includes("R. Hlavica"));
     expect(offenders).toEqual([]);
   });
 

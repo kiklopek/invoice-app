@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("authentication flow", () => {
-  it("checks the company invitation before creating an account", () => {
+  it("checks the registration kind before creating an account", () => {
     const register = source("src/app/(auth)/register/page.tsx");
     const accessRoute = source("src/app/api/auth/registration-access/route.ts");
 
@@ -13,7 +13,9 @@ describe("authentication flow", () => {
     expect(register.indexOf('fetch("/api/auth/registration-access"')).toBeLessThan(
       register.indexOf("supabase.auth.signUp")
     );
-    expect(register).toContain("nebyl administrátorem firmy přidán do systému");
+    // Bez pozvánky se zakládá firma; s pozvánkou se člověk připojí ke své.
+    expect(register).toContain("Založit firemní účet");
+    expect(accessRoute).toContain('kind: row ? "invited" : "founder"');
     expect(accessRoute).toContain('.from("organization_members")');
     expect(accessRoute).toContain('.eq("email", email)');
     expect(accessRoute).toContain("isSameOriginMutation(request)");
@@ -36,7 +38,7 @@ describe("authentication flow", () => {
   });
 
   it("keeps password login behind organization membership verification", () => {
-    const login = source("src/app/(auth)/login/page.tsx");
+    const login = source("src/components/auth/login-form.tsx");
     const accessRoute = source("src/app/api/auth/access/route.ts");
     const sessionPreferenceRoute = source("src/app/api/auth/session-preference/route.ts");
     const identity = source("src/lib/auth.ts");
@@ -88,7 +90,7 @@ describe("authentication flow", () => {
   });
 
   it("sends ordinary password logins through e-mail verification while the trusted account opens the dashboard", () => {
-    const login = source("src/app/(auth)/login/page.tsx");
+    const login = source("src/components/auth/login-form.tsx");
     const accessRoute = source("src/app/api/auth/access/route.ts");
     // Cil po prihlaseni uz neni pevne "/dashboard", ale ?returnTo (validovane
     // pres safeReturnPath) -- driv se returnTo generovalo, ale nikdo ho necetl.
@@ -100,7 +102,7 @@ describe("authentication flow", () => {
     expect(login).toContain("Zapamatovat si mě");
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
-    expect(source("src/app/auth/callback/route.ts")).toContain("email: identity.membership.email");
+    expect(source("src/app/auth/callback/route.ts")).toContain("email: session.email");
     expect(source("src/app/(auth)/register/page.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : "/mfa"');
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
@@ -137,7 +139,7 @@ describe("authentication flow", () => {
   });
 
   it("uses one neutral login error with a working password recovery link", () => {
-    const login = source("src/app/(auth)/login/page.tsx");
+    const login = source("src/components/auth/login-form.tsx");
     expect(login).toContain("E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na");
     expect(login).toContain('<Link href="/forgot-password">„Obnovit heslo“</Link>');
     expect(login).toContain('<Link href="/forgot-password">Obnovit heslo</Link>');
@@ -159,13 +161,14 @@ describe("authentication flow", () => {
     expect(recoveryRoute).toContain("apiError(");
     expect(recoveryRoute).toContain('.from("organization_members")');
     expect(recoveryRoute).toContain("service.auth.admin.generateLink");
-    expect(recoveryRoute).toContain("if (!membership?.user_id) return neutralResponse()");
+    // Neexistující účet dostane stejnou neutrální odpověď jako existující.
+    expect(recoveryRoute).toMatch(/if \(linkError \|\| !linkData\.properties\.hashed_token \|\| !linkData\.user\) \{[\s\S]*?return neutralResponse\(\);/);
     expect(recoveryEmail).toContain('process.env.RESEND_API_KEY');
     expect(recoveryEmail).toContain('process.env.AUTH_EMAIL_DELIVERY_ENABLED === "false"');
     expect(recoveryEmail).toContain('Splatno <prihlaseni@mail.splatno.cz>');
     expect(tokenRoute).toContain('type: "recovery"');
     expect(tokenRoute).toContain("supabase.auth.verifyOtp");
-    expect(tokenRoute).toContain('.eq("user_id", data.user.id)');
+    expect(tokenRoute).toContain("isValidEmail(data.user.email)");
     expect(tokenRoute).toContain('new URL("/reset-password", requestUrl.origin)');
   });
 

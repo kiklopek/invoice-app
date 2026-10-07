@@ -177,7 +177,14 @@ begin
     raise exception 'Client role can execute onboarding RPC';
   end if;
 
-  -- 12) Data firmy A zůstávají firmě A: nová firma nevidí členy R. Hlavica.
+  -- 12) Nové akce mají vlastní limit pokusů.
+  if not public.consume_auth_rate_limit('invitation_accept_ip', repeat('f', 64), 5, 900)
+    or not public.consume_auth_rate_limit('invitation_send_email', repeat('f', 64), 5, 900)
+    or not public.consume_auth_rate_limit('company_lookup_email', repeat('f', 64), 5, 900) then
+    raise exception 'New rate limit actions refused';
+  end if;
+
+  -- 13) Data firmy A zůstávají firmě A: nová firma nevidí členy R. Hlavica.
   if exists (select 1 from public.organization_members where organization_id = new_org and email like '%@hlavica.cz') then
     raise exception 'Hlavica member leaked into new organization';
   end if;

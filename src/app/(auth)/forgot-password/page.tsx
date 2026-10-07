@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CompanyLogo } from "@/components/company-logo";
-import { Icon } from "@/components/icons";
-import { ALLOWED_EMAIL_DOMAIN, isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
+import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
+import { ArrowRight, Mail } from "@/components/landing/landing-icons";
+import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { loginEntryPath } from "@/lib/login-entry";
 
 export default function ForgotPasswordPage() {
-  const corporateEmailRequired = isCorporateEmailRequired();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     event.preventDefault();
     setError(null);
     const normalizedEmail = normalizeEmail(email);
-    if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? `Použijte firemní e-mail @${ALLOWED_EMAIL_DOMAIN}.` : "Zadejte platnou e-mailovou adresu.");
+    if (!isValidEmail(normalizedEmail)) return setError("Zadejte platnou e-mailovou adresu.");
     setSubmitting(true);
     try {
       const response = await fetch("/api/auth/password-recovery", {
@@ -47,21 +47,31 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="login-page auth-page">
-      <section className="login-card auth-card">
-        <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
-        <div className="login-intro"><span>OBNOVA PŘÍSTUPU</span><h1>Zapomenuté heslo</h1><p>Pošleme vám bezpečný odkaz pro nastavení nového hesla.</p></div>
-        {sent ? (
-          <div className="login-sent"><Icon name="mail"/><div><strong>Zkontrolujte e-mail</strong><p>Pokud má adresa <b>{email}</b> aktivní účet, obdrží odkaz pro změnu hesla.</p><Link href="/login" className="auth-inline-link">Zpět na přihlášení</Link></div></div>
-        ) : (
-          <form onSubmit={requestReset} className="auth-form">
-            <label><span>Firemní e-mail</span><input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-            <button type="submit" className="btn primary" disabled={submitting}><Icon name="mail"/>{submitting ? "Odesílám…" : "Poslat odkaz pro obnovu"}</button>
-            {error && <p className="form-error">{error}</p>}
-          </form>
-        )}
-        <p className="auth-switch"><Link href="/login">← Zpět na přihlášení</Link></p>
-      </section>
-    </main>
+    <AuthShell art="phone" claim="Nové heslo za pár minut." claimSub="Pošleme vám bezpečný jednorázový odkaz.">
+      <span className={styles.eyebrow}>Obnova přístupu</span>
+      <h1 className={styles.title}>Zapomenuté heslo</h1>
+      <p className={styles.sub}>Pošleme vám bezpečný odkaz pro nastavení nového hesla.</p>
+      {sent ? (
+        <div className={styles.sent}>
+          <Mail width={22} height={22} />
+          <div>
+            <strong>Zkontrolujte e-mail</strong>
+            <p>Pokud má adresa <b>{email}</b> aktivní účet, obdrží odkaz pro změnu hesla.</p>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={requestReset} className={styles.form}>
+          <label className={styles.field}>
+            <span>E-mail</span>
+            <span className={styles.control}><Mail /><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@firma.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></span>
+          </label>
+          {error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.primary} disabled={submitting}>
+            {submitting ? "Odesílám…" : "Poslat odkaz pro obnovu"} <ArrowRight />
+          </button>
+        </form>
+      )}
+      <p className={styles.foot}>Heslo si pamatujete?<Link href={loginEntryPath()}>Zpět na přihlášení</Link></p>
+    </AuthShell>
   );
 }

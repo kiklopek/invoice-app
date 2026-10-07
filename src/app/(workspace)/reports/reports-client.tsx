@@ -288,6 +288,7 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
             report={report}
             currency={currency}
             companyName={companyName}
+            companyLogo={profile?.companyLogo ?? null}
             period={printPeriod}
             dateBasis={dateBasisNames[dateBasis]}
             selectedStatus={selectedStatus}

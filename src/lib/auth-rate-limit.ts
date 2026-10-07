@@ -4,11 +4,16 @@ import { createHmac } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase-server";
 import { resolveLoginSessionSecret } from "@/lib/login-session";
 
-type AuthAction = "registration_access" | "password_recovery";
+type AuthAction = "registration_access" | "password_recovery" | "invitation_accept" | "invitation_send" | "company_lookup";
 
+// Druhý subjekt ("email") nemusí být e-mail: u přijetí pozvánky je to
+// otisk tokenu, u posílání pozvánek firma, u dohledání IČO účet.
 const limits: Record<AuthAction, { ip: number; email: number; windowSeconds: number }> = {
   registration_access: { ip: 30, email: 10, windowSeconds: 15 * 60 },
   password_recovery: { ip: 10, email: 3, windowSeconds: 15 * 60 },
+  invitation_accept: { ip: 20, email: 8, windowSeconds: 15 * 60 },
+  invitation_send: { ip: 60, email: 20, windowSeconds: 24 * 60 * 60 },
+  company_lookup: { ip: 60, email: 30, windowSeconds: 15 * 60 },
 };
 
 function secret() {

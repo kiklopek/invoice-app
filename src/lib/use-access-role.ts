@@ -8,6 +8,7 @@ export type AccessProfile = {
   name: string;
   email: string;
   companyName: string;
+  companyLogo?: string | null;
 };
 
 let cachedProfile: AccessProfile | null = null;
@@ -34,9 +35,15 @@ export function loadProfile() {
     pendingProfile = fetch("/api/auth/access", { method: "POST", signal: AbortSignal.timeout(15_000) })
       .then(async response => {
         if (!response.ok) return null;
-        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown; companyName?: unknown };
+        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown; companyName?: unknown; companyLogo?: unknown };
         if (!isAccessRole(data.role) || typeof data.name !== "string" || typeof data.email !== "string" || typeof data.companyName !== "string") return null;
-        return { role: data.role, name: data.name, email: data.email, companyName: data.companyName };
+        return {
+          role: data.role,
+          name: data.name,
+          email: data.email,
+          companyName: data.companyName,
+          ...(typeof data.companyLogo === "string" ? { companyLogo: data.companyLogo } : {}),
+        };
       })
       .catch(() => null)
       .then(profile => {

@@ -45,6 +45,7 @@ const IDENTITY_EXEMPT: Record<string, string> = {
   "/api/cron/reconcile-payments": "Cron cesta se autorizuje sdíleným tajemstvím v hlavičce Authorization.",
   "/api/webhooks/resend": "Příchozí webhook se autorizuje podpisem Svix, ne identitou uživatele.",
   "/api/health": "Diagnostika bez citlivých dat.",
+  "/api/invitations/[token]": "Veřejný odkaz pozvánky: autorizuje ho jednorázový token (jen otisk v DB) a rate limit.",
 };
 
 describe("smlouva API rout", () => {
@@ -68,7 +69,8 @@ describe("smlouva API rout", () => {
     const offenders = files.filter(file => {
       const source = read(file);
       if (routePath(file) in IDENTITY_EXEMPT) return false;
-      return !source.includes("getRequestIdentity");
+      // getAuthenticatedSession: ověřený účet bez firmy (2FA, onboarding).
+      return !source.includes("getRequestIdentity") && !source.includes("getAuthenticatedSession");
     });
     expect(offenders.map(routePath)).toEqual([]);
   });

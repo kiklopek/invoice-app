@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
+import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { getPasswordRecoveryBaseUrl, getPasswordRecoveryConfiguration, logPasswordRecoveryError, sendPasswordRecoveryEmail } from "@/lib/password-recovery-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { createServiceClient } from "@/lib/supabase-server";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   }
 
   const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
-  if (!isAllowedCorporateEmail(email)) return apiError(request, "Neplatná e-mailová adresa.", 400, "invalid_email");
+  if (!isValidEmail(email)) return apiError(request, "Neplatná e-mailová adresa.", 400, "invalid_email");
 
   try {
     if (!await consumePublicAuthLimit(request, "password_recovery", email)) return neutralResponse();
@@ -35,28 +35,32 @@ export async function POST(request: Request) {
   }
 
   const service = createServiceClient();
-  const { data: membership, error: membershipError } = await service.from("organization_members").select("user_id").eq("email", email).maybeSingle();
+  const { data: membership, error: membershipError } = await service.from("organization_members").select("user_id").eq("email", email).not("user_id", "is", null).limit(1).maybeSingle();
   if (membershipError) {
     logPasswordRecoveryError("Password recovery membership lookup failed", membershipError);
     return apiError(request, "Odeslání se momentálně nepodařilo.", 503, "membership_lookup_failed");
   }
-  if (!membership?.user_id) return neutralResponse();
 
-  const { data: userData, error: userError } = await service.auth.admin.getUserById(membership.user_id);
-  if (userError || !userData.user || normalizeEmail(userData.user.email) !== email) {
-    if (userError) logPasswordRecoveryError("Password recovery user lookup failed", userError);
-    return neutralResponse();
+  if (membership?.user_id) {
+    const { data: userData, error: userError } = await service.auth.admin.getUserById(membership.user_id);
+    if (userError || !userData.user || normalizeEmail(userData.user.email) !== email) {
+      if (userError) logPasswordRecoveryError("Password recovery user lookup failed", userError);
+      return neutralResponse();
+    }
+    const recoverySentAt = userData.user.recovery_sent_at ? new Date(userData.user.recovery_sent_at).getTime() : 0;
+    if (recoverySentAt && Date.now() - recoverySentAt < 60_000) return neutralResponse();
   }
 
-  const recoverySentAt = userData.user.recovery_sent_at ? new Date(userData.user.recovery_sent_at).getTime() : 0;
-  if (recoverySentAt && Date.now() - recoverySentAt < 60_000) return neutralResponse();
-
+  // Bez členství může jít o zakladatele, který ještě nedokončil onboarding.
+  // generateLink pro neexistující účet selže -- odpověď je i tak neutrální,
+  // takže z ní nejde poznat, jestli e-mail má účet.
   const recoveryDestination = new URL("/reset-password", getPasswordRecoveryBaseUrl()).toString();
   const { data: linkData, error: linkError } = await service.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: recoveryDestination } });
-  if (linkError || !linkData.properties.hashed_token) {
-    logPasswordRecoveryError("Password recovery link generation failed", linkError);
+  if (linkError || !linkData.properties.hashed_token || !linkData.user) {
+    if (membership?.user_id) logPasswordRecoveryError("Password recovery link generation failed", linkError);
     return neutralResponse();
   }
+  const userData = { user: linkData.user };
 
   const recoveryUrl = new URL("/auth/recovery", getPasswordRecoveryBaseUrl());
   recoveryUrl.searchParams.set("token_hash", linkData.properties.hashed_token);

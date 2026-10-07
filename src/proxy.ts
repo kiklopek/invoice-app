@@ -1,7 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isAllowedCorporateEmail } from "@/lib/auth-policy";
-import { safeReturnPath } from "@/lib/safe-return-path";
+import { routeFor, type AccessState, type RouteDecision } from "@/lib/access-state";
 import {
   EMAIL_MFA_COOKIE,
   createEmailMfaToken,
@@ -33,27 +32,8 @@ function redirectWithCookies(url: URL, source: NextResponse) {
   return redirect;
 }
 
-// Přihlašovací stránky. /hlavica je vstup R. Hlavica na splatno.cz/hlavica
-// a musí se chovat stejně jako /login, jinak by přihlášený uživatel místo
-// nástěnky viděl znovu formulář a stará relace by zůstala viset.
-const LOGIN_PAGES = ["/login", "/hlavica"];
-
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const isLoginPage = LOGIN_PAGES.includes(pathname);
-
-  const publicRoutes = [
-    ...LOGIN_PAGES,
-    "/register",
-    "/forgot-password",
-    "/reset-password",
-    "/auth",
-    "/favicon.ico",
-  ];
-
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route),
-  );
 
   let response = NextResponse.next({
     request,
@@ -64,11 +44,10 @@ export async function proxy(request: NextRequest) {
   // Bez skutečného Supabase připojení nikdy neobcházíme autentizaci ani
   // nevytváříme lokální uživatelskou relaci.
   if (!supabaseUrl || !supabaseKey) {
-    if (isPublicRoute) {
-      return response;
-    }
-
-    return NextResponse.redirect(new URL("/login", request.url));
+    const decision = routeFor("anonymous", pathname, request.nextUrl.search);
+    return decision.type === "show"
+      ? response
+      : NextResponse.redirect(new URL("/login", request.url));
   }
 
   const supabase = createServerClient<Database>(supabaseUrl, supabaseKey, {
@@ -135,22 +114,18 @@ export async function proxy(request: NextRequest) {
       })),
   );
 
-  // Staré Supabase cookies samy o sobě nestačí. Bez aktivní relace prohlížeče
-  // nebo výslovného „Zapamatovat si mě“ uživatele odhlásíme ještě před MFA.
-  if (user && !hasLoginSession && !pathname.startsWith("/auth/")) {
-    await supabase.auth.signOut({ scope: "local" });
-    response.cookies.set(EMAIL_MFA_COOKIE, "", { path: "/", maxAge: 0 });
-
-    if (
-      isLoginPage ||
-      pathname === "/register" ||
-      pathname === "/forgot-password"
-    ) {
-      return response;
-    }
-
-    return redirectWithCookies(new URL("/login", request.url), response);
-  }
+  // Stav přihlášení podle tabulky P12 (src/lib/access-state.ts). Proxy
+  // nezná členství ve firmě; ověřeného uživatele vede jako "verified" a
+  // firmu (nebo onboarding) dořeší layout aplikace a stránka onboardingu.
+  // Staré Supabase cookies samy o sobě nestačí: bez aktivní relace
+  // prohlížeče nebo výslovného „Zapamatovat si mě“ uživatele odhlásíme.
+  const state: AccessState = !user
+    ? "anonymous"
+    : !hasLoginSession
+      ? "stale_session"
+      : hasMfa
+        ? "verified"
+        : "mfa_pending";
 
   // "Zapamatovat si mě" dřív razítkovalo pevnou 30denní expiraci k okamžiku
   // přihlášení, takže uživatel, co appku nepoužívá denně, "vypadl" dřív, než
@@ -193,81 +168,24 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Veřejné stránky necháme být
-  if (isPublicRoute) {
-    if (!user) {
-      return response;
-    }
+  const decision = routeFor(state, pathname, request.nextUrl.search);
+  if (decision.signOut) await signOutEverywhere(supabase, response);
+  return respond(decision, request, response);
+}
 
-    // Plně ověřený uživatel (MFA hotové) už nemá chodit zpět na login.
-    if (isLoginPage) {
-      if (hasMfa) {
-        return redirectWithCookies(new URL("/dashboard", request.url), response);
-      }
+async function signOutEverywhere(
+  supabase: { auth: { signOut: (options: { scope: "local" }) => Promise<unknown> } },
+  response: NextResponse,
+) {
+  await supabase.auth.signOut({ scope: "local" });
+  response.cookies.set(EMAIL_MFA_COOKIE, "", { path: "/", maxAge: 0 });
+  response.cookies.set(LOGIN_SESSION_COOKIE, "", { path: "/", maxAge: 0 });
+  response.cookies.set(REMEMBER_LOGIN_COOKIE, "", { path: "/", maxAge: 0 });
+}
 
-      // Uživatel je přihlášený, ale MFA ještě nedokončil a výslovně otevřel
-      // /login (např. aby se vzdal této relace a přihlásil se jiným účtem).
-      // Neposílat ho zpět na /mfa — to by ho tam uvěznilo bez úniku.
-      // Odhlásíme ho a necháme zobrazit skutečnou přihlašovací stránku.
-      await supabase.auth.signOut({ scope: "local" });
-      response.cookies.set(EMAIL_MFA_COOKIE, "", { path: "/", maxAge: 0 });
-      response.cookies.set(LOGIN_SESSION_COOKIE, "", { path: "/", maxAge: 0 });
-      response.cookies.set(REMEMBER_LOGIN_COOKIE, "", { path: "/", maxAge: 0 });
-      return response;
-    }
-
-    return response;
-  }
-
-  // Musi odpovidat adresarum ve (workspace) i matcheru dole -- hlida to
-  // proxy-route-coverage.test.ts. /customers tu drive chybelo, takze
-  // nepřihlaseny uzivatel nedostal redirect na /login, ale spadl az
-  // v page-data loaderu do obecne chybove stranky.
-  const protectedRoute = [
-    "/dashboard",
-    "/customers",
-    "/invoices",
-    "/reminders",
-    "/reports",
-    "/settings",
-    "/mfa",
-  ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
-
-  if (!protectedRoute) {
-    return response;
-  }
-
-  // Není session
-  if (!user) {
-    // Bez tohohle skoncil uzivatel po prihlaseni vzdy na /dashboard, i kdyz
-    // mířil jinam. api-client.ts uz returnTo posilal, ale nikdo ho necetl.
-    const login = new URL("/login", request.url);
-    const returnTo = safeReturnPath(`${pathname}${request.nextUrl.search}`, "");
-    if (returnTo) login.searchParams.set("returnTo", returnTo);
-    return redirectWithCookies(login, response);
-  }
-
-  // Firemní email kontrola
-  if (!isAllowedCorporateEmail(user.email)) {
-    await supabase.auth.signOut();
-
-    return redirectWithCookies(
-      new URL("/login?error=domain", request.url),
-      response,
-    );
-  }
-
-  // MFA není hotové
-  if (pathname !== "/mfa" && !hasMfa) {
-    return redirectWithCookies(new URL("/mfa", request.url), response);
-  }
-
-  // MFA hotové → zpět do aplikace
-  if (pathname === "/mfa" && hasMfa) {
-    return redirectWithCookies(new URL("/dashboard", request.url), response);
-  }
-
-  return response;
+function respond(decision: RouteDecision, request: NextRequest, response: NextResponse) {
+  if (decision.type === "show") return response;
+  return redirectWithCookies(new URL(decision.to, request.url), response);
 }
 
 export const config = {
@@ -278,6 +196,8 @@ export const config = {
     "/reminders/:path*",
     "/reports/:path*",
     "/settings/:path*",
+    "/onboarding",
+    "/pozvanka/:path*",
     "/mfa",
     "/login",
     "/hlavica",

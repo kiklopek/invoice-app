@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
+import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { RibbonMark } from "@/components/landing/landing-icons";
 import styles from "./auth-shell.module.css";
 
@@ -16,6 +17,10 @@ const ART: Record<AuthArt, { src: string; width: number; height: number }> = {
   phone: { src: "/brand/mascot/phone.webp", width: 760, height: 658 },
 };
 
+// "splatno" je obecný vzhled pro všechny firmy; "hlavica" je vstup
+// splatno.cz/hlavica s logem R. Hlavica (R8: jejich logo jinde nepatří).
+export type AuthBrand = "splatno" | "hlavica";
+
 // Společný rám přihlášení, registrace a ověření: formulář vlevo, maskot
 // s claimem vpravo (na telefonu jako pruh nad formulářem). Stránky si
 // nechávají vlastní logiku, rám řeší jen vzhled.
@@ -23,11 +28,13 @@ export function AuthShell({
   art,
   claim,
   claimSub,
+  brand = "splatno",
   children,
 }: {
   art: AuthArt;
   claim: ReactNode;
   claimSub?: ReactNode;
+  brand?: AuthBrand;
   children: ReactNode;
 }) {
   const image = ART[art];
@@ -40,9 +47,11 @@ export function AuthShell({
               <RibbonMark size={30} />
               <span>splatno</span>
             </Link>
-            <span className={styles.company}>
-              <CompanyLogo className={styles.companyLogo} />
-            </span>
+            {brand === "hlavica" ? (
+              <span className={styles.company}>
+                <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
+              </span>
+            ) : null}
           </div>
           <div className={styles.body}>{children}</div>
         </section>

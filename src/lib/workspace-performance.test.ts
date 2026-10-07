@@ -89,7 +89,7 @@ describe("workspace navigation performance", () => {
     const auth = source("src/lib/auth.ts");
     const sessionGuard = auth.indexOf("if (!hasLoginSession) return null;");
     const mfaGuard = auth.indexOf("if (!hasMfa) return null;");
-    const claimWrite = auth.indexOf(".update({ user_id: data.user.id, email })");
+    const claimWrite = auth.indexOf(".update({ user_id: user.id, email, invite_token_hash: null, invite_expires_at: null })");
     expect(sessionGuard, "chybí kontrola přihlašovací session").toBeGreaterThan(-1);
     expect(mfaGuard, "chybí kontrola MFA").toBeGreaterThan(-1);
     expect(claimWrite, "chybí zápis přebírající pozvánku").toBeGreaterThan(-1);

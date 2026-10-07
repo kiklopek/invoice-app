@@ -5,6 +5,8 @@ import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { nullableRpcString } from "@/lib/supabase-server";
 import { canManageMembers } from "@/lib/role-access";
+import { invitationErrorMessage, invitationStatus } from "@/lib/invitations";
+import { sendInvitation } from "@/lib/invitation-server";
 
 const roles = ["viewer", "accounting", "admin"] as const;
 type MemberRole = typeof roles[number];
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageMembers(identity.membership.role)) return NextResponse.json({ error: "Přístupy a jejich historii může zobrazit pouze administrátor." }, { status: 403 });
   const [membersResult, eventsResult] = await Promise.all([
-    identity.service.from("organization_members").select("id, email, role, user_id, created_at")
+    identity.service.from("organization_members").select("id, email, role, user_id, created_at, invite_expires_at, invite_sent_at")
       .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: true }),
     identity.service.from("organization_member_events").select("id, actor_email, target_email, event_type, previous_role, new_role, created_at")
       .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(10),
@@ -47,7 +49,16 @@ export async function GET(request: Request) {
     return apiError(request, "Seznam přístupů se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500, "members_read_failed");
   }
   return NextResponse.json({
-    members: (membersResult.data ?? []).map(member => ({ id: member.id, email: member.email, role: member.role, active: Boolean(member.user_id), current: member.id === identity.membership.id, created_at: member.created_at })),
+    members: (membersResult.data ?? []).map(member => ({
+      id: member.id,
+      email: member.email,
+      role: member.role,
+      active: Boolean(member.user_id),
+      current: member.id === identity.membership.id,
+      created_at: member.created_at,
+      invitation: invitationStatus(member),
+      invitation_expires_at: member.user_id ? null : member.invite_expires_at,
+    })),
     access_events: eventsResult.data ?? [],
     current_role: identity.membership.role,
   }, { headers: { "cache-control": "private, no-store" } });
@@ -62,14 +73,31 @@ export async function POST(request: Request) {
   if (result.error) return result.error;
   const { identity } = result;
   const { data, error } = await identity.service.rpc("add_organization_member", { target_org: identity.membership.organization_id, new_email: email, new_role: body.role, actor_user: identity.user.id });
-  if (error) return NextResponse.json({ error: error.code === "23505" ? "Tento e-mail už přístup má." : "Přístup se nepodařilo přidat." }, { status: error.code === "23505" ? 409 : 500 });
+  if (error) {
+    if (error.code === "23505") return NextResponse.json({ error: "Tento e-mail už přístup má." }, { status: 409 });
+    const known = invitationErrorMessage(error.message);
+    if (known) return NextResponse.json({ error: known.message, code: known.code }, { status: known.status });
+    logError("Přidání přístupu selhalo", error);
+    return apiError(request, "Přístup se nepodařilo přidat.", 500, "member_add_failed");
+  }
   const mutation = data as MemberMutation | null;
   if (!mutation?.member) {
     // Bez e-mailu: adresa člena je identitní údaj a do logu nepatří.
     logError("Přidání přístupu nevrátilo potvrzeného člena", null);
     return apiError(request, "Přístup se nepodařilo bezpečně potvrdit.", 500, "member_add_unconfirmed");
   }
-  return NextResponse.json({ member: { ...mutation.member, active: Boolean(mutation.member.user_id), current: false }, access_event: mutation.event }, { status: 201 });
+  const delivery = await sendInvitation(request, identity, mutation.member.id);
+  return NextResponse.json({
+    member: {
+      ...mutation.member,
+      active: Boolean(mutation.member.user_id),
+      current: false,
+      invitation: delivery.sent ? "pending" : "not_sent",
+      invitation_expires_at: delivery.sent ? delivery.expiresAt : null,
+    },
+    access_event: mutation.event,
+    invitation: delivery,
+  }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {

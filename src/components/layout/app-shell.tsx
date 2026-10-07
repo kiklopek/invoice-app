@@ -15,6 +15,7 @@ import { CompanyLogo } from "@/components/company-logo";
 import { EskoAssistant } from "@/components/esko/esko-assistant";
 import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
+import { loginEntryPath } from "@/lib/login-entry";
 import {
   canAccessPage,
   landingPageForRole,
@@ -208,7 +209,7 @@ export function AppSidebar({
     setLogoutError(null);
     try {
       await signOutCurrentSession();
-      window.location.replace("/login");
+      window.location.replace(loginEntryPath());
     } catch (error) {
       setLogoutError(
         error instanceof Error ? error.message : "Odhlášení se nepodařilo.",
@@ -224,7 +225,7 @@ export function AppSidebar({
     <a href="#obsah" className="skip-link">Přeskočit na obsah</a>
     <aside className="sidebar">
       <Link href={landingPageForRole(role)} className="brand">
-        <CompanyLogo className="sidebar-company-logo" />
+        <CompanyLogo src={profile?.companyLogo} name={profile?.companyName} className="sidebar-company-logo" />
       </Link>
       <nav
         className="sidebar-nav desktop-navigation"
@@ -282,7 +283,7 @@ export function AppSidebar({
             className="mobile-navigation-brand"
             aria-label="Přejít na přehled"
           >
-            <CompanyLogo className="mobile-navigation-logo" />
+            <CompanyLogo src={profile?.companyLogo} name={profile?.companyName} className="mobile-navigation-logo" />
           </Link>
           <div className="mobile-navigation-current">
             {activeItem && (

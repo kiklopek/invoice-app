@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestIdentity } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/auth";
 import { hashEmailMfaCode, isEmailMfaBypassed } from "@/lib/email-mfa-core";
 import { requireEmailMfaSecret, setVerifiedEmailMfaCookie } from "@/lib/email-mfa-server";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -11,10 +11,12 @@ export async function POST(request: Request) {
     return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   }
 
-  const identity = await getRequestIdentity({ requireMfa: false });
+  // 2FA nepotřebuje firmu: zakladatel ji před onboardingem ještě nemá.
+  // Kód jde vždy na e-mail přihlášeného účtu.
+  const identity = await getAuthenticatedSession({ requireMfa: false });
   if (!identity) return apiError(request, "Nejste přihlášený uživatel.", 401, "unauthorized");
 
-  if (isEmailMfaBypassed(identity.membership.email)) {
+  if (isEmailMfaBypassed(identity.email)) {
     return NextResponse.json({ verified: true, bypassed: true });
   }
 

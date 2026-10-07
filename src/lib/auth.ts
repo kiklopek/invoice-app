@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
+import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { hasServerLoginSession } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
@@ -15,7 +15,11 @@ type IdentityOptions = {
   accessToken?: string | null;
 };
 
-export async function getRequestIdentity(options: IdentityOptions = {}) {
+// Ověřená relace: platné přihlášení, aktivní relace prohlížeče a (pokud se
+// vyžaduje) 2FA. Firmu zatím neřeší -- zakladatel ji před onboardingem nemá,
+// a přesto musí projít 2FA a onboardingem. Data firmy smí číst jen to, co
+// prošlo getRequestIdentity (tedy i členstvím).
+export async function getAuthenticatedSession(options: IdentityOptions = {}) {
   const {
     requireMfa = true,
     requireLoginSession = true,
@@ -39,20 +43,19 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
   if (error || !data.user || claimsData.claims.sub !== data.user.id) return null;
 
   const email = normalizeEmail(data.user.email);
-  if (!isAllowedCorporateEmail(email)) return null;
+  if (!isValidEmail(email)) return null;
 
   const sessionId = typeof claimsData.claims.session_id === "string" ? claimsData.claims.session_id : null;
   if (!sessionId) return null;
 
   // Tyhle tři dotazy na sobě nezávisí -- stojí jen na userId, e-mailu a
   // sessionId, které jsou známé už teď. Sériově to byla tři kola na server
-  // navíc před KAŽDÝM požadavkem, a getRequestIdentity() běží na všech
-  // routách i ve všech page-data loaderech.
+  // navíc před KAŽDÝM požadavkem.
   //
   // Co se NEMĚNÍ: obě kontroly musí dál projít a teprve potom se smí sáhnout
   // na členství. Paralelně běží jen ČTENÍ; zápis, který přebírá pozvánku (a
-  // tedy váže identitu na organizaci), zůstává až za oběma kontrolami --
-  // jinak by si účet nepotvrzený přes MFA mohl tiše zabrat pozvánku.
+  // tedy váže identitu na organizaci), zůstává v resolveMembership až za
+  // oběma kontrolami.
   //
   // Routine cookie-based reads use the signed-in client so RLS remains the
   // primary organization boundary. During the short bootstrap path the
@@ -67,14 +70,36 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
       .select("id, organization_id, role, email")
       .eq("user_id", data.user.id)
       .eq("email", email)
+      .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
   ]);
-
   if (!hasLoginSession) return null;
   if (!hasMfa) return null;
 
-  let membership = boundMembershipResult.data;
+  return {
+    user: data.user,
+    email,
+    sessionId,
+    service,
+    userClient: cookieAuth,
+    boundMembership: boundMembershipResult.data,
+  };
+}
+
+export type AuthenticatedSession = NonNullable<Awaited<ReturnType<typeof getAuthenticatedSession>>>;
+
+export async function getRequestIdentity(options: IdentityOptions = {}) {
+  const session = await getAuthenticatedSession(options);
+  if (!session) return null;
+  return resolveMembership(session);
+}
+
+// Členství ve firmě. Kontroly přihlášení a 2FA už proběhly; teprve teď se
+// smí zapsat převzetí pozvánky.
+export async function resolveMembership(session: AuthenticatedSession) {
+  const { user, email, sessionId, service, userClient: cookieAuth } = session;
+  let membership = session.boundMembership;
   if (!membership) {
     const { data: invitation } = await service
       .from("organization_members")
@@ -87,7 +112,7 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
     if (invitation) {
       const { data: claimed } = await service
         .from("organization_members")
-        .update({ user_id: data.user.id, email })
+        .update({ user_id: user.id, email, invite_token_hash: null, invite_expires_at: null })
         .eq("id", invitation.id)
         .is("user_id", null)
         .select("id, organization_id, role, email")
@@ -98,7 +123,7 @@ export async function getRequestIdentity(options: IdentityOptions = {}) {
 
   if (!membership || !isAccessRole(membership.role)) return null;
   return {
-    user: data.user,
+    user,
     membership: { ...membership, role: membership.role },
     service,
     userClient: cookieAuth,

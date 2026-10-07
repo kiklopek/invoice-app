@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAllowedCorporateEmail, normalizeEmail } from "@/lib/auth-policy";
+import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { createServiceClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   }
 
   const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
-  if (!isAllowedCorporateEmail(email)) {
+  if (!isValidEmail(email)) {
     return apiError(request, "Neplatná e-mailová adresa.", 400, "invalid_email");
   }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const service = createServiceClient();
   const { data, error } = await service
     .from("organization_members")
-    .select("id")
+    .select("id, user_id")
     .eq("email", email)
     .limit(1);
 
@@ -44,5 +44,10 @@ export async function POST(request: Request) {
     return apiError(request, "Ověření přístupu se nepodařilo.", 500, "membership_lookup_failed");
   }
 
-  return NextResponse.json({ allowed: Boolean(data?.length) });
+  // Registrovat se může každý: kdo má pozvánku, po potvrzení e-mailu se
+  // připojí ke své firmě ("invited"); ostatní zakládají firmu ("founder").
+  // Člen, který už účet má, se registrovat nemá -- má se přihlásit.
+  const row = data?.[0];
+  if (row?.user_id) return NextResponse.json({ allowed: false, kind: "member" });
+  return NextResponse.json({ allowed: true, kind: row ? "invited" : "founder" });
 }

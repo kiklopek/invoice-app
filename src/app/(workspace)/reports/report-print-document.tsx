@@ -47,6 +47,7 @@ type PrintReportDocumentProps = {
   report: ReportPageData;
   currency: string;
   companyName: string;
+  companyLogo: string | null;
   period: string;
   dateBasis: string;
   selectedStatus: string;
@@ -54,7 +55,7 @@ type PrintReportDocumentProps = {
   generatedAt: string;
 };
 
-export function ReportPrintDocument({ report, currency, companyName, period, dateBasis, selectedStatus, selectedCustomer, generatedAt }: PrintReportDocumentProps) {
+export function ReportPrintDocument({ report, currency, companyName, companyLogo, period, dateBasis, selectedStatus, selectedCustomer, generatedAt }: PrintReportDocumentProps) {
   const totals = report.payment_reconciliation.totals;
   const reviewedPayments = totals.auto_matched + totals.needs_review;
   const hasPaymentActivity = totals.imports > 0 || totals.accepted > 0 || reviewedPayments > 0 || totals.unmatched_payments > 0 || totals.unacknowledged_mismatch_imports > 0 || report.payment_reconciliation.recent_imports.length > 0;
@@ -89,7 +90,7 @@ export function ReportPrintDocument({ report, currency, companyName, period, dat
   return <section className="report-print-document" aria-label="Účetní report pro tisk">
     <article className="print-report-page print-report-summary-page">
       <header className="print-report-cover">
-        <CompanyLogo className="print-report-logo" />
+        <CompanyLogo src={companyLogo} name={companyName} className="print-report-logo" />
         <div className="print-report-cover-title"><span>ÚČETNÍ REPORT</span><h1>{companyName}</h1><p>{period}</p></div>
         <dl className="print-report-meta">
           <div><dt>Období podle</dt><dd>{dateBasis}</dd></div>

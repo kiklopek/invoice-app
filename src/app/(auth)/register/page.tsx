@@ -4,17 +4,23 @@ import Link from "next/link";
 import { useState } from "react";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
-import { ALLOWED_EMAIL_DOMAIN, isAllowedCorporateEmail, isCorporateEmailRequired, normalizeEmail } from "@/lib/auth-policy";
+import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
+type RegistrationKind = "founder" | "invited";
+
+// Registrace (P2). Kdo nemá pozvánku, zakládá firemní účet a po potvrzení
+// e-mailu a 2FA projde onboardingem firmy. Kdo pozvánku má, se po potvrzení
+// e-mailu rovnou připojí ke své firmě (stejně jako přes odkaz z pozvánky).
 export default function RegisterPage() {
-  const corporateEmailRequired = isCorporateEmailRequired();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [sent, setSent] = useState(false);
+  const [kind, setKind] = useState<RegistrationKind>("founder");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,10 +29,11 @@ export default function RegisterPage() {
     setError(null);
     const normalizedEmail = normalizeEmail(email);
     if (fullName.trim().length < 3) return setError("Zadejte celé jméno uživatele.");
-    if (!isAllowedCorporateEmail(normalizedEmail)) return setError(corporateEmailRequired ? `Registrace je povolena pouze pro e-maily @${ALLOWED_EMAIL_DOMAIN}.` : "Zadejte platnou e-mailovou adresu.");
+    if (!isValidEmail(normalizedEmail)) return setError("Zadejte platnou e-mailovou adresu.");
     const problem = passwordProblem(password);
     if (problem) return setError(problem);
     if (password !== confirmation) return setError("Zadaná hesla se neshodují.");
+    if (!acceptTerms) return setError("Pro vytvoření účtu je potřeba souhlasit s podmínkami.");
     if (!hasSupabaseBrowserConfig()) return setError("Registrace není nakonfigurovaná. Doplňte Supabase proměnné prostředí.");
 
     setSubmitting(true);
@@ -40,12 +47,14 @@ export default function RegisterPage() {
       setSubmitting(false);
       return;
     }
-    const access = (await accessResponse.json()) as { allowed?: boolean };
+    const access = (await accessResponse.json()) as { allowed?: boolean; kind?: string };
     if (!access.allowed) {
-      setError("Pro tento e-mail zatím nelze vytvořit účet, protože nebyl administrátorem firmy přidán do systému. Kontaktujte prosím jednatele firmy.");
+      setError("Pro tento e-mail už účet existuje. Přihlaste se, nebo si obnovte heslo.");
       setSubmitting(false);
       return;
     }
+    const registrationKind: RegistrationKind = access.kind === "invited" ? "invited" : "founder";
+    setKind(registrationKind);
 
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -53,7 +62,7 @@ export default function RegisterPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/mfa`,
-        data: { full_name: fullName.trim() },
+        data: { full_name: fullName.trim(), terms_accepted_at: new Date().toISOString() },
       },
     });
     if (signUpError) {
@@ -70,7 +79,7 @@ export default function RegisterPage() {
       const accessResponse = await fetch("/api/auth/access", { method: "POST" });
       if (!accessResponse.ok) {
         await supabase.auth.signOut();
-        setError("Pro tento e-mail není připravená firemní pozvánka. Obraťte se na administrátora.");
+        setError("Účet se nepodařilo ověřit. Zkuste se přihlásit.");
         setSubmitting(false);
         return;
       }
@@ -99,17 +108,20 @@ export default function RegisterPage() {
     <AuthShell
       art="laptop"
       claim="Společně to zvládneme."
-      claimSub="Účet si vytvoříte jen s pozvánkou od administrátora vaší firmy."
+      claimSub="Po ověření e-mailu nastavíte svou firmu a můžete pozvat kolegy."
     >
       <span className={styles.eyebrow}>Nový účet</span>
-      <h1 className={styles.title}>Vytvořte si účet</h1>
-      <p className={styles.sub}>Registrace pro uživatele pozvané do firemní aplikace.</p>
+      <h1 className={styles.title}>Založit firemní účet</h1>
+      <p className={styles.sub}>Účet zakladatele firmy. Kolegy pak pozvete sami v nastavení.</p>
       {sent ? (
         <div className={styles.sent}>
           <Mail width={22} height={22} />
           <div>
             <strong>Potvrďte svůj e-mail</strong>
             <p>Na adresu <b>{email}</b> jsme poslali ověřovací odkaz. Otevřete jej a dokončete vytvoření účtu.</p>
+            <p>{kind === "invited"
+              ? "Na tento e-mail čeká pozvánka do firmy. Po ověření se k ní rovnou připojíte."
+              : "Po ověření e-mailu a přihlašovacího kódu nastavíte svou firmu."}</p>
           </div>
         </div>
       ) : (
@@ -121,7 +133,7 @@ export default function RegisterPage() {
             </label>
             <label className={styles.field}>
               <span>Firemní e-mail</span>
-              <span className={styles.control}><Mail /><input type="email" inputMode="email" autoComplete="email" required placeholder={`jmeno@${ALLOWED_EMAIL_DOMAIN}`} value={email} onChange={(event) => setEmail(event.target.value)} /></span>
+              <span className={styles.control}><Mail /><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@firma.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></span>
             </label>
           </div>
           <div className={styles.pair}>
@@ -135,6 +147,10 @@ export default function RegisterPage() {
             </label>
           </div>
           <small className={styles.note} style={{ marginTop: -6 }}>Alespoň 12 znaků, velké a malé písmeno a číslo.</small>
+          <label className={styles.check}>
+            <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
+            <span>Souhlasím s <Link href="/podminky" target="_blank">podmínkami</Link> a <Link href="/ochrana-osobnich-udaju" target="_blank">zpracováním osobních údajů</Link>.</span>
+          </label>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting}>
             {submitting ? "Vytvářím účet…" : "Vytvořit účet"} <ArrowRight />

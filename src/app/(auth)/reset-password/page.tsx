@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CompanyLogo } from "@/components/company-logo";
-import { Icon } from "@/components/icons";
+import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
+import { ArrowRight, Lock } from "@/components/landing/landing-icons";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
@@ -47,19 +47,27 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="login-page auth-page">
-      <section className="login-card auth-card">
-        <div className="login-brand"><CompanyLogo className="login-company-logo" /></div>
-        <div className="login-intro"><span>NOVÉ HESLO</span><h1>Nastavení hesla</h1><p>Zvolte nové bezpečné heslo pro svůj firemní účet.</p></div>
-        {checking ? <p className="page-state">Ověřuji odkaz…</p> : (
-          <form onSubmit={updatePassword} className="auth-form">
-            <label><span>Nové heslo</span><input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /><small>Alespoň 12 znaků, velké a malé písmeno a číslo.</small></label>
-            <label><span>Nové heslo znovu</span><input type="password" autoComplete="new-password" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
-            <button type="submit" className="btn primary" disabled={submitting}><Icon name="check"/>{submitting ? "Ukládám…" : "Nastavit nové heslo"}</button>
-            {error && <p className="form-error">{error}</p>}
-          </form>
-        )}
-      </section>
-    </main>
+    <AuthShell art="laptop" claim="Ještě krok a jste zpět." claimSub="Nové heslo platí hned pro všechna zařízení.">
+      <span className={styles.eyebrow}>Nové heslo</span>
+      <h1 className={styles.title}>Nastavení hesla</h1>
+      <p className={styles.sub}>Zvolte nové bezpečné heslo pro svůj účet.</p>
+      {checking ? <p className={styles.note}>Ověřuji odkaz…</p> : (
+        <form onSubmit={updatePassword} className={styles.form}>
+          <label className={styles.field}>
+            <span>Nové heslo</span>
+            <span className={styles.control}><Lock /><input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /></span>
+            <small>Alespoň 12 znaků, velké a malé písmeno a číslo.</small>
+          </label>
+          <label className={styles.field}>
+            <span>Nové heslo znovu</span>
+            <span className={styles.control}><Lock /><input type="password" autoComplete="new-password" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
+          </label>
+          {error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.primary} disabled={submitting}>
+            {submitting ? "Ukládám…" : "Nastavit nové heslo"} <ArrowRight />
+          </button>
+        </form>
+      )}
+    </AuthShell>
   );
 }

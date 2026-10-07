@@ -80,7 +80,7 @@ describe("role authorization", () => {
   it("shows the signed-in user's name, company and initials", () => {
     const accessRoute = source("src/app/api/auth/access/route.ts");
     const sidebar = source("src/components/layout/app-shell.tsx");
-    expect(accessRoute).toContain("displayName(identity.user.user_metadata.full_name, email)");
+    expect(accessRoute).toContain("displayName(session.user.user_metadata.full_name, session.email)");
     expect(accessRoute).toContain("email,");
     expect(accessRoute).toContain('companyName: organization?.name?.trim() || "Firma"');
     expect(sidebar).toContain("profileInitials(profile.name, profile.email)");

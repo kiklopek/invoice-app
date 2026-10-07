@@ -149,11 +149,16 @@ describe("mobile application layout", () => {
 
   // Přihlášení běží pod značkou Splatno (splatno.cz/hlavica), ale logo firmy
   // musí zůstat vidět, aby uživatel poznal, kam se přihlašuje.
-  it("keeps the company logo on the login card next to the Splatno brand", () => {
-    const login = source("src/app/(auth)/login/page.tsx");
+  // Obecné přihlášení nese jen značku Splatna; logo firmy patří jen na
+  // firemní vstup (splatno.cz/hlavica), jinak by ho viděly cizí firmy.
+  it("shows a company logo on the login card only on the company entry", () => {
+    const login = source("src/components/auth/login-form.tsx");
     const shell = source("src/components/auth/auth-shell.tsx");
     expect(login).toContain("<AuthShell");
+    expect(shell).toContain('brand === "hlavica"');
     expect(shell).toContain("<CompanyLogo");
+    expect(source("src/app/(auth)/login/page.tsx")).toContain('brand="splatno"');
+    expect(source("src/app/(auth)/hlavica/page.tsx")).toContain('brand="hlavica"');
     expect(login).not.toContain("SplatnoMark");
   });
 

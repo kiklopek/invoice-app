@@ -3557,6 +3557,22 @@ th,
   .email-suppressions-table td:last-child .btn { width: 100%; }
 }
 
+/* Firma bez nahraného loga: monogram z názvu (CompanyLogo). */
+.company-monogram {
+  display: inline-grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: #e3f1e7;
+  color: #1f6a4a;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.sidebar-company-logo.company-monogram { width: 56px; font-size: 22px; }
+.mobile-navigation-logo.company-monogram { width: 36px; font-size: 15px; border-radius: 10px; }
+.print-report-logo.company-monogram { width: 64px; font-size: 24px; }
+
 @media print {
   html,
   body {

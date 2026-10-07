@@ -112,18 +112,59 @@ describe("nepřihlášený uživatel", () => {
   });
 });
 
-describe("cizí e-mailová doména", () => {
-  it("is signed out instead of being let in", async () => {
-    authState.claims = { sub: "user-1", email: "utocnik@jinadomena.cz", session_id: "s1" };
-    authState.user = { id: "user-1", email: "utocnik@jinadomena.cz" };
-    const cookies = await signedInCookies("user-1", "s1");
+async function verifiedCookies(userId: string, sessionId: string) {
+  const { createEmailMfaToken, EMAIL_MFA_COOKIE } = await import("./lib/email-mfa-core");
+  return {
+    ...(await signedInCookies(userId, sessionId)),
+    [EMAIL_MFA_COOKIE]: createEmailMfaToken({ userId, sessionId, secret: process.env.EMAIL_MFA_SECRET! }),
+  };
+}
+
+// Splatno je pro všechny firmy. Doménu hlídá firma při pozvání, ne proxy:
+// člověk z jiné firmy se dostane jen ke svým datům (oddělení dělá
+// organization_id), takže ho proxy nesmí vyhodit jen kvůli doméně.
+describe("e-mail mimo hlavica.cz", () => {
+  it("is let into the application once fully verified", async () => {
+    authState.claims = { sub: "user-1", email: "jan@novafirma.cz", session_id: "s1" };
+    authState.user = { id: "user-1", email: "jan@novafirma.cz" };
     const previous = process.env.NODE_ENV;
-    // Doménová politika platí jen v produkčním režimu.
     Object.defineProperty(process.env, "NODE_ENV", { value: "production", configurable: true });
-    const response = await runProxy("/dashboard", cookies);
+    const response = await runProxy("/dashboard", await verifiedCookies("user-1", "s1"));
     Object.defineProperty(process.env, "NODE_ENV", { value: previous, configurable: true });
-    expect(locationOf(response)).toContain("error=domain");
-    expect(authState.signOutCalls).toBe(1);
+    expect(response.status).toBe(200);
+    expect(locationOf(response)).toBe("");
+    expect(authState.signOutCalls).toBe(0);
+  });
+});
+
+describe("onboarding a pozvánky", () => {
+  it("never shows onboarding to an anonymous visitor", async () => {
+    expect(locationOf(await runProxy("/onboarding"))).toContain("/login");
+  });
+
+  it("requires the second factor before onboarding", async () => {
+    authState.claims = { sub: "user-1", email: "jan@novafirma.cz", session_id: "s1" };
+    authState.user = { id: "user-1", email: "jan@novafirma.cz" };
+    expect(locationOf(await runProxy("/onboarding", await signedInCookies("user-1", "s1")))).toContain("/mfa");
+  });
+
+  it("lets a verified user open onboarding (the page itself checks the company)", async () => {
+    authState.claims = { sub: "user-1", email: "jan@novafirma.cz", session_id: "s1" };
+    authState.user = { id: "user-1", email: "jan@novafirma.cz" };
+    const response = await runProxy("/onboarding", await verifiedCookies("user-1", "s1"));
+    expect(response.status).toBe(200);
+  });
+
+  it("keeps an invitation link public", async () => {
+    const response = await runProxy("/pozvanka/abc123");
+    expect(response.status).toBe(200);
+    expect(locationOf(response)).toBe("");
+  });
+
+  it("sends a verified user away from registration", async () => {
+    authState.claims = { sub: "user-1", email: "jan@novafirma.cz", session_id: "s1" };
+    authState.user = { id: "user-1", email: "jan@novafirma.cz" };
+    expect(locationOf(await runProxy("/register", await verifiedCookies("user-1", "s1")))).toContain("/dashboard");
   });
 });
 

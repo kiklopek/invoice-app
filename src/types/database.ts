@@ -1184,6 +1184,10 @@ export type Database = {
           organization_id: string
           role: string
           user_id: string | null
+          invite_token_hash: string | null
+          invite_expires_at: string | null
+          invited_by: string | null
+          invite_sent_at: string | null
         }
         Insert: {
           created_at?: string
@@ -1192,6 +1196,10 @@ export type Database = {
           organization_id: string
           role?: string
           user_id?: string | null
+          invite_token_hash?: string | null
+          invite_expires_at?: string | null
+          invited_by?: string | null
+          invite_sent_at?: string | null
         }
         Update: {
           created_at?: string
@@ -1200,6 +1208,10 @@ export type Database = {
           organization_id?: string
           role?: string
           user_id?: string | null
+          invite_token_hash?: string | null
+          invite_expires_at?: string | null
+          invited_by?: string | null
+          invite_sent_at?: string | null
         }
         Relationships: [
           {
@@ -1227,6 +1239,10 @@ export type Database = {
           phone: string | null
           registered_address: string | null
           settings_revision: number
+          allowed_email_domain: string | null
+          logo_path: string | null
+          created_by: string | null
+          onboarding_completed_at: string | null
         }
         Insert: {
           bank_account_czk?: string | null
@@ -1243,6 +1259,10 @@ export type Database = {
           phone?: string | null
           registered_address?: string | null
           settings_revision?: number
+          allowed_email_domain?: string | null
+          logo_path?: string | null
+          created_by?: string | null
+          onboarding_completed_at?: string | null
         }
         Update: {
           bank_account_czk?: string | null
@@ -1259,6 +1279,10 @@ export type Database = {
           phone?: string | null
           registered_address?: string | null
           settings_revision?: number
+          allowed_email_domain?: string | null
+          logo_path?: string | null
+          created_by?: string | null
+          onboarding_completed_at?: string | null
         }
         Relationships: []
       }
@@ -1602,6 +1626,24 @@ export type Database = {
       audit_invoice_money: {
         Args: { target_org: string }
         Returns: { invoice_id: string; invoice_number: string; amount: number; paid_amount: number; ledger_paid: number; formula_difference: number; original_difference: number | null }[]
+      }
+      create_organization_for_user: {
+        Args: { founder_user: string; company: Json }
+        Returns: Json
+      }
+      issue_organization_invitation: {
+        Args: {
+          target_org: string
+          target_member: string
+          actor_user: string
+          token_hash: string
+          expires_at: string
+        }
+        Returns: Json
+      }
+      accept_organization_invitation: {
+        Args: { token_hash: string; accepting_user: string }
+        Returns: Json
       }
       add_organization_member: {
         Args: {

@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { ToastProvider } from "@/components/toast";
 import { WorkspaceDataProvider } from "@/components/workspace-data-provider";
-import { getCachedRequestIdentity } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getAuthenticatedSession, getCachedRequestIdentity } from "@/lib/auth";
+import { routeFor } from "@/lib/access-state";
 import { displayName } from "@/lib/user-display";
 import type { AccessProfile } from "@/lib/use-access-role";
 
@@ -10,15 +12,22 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   let initialProfile: AccessProfile | null = null;
 
   const identity = await getCachedRequestIdentity();
+  // Ověřený účet bez firmy je zakladatel před onboardingem (P12): aplikace
+  // bez firmy nemá co ukázat, pokračuje se nastavením firmy.
+  if (!identity && await getAuthenticatedSession()) {
+    const decision = routeFor("needs_onboarding", "/dashboard");
+    if (decision.type === "redirect") redirect(decision.to);
+  }
   if (identity) {
     const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
-    const { data: organization } = await identity.service.from("organizations").select("name").eq("id", identity.membership.organization_id).single();
+    const { data: organization } = await identity.service.from("organizations").select("name, logo_path").eq("id", identity.membership.organization_id).single();
     cacheKey = `${identity.membership.organization_id}:${identity.user.id}`;
     initialProfile = {
       role: identity.membership.role,
       name: displayName(identity.user.user_metadata.full_name, email),
       email,
       companyName: organization?.name?.trim() || "Firma",
+      companyLogo: organization?.logo_path ?? null,
     };
   }
 
