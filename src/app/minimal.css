@@ -3573,6 +3573,23 @@ th,
 .mobile-navigation-logo.company-monogram { width: 36px; font-size: 15px; border-radius: 10px; }
 .print-report-logo.company-monogram { width: 64px; font-size: 24px; }
 
+/* Nastavení → Tým: znovu poslat pozvánku. */
+.member-resend {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1f6a4a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.member-resend:disabled { color: #9aa59e; cursor: default; }
+
 @media print {
   html,
   body {

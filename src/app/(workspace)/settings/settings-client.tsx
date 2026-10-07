@@ -20,6 +20,13 @@ import { validateCompanyFields } from "@/lib/company-validation";
 type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
 type Member = SettingsMember;
+
+function memberStateLabel(member: Member) {
+  if (member.active) return "Aktivní";
+  if (member.invitation === "pending") return "Pozván";
+  if (member.invitation === "expired") return "Vypršelo";
+  return "Neodesláno";
+}
 type AccessEvent = SettingsAccessEvent;
 const accessAction = (event: AccessEvent) =>
   event.event_type === "added"
@@ -159,10 +166,21 @@ export function SettingsClient({
   }
   async function addMember(event: React.FormEvent) {
     event.preventDefault();
+    const email = newEmail.trim().toLowerCase();
+    // R6: pozvánka je e-mail třetí straně, odchází jen po potvrzení.
+    if (
+      !(await confirmAction({
+        title: `Poslat pozvánku na ${email}?`,
+        description: `Odejde e-mail s odkazem do vaší firmy s rolí ${roleNames[newRole]}. Odkaz platí 7 dní a lze ho použít jen jednou.`,
+        confirmLabel: "Poslat pozvánku",
+        confirmVariant: "primary",
+      }))
+    )
+      return;
     setSaving(true);
     setMessage(null);
     try {
-      await apiFetch("/api/settings/members", {
+      const result = await apiFetch<{ invitation?: { sent?: boolean } }>("/api/settings/members", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -172,15 +190,44 @@ export function SettingsClient({
       });
       await refreshMembers();
       setNewEmail("");
-      notifyOk(
-        "Přístup je přidaný. Uživatel si nyní vytvoří nový účet a potvrdí ověřovací e-mail.",
-      );
+      if (result?.invitation?.sent) {
+        notifyOk(`Pozvánka odešla na ${email}. Odkaz platí 7 dní.`);
+      } else {
+        notifyError(`Přístup je připravený, ale pozvánku se nepodařilo odeslat. Zkuste „Poslat znovu“.`);
+      }
     } catch (cause) {
       notifyError(
         cause instanceof Error
           ? cause.message
           : "Přístup se nepodařilo přidat.",
       );
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function resendInvitation(member: Member) {
+    if (
+      !(await confirmAction({
+        title: `Poslat pozvánku znovu na ${member.email}?`,
+        description: "Odejde nový odkaz s platností 7 dní. Dřív poslaný odkaz tím přestane platit.",
+        confirmLabel: "Poslat znovu",
+        confirmVariant: "primary",
+      }))
+    )
+      return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const result = await apiFetch<{ invitation?: { sent?: boolean } }>("/api/settings/members/invitation", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: member.id }),
+      });
+      await refreshMembers();
+      if (result?.invitation?.sent) notifyOk(`Nová pozvánka odešla na ${member.email}.`);
+      else notifyError("Pozvánku se nepodařilo odeslat. Zkuste to prosím za chvíli.");
+    } catch (cause) {
+      notifyError(cause instanceof Error ? cause.message : "Pozvánku se nepodařilo poslat.");
     } finally {
       setSaving(false);
     }
@@ -395,8 +442,8 @@ export function SettingsClient({
                 <div>
                   <h2>Přístupy účetního oddělení</h2>
                   <p>
-                    Povolené e-maily a jejich oprávnění. Aktivní znamená, že už
-                    se uživatel alespoň jednou přihlásil.
+                    Lidé ve vaší firmě a jejich oprávnění. Nový člověk dostane
+                    pozvánku e-mailem a přes odkaz si nastaví heslo.
                   </p>
                 </div>
               </header>
@@ -410,14 +457,29 @@ export function SettingsClient({
                         <span
                           className={`member-state ${member.active ? "active" : "invited"}`}
                         >
-                          {member.active ? "Aktivní" : "Připraven"}
+                          {memberStateLabel(member)}
                         </span>
                         <div>
                           <strong>
                             {member.email}
                             {member.current ? " · váš účet" : ""}
                           </strong>
-                          <small>{roleNames[member.role]}</small>
+                          <small>
+                            {roleNames[member.role]}
+                            {member.invitation === "pending" && member.invitation_expires_at
+                              ? ` · pozvánka platí do ${new Date(member.invitation_expires_at).toLocaleDateString("cs-CZ")}`
+                              : ""}
+                          </small>
+                          {!member.active ? (
+                            <button
+                              type="button"
+                              className="member-resend"
+                              disabled={saving}
+                              onClick={() => resendInvitation(member)}
+                            >
+                              {member.invitation === "not_sent" ? "Poslat pozvánku" : "Poslat znovu"}
+                            </button>
+                          ) : null}
                         </div>
                         <select
                           disabled={saving}
@@ -449,7 +511,7 @@ export function SettingsClient({
                         required
                         value={newEmail}
                         onChange={(event) => setNewEmail(event.target.value)}
-                        placeholder="ucetni@hlavica.cz"
+                        placeholder="kolega@firma.cz"
                       />
                     </label>
                     <label>
@@ -466,7 +528,7 @@ export function SettingsClient({
                       </select>
                     </label>
                     <button className="btn primary" disabled={saving}>
-                      + Přidat přístup
+                      + Pozvat do firmy
                     </button>
                   </form>
                 </>

@@ -1,4 +1,5 @@
 import "server-only";
+import { invitationStatus, type InvitationStatus } from "@/lib/invitations";
 
 import type { RequestIdentity } from "@/lib/auth";
 import { PageDataError } from "@/lib/dashboard-page-data";
@@ -28,6 +29,8 @@ export type SettingsMember = {
   active: boolean;
   current: boolean;
   created_at: string;
+  invitation?: InvitationStatus;
+  invitation_expires_at?: string | null;
 };
 export type SettingsAccessEvent = {
   id: string;
@@ -75,7 +78,7 @@ export async function loadSettingsPageData(
   const membersPromise = canManageMembers(identity.membership.role)
     ? identity.service
         .from("organization_members")
-        .select("id, email, role, user_id, created_at")
+        .select("id, email, role, user_id, created_at, invite_expires_at, invite_sent_at")
         .eq("organization_id", org)
         .order("created_at", { ascending: true })
     : Promise.resolve({ data: [], error: null });
@@ -114,6 +117,8 @@ export async function loadSettingsPageData(
       active: Boolean(member.user_id),
       current: member.id === identity.membership.id,
       created_at: member.created_at,
+      invitation: invitationStatus(member),
+      invitation_expires_at: member.user_id ? null : member.invite_expires_at,
     })),
     access_events: (eventsResult.error ? [] : eventsResult.data ?? []) as SettingsAccessEvent[],
     current_role: identity.membership.role,

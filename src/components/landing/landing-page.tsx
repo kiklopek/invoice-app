@@ -35,12 +35,13 @@ const caveat = Caveat({
   display: "swap",
 });
 
-// Landing je vstupní brána aplikace: výzvy vedou na registraci (dokončí ji jen
-// e-mail, který administrátor firmy předem pozval), přihlášení na /hlavica.
+// Landing je vstupní brána aplikace: výzvy vedou na registraci (založení
+// firemního účtu), přihlášení na obecné /login. Firemní vstupy (/hlavica)
+// se tu veřejně neukazují.
 // TODO: ověřit, že schránka existuje, než stránka půjde ven.
 const CONTACT_HREF = "mailto:info@splatno.cz";
 const TRIAL_HREF = "/register";
-const LOGIN_HREF = "/hlavica";
+const LOGIN_HREF = "/login";
 
 const nav = [
   { href: "#jak-to-funguje", label: "Jak to funguje" },
