@@ -88,15 +88,26 @@
   margin-block: auto;
   padding-top: 36px;
 }
+.backNavigation {
+  display: block;
+  margin-bottom: clamp(16px, 3vw, 24px);
+}
 .backHome {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
-  margin: 0 0 24px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
+  line-height: 1.4;
+}
+.backHome span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .backHome svg {
   width: 18px;

@@ -29,14 +29,12 @@ export function AuthShell({
   claim,
   claimSub,
   brand = "splatno",
-  showLandingBack = false,
   children,
 }: {
   art: AuthArt;
   claim: ReactNode;
   claimSub?: ReactNode;
   brand?: AuthBrand;
-  showLandingBack?: boolean;
   children: ReactNode;
 }) {
   const image = ART[art];
@@ -56,7 +54,9 @@ export function AuthShell({
             ) : null}
           </div>
           <div className={styles.body}>
-            {showLandingBack && <Link href="/" className={styles.backHome}><ArrowLeft />Zpět na úvodní stránku</Link>}
+            <nav className={styles.backNavigation} aria-label="Návrat na úvodní stránku">
+              <Link href="/" className={styles.backHome}><ArrowLeft /><span>Zpět na úvodní stránku</span></Link>
+            </nav>
             {children}
           </div>
         </section>
