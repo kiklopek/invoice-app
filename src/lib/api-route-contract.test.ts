@@ -72,7 +72,8 @@ describe("smlouva API rout", () => {
       const source = read(file);
       if (routePath(file) in IDENTITY_EXEMPT) return false;
       // getAuthenticatedSession: ověřený účet bez firmy (2FA, onboarding).
-      return !source.includes("getRequestIdentity") && !source.includes("getAuthenticatedSession");
+      // getOperatorSession: provozovatel Splatna (ověřená 2FA + seznam e-mailů).
+      return !source.includes("getRequestIdentity") && !source.includes("getAuthenticatedSession") && !source.includes("getOperatorSession");
     });
     expect(offenders.map(routePath)).toEqual([]);
   });

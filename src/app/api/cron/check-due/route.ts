@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { organizationsAllowedToSend } from "@/lib/billing";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { createServiceClient, nullableRpcString } from "@/lib/supabase-server";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -337,10 +338,22 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   const plannerDurationMs = Date.now() - plannerStartedAt;
   for (const counters of organizationCounters.values()) counters.planner_duration_ms = plannerDurationMs;
 
+  // Firmy s prošlou zkušební dobou nebo předplatným: upomínky se plánují
+  // dál (faktury se správně značí po splatnosti), jen se neodesílají --
+  // zůstanou ve frontě a odejdou po zaplacení. Při chybě čtení předplatného
+  // se odesílání nezastavuje (výpadek nesmí tiše vypnout upomínky všem).
+  const { data: subscriptionRows, error: subscriptionError } = await db.from("subscriptions")
+    .select("organization_id, status, trial_ends_at, current_period_end")
+    .in("organization_id", startedOrganizationIds);
+  if (subscriptionError) logError("Předplatné pro automat upomínek se nepodařilo načíst", subscriptionError);
+  const sendingOrganizationIds = subscriptionError
+    ? startedOrganizationIds
+    : organizationsAllowedToSend(startedOrganizationIds, subscriptionRows ?? []);
+
   const workerStartedAt = Date.now();
   const workerToken = crypto.randomUUID();
   const { data: claimedRows, error: claimError } = await db.rpc("claim_reminder_jobs", {
-    target_organizations: startedOrganizationIds,
+    target_organizations: sendingOrganizationIds,
     target_worker: workerToken,
     target_limit: WORKER_BATCH_LIMIT,
     target_lease_seconds: WORKER_LEASE_SECONDS,

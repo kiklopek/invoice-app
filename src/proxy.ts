@@ -198,6 +198,7 @@ export const config = {
     "/reports/:path*",
     "/settings/:path*",
     "/onboarding",
+    "/provoz",
     "/pozvanka/:path*",
     "/mfa",
     "/login",

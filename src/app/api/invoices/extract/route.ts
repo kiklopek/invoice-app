@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { subscriptionBlock } from "@/lib/billing-server";
 import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  const subscriptionBlocked = await subscriptionBlock(identity);
+  if (subscriptionBlocked) return subscriptionBlocked;
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění vytěžovat dokumenty." }, { status: 403 });
   const organizationId = identity.membership.organization_id;
   if (!path.startsWith(`${organizationId}/`)) return NextResponse.json({ error: "Dokument nepatří do této organizace." }, { status: 403 });

@@ -80,3 +80,17 @@ export function supplierConfiguration(env: Record<string, string | undefined> = 
 }
 
 export const TRANSFER_DUE_DAYS = 7;
+
+/**
+ * Firmy, za které smí automat upomínek odesílat. Firma s prošlou zkušební
+ * dobou nebo předplatným má odesílání pozastavené; upomínky jí zůstanou ve
+ * frontě a odejdou po zaplacení. Firma bez řádku předplatného se nezastavuje.
+ */
+export function organizationsAllowedToSend(
+  organizationIds: string[],
+  rows: (SubscriptionRow & { organization_id: string })[],
+  now = new Date(),
+) {
+  const byOrganization = new Map(rows.map((row) => [row.organization_id, row]));
+  return organizationIds.filter((id) => subscriptionState(byOrganization.get(id) ?? null, now) !== "expired");
+}

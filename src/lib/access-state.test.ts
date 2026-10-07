@@ -77,3 +77,11 @@ describe("pageKind", () => {
     expect(pageKind("/pozvanka")).toBe("other");
   });
 });
+
+describe("provoz Splatna", () => {
+  it("is never shown without login and 2FA", () => {
+    expect(routeFor("anonymous", "/provoz")).toEqual({ type: "redirect", to: "/login" });
+    expect(routeFor("mfa_pending", "/provoz")).toEqual({ type: "redirect", to: "/mfa" });
+    expect(routeFor("verified", "/provoz")).toEqual({ type: "show" });
+  });
+});

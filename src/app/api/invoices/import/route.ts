@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { subscriptionBlock } from "@/lib/billing-server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
+  const subscriptionBlocked = await subscriptionBlock(identity);
+  if (subscriptionBlocked) return subscriptionBlocked;
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění importovat faktury." }, { status: 403 });
 
   const organizationId = identity.membership.organization_id;

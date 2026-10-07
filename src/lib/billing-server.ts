@@ -128,6 +128,11 @@ export async function syncCardPayment(orderId: string) {
   return { state: payment.status === "CANCELLED" ? "cancelled" as const : "pending" as const };
 }
 
+/** Faktura e-mailem po zaplacení potvrzeném jinde (provozovatel). */
+export async function sendPaidInvoice(orderId: string) {
+  await sendBillingEmail(orderId, "invoice");
+}
+
 async function sendBillingEmail(orderId: string, kind: "request" | "invoice") {
   const supplier = supplierConfiguration();
   const apiKey = process.env.RESEND_API_KEY?.trim();
@@ -152,4 +157,27 @@ async function sendBillingEmail(orderId: string, kind: "request" | "invoice") {
   } catch (error) {
     logError("E-mail s dokladem za předplatné se nepodařilo odeslat", error, { order_id: orderId });
   }
+}
+
+/**
+ * Po skončení zkušební doby nebo předplatného nejde zakládat nové faktury.
+ * Při chybě čtení nebo neznámých datech se nic neblokuje (výpadek nesmí
+ * zastavit práci); vrací odpověď 402, nebo null.
+ */
+export async function subscriptionBlock(identity: RequestIdentity) {
+  try {
+    const { data, error } = await identity.service.from("subscriptions")
+      .select("status, trial_ends_at, current_period_end")
+      .eq("organization_id", identity.membership.organization_id)
+      .maybeSingle();
+    const row = data as SubscriptionRow | null;
+    if (error || !row || !["trial", "active", "cancelled"].includes(row.status)) return null;
+    if (subscriptionState(row) !== "expired") return null;
+  } catch {
+    return null;
+  }
+  return Response.json({
+    error: "Zkušební doba nebo předplatné skončilo. Nové faktury půjde přidávat po zakoupení tarifu (Nastavení → Předplatné).",
+    code: "subscription_required",
+  }, { status: 402 });
 }

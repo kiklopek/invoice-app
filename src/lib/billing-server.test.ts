@@ -80,3 +80,24 @@ describe("syncCardPayment", () => {
     expect(await syncCardPayment(order.id)).toEqual({ state: "pending" });
   });
 });
+
+describe("subscriptionBlock", () => {
+  const withRow = (row: unknown, error: unknown = null) => ({
+    membership: { organization_id: "org-1" },
+    service: { from: () => fakeChain({ data: row, error }) },
+  }) as never;
+
+  it("blocks new invoices only after the trial or plan has ended", async () => {
+    const { subscriptionBlock } = await import("./billing-server");
+    expect(await subscriptionBlock(withRow({ status: "trial", trial_ends_at: "2099-01-01T00:00:00Z", current_period_end: null }))).toBeNull();
+    const blocked = await subscriptionBlock(withRow({ status: "trial", trial_ends_at: "2020-01-01T00:00:00Z", current_period_end: null }));
+    expect(blocked?.status).toBe(402);
+  });
+
+  it("never blocks because of a read error or unknown data", async () => {
+    const { subscriptionBlock } = await import("./billing-server");
+    expect(await subscriptionBlock(withRow(null, { message: "down" }))).toBeNull();
+    expect(await subscriptionBlock(withRow({ status: "pending" }))).toBeNull();
+    expect(await subscriptionBlock(withRow(null))).toBeNull();
+  });
+});

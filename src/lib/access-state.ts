@@ -24,6 +24,7 @@ export type PageKind =
   | "invitation"
   | "mfa"
   | "onboarding"
+  | "operator"
   | "app"
   | "other";
 
@@ -47,6 +48,8 @@ export function pageKind(pathname: string): PageKind {
   if (/^\/pozvanka\/[^/]+$/.test(pathname)) return "invitation";
   if (pathname === "/mfa") return "mfa";
   if (pathname === "/onboarding") return "onboarding";
+  // Provoz Splatna: jen pro přihlášené s 2FA; kdo je provozovatel, rozhodne stránka.
+  if (pathname === "/provoz") return "operator";
   if (APP_SECTIONS.some((section) => within(pathname, section))) return "app";
   return "other";
 }
@@ -61,7 +64,7 @@ export function routeFor(state: AccessState, pathname: string, search = ""): Rou
 
   switch (state) {
     case "anonymous":
-      if (kind === "mfa" || kind === "onboarding") return redirect("/login");
+      if (kind === "mfa" || kind === "onboarding" || kind === "operator") return redirect("/login");
       if (kind === "app") return redirect(`/login?returnTo=${encodeURIComponent(`${pathname}${search}`)}`);
       return show;
 
@@ -73,7 +76,7 @@ export function routeFor(state: AccessState, pathname: string, search = ""): Rou
     case "mfa_pending":
       // Otevřený login je únik ze 2FA (přihlásit se jiným účtem).
       if (kind === "login") return { type: "show", signOut: true };
-      if (kind === "onboarding" || kind === "app") return redirect("/mfa");
+      if (kind === "onboarding" || kind === "app" || kind === "operator") return redirect("/mfa");
       return show;
 
     case "verified":

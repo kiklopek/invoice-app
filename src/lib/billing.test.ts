@@ -48,3 +48,24 @@ describe("supplierConfiguration", () => {
     expect(supplierConfiguration({ SPLATNO_SUPPLIER_NAME: "S", SPLATNO_SUPPLIER_ICO: "27082440", SPLATNO_SUPPLIER_ADDRESS: "A", SPLATNO_SUPPLIER_ACCOUNT: "19-2000145398/0800" })).toBeNull();
   });
 });
+
+describe("organizationsAllowedToSend", () => {
+  it("pauses reminder sending only for companies whose trial or plan has ended", async () => {
+    const { organizationsAllowedToSend } = await import("./billing");
+    const rows = [
+      { organization_id: "trial", status: "trial", trial_ends_at: "2026-10-20T00:00:00Z", current_period_end: null },
+      { organization_id: "expired", status: "trial", trial_ends_at: "2026-10-01T00:00:00Z", current_period_end: null },
+      { organization_id: "paid", status: "active", trial_ends_at: null, current_period_end: "2027-01-01T00:00:00Z" },
+    ];
+    expect(organizationsAllowedToSend(["trial", "expired", "paid", "legacy"], rows, now)).toEqual(["trial", "paid", "legacy"]);
+  });
+});
+
+describe("cron upomínek", () => {
+  it("claims reminder jobs only for companies allowed to send", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("src/app/api/cron/check-due/route.ts", "utf8");
+    expect(source).toContain("organizationsAllowedToSend(");
+    expect(source).toMatch(/claim_reminder_jobs", \{\s*target_organizations: sendingOrganizationIds,/);
+  });
+});

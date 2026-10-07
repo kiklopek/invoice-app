@@ -4,12 +4,16 @@ import { WorkspaceDataProvider } from "@/components/workspace-data-provider";
 import { redirect } from "next/navigation";
 import { getAuthenticatedSession, getCachedRequestIdentity } from "@/lib/auth";
 import { routeFor } from "@/lib/access-state";
+import { trialWarning } from "@/lib/billing";
+import { loadSubscription } from "@/lib/billing-server";
+import { SubscriptionBanner } from "@/components/subscription-banner";
 import { displayName } from "@/lib/user-display";
 import type { AccessProfile } from "@/lib/use-access-role";
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   let cacheKey = "anonymous";
   let initialProfile: AccessProfile | null = null;
+  let warning: ReturnType<typeof trialWarning> = null;
 
   const identity = await getCachedRequestIdentity();
   // Ověřený účet bez firmy je zakladatel před onboardingem (P12): aplikace
@@ -22,6 +26,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
     const { data: organization } = await identity.service.from("organizations").select("name, logo_path").eq("id", identity.membership.organization_id).single();
     cacheKey = `${identity.membership.organization_id}:${identity.user.id}`;
+    warning = trialWarning((await loadSubscription(identity.service, identity.membership.organization_id)).row);
     initialProfile = {
       role: identity.membership.role,
       name: displayName(identity.user.user_metadata.full_name, email),
@@ -36,7 +41,10 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   return (
     <WorkspaceDataProvider key={cacheKey}>
       <ToastProvider>
-        <AppShell initialProfile={initialProfile}>{children}</AppShell>
+        <AppShell initialProfile={initialProfile}>
+          <SubscriptionBanner warning={warning} canOrder={initialProfile?.role === "admin"} />
+          {children}
+        </AppShell>
       </ToastProvider>
     </WorkspaceDataProvider>
   );
