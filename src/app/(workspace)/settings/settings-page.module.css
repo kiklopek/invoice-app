@@ -1,0 +1,49 @@
+.page { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.page > :global(.section-header) { margin-bottom: 0; flex-wrap: wrap; gap: 16px; }
+.page > :global(.section-header) > div { min-width: 0; }
+.page > :global(.section-header) > button { flex: 0 1 auto; min-height: 44px; white-space: normal; }
+.page :global(.page-panel) { border-radius: 16px; min-width: 0; }
+.page :global(.company-settings) > header,
+.page :global(.members-settings) > header { padding: clamp(18px, 2.5vw, 28px); }
+.page :global(.company-settings) > header h2 { font-size: 20px; }
+.page :global(.company-settings) > header p,
+.page :global(.members-settings) > header p { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.page fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.formLayout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; padding: clamp(18px, 2.5vw, 28px); }
+.formLayout > :global(.settings-form) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px 16px; padding: 0; min-width: 0; }
+.formLayout > .identity { grid-row: span 2; border-right: 1px solid #e2e9e4; padding-right: 24px; }
+.formLayout h3 { grid-column: 1 / -1; margin: 0; font-size: 14px; line-height: 1.4; color: #284835; }
+.formLayout label { display: grid; align-content: start; gap: 7px; min-width: 0; }
+.formLayout label:global(.wide) { grid-column: 1 / -1; }
+.formLayout label > span { margin: 0; font-size: 12px; line-height: 1.5; }
+.formLayout input { width: 100%; min-width: 0; min-height: 44px; border-radius: 8px; background: #fff; font-size: 14px; }
+.page :global(.access-settings-grid) { grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); margin-top: 0; gap: 20px; }
+.page :global(.access-history-disclosure) { margin-top: 0; }
+.page :global(.members-list) article { grid-template-columns: auto minmax(0, 1fr) minmax(120px, 150px) auto; gap: 12px; padding: 18px 24px; }
+.page :global(.members-list) article > div { min-width: 0; }
+.page :global(.members-list) strong { overflow-wrap: anywhere; font-size: 12px; }
+.page :global(.members-list) small { font-size: 11px; line-height: 1.5; }
+.page :global(.members-list) select { min-width: 0; width: 100%; min-height: 44px; }
+.page :global(.members-list) button { min-height: 44px; white-space: normal; }
+.page :global(.member-add) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 150px); gap: 16px; padding: 24px; }
+.page :global(.member-add) > button { grid-column: 1 / -1; justify-self: start; min-height: 44px; white-space: normal; }
+.page :global(.member-add) label { min-width: 0; }
+.page :global(.member-add) input, .page :global(.member-add) select { width: 100%; min-width: 0; min-height: 44px; }
+@media (max-width: 1100px) {
+  .page :global(.access-settings-grid) { grid-template-columns: minmax(0, 1fr); }
+  .formLayout { grid-template-columns: minmax(0, 1fr); }
+  .formLayout > .identity { grid-row: auto; border-right: 0; padding-right: 0; }
+  .formLayout > :global(.settings-form) + :global(.settings-form) { border-top: 1px solid #e2e9e4; padding-top: 24px; }
+}
+@media (max-width: 600px) {
+  .page { gap: 18px; }
+  .page > :global(.section-header) > button { width: 100%; }
+  .formLayout > :global(.settings-form) { grid-template-columns: minmax(0, 1fr); }
+  .formLayout input, .page :global(.member-add) input, .page :global(.member-add) select { font-size: 16px; }
+  .page :global(.members-list) article { grid-template-columns: minmax(0, 1fr) auto; padding: 18px; }
+  .page :global(.members-list) article > div { grid-column: 1 / -1; grid-row: 2; }
+  .page :global(.members-list) article > select { grid-column: 1; }
+  .page :global(.members-list) article > button { grid-column: 2; }
+  .page :global(.member-add) { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+  .page :global(.member-add) > button { width: 100%; }
+}
