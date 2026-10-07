@@ -5,39 +5,7 @@ import { useState } from "react";
 import { ArrowRight, Check, Headset } from "./landing-icons";
 import styles from "./landing.module.css";
 
-const YEARLY_DISCOUNT = 0.2;
-
-const plans = [
-  {
-    name: "Start",
-    note: "Pro menší firmy, které začínají.",
-    monthly: 790,
-    features: ["Až 100 faktur měsíčně", "Základní funkce", "E-mailová podpora"],
-  },
-  {
-    name: "Profi",
-    note: "Pro rostoucí firmy.",
-    monthly: 1590,
-    featured: true,
-    features: [
-      "Až 500 faktur měsíčně",
-      "Automatické upomínky",
-      "Pokročilé reporty",
-      "Prioritní podpora",
-    ],
-  },
-  {
-    name: "Business",
-    note: "Pro větší firmy.",
-    monthly: 2990,
-    features: [
-      "Neomezený počet faktur",
-      "Všechny funkce",
-      "Individuální nastavení",
-      "Osobní podpora",
-    ],
-  },
-];
+import { PLANS, monthlyPrice } from "@/lib/plans";
 
 const czk = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 });
 
@@ -70,10 +38,8 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
       </div>
 
       <div className={styles.plans}>
-        {plans.map((plan) => {
-          const price = yearly
-            ? Math.round(plan.monthly * (1 - YEARLY_DISCOUNT))
-            : plan.monthly;
+        {PLANS.map((plan) => {
+          const price = monthlyPrice(plan.id, yearly ? "yearly" : "monthly");
           return (
             <article
               key={plan.name}
@@ -98,6 +64,12 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
               </ul>
               <Link href={trialHref} className={plan.featured ? styles.btnPrimary : styles.btnOutline}>
                 Vyzkoušet zdarma
+              </Link>
+              <Link
+                href={`/predplatne?tarif=${plan.id}&obdobi=${yearly ? "yearly" : "monthly"}`}
+                className={styles.planBuy}
+              >
+                Koupit {plan.name}
               </Link>
             </article>
           );
