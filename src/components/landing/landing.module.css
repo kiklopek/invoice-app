@@ -1625,45 +1625,12 @@
 @media (min-width: 3840px) { .page { zoom: 2.667; } .container { padding: 0 36px; } }
 
 /* =========================================================================
-   Pozadí „účetní papír“, jemné animace a hover efekty.
+   Jemné animace a hover efekty.
    Pohyb jen přes translate / rotate / scale a opacity (skládají se se
    stávajícím transform). Skrytí před zobrazením platí jen s
    html[data-motion] (nastaví LandingMotion), takže bez JavaScriptu a při
    „omezit pohyb“ je vše hned vidět.
    ========================================================================= */
-
-/* ---------- pozadí ---------- */
-.hero,
-.final,
-.page :global(#jak-to-funguje) {
-  position: relative;
-  isolation: isolate;
-}
-.hero::before,
-.final::before,
-.page :global(#jak-to-funguje)::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(31, 106, 74, 0.13) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(31, 106, 74, 0.1) 1px, transparent 1px);
-  background-size: 100% 32px, 128px 100%;
-  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 60% 35%, #000 35%, transparent 85%);
-  mask-image: radial-gradient(ellipse 90% 85% at 60% 35%, #000 35%, transparent 85%);
-}
-/* Za postupem jen náznak, ať text zůstane čistý. */
-.page :global(#jak-to-funguje)::before {
-  opacity: 0.8;
-  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 55%, #000 25%, transparent 85%);
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 55%, #000 25%, transparent 85%);
-}
-.final::before {
-  -webkit-mask-image: radial-gradient(ellipse 85% 100% at 70% 50%, #000 30%, transparent 90%);
-  mask-image: radial-gradient(ellipse 85% 100% at 70% 50%, #000 30%, transparent 90%);
-}
 
 /* ---------- hero: jednou při načtení (bez JavaScriptu) ---------- */
 @keyframes lpRise {
@@ -1959,19 +1926,78 @@
   }
 }
 
-/* ---------- pozadí: zelená mřížka „účetní papír“ ---------- */
-/* Jedna souvislá mřížka za celou landing page (sekce vlastní mřížku nemají,
-   jinak by se linky zdvojovaly). Řádky po 32 px, sloupce po 128 px, celé
-   lehce natočené o 5°, ať to nepůsobí strnule. */
-.hero::before,
-.final::before,
-.page :global(#jak-to-funguje)::before {
-  display: none;
+/* ---------- pozadí: jemné zelené vlny ---------- */
+/* Každá sekce má jinou vlnu (někde jen linka, někde jemný nádech, v závěru
+   sytě zelená), aby se pozadí po stránce neopakovalo. Vlny jsou SVG
+   roztažené na šířku sekce (linky drží tloušťku díky non-scaling-stroke),
+   leží pod obsahem a při zobrazení sekce se jemně vysunou. */
+.hero,
+.section,
+.final {
+  position: relative;
+  isolation: isolate;
 }
-.page {
-  background-image:
-    repeating-linear-gradient(175deg, rgba(31, 106, 74, 0.1) 0 1px, transparent 1px 32px),
-    repeating-linear-gradient(85deg, rgba(31, 106, 74, 0.075) 0 1px, transparent 1px 128px),
-    radial-gradient(900px 520px at 72% 8%, rgba(205, 231, 164, 0.18), transparent 70%),
-    radial-gradient(700px 500px at 0% 42%, rgba(227, 241, 231, 0.7), transparent 70%);
+.hero::before,
+.section::before,
+.final::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  transition: opacity 1.2s ease, translate 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hero::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23e3f1e7' stop-opacity='0'/%3E%3Cstop offset='0.5' stop-color='%23d4eadb' stop-opacity='0.75'/%3E%3Cstop offset='1' stop-color='%23b9dcc3' stop-opacity='0.9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23a)' d='M0 360V310C280 305 440 225 720 205S1160 130 1440 30V360Z'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.35' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M240 360C520 300 660 190 920 160S1270 70 1440 10'/%3E%3C/svg%3E");
+  background-size: 100% 360px;
+  background-position: bottom;
+}
+.hero + .section::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 200' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.22' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 150C300 60 540 190 840 115S1260 40 1440 95'/%3E%3C/svg%3E");
+  background-size: 100% 200px;
+  background-position: center 55%;
+}
+.page :global(#jak-to-funguje)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23d9ecdf' stop-opacity='0.95'/%3E%3Cstop offset='0.6' stop-color='%23e3f1e7' stop-opacity='0.55'/%3E%3Cstop offset='1' stop-color='%23e3f1e7' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23b)' d='M0 70C360 0 640 130 980 95S1320 25 1440 55V330C1100 400 820 290 500 335S120 400 0 365Z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+.page :global(#funkce)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 220' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.22' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 190C170 120 330 55 720 40'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.14' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 206C180 138 345 74 720 58'/%3E%3C/svg%3E");
+  background-size: min(720px, 60%) 220px;
+  background-position: left top;
+}
+.page :global(#pro-koho)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='-1' y2='0'%3E%3Cstop offset='0' stop-color='%23cde7a4' stop-opacity='0.5'/%3E%3Cstop offset='0.55' stop-color='%23cde7a4' stop-opacity='0.22'/%3E%3Cstop offset='1' stop-color='%23cde7a4' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23c)' transform='translate(1440 0) scale(-1 1)' d='M0 60C120 110 300 230 620 215S1080 360 1440 400H0Z'/%3E%3C/svg%3E");
+  background-size: 100% 80%;
+  background-position: bottom;
+}
+.page :global(#cenik)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='d' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23e3f1e7' stop-opacity='0.15'/%3E%3Cstop offset='0.5' stop-color='%23dcefe2' stop-opacity='0.75'/%3E%3Cstop offset='1' stop-color='%23e3f1e7' stop-opacity='0.2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23d)' d='M0 120C320 40 640 170 960 110S1320 50 1440 90V300C1150 360 900 260 560 320S160 370 0 310Z'/%3E%3C/svg%3E");
+  background-size: 100% 75%;
+  background-position: center 60%;
+}
+.final::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 260' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='e' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0.92'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='1'/%3E%3C/linearGradient%3E%3ClinearGradient id='f' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23b9dcc3' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23b9dcc3' stop-opacity='0.7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23f)' d='M360 260C700 245 900 120 1160 80S1400 0 1440 0V260Z'/%3E%3Cpath fill='url(%23e)' d='M620 260C860 250 1020 180 1200 120S1410 50 1440 45V260Z'/%3E%3Cpath fill='none' stroke='%23ffffff' stroke-opacity='0.7' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M520 260C800 235 980 130 1190 95S1400 25 1440 22'/%3E%3C/svg%3E");
+  background-size: 100% 46%;
+  background-position: bottom;
+}
+/* Vlny, které končí u spodní hrany sekce, se do ní ztratí (bez ostrého řezu). */
+.hero::before,
+.page :global(#pro-koho)::before {
+  -webkit-mask-image: linear-gradient(#000 45%, transparent 100%);
+  mask-image: linear-gradient(#000 45%, transparent 100%);
+}
+@media (max-width: 760px) {
+  .hero::before {
+    background-size: 100% 220px;
+  }
+  .final::before {
+    background-size: 100% 22%;
+  }
+}
+:global(html[data-motion]) .section:not(:has([data-shown]))::before,
+:global(html[data-motion]) .final:not(:has([data-shown]))::before {
+  opacity: 0;
+  translate: 0 24px;
 }
