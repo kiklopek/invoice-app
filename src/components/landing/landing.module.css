@@ -1928,10 +1928,13 @@
 
 /* ---------- pozadí: jemné zelené vlny ---------- */
 /* Tři typy vln jako na předloze (sytě zelená plocha, tenká linka, jemně
-   zelená plocha) střídané po sekcích: plné kompozice v úvodu, u funkcí a
-   v závěru, mezi nimi jen linka nebo nádech, aby to nebylo přehlcené, aby se pozadí po stránce neopakovalo. Vlny jsou SVG
-   roztažené na šířku sekce (linky drží tloušťku díky non-scaling-stroke),
-   leží pod obsahem a při zobrazení sekce se jemně vysunou. */
+   zelená plocha), všechny poloprůhledné s gradientem. Plné kompozice jsou
+   v úvodu, u funkcí (zrcadlově vlevo) a v závěru, mezi nimi jen linka nebo
+   nádech, aby to nebylo přehlcené.
+   Vrstva každé sekce přesahuje dolů do další sekce a nahoře i dole se
+   maskou ztrácí, takže žádná vlna nekončí ostrým řezem na hraně sekce.
+   Přesah jde jen dolů: další sekce se kreslí až po této, takže její obsah
+   zůstane nad vlnou. */
 .hero,
 .section,
 .final {
@@ -1943,54 +1946,64 @@
 .final::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 0 0 -180px 0;
   z-index: -1;
   pointer-events: none;
   background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(transparent, #000 90px, #000 calc(100% - 240px), transparent);
+  mask-image: linear-gradient(transparent, #000 90px, #000 calc(100% - 240px), transparent);
   transition: opacity 1.2s ease, translate 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .hero::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23d4eadb' stop-opacity='0'/%3E%3Cstop offset='0.45' stop-color='%23d4eadb' stop-opacity='0.7'/%3E%3Cstop offset='1' stop-color='%23b9dcc3' stop-opacity='0.9'/%3E%3C/linearGradient%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0.95'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23a)' d='M220 346C540 300 760 196 1010 152S1330 66 1440 24V318C1260 344 900 356 220 346Z'/%3E%3Cpath fill='url(%23b)' d='M1060 354C1230 344 1350 312 1440 270V330C1320 348 1190 357 1060 354Z'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.4' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M80 356C440 318 700 196 970 158S1310 74 1440 30'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='1' y2='0.6'%3E%3Cstop offset='0' stop-color='%23cfe7d7' stop-opacity='0'/%3E%3Cstop offset='0.5' stop-color='%23cfe7d7' stop-opacity='0.385'/%3E%3Cstop offset='1' stop-color='%23b4d9c0' stop-opacity='0.55'/%3E%3C/linearGradient%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='0.5'%3E%3Cstop offset='0' stop-color='%232c7a56' stop-opacity='0'/%3E%3Cstop offset='0.45' stop-color='%231f6a4a' stop-opacity='0.36'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='0.6'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.4'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.4'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23a)' d='M220 346C540 300 760 196 1010 152S1330 66 1440 24V318C1260 344 900 356 220 346Z'/%3E%3Cpath fill='url(%23b)' d='M900 352C1120 336 1300 286 1440 232V330C1300 350 1110 358 900 352Z'/%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M80 356C440 318 700 196 970 158S1310 74 1440 30'/%3E%3C/svg%3E");
   background-size: 100% 360px;
-  background-position: bottom;
+  background-position: center bottom 40px;
 }
 .hero + .section::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 200' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.24' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 150C300 60 540 190 840 115S1260 40 1440 95'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 200' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.26'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.26'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M0 150C300 60 540 190 840 115S1260 40 1440 95'/%3E%3C/svg%3E");
   background-size: 100% 200px;
-  background-position: center 55%;
+  background-position: center 45%;
 }
 .page :global(#jak-to-funguje)::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23d4eadb' stop-opacity='0.9'/%3E%3Cstop offset='0.6' stop-color='%23e3f1e7' stop-opacity='0.5'/%3E%3Cstop offset='1' stop-color='%23e3f1e7' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23c)' d='M0 70C360 0 640 130 980 95S1320 25 1440 55V330C1100 400 820 290 500 335S120 400 0 365Z'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.22' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 46C360 -22 640 108 980 72S1320 2 1440 32'/%3E%3C/svg%3E");
-  background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23cfe7d7' stop-opacity='0.55'/%3E%3Cstop offset='0.55' stop-color='%23dcefe2' stop-opacity='0.35'/%3E%3Cstop offset='1' stop-color='%23e3f1e7' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='v' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='0'/%3E%3Cstop offset='0.25' stop-color='%23000' stop-opacity='1'/%3E%3Cstop offset='0.75' stop-color='%23000' stop-opacity='1'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.22'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.22'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='1440' height='400' fill='url(%23v)'/%3E%3C/mask%3E%3C/defs%3E%3Cpath mask='url(%23m)' fill='url(%23c)' d='M0 70C360 0 640 130 980 95S1320 25 1440 55V330C1100 400 820 290 500 335S120 400 0 365Z'/%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M0 46C360 -22 640 108 980 72S1320 2 1440 32'/%3E%3C/svg%3E");
+  background-size: 100% calc(100% - 120px);
+  background-position: center 40px;
 }
 .page :global(#funkce)::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='d' x1='0' y1='0' x2='-1' y2='0'%3E%3Cstop offset='0' stop-color='%23d4eadb' stop-opacity='0'/%3E%3Cstop offset='0.5' stop-color='%23d4eadb' stop-opacity='0.6'/%3E%3Cstop offset='1' stop-color='%23b9dcc3' stop-opacity='0.85'/%3E%3C/linearGradient%3E%3ClinearGradient id='e' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0.95'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23d)' transform='translate(1440 0) scale(-1 1)' d='M620 352C900 330 1160 250 1440 130V330C1240 350 900 356 620 352Z'/%3E%3Cpath fill='url(%23e)' d='M0 290C150 302 300 328 470 354C300 358 140 357 0 352Z'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.3' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 100C250 128 500 232 900 356'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='d' x1='1' y1='0' x2='0' y2='0.6'%3E%3Cstop offset='0' stop-color='%23cfe7d7' stop-opacity='0'/%3E%3Cstop offset='0.5' stop-color='%23cfe7d7' stop-opacity='0.35'/%3E%3Cstop offset='1' stop-color='%23b4d9c0' stop-opacity='0.5'/%3E%3C/linearGradient%3E%3ClinearGradient id='e' x1='1' y1='0' x2='0' y2='0.5'%3E%3Cstop offset='0' stop-color='%232c7a56' stop-opacity='0'/%3E%3Cstop offset='0.45' stop-color='%231f6a4a' stop-opacity='0.36'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='0.6'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.3'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.3'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23d)' d='M820 352C540 330 280 250 0 130V330C200 350 540 356 820 352Z'/%3E%3Cpath fill='url(%23e)' d='M520 354C340 340 160 306 0 280V340C160 354 340 358 520 354Z'/%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M0 100C250 128 500 232 900 356'/%3E%3C/svg%3E");
   background-size: 100% 360px;
-  background-position: bottom;
+  background-position: center bottom 40px;
 }
 .page :global(#pro-koho)::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='f' x1='0' y1='0' x2='-1' y2='0'%3E%3Cstop offset='0' stop-color='%23cde7a4' stop-opacity='0.55'/%3E%3Cstop offset='0.6' stop-color='%23cde7a4' stop-opacity='0.2'/%3E%3Cstop offset='1' stop-color='%23cde7a4' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23f)' transform='translate(1440 0) scale(-1 1)' d='M0 30C160 110 360 220 700 290S1180 344 1440 350C1100 356 400 356 0 340Z'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.2' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M1440 12C1270 100 1060 220 720 282S240 340 0 352'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 360' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='f' x1='0' y1='0' x2='1' y2='0.4'%3E%3Cstop offset='0' stop-color='%23cde7a4' stop-opacity='0'/%3E%3Cstop offset='0.45' stop-color='%23cde7a4' stop-opacity='0.2'/%3E%3Cstop offset='1' stop-color='%23cde7a4' stop-opacity='0.5'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.22'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.22'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23f)' d='M1440 30C1280 110 1080 220 740 290S260 344 0 350C340 356 1040 356 1440 340Z'/%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M1440 12C1270 100 1060 220 720 282S240 340 0 352'/%3E%3C/svg%3E");
   background-size: 100% 360px;
-  background-position: bottom;
+  background-position: center bottom 40px;
 }
 .page :global(#cenik)::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.18' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 120C320 40 640 170 960 110S1320 50 1440 90'/%3E%3Cpath fill='none' stroke='%231f6a4a' stroke-opacity='0.13' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M0 300C300 360 620 250 980 300S1330 340 1440 310'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.2'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.2'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='k' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%231f6a4a' stop-opacity='0.14'/%3E%3Cstop offset='0.75' stop-color='%231f6a4a' stop-opacity='0.14'/%3E%3Cstop offset='1' stop-color='%231f6a4a' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M0 120C320 40 640 170 960 110S1320 50 1440 90'/%3E%3Cpath fill='none' stroke='url(%23k)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M0 300C300 360 620 250 980 300S1330 340 1440 310'/%3E%3C/svg%3E");
   background-size: 100% 400px;
-  background-position: center 60%;
+  background-position: center 50%;
+}
+/* Závěr: pás se nahoře i dole ztrácí do stránky, vlna do patičky. */
+.final {
+  background: linear-gradient(180deg, transparent, rgba(227, 241, 231, 0.75) 110px, rgba(227, 241, 231, 0.75) calc(100% - 110px), transparent);
 }
 .final::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 260' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f6a4a' stop-opacity='0.95'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='1'/%3E%3C/linearGradient%3E%3ClinearGradient id='h' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23b9dcc3' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23b9dcc3' stop-opacity='0.7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23h)' d='M360 260C700 245 900 120 1160 80S1400 0 1440 0V260Z'/%3E%3Cpath fill='url(%23g)' d='M620 260C860 250 1020 180 1200 120S1410 50 1440 45V260Z'/%3E%3Cpath fill='none' stroke='%23ffffff' stroke-opacity='0.7' stroke-width='1.2' vector-effect='non-scaling-stroke' d='M520 260C800 235 980 130 1190 95S1400 25 1440 22'/%3E%3C/svg%3E");
-  background-size: 100% 46%;
+  inset: 0 0 -110px 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 300' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='h' x1='0' y1='0' x2='1' y2='0.6'%3E%3Cstop offset='0' stop-color='%23cfe7d7' stop-opacity='0'/%3E%3Cstop offset='0.5' stop-color='%23cfe7d7' stop-opacity='0.42'/%3E%3Cstop offset='1' stop-color='%23b4d9c0' stop-opacity='0.6'/%3E%3C/linearGradient%3E%3ClinearGradient id='i' x1='0' y1='0' x2='1' y2='0.5'%3E%3Cstop offset='0' stop-color='%232c7a56' stop-opacity='0'/%3E%3Cstop offset='0.45' stop-color='%231f6a4a' stop-opacity='0.44999999999999996'/%3E%3Cstop offset='1' stop-color='%23193d2a' stop-opacity='0.75'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%23ffffff' stop-opacity='0.6'/%3E%3Cstop offset='0.75' stop-color='%23ffffff' stop-opacity='0.6'/%3E%3Cstop offset='1' stop-color='%23ffffff' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23h)' d='M300 296C660 280 880 150 1150 104S1400 22 1440 16V292C1100 300 700 300 300 296Z'/%3E%3Cpath fill='url(%23i)' d='M600 298C850 284 1020 206 1200 140S1410 70 1440 62V292C1200 300 900 300 600 298Z'/%3E%3Cpath fill='none' stroke='url(%23l)' stroke-width='1.3' vector-effect='non-scaling-stroke' d='M480 300C780 270 970 150 1185 112S1400 40 1440 36'/%3E%3C/svg%3E");
+  background-size: 100% 300px;
   background-position: bottom;
+  -webkit-mask-image: linear-gradient(transparent, #000 90px, #000 calc(100% - 150px), transparent);
+  mask-image: linear-gradient(transparent, #000 90px, #000 calc(100% - 150px), transparent);
 }
 @media (max-width: 760px) {
   .hero::before,
   .page :global(#funkce)::before,
   .page :global(#pro-koho)::before {
-    background-size: 100% 200px;
+    background-size: 100% 220px;
   }
   .final::before {
-    background-size: 100% 22%;
+    background-size: 100% 200px;
   }
 }
 :global(html[data-motion]) .section:not(:has([data-shown]))::before,
