@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
+import { ChevronDown } from "@/components/chevron-down";
 
 export function MobileDisclosure({
   label,
@@ -27,21 +28,7 @@ export function MobileDisclosure({
         onClick={() => setOpen((value) => !value)}
       >
         <span>{label}</span>
-        <svg
-          aria-hidden="true"
-          focusable="false"
-          className="mobile-disclosure-chevron"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown className="mobile-disclosure-chevron" />
       </button>
       <div id={contentId} className="mobile-disclosure-content">
         {children}

@@ -242,7 +242,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
             <aside className="panel activity-panel dashboard-attention-panel">
               <div className="panel-head">
                 <div>
-                  <span className="dashboard-panel-eyebrow">PRIORITY</span>
                   <h2>Vyžaduje pozornost</h2>
                   <p>Co je potřeba řešit jako první</p>
                 </div>

@@ -1,5 +1,7 @@
 import type { ReactNode, SVGProps } from "react";
 
+export { ChevronDown } from "@/components/chevron-down";
+
 // Marketingový znak podle brand boardu (stuha do tvaru S). Aplikace zatím
 // používá starší znak dokumentu v public/brand/ — landing page jde podle
 // schváleného směru z docs „Splatno – Marketingová část“.
@@ -48,11 +50,6 @@ export const ArrowRight = (p: IconProps) => (
 export const ChevronRight = (p: IconProps) => (
   <Icon {...p}>
     <path d="m9 6 6 6-6 6" />
-  </Icon>
-);
-export const ChevronDown = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="m6 9 6 6 6-6" />
   </Icon>
 );
 export const Check = (p: IconProps) => (
