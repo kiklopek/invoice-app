@@ -899,23 +899,23 @@
   z-index: -1;
   pointer-events: none;
   /* řádky po 32 px, každý pátý silnější, tečkované sloupce (jako landing) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='160'%3E%3Cg fill='%231f6a4a'%3E%3Crect width='128' height='1.5' fill-opacity='.2'/%3E%3Crect y='32' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='64' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='96' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='128' width='128' height='1' fill-opacity='.1'/%3E%3C/g%3E%3Cpath d='M.5 0v160' stroke='%231f6a4a' stroke-opacity='.18' stroke-dasharray='2 3'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='160'%3E%3Cg fill='%231f6a4a'%3E%3Crect width='128' height='1.5' fill-opacity='.11'/%3E%3Crect y='32' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='64' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='96' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='128' width='128' height='1' fill-opacity='.055'/%3E%3C/g%3E%3Cpath d='M.5 0v160' stroke='%231f6a4a' stroke-opacity='.09' stroke-dasharray='2 3'/%3E%3C/svg%3E");
   background-size: 128px 160px;
 }
-/* Kolem karty navíc dvojitá červená okrajová linka a zrno papíru. */
+/* Kolem karty navíc dvojitá zelená okrajová linka a zrno papíru. */
 .page::before {
   background-image:
     linear-gradient(90deg,
-      transparent 28px, rgba(194, 65, 58, 0.24) 28px 29px,
-      transparent 29px 32px, rgba(194, 65, 58, 0.24) 32px 33px, transparent 33px),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='160'%3E%3Cg fill='%231f6a4a'%3E%3Crect width='128' height='1.5' fill-opacity='.2'/%3E%3Crect y='32' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='64' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='96' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='128' width='128' height='1' fill-opacity='.1'/%3E%3C/g%3E%3Cpath d='M.5 0v160' stroke='%231f6a4a' stroke-opacity='.18' stroke-dasharray='2 3'/%3E%3C/svg%3E"),
+      transparent 28px, rgba(31, 106, 74, 0.12) 28px 29px,
+      transparent 29px 32px, rgba(31, 106, 74, 0.12) 32px 33px, transparent 33px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='160'%3E%3Cg fill='%231f6a4a'%3E%3Crect width='128' height='1.5' fill-opacity='.11'/%3E%3Crect y='32' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='64' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='96' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='128' width='128' height='1' fill-opacity='.055'/%3E%3C/g%3E%3Cpath d='M.5 0v160' stroke='%231f6a4a' stroke-opacity='.09' stroke-dasharray='2 3'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .2 0 0 0 0 .14 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 100% 100%, 128px 160px, 180px 180px;
   background-repeat: no-repeat, repeat, repeat;
 }
 @media (max-width: 640px) {
   .page::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='160'%3E%3Cg fill='%231f6a4a'%3E%3Crect width='128' height='1.5' fill-opacity='.2'/%3E%3Crect y='32' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='64' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='96' width='128' height='1' fill-opacity='.1'/%3E%3Crect y='128' width='128' height='1' fill-opacity='.1'/%3E%3C/g%3E%3Cpath d='M.5 0v160' stroke='%231f6a4a' stroke-opacity='.18' stroke-dasharray='2 3'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .2 0 0 0 0 .14 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='160'%3E%3Cg fill='%231f6a4a'%3E%3Crect width='128' height='1.5' fill-opacity='.11'/%3E%3Crect y='32' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='64' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='96' width='128' height='1' fill-opacity='.055'/%3E%3Crect y='128' width='128' height='1' fill-opacity='.055'/%3E%3C/g%3E%3Cpath d='M.5 0v160' stroke='%231f6a4a' stroke-opacity='.09' stroke-dasharray='2 3'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .2 0 0 0 0 .14 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 128px 160px, 180px 180px;
     background-repeat: repeat, repeat;
   }
