@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
     }
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.replace(withEntry("/forgot-password", currentEntryLoginPath() === "/hlavica" ? "hlavica" : "splatno"));
+      if (!data.user) router.replace(withEntry("/forgot-password", new URLSearchParams(window.location.search).get("vstup") === "hlavica" ? "hlavica" : "splatno"));
       else setChecking(false);
     });
   }, [router]);

@@ -2,27 +2,21 @@
 
 import { useEffect, useState } from "react";
 
-// Odkud se člověk přihlásil: obecné /login, nebo vstup R. Hlavica /hlavica.
-// Po odhlášení se vrátí tam, odkud přišel (P10). Je to jen pohodlí pro
-// vzhled, ne bezpečnost -- proto stačí úložiště prohlížeče.
+// Přihlášení všech firem je na jedné adrese splatno.cz/login: firmu určuje
+// účet, ne adresa. /hlavica zůstává jen jako starší adresa s logem R. Hlavica
+// (staré záložky), aplikace na ni sama nikoho neposílá.
 
-export type LoginEntry = "/login" | "/hlavica";
-const KEY = "splatno:login-entry";
+export const LOGIN_PATH = "/login";
+const LEGACY_ENTRY_KEY = "splatno:login-entry";
 
-export function rememberLoginEntry(entry: LoginEntry) {
+/** Kam po odhlášení. Smaže i dřívější zapamatovaný vstup /hlavica. */
+export function loginEntryPath() {
   try {
-    window.localStorage.setItem(KEY, entry);
+    if (typeof window !== "undefined") window.localStorage.removeItem(LEGACY_ENTRY_KEY);
   } catch {
-    // Bez úložiště se po odhlášení ukáže obecné přihlášení.
+    // Bez úložiště není co mazat.
   }
-}
-
-export function loginEntryPath(): LoginEntry {
-  try {
-    return window.localStorage.getItem(KEY) === "/hlavica" ? "/hlavica" : "/login";
-  } catch {
-    return "/login";
-  }
+  return LOGIN_PATH;
 }
 
 export type EntryBrand = "splatno" | "hlavica";
@@ -44,9 +38,9 @@ export function useEntryBrand(): EntryBrand {
   return brand;
 }
 
-/** Přihlašovací stránka vstupu z aktuální adresy (pro přesměrování v handlerech). */
-export function currentEntryLoginPath(): LoginEntry {
-  return new URLSearchParams(window.location.search).get("vstup") === "hlavica" ? "/hlavica" : "/login";
+/** Přihlašovací stránka pro přesměrování v handlerech (2FA, nové heslo). */
+export function currentEntryLoginPath() {
+  return LOGIN_PATH;
 }
 
 /** Odkaz, který si nese vstup R. Hlavica dál (obecný vstup nic nepřidává). */

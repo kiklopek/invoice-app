@@ -7,7 +7,7 @@ import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
 import { HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { rememberLoginEntry, withEntry } from "@/lib/login-entry";
+import { withEntry } from "@/lib/login-entry";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
@@ -121,7 +121,6 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     const returnTo = access.needsOnboarding
       ? "/onboarding"
       : safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
-    rememberLoginEntry(brand === "hlavica" ? "/hlavica" : "/login");
     // Pri MFA se cil nese dal, aby se neztratil behem overeni.
     window.location.assign(
       access.mfaBypassed ? returnTo : withEntry(`/mfa?returnTo=${encodeURIComponent(returnTo)}`, brand),

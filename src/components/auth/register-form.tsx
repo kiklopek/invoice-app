@@ -6,7 +6,7 @@ import { useState } from "react";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
 import { emailMatchesDomain, HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { rememberLoginEntry, withEntry } from "@/lib/login-entry";
+import { withEntry } from "@/lib/login-entry";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
@@ -67,7 +67,6 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       setSubmitting(false);
       return;
     }
-    rememberLoginEntry(hlavica ? "/hlavica" : "/login");
     const registrationKind: RegistrationKind = access.kind === "invited" ? "invited" : "founder";
     setKind(registrationKind);
 
@@ -183,7 +182,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
           </button>
         </form>
       )}
-      <p className={styles.foot}>Už účet máte?<Link href={hlavica ? HLAVICA_ENTRY.path : "/login"}>Přihlásit se</Link></p>
+      <p className={styles.foot}>Už účet máte?<Link href="/login">Přihlásit se</Link></p>
     </AuthShell>
   );
 }

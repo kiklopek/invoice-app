@@ -6,7 +6,6 @@ import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
 import { ArrowRight, Mail } from "@/components/landing/landing-icons";
 import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { useEntryBrand } from "@/lib/login-entry";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 
 export default function ForgotPasswordPage() {
   const brand = useEntryBrand();
@@ -73,7 +72,7 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
       )}
-      <p className={styles.foot}>Heslo si pamatujete?<Link href={brand === "hlavica" ? HLAVICA_ENTRY.path : "/login"}>Zpět na přihlášení</Link></p>
+      <p className={styles.foot}>Heslo si pamatujete?<Link href="/login">Zpět na přihlášení</Link></p>
     </AuthShell>
   );
 }

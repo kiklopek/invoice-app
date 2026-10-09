@@ -1,7 +1,8 @@
 # Splatno pro více firem: jak to funguje a co nastavit
 
 Tento dokument popisuje provoz větve, která otevírá Splatno pro všechny firmy.
-R. Hlavica přitom dál používá vlastní vstup `splatno.cz/hlavica`.
+Všechny firmy se přihlašují přes `splatno.cz/login`; firmu určuje účet, ne
+adresa. `splatno.cz/hlavica` zůstává jen jako starší adresa s logem R. Hlavica.
 
 ## 1. Procesy v kostce
 
@@ -10,8 +11,8 @@ R. Hlavica přitom dál používá vlastní vstup `splatno.cz/hlavica`.
 | **Založení firmy** | `/register` (Založit firemní účet) → potvrzovací e-mail → `/auth/callback` → `/mfa` (kód z e-mailu) → `/onboarding` (IČO z ARES, kontakt, bankovní účet, upomínky, logo, tým, shrnutí) → firma vznikne naráz → tarif a karta (Stripe, 14 dní zdarma) → `/dashboard` |
 | **Pozvání do firmy** | Admin: Nastavení → Tým → e-mail a role → potvrzení → e-mail s odkazem `splatno.cz/pozvanka/<token>` (platí 7 dní, jen jednou) |
 | **Přijetí pozvánky** | Odkaz → jméno a heslo (e-mail je daný pozvánkou) → člen firmy s rolí z pozvánky → `/dashboard`. Odkaz se počítá jako 2FA pro tuto první relaci. |
-| **Běžné přihlášení** | `/login` (obecný vzhled) nebo `/hlavica` (s logem R. Hlavica) → heslo → kód z e-mailu → aplikace |
-| **R. Hlavica** | vlastní vstup jako dosud: `/hlavica` a `/hlavica/registrace` (jen pozvaný @hlavica.cz). Přidání člověka v Nastavení → Tým e-mail neposílá, pozvánka e-mailem jen tlačítkem. 2FA i zapomenuté heslo z tohoto vstupu mají jejich logo (`?vstup=hlavica`). |
+| **Běžné přihlášení** | `/login` pro všechny firmy → heslo → kód z e-mailu → aplikace. Po odhlášení i po změně hesla se jde vždy na `/login`. |
+| **R. Hlavica** | přihlášení přes `/login`; `/hlavica` dál funguje kvůli starým záložkám, aplikace na ni nikoho neposílá. Registrace `/hlavica/registrace` (jen pozvaný @hlavica.cz). Přidání člověka v Nastavení → Tým e-mail neposílá, pozvánka e-mailem jen tlačítkem. 2FA i zapomenuté heslo z tohoto vstupu mají jejich logo (`?vstup=hlavica`). |
 
 Obecný vstup (`/login`, `/register`, zapomenuté heslo) s R. Hlavica nijak
 nesouvisí. Nemá jejich logo ani odkazy. Obecná registrace e-mail @hlavica.cz
