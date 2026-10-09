@@ -619,14 +619,14 @@
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(31, 106, 74, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(31, 106, 74, 0.075) 1px, transparent 1px);
+    linear-gradient(rgba(31, 106, 74, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 106, 74, 0.1) 1px, transparent 1px);
   background-size: 100% 32px, 128px 100%;
 }
 /* Kolem karty: mřížka v rozích, ke středu se ztrácí. */
 .page::before {
-  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 100% 0, #000 20%, transparent 80%), radial-gradient(ellipse 75% 70% at 0 100%, #000 20%, transparent 80%);
-  mask-image: radial-gradient(ellipse 85% 75% at 100% 0, #000 20%, transparent 80%), radial-gradient(ellipse 75% 70% at 0 100%, #000 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 110% at 50% 50%, #000 40%, transparent 95%);
+  mask-image: radial-gradient(ellipse 120% 110% at 50% 50%, #000 40%, transparent 95%);
 }
 /* V panelu s maskotem (na telefonu pruh nahoře) jemně za ním. */
 .artSide {
