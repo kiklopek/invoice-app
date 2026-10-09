@@ -63,7 +63,7 @@
 .container {
   width: 100%;
   margin: 0 auto;
-  padding: 0 clamp(16px, 4.5vw, 120px);
+  padding: 0 clamp(16px, 4.5vw, 48px);
 }
 
 .muted {
@@ -1596,33 +1596,6 @@
   text-align: center;
 }
 
-/* ---------- široké monitory ---------- */
-/* Rozvržení se roztahuje do šířky; aby obsah nepůsobil řídce, roste od
-   1600 px i písmo a mezery (rem se v landing page nepoužívá, proto px). */
-@media (min-width: 1600px) {
-  .page {
-    font-size: 17px;
-  }
-  .h1 {
-    font-size: clamp(66px, 4.4vw, 104px);
-  }
-  .h2 {
-    font-size: clamp(40px, 2.6vw, 64px);
-  }
-  .h2Sm {
-    font-size: clamp(28px, 1.8vw, 40px);
-  }
-  .lead {
-    max-width: 680px;
-    font-size: clamp(17px, 1.05vw, 22px);
-  }
-  .section {
-    padding-block: clamp(96px, 6vw, 160px);
-  }
-  .step > p {
-    max-width: 420px;
-  }
-}
 
 /* Při roztažení přes celou šířku už vedle obsahu není volný pruh, do
    kterého by náhled aplikace a maskot mohly přesahovat: maskot se vejde
@@ -1630,13 +1603,48 @@
 @media (min-width: 1081px) {
   .heroVisual {
     margin-right: 0;
-    padding-right: clamp(48px, 4vw, 96px);
+    padding-right: 56px;
   }
   .heroMascot {
     right: -12px;
-    width: clamp(220px, 13vw, 320px);
+    width: 220px;
   }
   .heroHand {
-    right: clamp(200px, 13vw, 330px);
+    right: 200px;
   }
 }
+
+/* ---------- poměr na širokých monitorech ---------- */
+/* Od 1440 px se stránka zvětšuje celá a rovnoměrně (CSS zoom), takže
+   text, karty, tlačítka i ilustrace drží stejný poměr vůči šířce okna jako
+   na 1440 px: na 4K monitoru nic nevypadá malé ani ztracené. Zoom jde po
+   krocích dolů zaokrouhlených, takže rozvržení má vždy aspoň 1440 px a
+   jen se roztáhne do zbylé šířky -- nic nepřetéká.
+   Uvnitř zvětšené stránky se nesmí používat vw: násobilo by se zoomem.
+   Okraje po stranách se naopak nezvětšují: u každého kroku jsou přepočtené
+   tak, aby na obrazovce vyšly zhruba 96 px. */
+@media (min-width: 1081px) {
+  .container {
+    padding: 0 80px;
+  }
+}
+@media (min-width: 1440px) {
+  .container {
+    padding: 0 96px;
+  }
+}
+@media (min-width: 1600px) { .page { zoom: 1.111; } .container { padding: 0 86px; } }
+@media (min-width: 1760px) { .page { zoom: 1.222; } .container { padding: 0 79px; } }
+@media (min-width: 1920px) { .page { zoom: 1.333; } .container { padding: 0 72px; } }
+@media (min-width: 2080px) { .page { zoom: 1.444; } .container { padding: 0 66px; } }
+@media (min-width: 2240px) { .page { zoom: 1.556; } .container { padding: 0 62px; } }
+@media (min-width: 2400px) { .page { zoom: 1.667; } .container { padding: 0 58px; } }
+@media (min-width: 2560px) { .page { zoom: 1.778; } .container { padding: 0 54px; } }
+@media (min-width: 2720px) { .page { zoom: 1.889; } .container { padding: 0 51px; } }
+@media (min-width: 2880px) { .page { zoom: 2.000; } .container { padding: 0 48px; } }
+@media (min-width: 3040px) { .page { zoom: 2.111; } .container { padding: 0 45px; } }
+@media (min-width: 3200px) { .page { zoom: 2.222; } .container { padding: 0 43px; } }
+@media (min-width: 3360px) { .page { zoom: 2.333; } .container { padding: 0 41px; } }
+@media (min-width: 3520px) { .page { zoom: 2.444; } .container { padding: 0 39px; } }
+@media (min-width: 3680px) { .page { zoom: 2.556; } .container { padding: 0 38px; } }
+@media (min-width: 3840px) { .page { zoom: 2.667; } .container { padding: 0 36px; } }
