@@ -423,10 +423,19 @@
   .artSide {
     display: none;
   }
-  /* Logo i formulář společně na střed výšky obrazovky. */
+  /* Formulář na střed výšky obrazovky, logo se zpětnou šipkou uprostřed
+     mezi horním okrajem a nadpisem. Spodní řádek je dvojnásobný (+ výška
+     loga v paddingu), aby formulář zůstal opravdu uprostřed. */
   .formSide {
-    justify-content: center;
-    padding: calc(env(safe-area-inset-top, 0px) + 22px) 20px 36px;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto minmax(16px, 1fr) auto minmax(0, 2fr);
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 20px 60px;
+  }
+  .formSide > .brandRow {
+    grid-row: 2;
+  }
+  .formSide > .body {
+    grid-row: 4;
   }
   .brandRow .splatno {
     font-size: 23px;
@@ -436,7 +445,7 @@
   }
   .body {
     margin: 0 auto;
-    padding-top: 22px;
+    padding-top: 0;
   }
   /* Na tabletu logo nad formulářem ve stejné šířce, celé na střed. */
   .brandRow {
@@ -533,10 +542,10 @@
 }
 @media (max-width: 480px) {
   .formSide {
-    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 60px);
   }
   .body {
-    padding-top: 14px;
+    padding-top: 0;
   }
   .form {
     margin-top: 22px;
