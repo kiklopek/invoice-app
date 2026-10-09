@@ -988,35 +988,10 @@ html:has(.invoice-import-workspace.is-split), body:has(.invoice-import-workspace
 .reminder-monitor-grid, .reminders-layout { gap: 16px; }
 .reminders-layout { margin-bottom: 22px; }
 
-/* Upomínky — stejné výrazné objekty jako dashboard a bankovní platby. */
-.reminders-hero {
-  position: relative;
-  min-height: 210px;
-  align-items: center;
-  overflow: hidden;
-  padding: 28px 30px;
-  border: 1px solid rgba(39,82,57,.12);
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at 82% 15%, rgba(220,235,189,.72), transparent 30%),
-    linear-gradient(135deg,#fbfcf9 0%,#edf4ee 100%);
-}
-.reminders-hero::after {
-  content: "";
-  position: absolute;
-  right: -72px;
-  bottom: -132px;
-  width: 290px;
-  height: 290px;
-  border: 42px solid rgba(35,96,68,.055);
-  border-radius: 50%;
-  pointer-events: none;
-}
-.reminders-hero-copy,
-.reminders-hero-side { position: relative; z-index: 1; }
+/* Upomínky: záhlaví stejné jako u ostatních stránek (Reporty, Archiv),
+   bez karty; vpravo jen stav automatu a ruční kontrola. */
+.reminders-hero { align-items: center; }
 .reminders-hero-copy { max-width: 650px; }
-.reminders-hero h1 { font-size: clamp(31px,3vw,43px); }
-.reminders-hero .reminders-hero-copy > span { max-width: 600px; margin-top: 10px; font-size: 13px; line-height: 1.6; }
 .reminders-hero-side { min-width: 230px; align-items: flex-end; justify-content: center; flex-direction: column; }
 .reminders-hero-status {
   display: inline-flex;
@@ -1094,9 +1069,7 @@ html:has(.invoice-import-workspace.is-split), body:has(.invoice-import-workspace
 }
 
 @media screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) {
-  .section-header.reminders-hero { min-height: 0; align-items: flex-start; padding: 22px 20px; }
-  .reminders-hero h1 { font-size: 29px; }
-  .reminders-hero .reminders-hero-copy > span { font-size: 12px; }
+  .section-header.reminders-hero { align-items: flex-start; }
   .reminders-hero-side { display: grid; grid-template-columns: minmax(0,1fr) auto; width: 100%; min-width: 0; align-items: center; }
   .reminders-hero-status { justify-content: center; white-space: normal; }
   .reminders-hero-run { min-width: 0; }
@@ -3123,33 +3096,8 @@ th,
 
 /* Zákazníci */
 .customers-page { --customers-accent: #2d6b4a; --muted: #536359; }
-.customers-hero {
-  position: relative;
-  min-height: 164px;
-  align-items: center;
-  overflow: hidden;
-  padding: 28px 30px;
-  border: 1px solid rgba(39, 82, 57, .12);
-  border-radius: 20px;
-  background: linear-gradient(135deg, #fbfcf9 0%, #edf4ee 100%);
-  box-shadow: 0 10px 28px rgba(37, 64, 47, .065);
-}
-.customers-hero::after {
-  content: "";
-  position: absolute;
-  right: 7%;
-  bottom: -100px;
-  width: 210px;
-  height: 210px;
-  border: 34px solid rgba(35, 96, 68, .05);
-  border-radius: 50%;
-  pointer-events: none;
-}
-.customers-hero-copy,
-.customers-hero .section-actions { position: relative; z-index: 1; }
-.customers-hero-copy p { margin-bottom: 6px; color: var(--green); font-weight: 800; }
-.customers-hero-copy > span { display: block; margin-top: 8px; }
-.customers-hero .btn { min-height: 42px; box-shadow: 0 4px 12px rgba(37, 64, 47, .06); }
+/* Záhlaví stejné jako u ostatních stránek (Reporty, Archiv), bez karty. */
+.customers-hero { align-items: center; }
 
 .customers-toolbar {
   display: grid;
@@ -3295,8 +3243,7 @@ th,
 /* 780, ne 760: širší tabulku zákazníků zapíná blok s max-width 780px
    (min-width: 940px), takže na 761 až 780 px se jinak vždy posouvá do stran. */
 @media screen and (max-width: 780px) {
-  .customers-hero { min-height: 0; align-items: flex-start; padding: 22px 20px; }
-  .customers-hero::after { right: -60px; bottom: -115px; }
+  .customers-hero { align-items: flex-start; }
   .customers-hero .section-actions { width: 100%; }
   .customers-hero .section-actions .btn { width: 100%; }
   .customers-toolbar { grid-template-columns: 1fr; gap: 10px; }
@@ -3333,7 +3280,6 @@ th,
 }
 
 @media screen and (max-width: 520px) {
-  .customers-hero h1 { font-size: 29px; }
   .customers-list-table tr { grid-template-columns: 1fr; }
   .customers-list-table .customer-identity-cell { grid-column: 1; }
   .customer-phone-edit input { width: min(190px, calc(100vw - 150px)); }
@@ -3419,6 +3365,8 @@ th,
 .payments-switch-archive .payments-switch-icon { color: #dcebbd; }
 .payments-switch-upload .payments-switch-icon { color: #e6f2ea; }
 .payments-committed-note { margin-top: 14px; }
+.payments-archive-header { align-items: flex-start; flex-wrap: wrap; width: 100%; margin-inline: 0; }
+.payments-archive-actions { width: min(100%, 380px); flex-shrink: 0; }
 .payments-archive-page .payments-history,
 .payments-archive-page .import-archive { width: 100%; max-width: none; }
 .payments-archive-page .payment-history-table { max-height: none; overflow-y: visible; overscroll-behavior-y: auto; }

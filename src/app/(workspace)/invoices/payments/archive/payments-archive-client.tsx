@@ -263,13 +263,13 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
 
   return (
     <AppFrame className="content section-page payments-page payments-archive-page">
-      <header className="section-header payments-hero">
-        <div className="payments-hero-copy">
+      <header className="section-header payments-archive-header">
+        <div>
           <p>BANKOVNÍ PÁROVÁNÍ</p>
           <h1>Platby a archiv</h1>
           <span>Zkontrolujte zaúčtované platby, dopárujte nejasné úhrady a stáhněte si uložené bankovní výpisy.</span>
         </div>
-        <div className="payments-hero-side">
+        <div className="payments-archive-actions">
           <Link href="/invoices/payments" className="payments-switch payments-switch-upload">
             <span className="payments-switch-icon"><Icon name="bank" /></span>
             <span className="payments-switch-copy">
@@ -284,19 +284,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
       {message && <p className="form-error">{message}</p>}
       {notice && <p className="form-success">{notice}</p>}
 
-      <section className="page-panel data-panel payments-history" id="historie-plateb">
-        <header className="panel-head">
-          <span className="payments-section-number">01</span>
-          <div className="payments-section-heading">
-            <small>HISTORIE A RUČNÍ KONTROLA</small>
-            <h2>Poslední importované platby</h2>
-            <p>
-              U nejasné platby vyberte fakturu ručně. Nabízejí se otevřené
-              faktury se stejnou měnou a dostatečným zůstatkem.
-            </p>
-          </div>
-          <span className="payments-record-count">{filteredHistory.length} {filteredHistory.length === history.length ? "" : `z ${history.length} `}{filteredHistory.length === 1 ? "platba" : filteredHistory.length > 1 && filteredHistory.length < 5 ? "platby" : "plateb"}</span>
-        </header>
+      <section className="page-panel data-panel payments-history" id="historie-plateb" aria-label="Importované platby">
         <div className="filter-row payments-history-toolbar">
           <label className="grow">
             <span>Hledat</span>

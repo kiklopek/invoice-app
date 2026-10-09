@@ -13,7 +13,6 @@ import {
   Home,
   Layers,
   Mail,
-  Play,
   RibbonMark,
   Shield,
   Users,
@@ -21,6 +20,7 @@ import {
   Zap,
 } from "./landing-icons";
 import { LandingMotion } from "./landing-motion";
+import { LandingVideo } from "./landing-video";
 import { Pricing } from "./pricing";
 import styles from "./landing.module.css";
 
@@ -319,15 +319,7 @@ export function LandingPage() {
                 <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
                   Vyzkoušet zdarma <ArrowRight />
                 </Link>
-                <a href="#jak-to-funguje" className={styles.playLink}>
-                  <span className={styles.playIcon}>
-                    <Play />
-                  </span>
-                  <span>
-                    <strong>Podívat se, jak to funguje</strong>
-                    <small>(2 min)</small>
-                  </span>
-                </a>
+                <LandingVideo />
               </div>
               <ul className={styles.trust}>
                 <li>

@@ -48,6 +48,79 @@
   box-shadow: 0 0 0 3px #fff !important;
 }
 
+/* × u pravého horního rohu Eska: schová ho do jazýčku u okraje. Vlevo
+   od Eska se ukazuje uvítací bublina, proto ne tam. Viditelný kroužek
+   má 24 px, dotyková plocha (::before) 44 px -- proto tu min-* přebíjí
+   obecné pravidlo 44 px pro tlačítka na dotykových zařízeních. */
+.minimize {
+  position: fixed;
+  right: 14px;
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  z-index: 61;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  padding: 0;
+  border: 1px solid #d5ddd7;
+  border-radius: 50%;
+  background: #fff;
+  color: #4d5a52;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 10px -4px rgba(19, 35, 27, 0.4) !important;
+}
+.minimize::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+.minimize:hover {
+  background: #f2f5f2;
+  color: #13231b;
+}
+
+/* Schovaný Esko: jazýček u pravého okraje s hlavou maskota. */
+.edgeTab {
+  position: fixed;
+  right: 0;
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: block;
+  width: 40px;
+  height: 52px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 14px 0 0 14px;
+  background: #16563a;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -8px rgba(18, 71, 47, 0.6) !important;
+  transition: width 0.15s ease;
+}
+.edgeTab:hover {
+  width: 46px;
+}
+.edgeTabImage {
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  width: 40px;
+  height: 50px;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 0;
+}
+.minimize:focus-visible,
+.edgeTab:focus-visible {
+  outline: 2px solid #4b8a68;
+  outline-offset: 2px;
+}
+
 .teaser {
   position: fixed;
   right: 98px;
@@ -284,6 +357,13 @@
 }
 
 @media (max-width: 560px) {
+  .minimize {
+    right: 8px;
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  }
+  .edgeTab {
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  }
   .fab {
     --mascot-size: 56px;
     right: 16px;
@@ -302,6 +382,8 @@
 }
 
 @media print {
+  .minimize,
+  .edgeTab,
   .fab,
   .teaser,
   .panel {
@@ -313,13 +395,16 @@
   .panel {
     animation: none;
   }
-  .fab {
+  .fab,
+  .edgeTab {
     transition: none;
   }
 }
 
 /* Otevřené mobilní menu (app-shell dává body třídu mobile-navigation-lock):
    Esko by ho překrýval. Po zavření menu se vrátí ve stavu, v jakém byl. */
+:global(body.mobile-navigation-lock) .minimize,
+:global(body.mobile-navigation-lock) .edgeTab,
 :global(body.mobile-navigation-lock) .fab,
 :global(body.mobile-navigation-lock) .teaser,
 :global(body.mobile-navigation-lock) .panel {

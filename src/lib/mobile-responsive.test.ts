@@ -187,8 +187,12 @@ describe("mobile application layout", () => {
     expect(remindersPage.match(/<details[^>]*\sopen(?:=|\s|>)/g)).toHaveLength(1);
     expect(css).toContain(".reminder-section-disclosure > summary:focus-visible");
     expect(css).toContain(".reminder-operations.reminder-quick-stats");
-    expect(css).toContain(".reminders-hero::after");
+    // Záhlaví Upomínek a Zákazníků je stejné jako u Reportů a Archivu:
+    // bez karty s přechodem a dekorativním kruhem.
+    expect(css).not.toContain(".reminders-hero::after");
+    expect(css).not.toContain(".customers-hero::after");
     expect(css).not.toContain(".reminders-hero::before");
+    expect(css).not.toMatch(/\.(reminders|customers)-hero \{[^}]*border-radius/);
     expect(css).not.toContain(".reminders-process-card::after");
     expect(css).toContain("grid-template-columns: 1fr");
   });

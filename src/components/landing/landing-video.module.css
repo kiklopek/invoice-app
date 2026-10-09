@@ -1,0 +1,55 @@
+.trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dialog:global(.modal) {
+  width: min(960px, calc(100vw - 32px)) !important;
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.dialog:global(.modal) > header {
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.dialog .title {
+  margin: 0;
+  color: #17251d;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 130px);
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #09140e;
+}
+
+.error {
+  padding: 16px 20px;
+  color: #a7473e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.error a {
+  color: inherit;
+  text-decoration: underline;
+}

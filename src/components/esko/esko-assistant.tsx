@@ -16,6 +16,7 @@ type Message =
   | { from: "esko"; answer: EskoAnswer };
 
 const TEASER_KEY = "splatno:esko-teaser-dismissed";
+const MINIMIZED_KEY = "splatno:esko-minimized";
 type Pending = { kind: "question"; id: EskoQuestionId } | { kind: "invoice_search" | "customer_debt"; query: string };
 type SearchResult = { invoices: Invoice[]; total: number; open_totals: Record<string, number> };
 
@@ -25,20 +26,49 @@ export function EskoAssistant() {
   const profile = useAccessProfile();
   const [open, setOpen] = useState(false);
   const [teaser, setTeaser] = useState(false);
+  // null = ještě nevíme (čte se z úložiště); do té doby se Esko nevykreslí,
+  // aby schovaný Esko po načtení stránky neproblikl.
+  const [minimized, setMinimized] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const tabRef = useRef<HTMLButtonElement>(null);
+  const focusAfterToggle = useRef(false);
   const { data, error } = useSWR<DashboardData>(open ? "/api/dashboard" : null);
 
   useEffect(() => {
     try {
       setTeaser(!window.localStorage.getItem(TEASER_KEY));
+      setMinimized(window.localStorage.getItem(MINIMIZED_KEY) === "1");
     } catch {
       setTeaser(false);
+      setMinimized(false);
     }
   }, []);
+
+  // Po schování/vrácení jde fokus na to, co je teď vidět, ať se klávesnice neztratí.
+  useEffect(() => {
+    if (!focusAfterToggle.current) return;
+    focusAfterToggle.current = false;
+    (minimized ? tabRef.current : buttonRef.current)?.focus();
+  }, [minimized]);
+
+  function setMinimizedPersisted(value: boolean) {
+    focusAfterToggle.current = true;
+    setMinimized(value);
+    if (value) {
+      setOpen(false);
+      hideTeaser();
+    }
+    try {
+      if (value) window.localStorage.setItem(MINIMIZED_KEY, "1");
+      else window.localStorage.removeItem(MINIMIZED_KEY);
+    } catch {
+      // Bez úložiště se Esko po obnovení stránky prostě vrátí.
+    }
+  }
 
   function hideTeaser() {
     setTeaser(false);
@@ -122,8 +152,38 @@ export function EskoAssistant() {
     }
   }
 
+  if (minimized === null) return null;
+
+  // Schovaný Esko: jen jazýček u pravého okraje, který nic nepřekrývá.
+  if (minimized) {
+    return (
+      <button
+        ref={tabRef}
+        type="button"
+        className={styles.edgeTab}
+        aria-label="Zobrazit asistenta Esko"
+        title="Zobrazit asistenta Esko"
+        onClick={() => setMinimizedPersisted(false)}
+      >
+        <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="32px" className={styles.edgeTabImage} />
+      </button>
+    );
+  }
+
   return (
     <>
+      {!open ? (
+        <button
+          type="button"
+          className={styles.minimize}
+          aria-label="Schovat asistenta Esko"
+          title="Schovat asistenta Esko"
+          onClick={() => setMinimizedPersisted(true)}
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      ) : null}
+
       {teaser && !open ? (
         <div className={styles.teaser} role="note">
           <b>Ahoj, jsem Esko.</b> Zeptejte se mě, co je potřeba dnes vyřešit.

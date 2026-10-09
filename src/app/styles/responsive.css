@@ -127,7 +127,7 @@
     padding-inline-start: clamp(12px, 2vw, 32px);
     overflow-wrap: anywhere;
   }
-  .app-shell > .content :is(.customers-hero, .reminders-hero, .payments-hero) {
+  .app-shell > .content .payments-hero {
     padding-inline-start: 0;
   }
 }
@@ -178,7 +178,8 @@
 }
 
 @media screen and (min-width: 768px) {
-  .invoice-list-header > div:first-child { flex: 1 1 280px; }
+  .invoice-list-header > div:first-child,
+  .payments-archive-header > div:first-child { flex: 1 1 280px; }
   .invoice-list-header .invoice-list-actions { flex: 1 1 480px; flex-wrap: wrap; justify-content: flex-end; }
 }
 
