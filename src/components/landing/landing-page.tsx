@@ -20,6 +20,7 @@ import {
   Wallet,
   Zap,
 } from "./landing-icons";
+import { LandingMotion } from "./landing-motion";
 import { Pricing } from "./pricing";
 import styles from "./landing.module.css";
 
@@ -271,6 +272,7 @@ function DashboardPreview() {
 export function LandingPage() {
   return (
     <div className={`${styles.page} ${inter.variable} ${caveat.variable}`}>
+      <LandingMotion />
       <header className={styles.header}>
         <div className={`${styles.container} ${styles.headerInner}`}>
           <Link href="/" aria-label="Splatno – úvod">
@@ -374,7 +376,7 @@ export function LandingPage() {
         {/* PROBLÉM */}
         <section className={styles.section}>
           <div className={`${styles.container} ${styles.problemGrid}`}>
-            <div>
+            <div data-reveal="">
               <span className={styles.eyebrow}>Známá situace?</span>
               <h2 className={styles.h2}>
                 Faktury v účetnictví.
@@ -390,7 +392,7 @@ export function LandingPage() {
                 Tohle už nemusíte dělat ručně. <ArrowRight />
               </a>
             </div>
-            <div className={styles.chaos} aria-hidden="true">
+            <div className={styles.chaos} aria-hidden="true" data-reveal="chaos">
               {/* Oblouky vypočtené z pozic a natočení karet, aby navazovaly na jejich hrany. */}
               <svg className={styles.chaosFlow} viewBox="0 0 460 340" fill="none" overflow="visible">
                 <defs>
@@ -399,7 +401,7 @@ export function LandingPage() {
                   </marker>
                 </defs>
                 {CHAOS_ARCS.map((d) => (
-                  <path key={d} d={d} markerEnd="url(#lp-arrowhead)" />
+                  <path key={d} d={d} pathLength={1} markerEnd="url(#lp-arrowhead)" />
                 ))}
               </svg>
               {CHAOS_CARDS.map((card) => (
@@ -425,7 +427,7 @@ export function LandingPage() {
         {/* JAK TO FUNGUJE */}
         <section className={styles.section} id="jak-to-funguje">
           <div className={styles.container}>
-            <div className={styles.center}>
+            <div className={styles.center} data-reveal="">
               <span className={styles.eyebrow}>Jak to funguje</span>
               <h2 className={`${styles.h2} ${styles.flow}`}>
                 <span>Faktura</span>
@@ -439,7 +441,7 @@ export function LandingPage() {
               <p className={styles.flowSub}>Jednoduchý proces, který vám šetří čas a přináší klid.</p>
             </div>
 
-            <div className={styles.steps}>
+            <div className={styles.steps} data-reveal="steps">
               <article className={styles.step}>
                 <div className={styles.stepArt} aria-hidden="true">
                   <div className={`${styles.mini} ${styles.miniInvoice}`}>
@@ -510,7 +512,7 @@ export function LandingPage() {
         {/* POZORNOST */}
         <section className={styles.section} id="funkce">
           <div className={`${styles.container} ${styles.attentionGrid}`}>
-            <div>
+            <div data-reveal="">
               <span className={styles.eyebrowRed}>Vyžaduje pozornost</span>
               <h2 className={styles.h2}>Řešte jen to, co opravdu potřebuje vás.</h2>
               <p className={styles.lead}>
@@ -521,7 +523,7 @@ export function LandingPage() {
                 Přihlásit se do aplikace <ArrowRight />
               </Link>
             </div>
-            <div className={`${styles.card} ${styles.attentionCard}`}>
+            <div className={`${styles.card} ${styles.attentionCard}`} data-reveal="" style={{ "--i": 1 } as CSSProperties}>
               <div className={styles.dashCardHead}>
                 <h3 className={styles.attentionTitle}>
                   Vyžaduje pozornost <span className={styles.count}>3</span>
@@ -537,10 +539,10 @@ export function LandingPage() {
         <section className={styles.section} id="pro-koho">
           <div className={styles.container}>
             <span className={styles.eyebrow}>Pro koho je Splatno</span>
-            <h2 className={styles.h2Sm}>Pomáháme firmám, které chtějí mít své faktury pod kontrolou.</h2>
+            <h2 className={styles.h2Sm} data-reveal="">Pomáháme firmám, které chtějí mít své faktury pod kontrolou.</h2>
             <div className={styles.personas}>
-              {PERSONAS.map((persona) => (
-                <a key={persona.title} href="#cenik" className={styles.persona}>
+              {PERSONAS.map((persona, index) => (
+                <a key={persona.title} href="#cenik" className={styles.persona} data-reveal="" style={{ "--i": index + 1 } as CSSProperties}>
                   <div className={styles.personaArt}>
                     <Image src={persona.image} alt={persona.alt} width={persona.width} height={720} sizes="(max-width: 640px) 40vw, 260px" />
                   </div>
@@ -565,7 +567,7 @@ export function LandingPage() {
         {/* FINÁLNÍ CTA */}
         <section className={styles.final}>
           <div className={`${styles.container} ${styles.finalGrid}`}>
-            <div>
+            <div data-reveal="">
               <span className={styles.eyebrow}>Začněte ještě dnes</span>
               <h2 className={styles.h2}>Faktury nemusíte hlídat ručně.</h2>
               <p className={styles.lead}>Splatno je pohlídá od vystavení až po zaplacení.</p>
@@ -576,7 +578,7 @@ export function LandingPage() {
                 <small className={styles.muted}>Už máte účet? <Link href={LOGIN_HREF} className={styles.inlineLink}>Přihlaste se</Link></small>
               </div>
             </div>
-            <div className={styles.finalArt} aria-hidden="true">
+            <div className={styles.finalArt} aria-hidden="true" data-reveal="" style={{ "--i": 1 } as CSSProperties}>
               <Image src="/landing/mascot-done.webp" alt="" width={600} height={511} className={styles.finalMascot} sizes="230px" />
               <p className={`${styles.hand} ${styles.finalHand}`}>
                 Méně hlídání.

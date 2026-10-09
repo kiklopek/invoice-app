@@ -1648,3 +1648,262 @@
 @media (min-width: 3520px) { .page { zoom: 2.444; } .container { padding: 0 39px; } }
 @media (min-width: 3680px) { .page { zoom: 2.556; } .container { padding: 0 38px; } }
 @media (min-width: 3840px) { .page { zoom: 2.667; } .container { padding: 0 36px; } }
+
+/* =========================================================================
+   Pozadí „účetní papír“, jemné animace a hover efekty.
+   Pohyb jen přes translate / rotate / scale a opacity (skládají se se
+   stávajícím transform). Skrytí před zobrazením platí jen s
+   html[data-motion] (nastaví LandingMotion), takže bez JavaScriptu a při
+   „omezit pohyb“ je vše hned vidět.
+   ========================================================================= */
+
+/* ---------- pozadí ---------- */
+.hero,
+.final,
+.page :global(#jak-to-funguje) {
+  position: relative;
+  isolation: isolate;
+}
+.hero::before,
+.final::before,
+.page :global(#jak-to-funguje)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(31, 106, 74, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 106, 74, 0.045) 1px, transparent 1px);
+  background-size: 100% 32px, 128px 100%;
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 62% 34%, #000 25%, transparent 78%);
+  mask-image: radial-gradient(ellipse 75% 70% at 62% 34%, #000 25%, transparent 78%);
+}
+/* Za postupem jen náznak, ať text zůstane čistý. */
+.page :global(#jak-to-funguje)::before {
+  opacity: 0.6;
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 55%, #000 10%, transparent 75%);
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 55%, #000 10%, transparent 75%);
+}
+.final::before {
+  -webkit-mask-image: radial-gradient(ellipse 70% 90% at 75% 50%, #000 20%, transparent 80%);
+  mask-image: radial-gradient(ellipse 70% 90% at 75% 50%, #000 20%, transparent 80%);
+}
+
+/* ---------- hero: jednou při načtení (bez JavaScriptu) ---------- */
+@keyframes lpRise {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes lpGrow {
+  from { scale: 1 0.08; }
+  to { scale: 1 1; }
+}
+@keyframes lpTurn {
+  from { opacity: 0; rotate: -80deg; }
+  to { opacity: 1; rotate: 0deg; }
+}
+/* Číslo uprostřed prstence se otáčí opačně, takže zůstane rovně. */
+@keyframes lpCounterTurn {
+  from { rotate: 80deg; }
+  to { rotate: 0deg; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .heroCopy > * {
+    animation: lpRise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .heroCopy > :nth-child(2) { animation-delay: 0.06s; }
+  .heroCopy > :nth-child(3) { animation-delay: 0.12s; }
+  .heroCopy > :nth-child(4) { animation-delay: 0.18s; }
+  .heroCopy > :nth-child(5) { animation-delay: 0.24s; }
+  .heroCopy > :nth-child(6) { animation-delay: 0.3s; }
+  .heroVisual .dash {
+    animation: lpRise 0.7s 0.15s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .barPair span {
+    transform-origin: bottom;
+    animation: lpGrow 0.9s 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .barCol:nth-child(2) .barPair span { animation-delay: 0.5s; }
+  .barCol:nth-child(3) .barPair span { animation-delay: 0.55s; }
+  .barCol:nth-child(4) .barPair span { animation-delay: 0.6s; }
+  .barCol:nth-child(5) .barPair span { animation-delay: 0.65s; }
+  .barCol:nth-child(6) .barPair span { animation-delay: 0.7s; }
+  .donut {
+    animation: lpTurn 1s 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .donut > div {
+    animation: lpCounterTurn 1s 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .heroMascot,
+  .heroHand {
+    animation: lpRise 0.7s 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+/* ---------- sekce při scrollu ---------- */
+.page [data-reveal] {
+  transition:
+    opacity 0.55s cubic-bezier(0.2, 0.7, 0.2, 1),
+    translate 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+:global(html[data-motion]) .page [data-reveal=""]:not([data-shown]) {
+  opacity: 0;
+  translate: 0 10px;
+}
+
+/* „Známá situace?“: kartičky začnou rozházené a usadí se, šipky se dokreslí. */
+.chaosCard {
+  transition:
+    translate 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    rotate 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.6s ease,
+    box-shadow 0.2s ease;
+}
+.chaos .chaosCard:nth-of-type(2) { transition-delay: 0.08s; }
+.chaos .chaosCard:nth-of-type(3) { transition-delay: 0.16s; }
+.chaos .chaosCard:nth-of-type(4) { transition-delay: 0.24s; }
+:global(html[data-motion]) .chaos:not([data-shown]) .chaosCard {
+  opacity: 0;
+}
+:global(html[data-motion]) .chaos:not([data-shown]) .chaosCard:nth-of-type(1) { translate: -18px -14px; rotate: -7deg; }
+:global(html[data-motion]) .chaos:not([data-shown]) .chaosCard:nth-of-type(2) { translate: 16px -18px; rotate: 6deg; }
+:global(html[data-motion]) .chaos:not([data-shown]) .chaosCard:nth-of-type(3) { translate: -14px 16px; rotate: 5deg; }
+:global(html[data-motion]) .chaos:not([data-shown]) .chaosCard:nth-of-type(4) { translate: 18px 14px; rotate: -6deg; }
+.chaosFlow path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.9s 0.35s ease, opacity 0.4s 0.35s ease;
+}
+:global(html[data-motion]) .chaos:not([data-shown]) .chaosFlow path {
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+.chaos .hand {
+  transition: opacity 0.6s 0.7s ease;
+}
+:global(html[data-motion]) .chaos:not([data-shown]) .hand {
+  opacity: 0;
+}
+
+/* „Jak to funguje“: kroky a šipky postupně, platba se přisune zprava. */
+.steps > * {
+  transition:
+    opacity 0.55s cubic-bezier(0.2, 0.7, 0.2, 1),
+    translate 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.steps > :nth-child(2) { transition-delay: 0.15s; }
+.steps > :nth-child(3) { transition-delay: 0.25s; }
+.steps > :nth-child(4) { transition-delay: 0.4s; }
+.steps > :nth-child(5) { transition-delay: 0.5s; }
+:global(html[data-motion]) .steps:not([data-shown]) > * {
+  opacity: 0;
+  translate: 0 10px;
+}
+:global(html[data-motion]) .steps:not([data-shown]) > .stepArrow {
+  translate: -10px 0;
+}
+.steps .miniPaid,
+.steps .miniGhost,
+.steps .miniNext {
+  transition:
+    opacity 0.5s ease,
+    translate 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.steps .miniPaid { transition-delay: 0.35s; }
+.steps .miniGhost { transition-delay: 0.5s; }
+.steps .miniNext { transition-delay: 0.75s; }
+:global(html[data-motion]) .steps:not([data-shown]) .miniPaid,
+:global(html[data-motion]) .steps:not([data-shown]) .miniGhost {
+  opacity: 0;
+  translate: 24px 0;
+}
+:global(html[data-motion]) .steps:not([data-shown]) .miniNext {
+  opacity: 0;
+  translate: 0 8px;
+}
+
+/* ---------- hover (jen zařízení s myší) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  /* Zpoždění jen pro odhalení (opacity, translate); hover (transform,
+     stín) reaguje hned. */
+  .page .plan,
+  .page .planCustom,
+  .page .attentionCard,
+  .page .persona {
+    transition:
+      opacity 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--i, 0) * 80ms),
+      translate 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--i, 0) * 80ms),
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+  .page .plan:hover,
+  .page .planCustom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 1px #dbe7df, var(--shadow-lg) !important;
+  }
+  .page .planFeatured:hover {
+    box-shadow: 0 0 0 1px #9cc7ad, var(--shadow-lg) !important;
+  }
+  .page .persona:hover {
+    box-shadow: 0 0 0 1px #dbe7df, var(--shadow-lg) !important;
+  }
+  .page .mini {
+    transition:
+      opacity 0.5s ease,
+      translate 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+      transform 0.2s ease;
+  }
+  .page .steps .miniPaid { transition-delay: 0.35s, 0.35s, 0s; }
+  .page .steps .miniGhost { transition-delay: 0.5s, 0.5s, 0s; }
+  .page .steps .miniNext { transition-delay: 0.75s, 0.75s, 0s; }
+  .page .mini:hover {
+    transform: translateY(-2px);
+  }
+  /* Po usazení kartiček hover bez zpoždění. */
+  .chaos[data-shown] .chaosCard,
+  .chaosCard {
+    transition:
+      translate 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+      rotate 0.3s ease,
+      opacity 0.6s ease,
+      box-shadow 0.2s ease;
+  }
+  .chaosCard:hover {
+    rotate: calc(var(--r) * -1);
+    box-shadow: 0 0 0 1px rgba(31, 106, 74, 0.18), 0 26px 44px -18px rgba(19, 35, 27, 0.3) !important;
+  }
+  .attRow:not([data-head]) {
+    transition: background 0.15s ease;
+  }
+  .attRow:not([data-head]):hover {
+    background: #f6faf7;
+  }
+  .btnPrimary {
+    transition: background 0.15s ease, border-color 0.15s ease, translate 0.15s ease;
+  }
+  .btnPrimary:hover {
+    translate: 0 -1px;
+  }
+  .textLink svg,
+  .btnPrimary svg,
+  .btnOutline svg {
+    transition: translate 0.2s ease;
+  }
+  .textLink:hover svg,
+  .btnPrimary:hover svg,
+  .btnOutline:hover svg {
+    translate: 3px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page [data-reveal],
+  .chaosCard,
+  .chaosFlow path,
+  .steps > *,
+  .steps .mini {
+    transition: none !important;
+  }
+}

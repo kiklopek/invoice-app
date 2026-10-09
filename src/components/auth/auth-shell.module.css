@@ -605,3 +605,34 @@
     display: inline;
   }
 }
+
+/* ---------- pozadí „účetní papír“ (stejné jako na landing page) ---------- */
+.page {
+  position: relative;
+  isolation: isolate;
+}
+.page::before,
+.artSide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(31, 106, 74, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 106, 74, 0.045) 1px, transparent 1px);
+  background-size: 100% 32px, 128px 100%;
+}
+/* Kolem karty: mřížka v rozích, ke středu se ztrácí. */
+.page::before {
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 100% 0, #000 10%, transparent 70%), radial-gradient(ellipse 60% 55% at 0 100%, #000 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse 70% 60% at 100% 0, #000 10%, transparent 70%), radial-gradient(ellipse 60% 55% at 0 100%, #000 10%, transparent 70%);
+}
+/* V panelu s maskotem (na telefonu pruh nahoře) jemně za ním. */
+.artSide {
+  isolation: isolate;
+}
+.artSide::before {
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 15%, transparent 80%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 15%, transparent 80%);
+}

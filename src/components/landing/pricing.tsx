@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { ArrowRight, Check, Headset } from "./landing-icons";
 import styles from "./landing.module.css";
 
@@ -14,7 +14,7 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
 
   return (
     <>
-      <div className={styles.pricingHead}>
+      <div className={styles.pricingHead} data-reveal="">
         <div>
           <span className={styles.eyebrow}>Ceník</span>
           <h2 className={styles.h2}>Jednoduché a transparentní tarify.</h2>
@@ -38,12 +38,14 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
       </div>
 
       <div className={styles.plans}>
-        {PLANS.map((plan) => {
+        {PLANS.map((plan, index) => {
           const price = monthlyPrice(plan.id, yearly ? "yearly" : "monthly");
           return (
             <article
               key={plan.name}
               className={`${styles.plan} ${plan.featured ? styles.planFeatured : ""}`}
+              data-reveal=""
+              style={{ "--i": index + 1 } as CSSProperties}
             >
               {plan.featured ? <span className={styles.planBadge}>Nejoblíbenější</span> : null}
               <h3>{plan.name}</h3>
@@ -73,7 +75,7 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
           );
         })}
 
-        <aside className={styles.planCustom}>
+        <aside className={styles.planCustom} data-reveal="" style={{ "--i": PLANS.length + 1 } as CSSProperties}>
           <Headset className={styles.planCustomIcon} />
           <h3>Potřebujete jiný plán?</h3>
           <p>Rádi s vámi najdeme řešení na míru.</p>
