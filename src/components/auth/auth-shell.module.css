@@ -572,3 +572,35 @@
     display: none;
   }
 }
+
+/* ---------- zpět na úvodní stránku ---------- */
+.backHome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.backHome:hover {
+  color: var(--ledger);
+}
+.backHome svg {
+  width: 17px;
+  height: 17px;
+}
+.backHomeShort {
+  display: none;
+}
+@media (max-width: 480px) {
+  .backHomeLong {
+    display: none;
+  }
+  .backHomeShort {
+    display: inline;
+  }
+}

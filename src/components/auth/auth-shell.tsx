@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
-import { RibbonMark } from "@/components/landing/landing-icons";
+import { ArrowLeft, RibbonMark } from "@/components/landing/landing-icons";
 import styles from "./auth-shell.module.css";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
@@ -51,7 +51,11 @@ export function AuthShell({
               <span className={styles.company}>
                 <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
               </span>
-            ) : null}
+            ) : (
+              <Link href="/" className={styles.backHome}>
+                <ArrowLeft /><span>Zpět na <span className={styles.backHomeLong}>úvodní stránku</span><span className={styles.backHomeShort}>úvod</span></span>
+              </Link>
+            )}
           </div>
           <div className={styles.body}>{children}</div>
         </section>
