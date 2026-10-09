@@ -453,8 +453,8 @@ export function LandingPage() {
                       12. 3. 2026 <span className={styles.miniDateGo}><ArrowRight /></span>
                     </p>
                   </div>
-                  <span className={styles.stepNo}>01</span>
                 </div>
+                <span className={styles.stepNo}>01</span>
                 <h3>Hlídá splatnosti</h3>
                 <p>Sleduje termíny a včas upozorní na rizikové faktury.</p>
               </article>
@@ -479,8 +479,8 @@ export function LandingPage() {
                     </div>
                     <span className={styles.pill} data-tone="green">Páruji…</span>
                   </div>
-                  <span className={styles.stepNo}>02</span>
                 </div>
+                <span className={styles.stepNo}>02</span>
                 <h3>Páruje platby</h3>
                 <p>Automaticky rozpozná příchozí platby a spáruje je s fakturami.</p>
               </article>
@@ -500,8 +500,8 @@ export function LandingPage() {
                     <strong>Za 7 dní</strong>
                     <small>Automatická upomínka</small>
                   </div>
-                  <span className={styles.stepNo}>03</span>
                 </div>
+                <span className={styles.stepNo}>03</span>
                 <h3>Posílá upomínky</h3>
                 <p>Automatizuje upomínky podle vašich pravidel. Profesionálně a včas.</p>
               </article>
