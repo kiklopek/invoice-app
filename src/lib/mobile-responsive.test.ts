@@ -92,7 +92,8 @@ describe("mobile application layout", () => {
     expect(shell.match(/const selected = active && !item\.children\?\.some\(\(child\) => isChildActive\(child\.href\)\);/g)).toHaveLength(2);
     expect(shell).toContain("{active && item.children && item.children.length > 0 ? (");
     expect(navigationCss).toContain("grid-template-columns: minmax(0, 1fr)");
-    expect(navigationCss).toContain("width: min(390px, 92vw)");
+    expect(navigationCss).toContain("width: min(320px, 86vw)");
+    expect(navigationCss).toContain("width: min(300px, calc(100vw - 64px))");
     expect(navigationCss).toContain("border-radius: 22px 0 0 0");
     expect(navigationCss).toContain("justify-items: start");
     expect(navigationCss).toContain("width: fit-content !important");
@@ -176,10 +177,14 @@ describe("mobile application layout", () => {
     expect(remindersPage).toContain("reminders-automation-card");
     expect(remindersPage).toContain("reminder-stat-card is-scheduled");
     expect(remindersPage).toContain("reminders-process-card");
-    expect(remindersPage.match(/<details className=/g)).toHaveLength(2);
+    expect(remindersPage.match(/<details\s/g)).toHaveLength(2);
     expect(remindersPage).toContain("Provozní přehled a historie");
-    expect(remindersPage).toContain("Texty upomínek");
-    expect(remindersPage).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/);
+    // E-mailová šablona je nahoře a rozbalená, protože se s ní pracuje nejčastěji;
+    // provozní přehled zůstává sbalený.
+    expect(remindersPage).toContain("E-mailová šablona");
+    expect(remindersPage.indexOf("E-mailová šablona")).toBeLessThan(remindersPage.indexOf("Provozní přehled a historie"));
+    expect(remindersPage).toMatch(/<details\s+open\s+className="[^"]*reminder-email-settings/);
+    expect(remindersPage.match(/<details[^>]*\sopen(?:=|\s|>)/g)).toHaveLength(1);
     expect(css).toContain(".reminder-section-disclosure > summary:focus-visible");
     expect(css).toContain(".reminder-operations.reminder-quick-stats");
     expect(css).toContain(".reminders-hero::after");

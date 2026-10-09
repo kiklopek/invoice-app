@@ -116,7 +116,7 @@ body.mobile-navigation-lock { overflow: hidden; }
     top: calc(var(--mobile-navigation-height) + env(safe-area-inset-top));
     right: 0;
     bottom: 0;
-    width: min(390px, 92vw);
+    width: min(320px, 86vw);
     max-height: none;
     overflow-y: auto;
     padding: 22px 18px max(18px, env(safe-area-inset-bottom));
@@ -241,8 +241,9 @@ body.mobile-navigation-lock { overflow: hidden; }
   }
   .mobile-navigation-profile .avatar { width: 38px; height: 38px; }
   .mobile-navigation-profile > div:nth-child(2) { min-width: 0; }
-  .mobile-navigation-profile strong,
-  .mobile-navigation-profile small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-navigation-profile strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Firma a role se v užším panelu zalomí na druhý řádek, ne do trojtečky. */
+  .mobile-navigation-profile small { display: block; overflow-wrap: anywhere; line-height: 1.35; }
   .mobile-navigation-profile strong { font-size: 13px; }
   .mobile-navigation-profile small { margin-top: 2px; color: #66736b; font-size: 12px; }
   .mobile-navigation-profile > button {
@@ -273,7 +274,7 @@ body.mobile-navigation-lock { overflow: hidden; }
   .sidebar .mobile-navigation-brand { width: 48px; height: 52px; min-width: 48px; }
   .mobile-navigation-logo { width: 46px; height: auto; }
   .mobile-navigation-current > span { display: none; }
-  .mobile-navigation-panel { width: min(360px, calc(100vw - 20px)); padding: 20px 14px max(14px, env(safe-area-inset-bottom)); }
+  .mobile-navigation-panel { width: min(300px, calc(100vw - 64px)); padding: 20px 14px max(14px, env(safe-area-inset-bottom)); }
 }
 
 @media print {

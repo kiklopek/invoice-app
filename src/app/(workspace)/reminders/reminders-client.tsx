@@ -947,6 +947,42 @@ export function RemindersClient({
           </aside>
         </MobileDisclosure>
       </div>
+      {templates && (
+        <details open className="page-panel reminder-section-disclosure reminder-email-settings">
+          <summary>
+            <span>
+              <strong>E-mailová šablona</strong>
+              <small>
+                Co odběratel uvidí v e-mailu. Platí pro všechny kategorie.
+              </small>
+            </span>
+            <span className="reminder-disclosure-meta">
+              <ChevronDown className="reminder-disclosure-chevron" />
+            </span>
+          </summary>
+          <div className="reminder-disclosure-body">
+            <EmailTemplatesSection
+              templates={templates}
+              ccInputs={ccInputs}
+              activeStage={activeStage}
+              company={company}
+              canEdit={operations.can_run}
+              busy={saving || loading || runningNow}
+              saving={saving}
+              sendingTest={sendingTest}
+              onStageChange={setActiveStage}
+              onTemplateChange={patchActiveTemplate}
+              onCcChange={(value) => {
+                setGlobalDirty(true);
+                setCcInputs((current) => ({ ...current, [activeStage]: value }));
+              }}
+              onRecommended={applyRecommendedTemplate}
+              onSendTest={sendTest}
+              onSave={save}
+            />
+          </div>
+        </details>
+      )}
       <details className={`page-panel reminder-section-disclosure ${operations.failed.length || automationRunProblem ? "has-alert" : ""}`}>
         <summary>
           <span>
@@ -1072,42 +1108,6 @@ export function RemindersClient({
           </div>
         </div>
       </details>
-      {templates && (
-        <details className="page-panel reminder-section-disclosure reminder-email-settings">
-          <summary>
-            <span>
-              <strong>Texty upomínek</strong>
-              <small>
-                Co odběratel uvidí v e-mailu. Platí pro všechny kategorie.
-              </small>
-            </span>
-            <span className="reminder-disclosure-meta">
-              <ChevronDown className="reminder-disclosure-chevron" />
-            </span>
-          </summary>
-          <div className="reminder-disclosure-body">
-            <EmailTemplatesSection
-              templates={templates}
-              ccInputs={ccInputs}
-              activeStage={activeStage}
-              company={company}
-              canEdit={operations.can_run}
-              busy={saving || loading || runningNow}
-              saving={saving}
-              sendingTest={sendingTest}
-              onStageChange={setActiveStage}
-              onTemplateChange={patchActiveTemplate}
-              onCcChange={(value) => {
-                setGlobalDirty(true);
-                setCcInputs((current) => ({ ...current, [activeStage]: value }));
-              }}
-              onRecommended={applyRecommendedTemplate}
-              onSendTest={sendTest}
-              onSave={save}
-            />
-          </div>
-        </details>
-      )}
       <EmailSuppressionsPanel />
     </AppFrame>
   );
