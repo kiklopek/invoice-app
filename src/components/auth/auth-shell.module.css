@@ -575,6 +575,7 @@
 
 /* ---------- zpět na úvodní stránku ---------- */
 .backHome {
+  margin-left: -4px;
   display: inline-flex;
   align-items: center;
   gap: 6px;

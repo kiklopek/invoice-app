@@ -43,18 +43,26 @@ export function AuthShell({
       <div className={styles.card}>
         <section className={styles.formSide}>
           <div className={styles.brandRow}>
-            <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
-              <RibbonMark size={30} />
-              <span>splatno</span>
-            </Link>
             {brand === "hlavica" ? (
-              <span className={styles.company}>
-                <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
-              </span>
+              <>
+                <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
+                  <RibbonMark size={30} />
+                  <span>splatno</span>
+                </Link>
+                <span className={styles.company}>
+                  <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
+                </span>
+              </>
             ) : (
-              <Link href="/" className={styles.backHome}>
-                <ArrowLeft /><span>Zpět na <span className={styles.backHomeLong}>úvodní stránku</span><span className={styles.backHomeShort}>úvod</span></span>
-              </Link>
+              <>
+                <Link href="/" className={styles.backHome}>
+                  <ArrowLeft /><span>Zpět na <span className={styles.backHomeLong}>úvodní stránku</span><span className={styles.backHomeShort}>úvod</span></span>
+                </Link>
+                <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
+                  <RibbonMark size={30} />
+                  <span>splatno</span>
+                </Link>
+              </>
             )}
           </div>
           <div className={styles.body}>{children}</div>
