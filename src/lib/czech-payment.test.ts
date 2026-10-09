@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSpayd, czechAccountToIban, parseCzechAccount, parseSpayd } from "./czech-payment";
+import { buildSpayd, czechAccountToIban, invoiceSpayd, parseCzechAccount, parseSpayd } from "./czech-payment";
 
 describe("parseCzechAccount", () => {
   it("reads both the plain and the prefixed form", () => {
@@ -103,5 +103,55 @@ describe("parseSpayd (QR platba přečtená z faktury)", () => {
   it("nevymyslí částku, VS ani datum z poškozených hodnot", () => {
     const parsed = parseSpayd("SPD*1.0*ACC:CZ3401000000006786420257*AM:12,50*X-VS:12AB*DT:20261332*CC:KORUNY");
     expect(parsed).toMatchObject({ amount: null, variableSymbol: null, dueDate: null, currency: null });
+  });
+});
+
+describe("invoiceSpayd", () => {
+  // Jediný zdroj QR platby pro PDF faktury i tělo upomínky: kdyby si je
+  // každé místo skládalo samo, mohly by dlužníkovi ukázat dvě různé částky.
+  const invoice = {
+    invoice_number: "FV-2026-001", variable_symbol: "2026001",
+    amount: 12100, paid_amount: 2000, currency: "CZK", due_date: "2026-01-19",
+  };
+  const company = { bank_account_czk: "6786420257/0100", bank_account_eur: "94-2613370257/0100" };
+
+  it("asks for the outstanding amount with the invoice's VS and the account for its currency", () => {
+    const parsed = parseSpayd(invoiceSpayd(invoice, company));
+    expect(parsed).toMatchObject({
+      iban: "CZ3401000000006786420257", amount: 10100, currency: "CZK",
+      variableSymbol: "2026001", dueDate: "2026-01-19",
+    });
+    expect(parseSpayd(invoiceSpayd({ ...invoice, currency: "EUR" }, company))?.iban).toBe("CZ8001000000942613370257");
+  });
+
+  it("falls back to the full amount when nothing is outstanding", () => {
+    expect(invoiceSpayd({ ...invoice, paid_amount: 12100 }, company)).toContain("AM:12100.00");
+  });
+
+  // Zprávu pro příjemce čte účetní na výpisu: z čísla faktury a jména
+  // odběratele hned pozná, kdo platil, aniž by fakturu dohledávala.
+  it("names the paying customer in the message for the recipient", () => {
+    const parsed = parseSpayd(invoiceSpayd({ ...invoice, counterparty_name: "Dvořák s.r.o." }, company));
+    expect(parsed?.message).toBe("Faktura FV-2026-001 - Dvorak s.r.o.");
+  });
+
+  it("keeps the invoice number whole when a long customer name has to be cut", () => {
+    const message = parseSpayd(invoiceSpayd({
+      ...invoice,
+      counterparty_name: "Stavební společnost Moravskoslezského kraje a okolí, akciová společnost",
+    }, company))?.message ?? "";
+    expect(message.length).toBeLessThanOrEqual(60);
+    expect(message.startsWith("Faktura FV-2026-001 - Stavebni")).toBe(true);
+  });
+
+  it("falls back to the invoice number alone without a customer name", () => {
+    expect(parseSpayd(invoiceSpayd(invoice, company))?.message).toBe("Faktura FV-2026-001");
+    expect(parseSpayd(invoiceSpayd({ ...invoice, counterparty_name: "  " }, company))?.message).toBe("Faktura FV-2026-001");
+  });
+
+  it("returns null instead of a QR code that would send money elsewhere", () => {
+    expect(invoiceSpayd(invoice, { bank_account_czk: "123456789/0800" })).toBeNull();
+    expect(invoiceSpayd(invoice, { bank_account_czk: null })).toBeNull();
+    expect(invoiceSpayd({ ...invoice, currency: "EUR" }, { bank_account_czk: "6786420257/0100" })).toBeNull();
   });
 });

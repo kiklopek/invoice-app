@@ -1,6 +1,8 @@
 import "server-only";
 
+import QRCode from "qrcode";
 import { Resend } from "resend";
+import { invoiceSpayd } from "@/lib/czech-payment";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 import { interpolateReminderTemplate, reminderTemplateValues } from "@/lib/reminder-template";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
@@ -8,6 +10,12 @@ import { reminderLogoUrl, renderReminderEmail, type ReminderEmailCompany } from 
 import { createServiceClient } from "@/lib/supabase-server";
 import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
+
+const QR_CONTENT_ID = "qr-platba";
+
+function formatAmount(value: number) {
+  return new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
 
 function appBaseUrl() {
   const configuredBase = process.env.APP_BASE_URL?.trim();
@@ -44,6 +52,18 @@ export async function sendReminderEmail(params: {
   const subject = interpolateReminderTemplate(template.subject, params.invoice);
   const message = interpolateReminderTemplate(template.body, params.invoice);
   const replyTo = params.template?.reply_to ?? company.email ?? undefined;
+  // QR platba přímo v těle: dlužník ji načte v bance a VS se vyplní sám.
+  // Inline příloha (cid:), protože data: URI Gmail blokuje. Bez platného
+  // účtu QR není -- nejistý kód by poslal peníze jinam.
+  const spayd = invoiceSpayd(params.invoice, company as ReminderEmailCompany);
+  const qrPng = spayd
+    ? await QRCode.toBuffer(spayd, { type: "png", errorCorrectionLevel: "M", margin: 1, width: 440 })
+    : null;
+  const paid = Number(params.invoice.paid_amount);
+  const total = Number(params.invoice.amount);
+  const payment = paid > 0 && paid < total
+    ? { total: formatAmount(total), paid: formatAmount(paid), remaining: formatAmount(total - paid) }
+    : null;
   const rendered = renderReminderEmail({
     company: company as ReminderEmailCompany,
     stage: params.stage,
@@ -52,8 +72,14 @@ export async function sendReminderEmail(params: {
     values: reminderTemplateValues(params.invoice),
     logoUrl: reminderLogoUrl((company as ReminderEmailCompany).logo_path, appBaseUrl()),
     replyTo,
+    qrSrc: qrPng ? `cid:${QR_CONTENT_ID}` : null,
+    payment,
   });
 
+  const attachments = [
+    ...(params.attachment ? [{ filename: params.attachment.filename, content: Buffer.from(params.attachment.content) }] : []),
+    ...(qrPng ? [{ filename: "qr-platba.png", content: qrPng, contentId: QR_CONTENT_ID }] : []),
+  ];
   const resend = new Resend(key);
   return resend.emails.send({
     from,
@@ -63,6 +89,6 @@ export async function sendReminderEmail(params: {
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
-    attachments: params.attachment ? [{ filename: params.attachment.filename, content: Buffer.from(params.attachment.content) }] : undefined,
+    attachments: attachments.length ? attachments : undefined,
   }, { idempotencyKey: params.idempotencyKey });
 }

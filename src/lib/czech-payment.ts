@@ -110,6 +110,38 @@ export function buildSpayd(payment: SpaydPayment): string | null {
   return `SPD*1.0*${fields.join("*")}`;
 }
 
+/**
+ * QR platba k faktuře. Jediný zdroj pro PDF i tělo upomínky, aby dlužník
+ * nikdy neviděl dvě různé částky. Zní na zbývající částku; u plně uhrazené
+ * faktury na celou (PDF faktury se tiskne i zpětně).
+ */
+export function invoiceSpayd(
+  invoice: {
+    invoice_number: string;
+    counterparty_name?: string | null;
+    variable_symbol?: string | null;
+    amount: number | string;
+    paid_amount: number | string;
+    currency: string;
+    due_date?: string | null;
+  },
+  company: { bank_account_czk?: string | null; bank_account_eur?: string | null },
+): string | null {
+  const remaining = Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount));
+  // Zpráva pro příjemce: podle čísla faktury a jména odběratele účetní na
+  // výpisu hned pozná, kdo platil. Číslo je první, takže ho limit 60 znaků
+  // v buildSpayd nikdy neuřízne -- zkrátí se nanejvýš jméno.
+  const payer = invoice.counterparty_name?.trim();
+  return buildSpayd({
+    account: invoice.currency === "EUR" ? company.bank_account_eur : company.bank_account_czk,
+    amount: remaining > 0 ? remaining : Number(invoice.amount),
+    currency: invoice.currency,
+    variableSymbol: invoice.variable_symbol,
+    dueDate: invoice.due_date,
+    message: payer ? `Faktura ${invoice.invoice_number} - ${payer}` : `Faktura ${invoice.invoice_number}`,
+  });
+}
+
 /** QR platba přečtená z cizí faktury. Chybějící nebo poškozené pole je null. */
 export type ParsedSpayd = {
   iban: string;

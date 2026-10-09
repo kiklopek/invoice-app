@@ -114,6 +114,23 @@ describe("sendReminderEmail", () => {
     expect(payload.attachments?.[0].filename).toBe("Faktura-FV-2026-001.pdf");
   });
 
+  it("puts a payable QR code inline in the body, after the PDF", async () => {
+    await send({ attachment: { filename: "Faktura-FV-2026-001.pdf", content: new Uint8Array([1, 2, 3]) } });
+    const payload = sent[0].payload as { html: string; attachments: Array<{ filename: string; contentId?: string; content: Buffer }> };
+    expect(payload.attachments[0].filename).toBe("Faktura-FV-2026-001.pdf");
+    const qr = payload.attachments.find(item => item.contentId === "qr-platba");
+    expect(qr?.filename).toBe("qr-platba.png");
+    expect(qr?.content.subarray(1, 4).toString("latin1")).toBe("PNG");
+    expect(payload.html).toContain('src="cid:qr-platba"');
+  });
+
+  it("sends no QR code when the account would not pass the checksum", async () => {
+    await send({ company: { ...company, bank_account_czk: "123456789/0800" } });
+    const payload = sent[0].payload as { html: string; attachments?: unknown[] };
+    expect(payload.attachments).toBeUndefined();
+    expect(payload.html).not.toContain("cid:");
+  });
+
   it("only sets cc when there is something to copy", async () => {
     await send();
     expect((sent[0].payload as { cc?: unknown }).cc).toBeUndefined();

@@ -33,6 +33,12 @@ type RenderReminderEmailParams = {
   values: ReminderTemplateValues;
   logoUrl?: string | null;
   replyTo?: string | null;
+  // Zdroj obrázku QR platby: "cid:…" v odeslaném e-mailu (inline příloha),
+  // "data:image/png;base64,…" v náhledu v aplikaci. Bez něj blok s QR není.
+  qrSrc?: string | null;
+  // Jen u částečně uhrazené faktury. QR zní na zbývající částku, takže ji
+  // text musí ukázat taky -- vedle celé částky, nic se tiše nenahrazuje.
+  payment?: { total: string; paid: string; remaining: string } | null;
 };
 
 const stagePresentation: Record<ReminderStage, { eyebrow: string; title: string; preheader: string; accent: string; soft: string }> = {
@@ -88,6 +94,13 @@ function safeLogoUrl(value?: string | null) {
   }
 }
 
+// Do e-mailu smí jen inline příloha nebo PNG vložené přímo, nikdy odkaz ven
+// ani nic, co by vystoupilo z atributu src.
+function safeQrSrc(value?: string | null) {
+  if (!value) return null;
+  return /^cid:[\w.-]+$/.test(value) || /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(value) ? value : null;
+}
+
 function safeReplyAddress(value?: string | null) {
   const normalized = value?.trim().toLowerCase();
   return normalized && /^\S+@\S+\.\S+$/.test(normalized) ? normalized : null;
@@ -137,7 +150,13 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
     : params.company.bank_account_czk?.trim();
   const details = [
     ["Číslo faktury", params.values.invoice_number],
-    ["Částka k úhradě", `${params.values.amount} ${params.values.currency}`],
+    ...(params.payment
+      ? [
+        ["Částka faktury", `${params.payment.total} ${params.values.currency}`],
+        ["Uhrazeno", `${params.payment.paid} ${params.values.currency}`],
+        ["Zbývá uhradit", `${params.payment.remaining} ${params.values.currency}`],
+      ]
+      : [["Částka k úhradě", `${params.values.amount} ${params.values.currency}`]]),
     ["Datum splatnosti", params.values.due_date],
     ["Variabilní symbol", params.values.variable_symbol || "—"],
     ...(bankAccount ? [["Bankovní účet", bankAccount]] : []),
@@ -153,12 +172,26 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
     ? `<img src="${escapeHtml(logoUrl)}" width="91" height="85" alt="${escapeHtml(companyName)}" style="display:block;width:91px;height:85px;border:0;outline:none;text-decoration:none;object-fit:contain;">`
     : `<div style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;line-height:1.3;">${escapeHtml(companyName)}</div>`;
   const cta = replyHref ? `
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:6px 0 24px;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0;">
       <tr><td>
         <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${escapeHtml(replyHref)}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="12%" stroke="f" fillcolor="#17462f"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Kontaktovat účetní oddělení</center></v:roundrect><![endif]-->
         <!--[if !mso]><!--><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:13px 20px;background:#17462f;border-radius:6px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;text-decoration:none;">Kontaktovat účetní oddělení</a><!--<![endif]-->
       </td></tr>
     </table>` : "";
+  const qrSrc = safeQrSrc(params.qrSrc);
+  const qrBlock = qrSrc ? `
+        <tr><td class="mobile-pad" style="padding:22px 42px 0;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border:1px solid #e4e9e5;border-radius:8px;border-collapse:separate;">
+            <tr>
+              <td class="qr-cell" width="176" style="width:176px;padding:16px;vertical-align:middle;"><img src="${qrSrc}" width="160" height="160" alt="QR platba" style="display:block;width:160px;height:160px;border:0;outline:none;"></td>
+              <td class="qr-text" style="padding:16px 18px 16px 0;vertical-align:middle;">
+                <p style="margin:0 0 6px;color:#17221c;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;line-height:1.35;">Zaplaťte QR kódem</p>
+                <p style="margin:0;color:#5b665e;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;">Otevřete aplikaci své banky a zvolte platbu QR kódem. Účet, částka i variabilní symbol se vyplní samy.</p>
+                <p style="margin:8px 0 0;color:#7a857d;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;">Čtete e-mail v telefonu? Podržte prst na kódu, uložte obrázek a v aplikaci banky ho načtěte z galerie.</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>` : "";
   const contactLines = companyContactLines(params.company);
   const footer = contactLines.map(escapeHtml).join(" &nbsp;·&nbsp; ");
 
@@ -171,7 +204,7 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   <title>${escapeHtml(params.subject)}</title>
   <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
   <style>
-    @media only screen and (max-width:660px){
+    @media only screen and (max-width:680px){
       .email-shell{width:100%!important;max-width:100%!important}
       .mobile-pad{padding-left:22px!important;padding-right:22px!important}
       .email-title{font-size:25px!important}
@@ -183,6 +216,10 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
       .detail-label,.detail-value{display:block!important;width:100%!important;max-width:100%!important;text-align:left!important;box-sizing:border-box!important}
       .detail-label{padding:12px 0 2px!important;border-bottom:0!important}
       .detail-value{padding:0 0 12px!important}
+      .qr-cell,.qr-text{display:block!important;width:auto!important}
+      .qr-text{padding:0 16px 16px!important}
+      .sign-cell,.cta-cell{display:block!important;width:100%!important;padding-left:0!important;text-align:left!important}
+      .cta-cell{padding-top:18px!important}
     }
   </style>
 </head>
@@ -206,10 +243,16 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
               </table>
             </td></tr>
           </table>
-        </td></tr>
+        </td></tr>${qrBlock}
         <tr><td class="mobile-pad" style="padding:26px 42px 34px;">
-          ${cta}
-          <p style="margin:0;color:#35433a;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;">S pozdravem<br><strong>${escapeHtml(companyName)}</strong></p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;">
+            <tr>
+              <td class="sign-cell" valign="middle" style="vertical-align:middle;">
+                <p style="margin:0;color:#35433a;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;">S pozdravem<br><strong>${escapeHtml(companyName)}</strong></p>
+              </td>${cta ? `
+              <td class="cta-cell" align="right" valign="middle" style="vertical-align:middle;padding-left:16px;">${cta}</td>` : ""}
+            </tr>
+          </table>
         </td></tr>
         <tr><td class="mobile-pad" bgcolor="#f7f8f6" style="padding:20px 42px;background:#f7f8f6;border-top:1px solid #e5e9e5;">
           <p style="margin:0;color:#7a857d;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.7;text-align:center;">${footer}</p>
@@ -223,7 +266,7 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
 
   const textDetails = details.map(([label, value]) => `${label}: ${value}`).join("\n");
   const textContact = contactLines.join(" · ");
-  const text = `${params.message.trim()}\n\nÚDAJE K PLATBĚ\n${textDetails}\n\nS pozdravem\n${companyName}${textContact ? `\n${textContact}` : ""}`;
+  const text = `${params.message.trim()}\n\nÚDAJE K PLATBĚ\n${textDetails}${qrSrc ? "\n\nQR kód pro platbu najdete v HTML verzi e-mailu. Načtěte ho v aplikaci své banky (platba QR kódem)." : ""}\n\nS pozdravem\n${companyName}${textContact ? `\n${textContact}` : ""}`;
 
   return { subject: params.subject, html, text };
 }

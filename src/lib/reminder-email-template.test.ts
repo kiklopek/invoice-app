@@ -127,6 +127,58 @@ describe("branded reminder email", () => {
   });
 });
 
+describe("QR platba v upomínce", () => {
+  const render = (extra: Partial<Parameters<typeof renderReminderEmail>[0]> = {}) => renderReminderEmail({
+    company, stage: "overdue", subject: "Upomínka", message: "Dobrý den.", values, ...extra,
+  });
+
+  it("shows the QR code inline only when one was generated", () => {
+    const withQr = render({ qrSrc: "cid:qr-platba" });
+    expect(withQr.html).toContain('src="cid:qr-platba"');
+    expect(withQr.html).toContain("Zaplaťte QR kódem");
+    // Běžný fotoaparát QR platbu neotevře; e-mail musí říct, kde ji načíst.
+    expect(withQr.html).toContain("aplikaci své banky");
+    expect(withQr.html).toContain("Čtete e-mail v telefonu?");
+    expect(withQr.text).toContain("aplikaci své banky");
+    expect(withQr.text).toContain("QR");
+    const without = render();
+    expect(without.html).not.toContain("cid:");
+    expect(without.html).not.toContain("Zaplaťte QR kódem");
+  });
+
+  it("signs off right under the QR code, with the contact button beside the signature", () => {
+    const html = render({ qrSrc: "cid:qr-platba", replyTo: "ucetni@hlavica.cz" }).html;
+    const qr = html.indexOf("Zaplaťte QR kódem");
+    const signature = html.indexOf("S pozdravem");
+    const button = html.indexOf("Kontaktovat účetní oddělení");
+    expect(qr).toBeGreaterThan(-1);
+    expect(signature).toBeGreaterThan(qr);
+    expect(button).toBeGreaterThan(signature);
+    // Stejný řádek tabulky: řádek s podpisem se před tlačítkem neuzavře.
+    expect(html.slice(signature, button)).not.toContain("</tr>");
+    expect(html.slice(signature, button)).toContain('class="cta-cell"');
+  });
+
+  it("accepts an embedded PNG for the in-app preview, but nothing that leaves the email", () => {
+    expect(render({ qrSrc: "data:image/png;base64,iVBORw0KGgo=" }).html).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+    for (const bad of ["https://evil.example/qr.png", "javascript:alert(1)", 'cid:x" onerror="alert(1)', "data:text/html;base64,PHNjcmlwdD4="]) {
+      expect(render({ qrSrc: bad }).html, bad).not.toContain("Zaplaťte QR kódem");
+    }
+  });
+
+  it("states the outstanding amount next to the paid part, so it matches the QR code", () => {
+    // QR zní na zbývající částku. Kdyby text ukazoval celou fakturu,
+    // dlužník by viděl dvě různá čísla a nevěděl, kterému věřit.
+    const result = render({ payment: { total: "12 100,00", paid: "2 000,00", remaining: "10 100,00" } });
+    expect(result.html).toContain("10 100,00 CZK");
+    expect(result.html).toContain("Uhrazeno");
+    expect(result.html).toContain("2 000,00 CZK");
+    expect(result.html).toContain("12 100,00 CZK");
+    expect(result.text).toContain("Zbývá uhradit: 10 100,00 CZK");
+    expect(render().html).not.toContain("Uhrazeno");
+  });
+});
+
 describe("reminderLogoUrl", () => {
   // Upomínka jde jménem konkrétní firmy: cizí firma nesmí dostat logo
   // R. Hlavica jen proto, že bylo dřív jediné.

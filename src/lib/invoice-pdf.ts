@@ -5,7 +5,7 @@ import { join } from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { buildSpayd } from "@/lib/czech-payment";
+import { invoiceSpayd } from "@/lib/czech-payment";
 import type { Invoice } from "@/types/invoice";
 
 export type InvoicePdfCompany = {
@@ -181,14 +181,7 @@ export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCo
   // QR platba. Vykresli se jen tehdy, kdyz je z ceho -- neuplny nebo
   // vymysleny QR kod je horsi nez zadny, protoze vypada funkcne a poslal by
   // penize jinam. buildSpayd proto pri pochybnostech vraci null.
-  const spayd = buildSpayd({
-    account: bankAccount,
-    amount: remaining > 0 ? remaining : Number(invoice.amount),
-    currency: invoice.currency,
-    variableSymbol: invoice.variable_symbol,
-    dueDate: invoice.due_date,
-    message: `Faktura ${invoice.invoice_number}`,
-  });
+  const spayd = invoiceSpayd(invoice, company);
   if (spayd) {
     const QR_SIZE = 110;
     ensureSpace(cursor, QR_SIZE + 30);
