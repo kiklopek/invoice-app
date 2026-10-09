@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import Link from "next/link";
 import { useState } from "react";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
@@ -109,18 +110,18 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
           {existingAccount ? (
             <label className={styles.field}>
               <span>Heslo k vašemu účtu</span>
-              <span className={styles.control}><Lock /><input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></span>
+              <span className={styles.control}><Lock /><PasswordInput autoComplete="current-password" enterKeyHint="go" required value={password} onChange={(event) => setPassword(event.target.value)} /></span>
               <small>Pro tento e-mail už účet máte. <Link href="/forgot-password">Zapomenuté heslo?</Link></small>
             </label>
           ) : (
             <div className={styles.pair}>
               <label className={styles.field}>
                 <span>Heslo</span>
-                <span className={styles.control}><Lock /><input type="password" autoComplete="new-password" required minLength={12} placeholder="Zvolte si heslo" value={password} onChange={(event) => setPassword(event.target.value)} /></span>
+                <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="next" required minLength={12} placeholder="Zvolte si heslo" value={password} onChange={(event) => setPassword(event.target.value)} /></span>
               </label>
               <label className={styles.field}>
                 <span>Heslo znovu</span>
-                <span className={styles.control}><Lock /><input type="password" autoComplete="new-password" required minLength={12} placeholder="Zopakujte heslo" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
+                <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="done" required minLength={12} placeholder="Zopakujte heslo" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
               </label>
             </div>
           )}

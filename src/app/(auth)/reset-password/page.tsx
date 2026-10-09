@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
@@ -57,12 +58,12 @@ export default function ResetPasswordPage() {
         <form onSubmit={updatePassword} className={styles.form}>
           <label className={styles.field}>
             <span>Nové heslo</span>
-            <span className={styles.control}><Lock /><input type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /></span>
+            <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="next" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /></span>
             <small>Alespoň 12 znaků, velké a malé písmeno a číslo.</small>
           </label>
           <label className={styles.field}>
             <span>Nové heslo znovu</span>
-            <span className={styles.control}><Lock /><input type="password" autoComplete="new-password" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
+            <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="done" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
           </label>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting}>

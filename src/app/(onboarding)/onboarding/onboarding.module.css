@@ -606,7 +606,9 @@
     place-items: stretch;
   }
   .card {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): sloupec se nesmí roztáhnout podle obsahu (pole pro
+       soubor, řádek pozvánky) přes šířku telefonu. */
+    grid-template-columns: minmax(0, 1fr);
     min-height: 100dvh;
     border-radius: 0;
     box-shadow: none !important;
@@ -768,4 +770,118 @@
   .planNote {
     grid-column: 1 / -1;
   }
+}
+
+/* ---------- telefon ---------- */
+/* Pole 16 px všude: menší písmo iPhone při psaní přiblíží. */
+.control input,
+.control select {
+  font-size: 16px;
+}
+.mobileProgress {
+  display: none;
+}
+@media (max-width: 640px) {
+  .logo {
+    min-height: 44px;
+  }
+  /* Místo osmi malých teček kompaktní ukazatel: krok, název a lišta. */
+  .steps {
+    display: none;
+  }
+  .mobileProgress {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  .mobileProgress b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .progressBar {
+    height: 6px;
+    border-radius: 999px;
+    background: #e4ebe6;
+    overflow: hidden;
+  }
+  .progressBar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ledger);
+    transition: width 0.25s;
+  }
+  .chip {
+    display: none;
+  }
+  .main {
+    padding: 18px 16px 0;
+  }
+  /* Zpět / Pokračovat přichycené dole: v dosahu palce i u dlouhého kroku. */
+  .actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    min-width: 0;
+    flex-wrap: nowrap;
+    margin: 16px -16px 0;
+    padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    border-top: 1px solid #eef2ef;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(6px);
+  }
+  .primary,
+  .back {
+    height: 50px;
+  }
+  .back {
+    flex: none;
+    padding: 0 14px;
+  }
+  /* Delší text (Přeskočit, přidám později) se na úzkém telefonu zalomí,
+     místo aby lištu roztáhl. */
+  .primary {
+    min-width: 0;
+    gap: 8px;
+    padding: 0 12px;
+    font-size: 15px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .summary li {
+    align-items: start;
+  }
+  .summary button {
+    min-height: 44px;
+    padding: 0 6px;
+  }
+  .dayOption span {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+  }
+  .addButton,
+  .remove {
+    min-height: 44px;
+  }
+  .periodSwitch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-self: stretch;
+  }
+  .periodSwitch button {
+    padding: 0 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progressBar span {
+    transition: none;
+  }
+}
+
+/* Nadpis kroku dostává fokus programově (tabindex=-1); rámeček by jen rušil. */
+.pane h1:focus {
+  outline: none;
 }

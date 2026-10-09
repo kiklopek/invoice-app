@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
@@ -138,14 +139,14 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
           <span>Firemní e-mail</span>
           <span className={styles.control}>
             <Mail />
-            <input type="email" inputMode="email" autoComplete="email" required placeholder={brand === "hlavica" ? `jmeno@${HLAVICA_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={brand === "hlavica" ? `jmeno@${HLAVICA_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} />
           </span>
         </label>
         <label className={styles.field}>
           <span>Heslo</span>
           <span className={styles.control}>
             <Lock />
-            <input type="password" autoComplete="current-password" required placeholder="Zadejte své heslo" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <PasswordInput autoComplete="current-password" enterKeyHint="go" required placeholder="Zadejte své heslo" value={password} onChange={(event) => setPassword(event.target.value)} />
           </span>
         </label>
         <div className={styles.row}>

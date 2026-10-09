@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={requestReset} className={styles.form}>
           <label className={styles.field}>
             <span>E-mail</span>
-            <span className={styles.control}><Mail /><input type="email" inputMode="email" autoComplete="email" required placeholder="jmeno@firma.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></span>
+            <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder="jmeno@firma.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></span>
           </label>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting}>

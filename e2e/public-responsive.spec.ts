@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 // Veřejné stránky (landing, přihlášení, registrace, pozvánka, právní texty)
 // na šířkách od nejmenšího telefonu po desktop a na telefonu na šířku.
 // Hlídá to, co se na nich rozbíjí nejčastěji: vodorovné přetékání, hlavní
-// tlačítko mimo obrazovku a vstupy s písmem pod 16 px (iOS je pak při
-// psaní přibližuje).
+// tlačítko mimo obrazovku, malá tlačítka na telefonu a vstupy s písmem
+// pod 16 px (iOS je pak při psaní přibližuje).
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -42,11 +42,19 @@ for (const { path, action } of PAGES) {
       await page.setViewportSize(viewport);
       const state = await page.evaluate(() => ({
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        // Tlačítka mají na telefonu aspoň 40 px na výšku (přepínač ceníku má
+        // klikací i popisky vedle, proto se nepočítá).
+        smallButtons: document.documentElement.clientWidth <= 480
+          ? [...document.querySelectorAll("button:not([role=switch])")]
+              .filter((button) => getComputedStyle(button).display !== "none" && button.getBoundingClientRect().width > 0 && button.getBoundingClientRect().height < 40)
+              .map((button) => (button.textContent || button.getAttribute("aria-label") || "?").trim().slice(0, 30))
+          : [],
         smallInputs: [...document.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea")]
           .filter((input) => getComputedStyle(input).display !== "none" && parseFloat(getComputedStyle(input).fontSize) < 16)
           .map((input) => input.getAttribute("name") ?? input.getAttribute("type") ?? input.tagName),
       }));
       if (state.overflow > 1) problems.push(`${viewport.width}px: přetéká o ${state.overflow}px`);
+      if (state.smallButtons.length) problems.push(`${viewport.width}px: malé tlačítko (${state.smallButtons.join(", ")})`);
       if (state.smallInputs.length) problems.push(`${viewport.width}px: vstup pod 16 px (${state.smallInputs.join(", ")})`);
 
       const main = page.getByRole("link", { name: action }).or(page.getByRole("button", { name: action })).first();

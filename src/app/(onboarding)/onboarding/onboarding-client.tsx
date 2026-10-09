@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Inter } from "next/font/google";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bank, Bell, Check, FileText, Home, Mail, Shield, Users } from "@/components/landing/landing-icons";
 import { findPlan, formatCzk, isBillingPeriod, monthlyPrice, PLANS, quote, TRIAL_DAYS, TRIAL_INVOICE_LIMIT, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { RibbonMark } from "@/components/landing/landing-icons";
@@ -130,6 +130,22 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
   // Ukládat rozpracovaný stav smíme až po jeho načtení; jinak by první
   // vykreslení s prázdnými poli přepsalo uložený koncept.
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const shownStep = useRef(step);
+
+  // Nový krok začíná nahoře a fokus jde na jeho nadpis (telefon s dlouhým
+  // formulářem, čtečky obrazovky, ovládání klávesnicí). Jen při změně kroku,
+  // ne při prvním vykreslení.
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    window.scrollTo({ top: 0 });
+    const heading = paneRef.current?.querySelector("h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  }, [step]);
 
   useEffect(() => {
     const draft = readDraft();
@@ -460,6 +476,10 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
       <div className={styles.card}>
         <aside className={styles.rail} aria-label="Postup nastavení">
           <Link href="/" className={styles.logo} aria-label="Splatno"><RibbonMark size={34} /><span>splatno</span></Link>
+          <div className={styles.mobileProgress} aria-hidden="true">
+            <span>Krok {step} z 8 · <b>{STEPS[step - 1].title}</b></span>
+            <span className={styles.progressBar}><span style={{ width: `${(step / 8) * 100}%` }} /></span>
+          </div>
           <ol className={styles.steps}>
             {STEPS.map((item, index) => {
               const number = (index + 1) as Step;
@@ -479,7 +499,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
         </aside>
 
         <section className={styles.main}>
-          <div className={styles.pane}>
+          <div className={styles.pane} ref={paneRef}>
             <span className={styles.chip}>Krok {step} z 8</span>
 
             {step === 1 && (
@@ -491,7 +511,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                     <span className={styles.label}>IČO</span>
                     <span className={styles.control}>
                       <Home />
-                      <input inputMode="numeric" autoComplete="off" maxLength={10} placeholder="12345678" value={company.ico}
+                      <input inputMode="numeric" enterKeyHint="next" autoComplete="off" maxLength={10} placeholder="12345678" value={company.ico}
                         aria-invalid={Boolean(fieldErrors.ico)}
                         onChange={(event) => {
                           const value = event.target.value.replace(/[^\d\s]/g, "");
@@ -534,7 +554,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                 <form className={styles.form} noValidate onSubmit={(event) => { event.preventDefault(); go(3); }}>
                   <label className={styles.field}>
                     <span className={styles.label}>E-mail pro faktury a odpovědi</span>
-                    <span className={styles.control}><Mail /><input type="email" autoComplete="email" placeholder="faktury@firma.cz" value={company.email} aria-invalid={Boolean(fieldErrors.email)} onChange={(event) => update("email", event.target.value)} /></span>
+                    <span className={styles.control}><Mail /><input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" autoComplete="email" placeholder="faktury@firma.cz" value={company.email} aria-invalid={Boolean(fieldErrors.email)} onChange={(event) => update("email", event.target.value)} /></span>
                     {fieldErrors.email ? <p className={styles.fieldError}>{fieldErrors.email}</p> : <p className={styles.hint}>Na tuto adresu přijdou odpovědi zákazníků na upomínky.</p>}
                   </label>
                   <div className={styles.pair}>
@@ -568,7 +588,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                     <span className={styles.label}>Účet v korunách</span>
                     <span className={styles.control}>
                       <Bank />
-                      <input inputMode="numeric" autoComplete="off" placeholder="19-2000145399/0800" value={company.bank_account_czk} aria-invalid={Boolean(fieldErrors.bank_account_czk)} onChange={(event) => update("bank_account_czk", event.target.value)} />
+                      <input autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" autoComplete="off" placeholder="19-2000145399/0800" value={company.bank_account_czk} aria-invalid={Boolean(fieldErrors.bank_account_czk)} onChange={(event) => update("bank_account_czk", event.target.value)} />
                       {company.bank_account_czk && isValidBankAccount(company.bank_account_czk) ? <span className={styles.tag}>Číslo ověřeno</span> : null}
                     </span>
                     {fieldErrors.bank_account_czk ? <p className={styles.fieldError}>{fieldErrors.bank_account_czk}</p> : <p className={styles.hint}>Ve tvaru předčíslí-číslo/kód banky.</p>}
@@ -577,7 +597,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                     <span className={styles.label}>Účet v eurech <small>(nepovinné)</small></span>
                     <span className={styles.control}>
                       <Bank />
-                      <input inputMode="numeric" autoComplete="off" value={company.bank_account_eur} aria-invalid={Boolean(fieldErrors.bank_account_eur)} onChange={(event) => update("bank_account_eur", event.target.value)} />
+                      <input autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" autoComplete="off" value={company.bank_account_eur} aria-invalid={Boolean(fieldErrors.bank_account_eur)} onChange={(event) => update("bank_account_eur", event.target.value)} />
                     </span>
                     {fieldErrors.bank_account_eur ? <p className={styles.fieldError}>{fieldErrors.bank_account_eur}</p> : null}
                   </label>
@@ -611,7 +631,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                   </fieldset>
                   <label className={styles.field}>
                     <span className={styles.label}>Odpovědi zákazníků chodí na <small>(prázdné = {company.email || "e-mail firmy"})</small></span>
-                    <span className={styles.control}><Mail /><input type="email" autoComplete="off" placeholder={company.email || "faktury@firma.cz"} value={reminders.replyTo} onChange={(event) => setReminders((current) => ({ ...current, replyTo: event.target.value }))} /></span>
+                    <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="off" placeholder={company.email || "faktury@firma.cz"} value={reminders.replyTo} onChange={(event) => setReminders((current) => ({ ...current, replyTo: event.target.value }))} /></span>
                   </label>
                   <label className={styles.field}>
                     <span className={styles.label}>Kopie upomínek <small>(nepovinné, nejvýš {MAX_REMINDER_CC_RECIPIENTS} adres)</small></span>
@@ -659,7 +679,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                   <div className={styles.inviteRow}>
                     <label className={styles.field}>
                       <span className={styles.label}>E-mail kolegy</span>
-                      <span className={styles.control}><Mail /><input type="email" autoComplete="off" placeholder="kolega@firma.cz" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} /></span>
+                      <span className={styles.control}><Mail /><input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" autoComplete="off" placeholder="kolega@firma.cz" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} /></span>
                     </label>
                     <label className={styles.field}>
                       <span className={styles.label}>Role</span>
