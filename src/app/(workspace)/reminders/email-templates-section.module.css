@@ -1,0 +1,405 @@
+/* Texty upomínek. Rozložení se řídí šířkou sekce (container query), ne oknem:
+   vedle ní může být postranní navigace, takže šířka okna o místě nic neříká. */
+
+.section {
+  container-type: inline-size;
+  min-width: 0;
+  padding: 18px 20px 20px;
+}
+
+/* Typ upomínky: čtyři stejně široké volby, v úzké sekci 2 × 2. Text se smí
+   zalomit, nikdy se neuřízne ani neuteče do strany. */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f4f6f3;
+}
+
+.stage,
+.stageActive {
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.stage:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.stageActive {
+  border-color: var(--line);
+  background: #fff;
+  color: var(--green);
+  box-shadow: 0 1px 2px rgba(23, 37, 29, 0.08);
+}
+
+.stage:focus-visible,
+.stageActive:focus-visible,
+.viewSwitch button:focus-visible,
+.chips button:focus-visible,
+.linkButton:focus-visible,
+.delivery summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.stageHelp {
+  margin: 10px 2px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Přepínač Upravit / Náhled je jen pro úzkou sekci; na šířku jsou obě
+   části vedle sebe. */
+.viewSwitch {
+  display: none;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.editor {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.label {
+  color: #314139;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.field textarea {
+  min-height: 220px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: #4d8263;
+  outline: 2px solid #dbe9df;
+  outline-offset: 0;
+}
+
+.field input:disabled,
+.field textarea:disabled {
+  background: #f4f6f3;
+  color: var(--muted);
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--green);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.insert {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.insertLabel {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chips button {
+  max-width: 100%;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid #cfe0d4;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.chips button:hover:not(:disabled) {
+  border-color: #9cc0a8;
+  background: #dfece3;
+}
+
+.chips button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f6f3;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.delivery {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.delivery summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.delivery summary::-webkit-details-marker {
+  display: none;
+}
+
+.delivery summary small {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chevron {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+
+.delivery[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.deliveryFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.preview {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7f8f6;
+}
+
+.previewMeta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.previewMeta small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.previewEyebrow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.previewSubject {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.qrWarning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #ecd5a6;
+  border-radius: 8px;
+  background: #fff8e7;
+  color: #6d4c12;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.qrWarning a {
+  color: inherit;
+  font-weight: 700;
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f2f4f1;
+}
+
+/* Úzká sekce: jedna část po druhé, přepínačem nahoře. */
+@container (max-width: 760px) {
+  .viewSwitch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #f4f6f3;
+  }
+
+  .viewSwitch button {
+    min-height: 40px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .viewSwitch button[aria-pressed="true"] {
+    border-color: var(--line);
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(23, 37, 29, 0.08);
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .layout[data-view="edit"] .preview,
+  .layout[data-view="preview"] .editor {
+    display: none;
+  }
+}
+
+@container (max-width: 560px) {
+  .stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .deliveryFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions :global(.btn) {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  /* Na telefonu by druhý rámeček kolem e-mailu jen ubíral místo textu. */
+  .preview {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  /* iOS při písmu pod 16 px stránku po kliknutí do pole přiblíží. */
+  .field input,
+  .field textarea {
+    font-size: 16px;
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .section {
+    padding: 14px 14px 16px;
+  }
+}

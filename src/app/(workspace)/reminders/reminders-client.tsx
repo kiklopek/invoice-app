@@ -5,16 +5,14 @@ import useSWR from "swr";
 import Link from "next/link";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { ChevronDown } from "@/components/chevron-down";
 import { EmailSuppressionsPanel } from "./email-suppressions-panel";
-import { interpolateReminderTemplateValues } from "@/lib/reminder-template";
+import { EmailTemplatesSection } from "./email-templates-section";
 import { Icon } from "@/components/icons";
 import { isAutomationRunStale } from "@/lib/automation-run";
 import { parseReminderCcInput } from "@/lib/reminder-recipients";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
-import {
-  renderReminderEmail,
-  type ReminderEmailCompany,
-} from "@/lib/reminder-email-template";
+import { type ReminderEmailCompany } from "@/lib/reminder-email-template";
 import type { ReminderStage } from "@/types/invoice";
 import { type ReminderPolicySummary } from "@/lib/reminder-policies";
 import { confirmAction } from "@/lib/confirm-action";
@@ -37,12 +35,6 @@ const stageNames: Record<ReminderStage, string> = {
   escalation: "Poslední důrazná upomínka",
 };
 const reminderStages = Object.keys(stageNames) as ReminderStage[];
-const stageHelp: Record<ReminderStage, string> = {
-  before_due: "Přátelské upozornění, že se blíží termín platby.",
-  on_due: "Informace, že faktura má být dnes uhrazena.",
-  overdue: "Běžná upomínka po překročení splatnosti.",
-  escalation: "Důraznější text při dlouhém prodlení.",
-};
 const formatDate = (value: string | null) =>
   value
     ? new Intl.DateTimeFormat("cs-CZ", {
@@ -66,14 +58,6 @@ const formatMoney = (value: number, currency: string) =>
     currency,
     maximumFractionDigits: 0,
   }).format(value);
-const previewValues = {
-  invoice_number: "TEST-2026-001",
-  variable_symbol: "2026001",
-  counterparty_name: "Ukázkový odběratel s.r.o.",
-  amount: "12 500,00",
-  currency: "CZK",
-  due_date: "13. 8. 2026",
-};
 
 function toRules(days: number[]): Rule[] {
   return days.map((day, index) => ({
@@ -294,24 +278,16 @@ export function RemindersClient({
       ),
     [rules],
   );
-  const renderedPreview =
-    templates && company
-      ? renderReminderEmail({
-          company,
-          stage: activeStage,
-          subject: interpolateReminderTemplateValues(
-            templates[activeStage].subject,
-            previewValues,
-          ),
-          message: interpolateReminderTemplateValues(
-            templates[activeStage].body,
-            previewValues,
-          ),
-          values: previewValues,
-          logoUrl: company.logo_path ?? null,
-          replyTo: templates[activeStage].reply_to,
-        })
-      : null;
+  function patchActiveTemplate(patch: Partial<Template>) {
+    setGlobalDirty(true);
+    setTemplates(
+      (current) =>
+        current && {
+          ...current,
+          [activeStage]: { ...current[activeStage], ...patch },
+        },
+    );
+  }
   function update(id: string, patch: Partial<Rule>) {
     setPolicyDirty(true);
     setRules((current) =>
@@ -566,19 +542,25 @@ export function RemindersClient({
       setSendingTest(false);
     }
   }
-  function useRecommendedTemplate() {
+  async function applyRecommendedTemplate() {
     if (!templates) return;
-    setGlobalDirty(true);
-    setTemplates(
-      (current) =>
-        current && {
-          ...current,
-          [activeStage]: {
-            ...current[activeStage],
-            ...defaultReminderTemplates[activeStage],
-          },
-        },
-    );
+    const recommended = defaultReminderTemplates[activeStage];
+    const current = templates[activeStage];
+    // Vlastní text se jedním kliknutím přepsat nesmí; doporučený jen potvrdit nemá co.
+    const differs =
+      current.subject !== recommended.subject ||
+      current.body !== recommended.body;
+    if (
+      differs &&
+      !(await confirmAction({
+        title: "Vrátit doporučený text?",
+        description: `Předmět a text upomínky „${stageNames[activeStage]}“ se nahradí doporučeným zněním. Uloží se až tlačítkem Uložit změny.`,
+        confirmLabel: "Vrátit doporučený text",
+        confirmVariant: "primary",
+      }))
+    )
+      return;
+    patchActiveTemplate(recommended);
   }
   async function runNow() {
     // Tohle rozešle skutečné e-maily zákazníkům a vzít zpět to nejde.
@@ -986,7 +968,7 @@ export function RemindersClient({
             ) : automationRunProblem ? (
               <em>Vyžaduje kontrolu</em>
             ) : null}
-            <i aria-hidden="true" />
+            <ChevronDown className="reminder-disclosure-chevron" />
           </span>
         </summary>
         <div className="reminder-disclosure-body">
@@ -1094,199 +1076,36 @@ export function RemindersClient({
         <details className="page-panel reminder-section-disclosure reminder-email-settings">
           <summary>
             <span>
-              <strong>Texty e-mailů pro všechny kategorie</strong>
+              <strong>Texty upomínek</strong>
               <small>
-                Společné texty, předměty a adresy používané u všech kategorií.
+                Co odběratel uvidí v e-mailu. Platí pro všechny kategorie.
               </small>
             </span>
             <span className="reminder-disclosure-meta">
-              <i aria-hidden="true" />
+              <ChevronDown className="reminder-disclosure-chevron" />
             </span>
           </summary>
-          <section className="templates-page reminder-disclosure-body">
-            <div className="template-header-actions reminder-template-actions">
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={!operations.can_run}
-                onClick={useRecommendedTemplate}
-              >
-                Použít doporučený text
-              </button>
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={sendingTest || !operations.can_run}
-                onClick={sendTest}
-              >
-                {sendingTest ? "Odesílám test…" : "Poslat test na můj e-mail"}
-              </button>
-            </div>
-            <div className="friendly-tabs">
-              {reminderStages.map((stage) => (
-                <button
-                  key={stage}
-                  className={activeStage === stage ? "active" : ""}
-                  onClick={() => setActiveStage(stage)}
-                >
-                  <strong>{stageNames[stage]}</strong>
-                  <span>{stageHelp[stage]}</span>
-                </button>
-              ))}
-            </div>
-            <div className="template-compose">
-              <div className="friendly-template">
-                <label>
-                  <span>Předmět zprávy</span>
-                  <input
-                    value={templates[activeStage].subject}
-                    disabled={!operations.can_run}
-                    onChange={(e) => {
-                      setGlobalDirty(true);
-                      setTemplates(
-                        (current) =>
-                          current && {
-                            ...current,
-                            [activeStage]: {
-                              ...current[activeStage],
-                              subject: e.target.value,
-                            },
-                          },
-                      );
-                    }}
-                  />
-                </label>
-                <label>
-                  <span>Text zprávy</span>
-                  <textarea
-                    value={templates[activeStage].body}
-                    disabled={!operations.can_run}
-                    onChange={(e) => {
-                      setGlobalDirty(true);
-                      setTemplates(
-                        (current) =>
-                          current && {
-                            ...current,
-                            [activeStage]: {
-                              ...current[activeStage],
-                              body: e.target.value,
-                            },
-                          },
-                      );
-                    }}
-                  />
-                </label>
-                <div className="template-delivery">
-                  <label>
-                    <span>
-                      Kam mohou odběratelé odpovědět <small>nepovinné</small>
-                    </span>
-                    <input
-                      type="email"
-                      placeholder="např. ucetni@hlavica.cz"
-                      value={templates[activeStage].reply_to ?? ""}
-                      disabled={!operations.can_run}
-                      onChange={(e) => {
-                        setGlobalDirty(true);
-                        setTemplates(
-                          (current) =>
-                            current && {
-                              ...current,
-                              [activeStage]: {
-                                ...current[activeStage],
-                                reply_to: e.target.value || null,
-                              },
-                            },
-                        );
-                      }}
-                    />
-                  </label>
-                  <label>
-                    <span>
-                      Poslat interní kopii{" "}
-                      <small>nepovinné, nejvýše 5 adres</small>
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="email"
-                      placeholder="Adresy oddělte čárkou"
-                      value={ccInputs[activeStage]}
-                      disabled={!operations.can_run}
-                      onChange={(e) => {
-                        setGlobalDirty(true);
-                        setCcInputs((current) => ({
-                          ...current,
-                          [activeStage]: e.target.value,
-                        }));
-                      }}
-                    />
-                  </label>
-                </div>
-                <div className="variables">
-                  <span>Můžete použít:</span>
-                  {[
-                    "{{invoice_number}}",
-                    "{{counterparty_name}}",
-                    "{{amount}}",
-                    "{{currency}}",
-                    "{{due_date}}",
-                    "{{variable_symbol}}",
-                  ].map((item) => (
-                    <code key={item}>{item}</code>
-                  ))}
-                </div>
-                <div className="template-save-actions">
-                  <button
-                    type="button"
-                    className="btn primary"
-                    disabled={
-                      !operations.can_run || saving || loading || runningNow
-                    }
-                    onClick={save}
-                  >
-                    {saving ? (
-                      "Ukládám…"
-                    ) : (
-                      <>
-                        <Icon name="check" />
-                        Uložit změny
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <MobileDisclosure
-                label="Náhled výsledného e-mailu"
-                className="email-preview-disclosure"
-              >
-                <aside className="email-preview">
-                  <span>NÁHLED E-MAILU</span>
-                  {templates[activeStage].reply_to && (
-                    <small className="preview-meta">
-                      Odpovědi: {templates[activeStage].reply_to}
-                    </small>
-                  )}
-                  {parseReminderCcInput(ccInputs[activeStage]).length > 0 && (
-                    <small className="preview-meta">
-                      Kopie:{" "}
-                      {parseReminderCcInput(ccInputs[activeStage]).join(", ")}
-                    </small>
-                  )}
-                  {renderedPreview ? (
-                    <iframe
-                      className="email-preview-frame"
-                      title="Náhled výsledného e-mailu"
-                      sandbox=""
-                      srcDoc={renderedPreview.html}
-                    />
-                  ) : (
-                    <p className="page-state">Připravuji náhled…</p>
-                  )}
-                  <small>Ukázková data se nikam neukládají.</small>
-                </aside>
-              </MobileDisclosure>
-            </div>
-          </section>
+          <div className="reminder-disclosure-body">
+            <EmailTemplatesSection
+              templates={templates}
+              ccInputs={ccInputs}
+              activeStage={activeStage}
+              company={company}
+              canEdit={operations.can_run}
+              busy={saving || loading || runningNow}
+              saving={saving}
+              sendingTest={sendingTest}
+              onStageChange={setActiveStage}
+              onTemplateChange={patchActiveTemplate}
+              onCcChange={(value) => {
+                setGlobalDirty(true);
+                setCcInputs((current) => ({ ...current, [activeStage]: value }));
+              }}
+              onRecommended={applyRecommendedTemplate}
+              onSendTest={sendTest}
+              onSave={save}
+            />
+          </div>
         </details>
       )}
       <EmailSuppressionsPanel />

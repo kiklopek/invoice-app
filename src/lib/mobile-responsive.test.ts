@@ -178,7 +178,7 @@ describe("mobile application layout", () => {
     expect(remindersPage).toContain("reminders-process-card");
     expect(remindersPage.match(/<details className=/g)).toHaveLength(2);
     expect(remindersPage).toContain("Provozní přehled a historie");
-    expect(remindersPage).toContain("Texty e-mailů pro všechny kategorie");
+    expect(remindersPage).toContain("Texty upomínek");
     expect(remindersPage).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/);
     expect(css).toContain(".reminder-section-disclosure > summary:focus-visible");
     expect(css).toContain(".reminder-operations.reminder-quick-stats");
@@ -197,8 +197,8 @@ describe("mobile application layout", () => {
     expect(css).toContain("height: 48px !important");
     expect(css).toContain("-webkit-appearance: none");
     expect(css).toContain("padding: 0 var(--select-chevron-padding) 0 12px !important");
-    expect(css).toContain("--select-chevron-size: clamp(11px, .9em, 14px)");
-    expect(css).toContain("--select-chevron-offset: clamp(10px, 3%, 18px)");
+    expect(css).toContain("--select-chevron-size: 20px");
+    expect(css).toContain("--select-chevron-offset: 12px");
   });
 
   it("opens suitable mobile keyboards for invoice and customer fields", () => {
