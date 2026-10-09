@@ -8,8 +8,8 @@ import { pg_trgm } from "../.cache/reconciliation-tools/node_modules/@electric-s
 const db = new PGlite({ extensions: { pg_trgm } });
 try {
   await replayMigrations((sql) => db.exec(sql), true);
-  await db.exec((await readFile("supabase/tests/billing_and_verification.sql", "utf8")).replace(/^\\.*$/gm, ""));
-  console.log("Passed billing, subscriptions and data box verification.");
+  await db.exec((await readFile("supabase/tests/stripe_billing.sql", "utf8")).replace(/^\\.*$/gm, ""));
+  console.log("Passed Stripe subscriptions, trial limit and trial abuse rules.");
 } catch (error) {
   console.error(error.message, error.detail ?? "", error.where ?? "");
   process.exitCode = 1;
