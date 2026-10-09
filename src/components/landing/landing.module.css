@@ -58,11 +58,12 @@
   flex: none;
 }
 
+/* Obsah se roztahuje přes celou šířku okna; okraje rostou s ní, takže
+   na širokých monitorech nevznikají prázdné pruhy po stranách. */
 .container {
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 clamp(16px, 4.5vw, 120px);
 }
 
 .muted {
@@ -1593,4 +1594,49 @@
   font-size: 13px;
   line-height: 1.45;
   text-align: center;
+}
+
+/* ---------- široké monitory ---------- */
+/* Rozvržení se roztahuje do šířky; aby obsah nepůsobil řídce, roste od
+   1600 px i písmo a mezery (rem se v landing page nepoužívá, proto px). */
+@media (min-width: 1600px) {
+  .page {
+    font-size: 17px;
+  }
+  .h1 {
+    font-size: clamp(66px, 4.4vw, 104px);
+  }
+  .h2 {
+    font-size: clamp(40px, 2.6vw, 64px);
+  }
+  .h2Sm {
+    font-size: clamp(28px, 1.8vw, 40px);
+  }
+  .lead {
+    max-width: 680px;
+    font-size: clamp(17px, 1.05vw, 22px);
+  }
+  .section {
+    padding-block: clamp(96px, 6vw, 160px);
+  }
+  .step > p {
+    max-width: 420px;
+  }
+}
+
+/* Při roztažení přes celou šířku už vedle obsahu není volný pruh, do
+   kterého by náhled aplikace a maskot mohly přesahovat: maskot se vejde
+   dovnitř a náhled mu nechá místo. */
+@media (min-width: 1081px) {
+  .heroVisual {
+    margin-right: 0;
+    padding-right: clamp(48px, 4vw, 96px);
+  }
+  .heroMascot {
+    right: -12px;
+    width: clamp(220px, 13vw, 320px);
+  }
+  .heroHand {
+    right: clamp(200px, 13vw, 330px);
+  }
 }
