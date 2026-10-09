@@ -143,14 +143,14 @@ export function EskoAssistant() {
           hideTeaser();
         }}
       >
-        <Image src="/brand/mascot/esko.webp" alt="" width={192} height={192} className={styles.fabImage} />
+        <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="64px" className={styles.fabImage} />
         <span className={styles.online} aria-hidden="true" />
       </button>
 
       {open ? (
         <section id="esko-panel" className={styles.panel} role="dialog" aria-label="Asistent Esko">
           <header className={styles.head}>
-            <Image src="/brand/mascot/esko.webp" alt="" width={192} height={192} className={styles.avatar} />
+            <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="42px" className={styles.avatar} />
             <span>
               <b>Esko · asistent</b>
               <small>Hlídá vaše faktury</small>
@@ -189,13 +189,16 @@ export function EskoAssistant() {
             ) : null}
           </div>
 
-          <div className={styles.chips}>
-            {ESKO_QUESTIONS.map((question) => (
-              <button key={question.id} type="button" disabled={Boolean(pending)} onClick={() => ask(question.id)}>
-                {question.label}
-              </button>
-            ))}
-          </div>
+          {/* Návrhy jen pro začátek: jakmile člověk píše nebo se už ptal, ustoupí konverzaci. */}
+          {messages.length === 0 && !draft.trim() ? (
+            <div className={styles.chips}>
+              {ESKO_QUESTIONS.map((question) => (
+                <button key={question.id} type="button" disabled={Boolean(pending)} onClick={() => ask(question.id)}>
+                  {question.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <form className={styles.askForm} onSubmit={askText}>
             <label className={styles.srOnly} htmlFor="esko-question">Otázka pro Eska</label>
             <input id="esko-question" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={100} placeholder="Např. najdi fakturu 1443260157" disabled={Boolean(pending)} />

@@ -1278,7 +1278,7 @@
 
   .customers-list-table .customer-identity small {
     margin-top: 4px;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.45;
   }
 
@@ -1295,7 +1295,7 @@
 
   .customers-list-table .customer-contact-cell small {
     max-width: 100%;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .customers-list-table .customer-phone-display {
@@ -1303,7 +1303,7 @@
     align-items: center;
     min-height: 44px;
     color: var(--green);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 650;
   }
 
@@ -1319,7 +1319,8 @@
 
   .customers-list-table td::before {
     margin-bottom: 7px;
-    font-size: 10px;
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .customers-list-table .customer-billing-cell strong {
@@ -1329,25 +1330,37 @@
 
   .customers-list-table .customer-billing-cell small {
     margin-top: 5px;
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .customers-list-table .outstanding-badge,
   .customers-list-table .reminder-policy-badge {
     max-width: 100%;
     padding: 5px 8px;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.3;
     white-space: normal;
   }
 
   .customers-list-table .customer-paid-state {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .customers-list-table .customer-last-invoice-cell {
     font-size: 13px;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Stavové dlaždice mají obsah uprostřed; Fakturace (částka s odkazem na
+     faktury) zůstává zarovnaná vlevo. */
+  .customers-list-table .customer-outstanding-cell,
+  .customers-list-table .customer-reminders-cell,
+  .customers-list-table .customer-last-invoice-cell {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 }
 
@@ -2052,4 +2065,33 @@
     margin: 0;
   }
   .active-invoice-table .quick-payment-button { grid-column: 1; grid-row: 2; }
+}
+
+/* Archiv faktur: jméno odběratele vede na jeho kartu, proto je podtržené.
+   E-mail pod ním je jen text (iOS ho už sám nepodtrhne, viz formatDetection
+   v app/layout.tsx). */
+.archive-invoice-table .archive-customer-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(23, 37, 29, 0.35);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.archive-invoice-table .archive-customer-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.archive-invoice-table .archive-customer-link:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media screen and (max-width: 767px) {
+  .archive-invoice-table .archive-customer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+  }
 }

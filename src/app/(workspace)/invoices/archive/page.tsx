@@ -170,7 +170,7 @@ export default function InvoiceArchivePage() {
                           archiv se dal ovládat výhradně myší. Klik na řádek
                           zůstává jako vylepšení pro myš. */}
                       <td data-label="Faktura" className="archive-invoice-number"><Link href={`/invoices/${invoice.id}`}><strong>{invoice.invoice_number}</strong></Link><small>VS {invoice.variable_symbol || "—"}</small></td>
-                      <td data-label="Odběratel" className="archive-invoice-customer"><strong>{invoice.counterparty_name}</strong><small>{invoice.counterparty_email}</small></td>
+                      <td data-label="Odběratel" className="archive-invoice-customer">{invoice.customer_id ? <Link href={`/customers?highlight=${invoice.customer_id}`} className="archive-customer-link"><strong>{invoice.counterparty_name}</strong></Link> : <strong>{invoice.counterparty_name}</strong>}<small>{invoice.counterparty_email}</small></td>
                       <td data-label="Částka" className="archive-invoice-amount"><strong>{money(Number(invoice.amount), invoice.currency)}</strong><small>Uhrazeno {money(Number(invoice.paid_amount), invoice.currency)}</small></td>
                       <td data-label="Vystavení" className="archive-invoice-issued">{date(invoice.issue_date)}</td>
                       <td data-label="Splatnost" className="archive-invoice-due">{date(invoice.due_date)}</td>

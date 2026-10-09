@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   applicationName: "Splatno",
   title: "Splatno | Faktury a upomínky pod kontrolou",
   description: "Přehled faktur, hlídání splatnosti a automatické upomínky.",
+  // iOS Safari jinak sám dělá z e-mailů, telefonů a adres podtržené odkazy
+  // (archiv faktur tak podtrhával e-mail odběratele místo jeho jména).
+  formatDetection: { email: false, telephone: false, address: false },
   openGraph: {
     siteName: "Splatno",
     title: "Splatno | Faktury a upomínky pod kontrolou",
