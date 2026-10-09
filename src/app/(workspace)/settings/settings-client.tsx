@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CompanyTrust } from "./company-trust";
 import styles from "./settings-page.module.css";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { ChevronDown } from "@/components/chevron-down";
 import { useAccessProfile } from "@/lib/use-access-role";
 import { canEditCompanySettings, roleNames } from "@/lib/role-access";
 import { confirmAction } from "@/lib/confirm-action";
@@ -593,9 +593,7 @@ export function SettingsClient({
                   Neměnná auditní stopa posledních administrátorských zásahů.
                 </small>
               </span>
-              <span aria-hidden="true" className="access-history-chevron">
-                ⌄
-              </span>
+              <ChevronDown className="access-history-chevron" />
             </summary>
             <section className="access-history">
               <div className="access-history-list">
@@ -623,7 +621,6 @@ export function SettingsClient({
           </details>
         </>
       )}
-      {canAdminister ? <CompanyTrust /> : null}
       </div>
     </AppFrame>
   );
