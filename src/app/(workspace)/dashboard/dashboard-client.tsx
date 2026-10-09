@@ -43,7 +43,7 @@ function CurrencyTotals({ totals }: { totals: Record<string, number> }) {
       {(rows.length ? rows : [["CZK", 0] as const]).map(([currency, amount], index) => (
         <span className="dashboard-currency-total" key={currency}>
           {index > 0 ? <span className="dashboard-currency-separator">+ </span> : null}
-          {money(Number(amount), currency)}
+          {money(Number(amount), currency).replace(/[\u00a0\u202f]/g, " ")}
         </span>
       ))}
     </span>

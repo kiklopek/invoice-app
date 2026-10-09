@@ -88,6 +88,41 @@
   margin-block: auto;
   padding-top: 36px;
 }
+.backNavigation {
+  display: block;
+  margin-bottom: clamp(16px, 3vw, 24px);
+}
+.backHome {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.backHome span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.backHome svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.backHome:hover {
+  color: var(--ledger);
+  text-decoration: underline;
+}
+.backHome:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid rgba(31, 106, 74, .25);
+  outline-offset: 3px;
+}
 
 .eyebrow {
   display: inline-block;

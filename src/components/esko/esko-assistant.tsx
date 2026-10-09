@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import useSWR from "swr";
 import type { DashboardData } from "@/lib/dashboard-summary";
-import { eskoAnswer, ESKO_QUESTIONS, type EskoAnswer, type EskoQuestionId } from "@/lib/esko";
+import { apiFetch } from "@/lib/api-client";
+import { eskoAnswer, eskoCustomerDebtAnswer, eskoHelpAnswer, eskoIntent, eskoInvoiceSearchAnswer, ESKO_QUESTIONS, type EskoAnswer, type EskoQuestionId } from "@/lib/esko";
 import { useAccessProfile } from "@/lib/use-access-role";
+import type { Invoice } from "@/types/invoice";
 import styles from "./esko-assistant.module.css";
 
 type Message =
@@ -14,6 +16,8 @@ type Message =
   | { from: "esko"; answer: EskoAnswer };
 
 const TEASER_KEY = "splatno:esko-teaser-dismissed";
+type Pending = { kind: "question"; id: EskoQuestionId } | { kind: "invoice_search" | "customer_debt"; query: string };
+type SearchResult = { invoices: Invoice[]; total: number; open_totals: Record<string, number> };
 
 // Plovoucí asistent vpravo dole na všech stránkách aplikace. Data si načte
 // až po otevření, aby neprodlužoval běžné načítání stránek.
@@ -22,7 +26,8 @@ export function EskoAssistant() {
   const [open, setOpen] = useState(false);
   const [teaser, setTeaser] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [pending, setPending] = useState<EskoQuestionId | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { data, error } = useSWR<DashboardData>(open ? "/api/dashboard" : null);
@@ -46,17 +51,38 @@ export function EskoAssistant() {
 
   // Otázka položená před načtením dat se zodpoví, jakmile data dorazí.
   useEffect(() => {
-    if (!pending || !data) return;
-    setMessages((current) => [...current, { from: "esko", answer: eskoAnswer(pending, data, profile?.role ?? null) }]);
+    if (pending?.kind !== "question" || !data) return;
+    setMessages((current) => [...current, { from: "esko", answer: eskoAnswer(pending.id, data, profile?.role ?? null) }]);
     setPending(null);
   }, [pending, data, profile?.role]);
 
   // Bez dat Esko neodpoví vymyšleným číslem; řekne to a otázku pustí.
   useEffect(() => {
-    if (!pending || !error || data) return;
+    if (pending?.kind !== "question" || !error || data) return;
     setMessages((current) => [...current, { from: "esko", answer: { text: "Čísla se teď nepodařilo načíst. Zkuste to prosím za chvíli.", lines: [] } }]);
     setPending(null);
   }, [pending, error, data]);
+
+  useEffect(() => {
+    if (pending?.kind !== "invoice_search" && pending?.kind !== "customer_debt") return;
+    const controller = new AbortController();
+    const query = pending.query;
+    const kind = pending.kind;
+    void apiFetch<SearchResult>(`/api/invoices?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+      .then((result) => {
+        const answer = kind === "customer_debt"
+          ? eskoCustomerDebtAnswer(query, result.total, result.open_totals, profile?.role ?? null)
+          : eskoInvoiceSearchAnswer(query, result.invoices, result.total, profile?.role ?? null);
+        setMessages((current) => [...current, { from: "esko", answer }]);
+        setPending(null);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setMessages((current) => [...current, { from: "esko", answer: { text: "Faktury se teď nepodařilo prohledat. Zkuste to prosím znovu.", lines: [] } }]);
+        setPending(null);
+      });
+    return () => controller.abort();
+  }, [pending, profile?.role]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
@@ -79,7 +105,21 @@ export function EskoAssistant() {
     const question = ESKO_QUESTIONS.find((item) => item.id === id);
     if (!question) return;
     setMessages((current) => [...current, { from: "user", text: question.label }]);
-    setPending(id);
+    setPending({ kind: "question", id });
+  }
+
+  function askText(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = draft.trim();
+    if (!text || pending) return;
+    setDraft("");
+    setMessages((current) => [...current, { from: "user", text }]);
+    const intent = eskoIntent(text);
+    if (intent.kind === "help") {
+      setMessages((current) => [...current, { from: "esko", answer: eskoHelpAnswer() }]);
+    } else {
+      setPending(intent);
+    }
   }
 
   return (
@@ -120,7 +160,7 @@ export function EskoAssistant() {
 
           <div className={styles.messages} ref={listRef} aria-live="polite">
             <p className={`${styles.msg} ${styles.esko}`}>
-              Ahoj, tady Esko. Odpovím vám z aktuálních čísel vaší firmy. Na co se chcete podívat?
+              Ahoj, tady Esko. Zeptejte se mě vlastními slovy na faktury, platby nebo upomínky. Odpovídám z aktuálních dat vaší firmy.
             </p>
             {messages.map((message, index) =>
               message.from === "user" ? (
@@ -156,7 +196,12 @@ export function EskoAssistant() {
               </button>
             ))}
           </div>
-          <p className={styles.footnote}>Esko zatím odpovídá na tyto otázky a nic sám neodesílá.</p>
+          <form className={styles.askForm} onSubmit={askText}>
+            <label className={styles.srOnly} htmlFor="esko-question">Otázka pro Eska</label>
+            <input id="esko-question" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={100} placeholder="Např. najdi fakturu 1443260157" disabled={Boolean(pending)} />
+            <button type="submit" disabled={Boolean(pending) || !draft.trim()}>Zeptat se</button>
+          </form>
+          <p className={styles.footnote}>Esko odpovídá z dat vaší firmy. Platby, faktury ani upomínky samo nemění.</p>
         </section>
       ) : null}
     </>

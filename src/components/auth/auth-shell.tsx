@@ -65,7 +65,16 @@ export function AuthShell({
               </>
             )}
           </div>
-          <div className={styles.body}>{children}</div>
+          <div className={styles.body}>
+            {/* Splatno má zpětnou šipku přímo v řádku s logem; vstup R. Hlavica
+                tam má logo firmy, proto ji dostane nad formulářem. */}
+            {brand === "hlavica" ? (
+              <nav className={styles.backNavigation} aria-label="Návrat na úvodní stránku">
+                <Link href="/" className={styles.backHome}><ArrowLeft /><span>Zpět na úvodní stránku</span></Link>
+              </nav>
+            ) : null}
+            {children}
+          </div>
         </section>
         <aside className={styles.artSide} aria-hidden="true">
           <Image

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emptyDashboardData, type DashboardData } from "./dashboard-summary";
-import { eskoAnswer, ESKO_QUESTIONS } from "./esko";
+import { eskoAnswer, eskoCustomerDebtAnswer, eskoIntent, eskoInvoiceSearchAnswer, ESKO_QUESTIONS } from "./esko";
 
 const data = (patch: Partial<DashboardData>): DashboardData => ({ ...emptyDashboardData, ...patch });
 
@@ -54,5 +54,40 @@ describe("Esko", () => {
   it("treats a company with any invoice as established", () => {
     expect(eskoAnswer("today", data({ active_count: 1 }), "admin", { newCompany: false }).text).toContain("Dnes nic nehoří");
   });
-});
 
+  it("understands Czech free-text questions and an invoice number", () => {
+    expect(eskoIntent("Kdy odejde další upomínka?")).toEqual({ kind: "question", id: "next_reminder" });
+    expect(eskoIntent("Kolik plateb čeká na spárování?")).toEqual({ kind: "question", id: "payments" });
+    expect(eskoIntent("Co čeká na kontrolu z OCR?")).toEqual({ kind: "question", id: "imports" });
+    expect(eskoIntent("Najdi fakturu 1443260157")).toEqual({ kind: "invoice_search", query: "1443260157" });
+    expect(eskoIntent("Najdi fakturu od Wood & Paper")).toEqual({ kind: "invoice_search", query: "wood & paper" });
+    expect(eskoIntent("Kolik dluží firma Wood & Paper")).toEqual({ kind: "customer_debt", query: "wood & paper" });
+    expect(eskoIntent("Vysvětli mi sazby DPH")).toEqual({ kind: "help" });
+  });
+
+  it("uses live counts for payments, OCR and reminders without claiming to send anything", () => {
+    const summary = data({ payments_needing_review: 2, ocr_pending_confirmation: 1, reminders_due_soon: 3, reminders_sent: 5 });
+    expect(eskoAnswer("payments", summary, "admin").text).toContain("2 platby čekají");
+    expect(eskoAnswer("imports", summary, "admin").text).toContain("1 faktura z importu čeká");
+    expect(eskoAnswer("reminders", summary, "admin").text).toContain("5 upomínek");
+    expect(eskoAnswer("payments", summary, "viewer").lines).toEqual([]);
+  });
+
+  it("searches only returned invoices and respects the role of a viewer", () => {
+    const invoice = { id: "8b1eea9a-b1ed-4b67-8e8f-39b1f2abb88c", invoice_number: "2026001", counterparty_name: "Test s.r.o.", amount: 1000, paid_amount: 200, currency: "CZK", status: "pending" as const, due_date: "2026-10-20" };
+    const answer = eskoInvoiceSearchAnswer("2026001", [invoice], 1, "viewer");
+    expect(answer.lines[0]).toMatchObject({ href: `/invoices/${invoice.id}` });
+    expect(answer.lines[0].text).toContain("800\u00a0Kč");
+    expect(answer.lines[0].text).toContain("20. 10. 2026");
+    expect(eskoInvoiceSearchAnswer("nenalezeno", [], 0, "viewer").lines[0].href).toBe("/invoices?q=nenalezeno");
+    expect(eskoInvoiceSearchAnswer("2026001", [invoice], 1, null).lines[0].href).toBeUndefined();
+  });
+
+  it("keeps customer debt in separate currencies and describes the search scope", () => {
+    const answer = eskoCustomerDebtAnswer("wood", 3, { CZK: 1200, EUR: 100 }, "viewer");
+    expect(answer.text).toContain("1\u00a0200\u00a0Kč");
+    expect(answer.text).toContain("100\u00a0€");
+    expect(answer.text).toContain("Ověřte");
+    expect(answer.lines[0].href).toBe("/invoices?q=wood");
+  });
+});

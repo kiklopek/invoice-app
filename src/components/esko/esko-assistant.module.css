@@ -220,6 +220,45 @@
   opacity: 0.55;
   cursor: default;
 }
+.askForm {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 4px;
+}
+.askForm input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #cfded4;
+  border-radius: 10px;
+  background: #fff;
+  color: #182920;
+  font: inherit;
+  font-size: 13px;
+}
+.askForm input::placeholder { color: #74847a; }
+.askForm button {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #17613f;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.askForm button:disabled { opacity: .55; cursor: default; }
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .footnote {
   margin: 0;
   padding: 6px 14px 12px;

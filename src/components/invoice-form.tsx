@@ -313,6 +313,10 @@ export function InvoiceForm({
   // relevantOcrWarnings for which warnings this applies to.
   const visibleWarnings = ocrWarnings ? relevantOcrWarnings(ocrWarnings, form) : [];
   const hasOcrReview = Boolean(ocrFieldSources || ocrFieldDecisions || ocrWarnings);
+  const canCopyInvoiceNumberToVariableSymbol = !editing
+    && form.source === "ocr"
+    && Boolean(form.file_url)
+    && /^\d{1,10}$/.test(form.invoice_number.trim());
   const warningSummary = visibleWarnings.length === 1
     ? "1 údaj vyžaduje kontrolu"
     : visibleWarnings.length >= 2 && visibleWarnings.length <= 4
@@ -343,7 +347,10 @@ export function InvoiceForm({
     </details>}
     <section className="form-section"><div className="form-section-title"><span>1</span><div><h2>Identifikace faktury</h2><p>Čísla, podle kterých fakturu dohledáte v účetnictví.</p></div></div><div className="form-grid">
       <label {...fieldHooks("invoice_number")}><span>Číslo faktury *</span><input required value={form.invoice_number} onChange={e => field("invoice_number", e.target.value)} placeholder="např. FV-2026-001" autoCapitalize="off" spellCheck={false} enterKeyHint="next"/>{ocrMeta("invoice_number")}</label>
-      <label {...fieldHooks("variable_symbol")}><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001" inputMode="numeric" pattern="[0-9]*" maxLength={10} enterKeyHint="next"/>{ocrMeta("variable_symbol")}</label>
+      <div className="variable-symbol-field">
+        <label {...fieldHooks("variable_symbol")}><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001" inputMode="numeric" pattern="[0-9]*" maxLength={10} enterKeyHint="next"/>{ocrMeta("variable_symbol")}</label>
+        {canCopyInvoiceNumberToVariableSymbol && <button type="button" className="btn secondary variable-symbol-copy" onClick={() => field("variable_symbol", form.invoice_number.trim())}>Použít číslo faktury jako variabilní symbol</button>}
+      </div>
       <label {...fieldHooks("issue_date")}><span>Datum vystavení *</span><input type="date" required value={form.issue_date} onChange={e => field("issue_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("issue_date")}</label>
       <label {...fieldHooks("due_date")}><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("due_date")}</label>
       <label className="wide reminder-policy-field">

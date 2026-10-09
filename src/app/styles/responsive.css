@@ -45,6 +45,12 @@
 .invoice-import-split .ocr-field-choices .btn { min-height: 34px; height: auto; padding-block: 6px; text-align: left; }
 .standalone-form .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px 18px; }
 .standalone-form .form-grid > label { min-width: 0; }
+.standalone-form .form-grid > .variable-symbol-field { display: grid; min-width: 0; align-content: start; gap: 8px; }
+.standalone-form .variable-symbol-field > label { display: flex; min-width: 0; flex-direction: column; align-items: stretch; position: relative; }
+.standalone-form .variable-symbol-field > label > span:first-child { display: block; margin-bottom: 7px; color: #45564b; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.standalone-form .variable-symbol-field > label > input { width: 100%; min-height: 44px; border-color: #cdd8cf; border-radius: 10px; background-color: #fff; color: #1e3125; font-size: 14px; transition: border-color .15s, box-shadow .15s; }
+.standalone-form .variable-symbol-field > label > input:focus { border-color: #387450; outline: 0; box-shadow: 0 0 0 3px rgba(56,116,80,.13); }
+.variable-symbol-copy { display: flex; width: 100%; min-width: 0; min-height: 40px; padding: 8px 11px; white-space: normal; text-align: center; line-height: 1.35; overflow-wrap: anywhere; }
 .standalone-form .form-grid > label > span:first-child { display: block; margin-bottom: 7px; color: #45564b; font-size: 12px; font-weight: 700; line-height: 1.35; }
 .standalone-form .form-grid > label > input,
 .standalone-form .form-grid > label > select,
@@ -87,6 +93,7 @@
 
 @media screen and (max-width: 600px) {
   .standalone-form .form-grid { grid-template-columns: 1fr; gap: 18px; }
+  .variable-symbol-copy { min-height: 42px; }
   .invoice-import-preview-column { height: calc(100dvh - 210px); min-height: 340px; }
   .document-preview-toolbar { padding: 10px 12px; }
   .document-preview-title { flex-basis: calc(100% - 100px); }

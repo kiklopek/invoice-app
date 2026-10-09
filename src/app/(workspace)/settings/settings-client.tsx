@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CompanyTrust } from "./company-trust";
+import styles from "./settings-page.module.css";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
@@ -301,6 +303,7 @@ export function SettingsClient({
 
   return (
     <AppFrame>
+      <div className={styles.page}>
       <header className="section-header">
         <div>
           <p>SPRÁVA APLIKACE</p>
@@ -334,7 +337,7 @@ export function SettingsClient({
         <section className="page-panel company-settings">
           <header>
             <div>
-              <h2>{company.name}</h2>
+              <h2>Firemní údaje</h2>
               <p>Údaje použité v e-mailových šablonách a exportech.</p>
             </div>
           </header>
@@ -349,7 +352,9 @@ export function SettingsClient({
               onSubmit={(event) => { event.preventDefault(); void save(); }}
             >
             <fieldset disabled={!canAdminister}>
-              <div className="settings-form">
+              <div className={styles.formLayout}>
+              <section className={`settings-form ${styles.identity}`} aria-labelledby="company-identity-title">
+                <h3 id="company-identity-title" className="wide">Identifikace a adresy</h3>
                 <label className="wide">
                   <span>Obchodní název</span>
                   <input
@@ -393,6 +398,9 @@ export function SettingsClient({
                     onChange={(e) => field("operating_address", e.target.value)}
                   />
                 </label>
+              </section>
+              <section className="settings-form" aria-labelledby="company-contact-title">
+                <h3 id="company-contact-title" className="wide">Kontaktní údaje</h3>
                 <label>
                   <span>Datová schránka</span>
                   <input
@@ -417,6 +425,9 @@ export function SettingsClient({
                   />
                   {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
                 </label>
+              </section>
+              <section className="settings-form" aria-labelledby="company-payment-title">
+                <h3 id="company-payment-title" className="wide">Platební údaje</h3>
                 <label>
                   <span>Bankovní účet CZK</span>
                   <input
@@ -435,6 +446,7 @@ export function SettingsClient({
                   />
                   {fieldErrors.bank_account_eur && <small className="field-error">{fieldErrors.bank_account_eur}</small>}
                 </label>
+              </section>
               </div>
             </fieldset>
             </form>
@@ -611,6 +623,8 @@ export function SettingsClient({
           </details>
         </>
       )}
+      {canAdminister ? <CompanyTrust /> : null}
+      </div>
     </AppFrame>
   );
 }

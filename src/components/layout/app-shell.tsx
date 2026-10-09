@@ -15,7 +15,6 @@ import { CompanyLogo } from "@/components/company-logo";
 import { EskoAssistant } from "@/components/esko/esko-assistant";
 import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
-import { loginEntryPath } from "@/lib/login-entry";
 import {
   canAccessPage,
   landingPageForRole,
@@ -212,7 +211,7 @@ export function AppSidebar({
     setLogoutError(null);
     try {
       await signOutCurrentSession();
-      window.location.replace(loginEntryPath());
+      window.location.replace("/");
     } catch (error) {
       setLogoutError(
         error instanceof Error ? error.message : "Odhlášení se nepodařilo.",
