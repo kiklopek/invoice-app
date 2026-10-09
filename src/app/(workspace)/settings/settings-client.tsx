@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CompanyTrust } from "./company-trust";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
@@ -331,7 +330,6 @@ export function SettingsClient({
           {message.text}
         </p>
       )}
-      {canAdminister ? <CompanyTrust /> : null}
       <div className="settings-grid company-settings-grid">
         <section className="page-panel company-settings">
           <header>

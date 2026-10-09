@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { emailMatchesDomain, HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "./auth-policy";
+import { emailMatchesDomain, HLAVICA_EMAIL_DOMAIN, isDisposableEmail, isValidEmail, normalizeEmail } from "./auth-policy";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -27,5 +27,14 @@ describe("auth email policy", () => {
   it("normalizes e-mails", () => {
     expect(normalizeEmail("  Jan@Firma.CZ ")).toBe("jan@firma.cz");
     expect(normalizeEmail(null)).toBe("");
+  });
+
+  it("recognises throwaway mailboxes used to farm free trials, including subdomains", () => {
+    expect(isDisposableEmail("x@mailinator.com")).toBe(true);
+    expect(isDisposableEmail(" X@Guerrillamail.COM ")).toBe(true);
+    expect(isDisposableEmail("x@inbox.10minutemail.com")).toBe(true);
+    expect(isDisposableEmail("jan@firma.cz")).toBe(false);
+    expect(isDisposableEmail("jan@gmail.com")).toBe(false);
+    expect(isDisposableEmail("jan@notmailinator.com")).toBe(false);
   });
 });

@@ -671,3 +671,101 @@
     transition: none !important;
   }
 }
+
+/* ---------- tarif a karta ---------- */
+.periodSwitch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--panel);
+  justify-self: start;
+}
+.periodSwitch button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.periodSwitch button small {
+  margin-left: 6px;
+  color: var(--ledger);
+  font-size: 12px;
+  font-weight: 600;
+}
+.periodSwitch button[data-active] {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(19, 35, 27, 0.08), 0 6px 14px -8px rgba(19, 35, 27, 0.2) !important;
+}
+.periodSwitch button:disabled {
+  cursor: default;
+}
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.planOption {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.planOption input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.planOption[data-active] {
+  border-color: var(--ledger);
+  box-shadow: 0 0 0 3px rgba(31, 106, 74, 0.14) !important;
+}
+.planOption:has(input:focus-visible) {
+  outline: 2px solid #4b8a68;
+  outline-offset: 2px;
+}
+.planName {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.planPrice {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.planPrice small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.planNote {
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .planGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .planOption {
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+  }
+  .planNote {
+    grid-column: 1 / -1;
+  }
+}

@@ -1,103 +1,55 @@
-"use client";
-
-import { useState } from "react";
-import { confirmAction } from "@/lib/confirm-action";
-import { findPlan, formatCzk } from "@/lib/plans";
-
-export type OperatorCompany = { id: string; name: string; ico: string | null; email: string | null; data_box_id: string | null; verified_at: string | null; created_at: string; subscription: string };
-export type OperatorOrder = { id: string; organization_id: string; order_number: string; variable_symbol: string; plan: string; period: string; gross_halere: number; payment_method: string; status: string; created_at: string; company: string };
+export type OperatorCompany = {
+  id: string;
+  name: string;
+  ico: string | null;
+  email: string | null;
+  created_at: string;
+  state: string;
+  plan: string;
+  trial: string | null;
+  trialDenied: string | null;
+  stripeCustomer: string | null;
+};
 
 const date = (value: string | null) => (value ? new Date(value).toLocaleDateString("cs-CZ") : "—");
 
-// Zásahy provozovatele: každý s poznámkou (audit) a potvrzením s dopadem.
-export function OperatorConsole({ operatorEmail, companies, orders }: { operatorEmail: string; companies: OperatorCompany[]; orders: OperatorOrder[] }) {
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+const DENIED: Record<string, string> = { ico_used: "IČO už mělo zkušební dobu", card_used: "karta už měla zkušební dobu", ip_limit: "limit z jedné IP" };
 
-  async function act(id: string, url: string, payload: Record<string, string>, title: string, description: string) {
-    const note = (notes[id] ?? "").trim();
-    if (note.length < 3) return setMessage("Napište poznámku (jak jste to ověřili / kdy platba přišla).");
-    if (!(await confirmAction({ title, description, confirmLabel: "Potvrdit", confirmVariant: "primary" }))) return;
-    setBusy(id);
-    const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...payload, note }) }).catch(() => null);
-    const body = await response?.json().catch(() => null) as { error?: string; already_paid?: boolean } | null;
-    setBusy(null);
-    if (!response?.ok) return setMessage(body?.error ?? "Akce se nepodařila.");
-    setMessage(body?.already_paid ? "Objednávka už byla zaplacená, nic se nezměnilo." : "Hotovo.");
-    window.location.reload();
-  }
-
-  const pendingTransfers = orders.filter((order) => order.status === "pending" && order.payment_method === "transfer");
-  const unverified = companies.filter((company) => !company.verified_at);
+// Přehled firem a předplatného. Platby, karty, faktury a vratky se řeší ve
+// Stripe Dashboardu (odkaz u firmy), ne tady.
+export function OperatorConsole({ operatorEmail, companies, stripeDashboard }: { operatorEmail: string; companies: OperatorCompany[]; stripeDashboard: string }) {
+  const counts = companies.reduce<Record<string, number>>((all, company) => ({ ...all, [company.state]: (all[company.state] ?? 0) + 1 }), {});
   return (
     <main style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 20px", display: "grid", gap: 24 }}>
       <header>
         <h1 style={{ margin: 0 }}>Provoz Splatna</h1>
-        <p style={{ margin: "6px 0 0", color: "#5f6b64" }}>Přihlášen(a) jako {operatorEmail}. Každý zásah se zapisuje do auditu.</p>
+        <p style={{ margin: "6px 0 0", color: "#5f6b64" }}>
+          Přihlášen(a) jako {operatorEmail}. Platby a faktury za předplatné jsou ve <a href={stripeDashboard} target="_blank" rel="noreferrer">Stripe Dashboardu</a>.
+        </p>
       </header>
-      {message ? <p aria-live="polite" className="success-message">{message}</p> : null}
-
       <section className="page-panel">
-        <h2>Platby převodem čekající na potvrzení ({pendingTransfers.length})</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><th align="left">Objednávka</th><th align="left">Firma</th><th align="left">VS</th><th align="left">Částka</th><th align="left">Poznámka</th><th /></tr></thead>
-          <tbody>
-            {pendingTransfers.map((order) => (
-              <tr key={order.id}>
-                <td>{order.order_number}<br /><small>{date(order.created_at)}</small></td>
-                <td>{order.company}</td>
-                <td>{order.variable_symbol}</td>
-                <td>{formatCzk(order.gross_halere)}</td>
-                <td><input aria-label="Poznámka" placeholder="Připsáno 8. 10., výpis KB" value={notes[order.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [order.id]: event.target.value }))} /></td>
-                <td>
-                  <button type="button" className="btn primary" disabled={busy === order.id} onClick={() => void act(order.id, "/api/operator/paid", { orderId: order.id },
-                    `Potvrdit platbu ${formatCzk(order.gross_halere)} od ${order.company}?`,
-                    `Aktivuje se tarif ${findPlan(order.plan)?.name ?? order.plan} ${order.period === "yearly" ? "na 12 měsíců" : "na 1 měsíc"} a zákazníkovi odejde faktura e-mailem.`)}>
-                    Platba přišla
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="page-panel">
-        <h2>Neověřené firmy ({unverified.length})</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><th align="left">Firma</th><th align="left">IČO</th><th align="left">Kontakt</th><th align="left">Předplatné</th><th align="left">Poznámka</th><th /></tr></thead>
-          <tbody>
-            {unverified.map((company) => (
-              <tr key={company.id}>
-                <td>{company.name}<br /><small>založeno {date(company.created_at)}</small></td>
-                <td>{company.ico}</td>
-                <td>{company.email}<br /><small>{company.data_box_id ? `DS ${company.data_box_id}` : "bez DS"}</small></td>
-                <td>{company.subscription}</td>
-                <td><input aria-label="Poznámka" placeholder="Ověřeno telefonem s jednatelem" value={notes[company.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [company.id]: event.target.value }))} /></td>
-                <td>
-                  <button type="button" className="btn secondary" disabled={busy === company.id} onClick={() => void act(company.id, "/api/operator/verify", { organizationId: company.id },
-                    `Ověřit firmu ${company.name} (IČO ${company.ico})?`,
-                    "Firma bude moci kupovat tarify. Ověřujte jen tehdy, když máte jistotu, že účet zakládá někdo z firmy.")}>
-                    Ověřit ručně
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="page-panel">
-        <h2>Všechny firmy ({companies.length})</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><th align="left">Firma</th><th align="left">IČO</th><th align="left">Ověřeno</th><th align="left">Předplatné</th></tr></thead>
-          <tbody>
-            {companies.map((company) => (
-              <tr key={company.id}><td>{company.name}</td><td>{company.ico}</td><td>{date(company.verified_at)}</td><td>{company.subscription}</td></tr>
-            ))}
-          </tbody>
-        </table>
+        <h2 style={{ marginTop: 0 }}>Firmy ({companies.length})</h2>
+        <p style={{ color: "#5f6b64" }}>
+          Zkušební doba {counts.trial ?? 0} · placené {counts.active ?? 0} · nezdařená platba {counts.past_due ?? 0} · bez karty {counts.needs_payment ?? 0} · ukončené {counts.expired ?? 0}
+        </p>
+        <div style={{ overflowX: "auto" }}>
+          <table className="data-table">
+            <thead><tr><th>Firma</th><th>IČO</th><th>Založena</th><th>Stav</th><th>Tarif</th><th>Zkušební doba</th><th>Stripe</th></tr></thead>
+            <tbody>
+              {companies.map((company) => (
+                <tr key={company.id}>
+                  <td>{company.name}<br /><small>{company.email ?? "—"}</small></td>
+                  <td>{company.ico ?? "—"}</td>
+                  <td>{date(company.created_at)}</td>
+                  <td>{company.state}</td>
+                  <td>{company.plan}</td>
+                  <td>{company.trial ?? (company.trialDenied ? `bez: ${DENIED[company.trialDenied] ?? company.trialDenied}` : "—")}</td>
+                  <td>{company.stripeCustomer ? <a href={`${stripeDashboard}/customers/${company.stripeCustomer}`} target="_blank" rel="noreferrer">zákazník</a> : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   );

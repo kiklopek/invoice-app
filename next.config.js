@@ -49,12 +49,6 @@ const nextConfig = {
     "/api/invoices/[id]/send": invoicePdfFonts,
     "/api/invoices/[id]/reminders/[reminderId]/retry": invoicePdfFonts,
     "/api/cron/check-due": invoicePdfFonts,
-    // Doklady za předplatné Splatna (výzva k platbě, faktura).
-    "/api/billing/orders": invoicePdfFonts,
-    "/api/billing/orders/[id]/pdf": invoicePdfFonts,
-    "/api/billing/comgate": invoicePdfFonts,
-    "/predplatne/navrat": invoicePdfFonts,
-    "/provoz": invoicePdfFonts,
   },
   async headers() {
     return [{

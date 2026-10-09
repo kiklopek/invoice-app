@@ -1442,6 +1442,17 @@ export type Database = {
           trial_ends_at: string | null
           current_period_end: string | null
           updated_at: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_started_at: string | null
+          trial_invoice_limit: number
+          trial_invoices_used: number
+          trial_denied_reason: string | null
+          cancel_at_period_end: boolean
+          scheduled_plan: string | null
+          scheduled_period: string | null
+          scheduled_at: string | null
+          stripe_synced_at: string | null
         }
         Insert: {
           organization_id?: string
@@ -1451,6 +1462,17 @@ export type Database = {
           trial_ends_at?: string | null
           current_period_end?: string | null
           updated_at?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_started_at?: string | null
+          trial_invoice_limit?: number
+          trial_invoices_used?: number
+          trial_denied_reason?: string | null
+          cancel_at_period_end?: boolean
+          scheduled_plan?: string | null
+          scheduled_period?: string | null
+          scheduled_at?: string | null
+          stripe_synced_at?: string | null
         }
         Update: {
           organization_id?: string
@@ -1460,7 +1482,30 @@ export type Database = {
           trial_ends_at?: string | null
           current_period_end?: string | null
           updated_at?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_started_at?: string | null
+          trial_invoice_limit?: number
+          trial_invoices_used?: number
+          trial_denied_reason?: string | null
+          cancel_at_period_end?: boolean
+          scheduled_plan?: string | null
+          scheduled_period?: string | null
+          scheduled_at?: string | null
+          stripe_synced_at?: string | null
         }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: { id: string; type: string; received_at: string }
+        Insert: { id: string; type: string; received_at?: string }
+        Update: { id?: string; type?: string; received_at?: string }
+        Relationships: []
+      }
+      trial_claims: {
+        Row: { id: string; organization_id: string | null; ico: string; card_fingerprint: string | null; ip_hash: string | null; created_at: string }
+        Insert: { id?: string; organization_id?: string | null; ico: string; card_fingerprint?: string | null; ip_hash?: string | null; created_at?: string }
+        Update: { id?: string; organization_id?: string | null; ico?: string; card_fingerprint?: string | null; ip_hash?: string | null; created_at?: string }
         Relationships: []
       }
       provider_webhook_events: {
@@ -1804,33 +1849,21 @@ export type Database = {
         Args: { target_org: string }
         Returns: { invoice_id: string; invoice_number: string; amount: number; paid_amount: number; ledger_paid: number; formula_difference: number; original_difference: number | null }[]
       }
-      start_data_box_verification: {
-        Args: { target_org: string; actor_user: string; target_data_box: string; code_hash: string; expires_at: string }
-        Returns: Json
-      }
-      verify_data_box_code: {
-        Args: { target_org: string; actor_user: string; candidate_hash: string }
+      claim_trial: {
+        Args: { target_org: string; target_fingerprint: string | null; target_ip_hash: string | null }
         Returns: string
       }
-      operator_verify_organization: {
-        Args: { target_org: string; operator_email: string; note: string }
-        Returns: Json
-      }
-      create_billing_order: {
-        Args: { target_org: string; actor_user: string; target_plan: string; target_period: string; target_months: number; net: number; vat: number; gross: number; method: string; billing: Json }
-        Returns: Json
-      }
-      attach_billing_transaction: {
-        Args: { target_order: string; transaction_id: string }
+      link_stripe_customer: {
+        Args: { target_org: string; customer_id: string }
         Returns: undefined
       }
-      mark_billing_order_paid: {
-        Args: { target_order: string; source: string; transaction_id: string | null; paid_halere: number }
-        Returns: Json
+      sync_stripe_subscription: {
+        Args: { target_org: string; payload: Json }
+        Returns: string
       }
-      operator_mark_order_paid: {
-        Args: { target_order: string; operator_email: string; note: string }
-        Returns: Json
+      record_stripe_event: {
+        Args: { event_id: string; event_type: string }
+        Returns: boolean
       }
       create_organization_for_user: {
         Args: { founder_user: string; company: Json }

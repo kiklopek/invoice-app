@@ -5,7 +5,8 @@
 // Proxy zná jen přihlášení a 2FA, ne členství ve firmě (to by byl dotaz do
 // databáze na každé kliknutí). Ověřeného uživatele proto vede jako
 // "verified"; jestli má firmu, rozhodne až layout aplikace / onboarding
-// ("needs_onboarding" vs. "member").
+// ("needs_onboarding" vs. "member"). Firma bez zadané karty je
+// "needs_payment": dokončí platbu v onboardingu, aplikace se jí neotevře.
 
 export type AccessState =
   | "anonymous"
@@ -13,6 +14,7 @@ export type AccessState =
   | "mfa_pending"
   | "verified"
   | "needs_onboarding"
+  | "needs_payment"
   | "member";
 
 export type PageKind =
@@ -86,6 +88,7 @@ export function routeFor(state: AccessState, pathname: string, search = ""): Rou
       return show;
 
     case "needs_onboarding":
+    case "needs_payment":
       if (kind === "login" || kind === "signup" || kind === "mfa" || kind === "app") return redirect("/onboarding");
       return show;
   }

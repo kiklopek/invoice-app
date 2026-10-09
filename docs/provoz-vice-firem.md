@@ -7,7 +7,7 @@ R. Hlavica přitom dál používá vlastní vstup `splatno.cz/hlavica`.
 
 | Scénář | Kroky |
 |---|---|
-| **Založení firmy** | `/register` (Založit firemní účet) → potvrzovací e-mail → `/auth/callback` → `/mfa` (kód z e-mailu) → `/onboarding` (IČO z ARES, kontakt, bankovní účet, tým, shrnutí) → firma vznikne naráz → `/dashboard` |
+| **Založení firmy** | `/register` (Založit firemní účet) → potvrzovací e-mail → `/auth/callback` → `/mfa` (kód z e-mailu) → `/onboarding` (IČO z ARES, kontakt, bankovní účet, upomínky, logo, tým, shrnutí) → firma vznikne naráz → tarif a karta (Stripe, 14 dní zdarma) → `/dashboard` |
 | **Pozvání do firmy** | Admin: Nastavení → Tým → e-mail a role → potvrzení → e-mail s odkazem `splatno.cz/pozvanka/<token>` (platí 7 dní, jen jednou) |
 | **Přijetí pozvánky** | Odkaz → jméno a heslo (e-mail je daný pozvánkou) → člen firmy s rolí z pozvánky → `/dashboard`. Odkaz se počítá jako 2FA pro tuto první relaci. |
 | **Běžné přihlášení** | `/login` (obecný vzhled) nebo `/hlavica` (s logem R. Hlavica) → heslo → kód z e-mailu → aplikace |
@@ -93,42 +93,52 @@ soubory podle skutečně zapsané verze**. Postup popisuje CLAUDE.md.
 - U produkčního projektu Supabase ověřit zapnuté zálohy, ideálně Point-in-time
   recovery. Po otevření pro další firmy je to nutnost.
 
-## 3a. Předplatné, ověření firmy a provoz
+## 3a. Předplatné přes Stripe
 
 ### Jak to funguje
 
 | Část | Chování |
 |---|---|
-| **Zkušební doba** | Nová firma má 30 dní plného provozu. Stávající firmy, včetně R. Hlavica, mají trvale aktivní předplatné. |
-| **Po skončení** | Data zůstávají. Nové faktury (ručně, importem i z PDF) nejdou přidat a server vrátí 402. Upomínky se dál plánují, ale **neodesílají**. Zůstanou ve frontě a odejdou po zaplacení. V aplikaci se 7 dní předem objeví upozornění. |
-| **Ověření firmy** | Kód se pošle do datové schránky dohledané podle IČO v ISDS. Platí 72 hodin a zadat ho jde nejvýš 5×. Bez napojení ISDS ověřuje provozovatel ručně na `/provoz`. |
-| **Nákup** (`/predplatne`) | Jen ověřená firma a jen její administrátor. Částku vždy počítá server (`src/lib/plans.ts`). |
-| **Platba kartou** | Přes Comgate. Tarif se aktivuje po oznámení z brány, které se ověří tajemstvím a navíc dotazem na stav platby. |
-| **Platba převodem** | Zákazník dostane výzvu k platbě s QR kódem e-mailem. Platbu potvrdí provozovatel na `/provoz`. |
-| **Po zaplacení** | Faktura e-mailem, číselná řada `SPF…`. |
+| **Onboarding** | Poslední krok „Tarif a karta“: výběr tarifu a období a zadání karty přes Stripe Checkout (režim setup, nic se nestrhává). Bez karty se aplikace neotevře (stav `needs_payment`). |
+| **Zkušební doba** | 14 dní, nejvýš 50 faktur. Limit hlídá databázový trigger s čítačem: smazáním faktury se limit nevrací, souběžné vkládání ho nepřeleze. U 50. faktury jde zkušební dobu ukončit a začít platit hned (po potvrzení částky). |
+| **Ochrana proti zneužití** | Jedna zkušební doba na IČO (i po smazání firmy), na kartu (otisk karty ze Stripe) a nejvýš 3 za 30 dní z jedné IP (jen HMAC otisk, po 90 dnech se maže). Registrace z jednorázových schránek se odmítne. Kdo na zkušební dobu nárok nemá, vidí důvod a částku a platí až po potvrzení. Otisk prohlížeče se záměrně nepoužívá: vyžaduje souhlas (ePrivacy) a k otisku karty a IČO přidá málo; zařízení u plateb kartou vyhodnocuje Stripe Radar. |
+| **Po zkušební době** | Stripe automaticky strhne zvolený tarif a dál každý měsíc nebo rok. |
+| **Změna tarifu** | Na stránce Předplatné, vždy s náhledem částky a potvrzením. Vyšší tarif a přechod na roční platbu platí hned, doplatí se poměrná část (Stripe `always_invoice`). Když platba neprojde, tarif se nezmění. Nižší tarif a přechod na měsíční platbu platí od dalšího období (subscription schedule), peníze se nevrací. |
+| **Neúspěšná platba** | Stripe platbu opakuje, aplikace funguje a ukazuje pruh „Aktualizujte kartu“. Po vyčerpání pokusů (`unpaid`/`canceled`) se zastaví nové faktury a odesílání upomínek. Data zůstávají. |
+| **Zrušení** | Ke konci zaplaceného období, jde odvolat. |
+| **Karta a faktury** | Stripe Billing Portal (odkaz na stránce Předplatné). Daňové doklady vystavuje Stripe. |
+| **R. Hlavica a starší firmy** | Trvalé `active` bez Stripe, nic se pro ně nemění. Zrcadlení ze Stripe takový řádek nepřepíše (`legacy_subscription`). |
 
-Zaplacení je v databázi idempotentní a vyžaduje přesnou částku. Druhé
-oznámení od brány předplatné neprodlouží.
+Stav se do databáze jen zrcadlí (`sync_stripe_subscription`), vždy z předplatného čerstvě načteného ze Stripe. Proto nezáleží na pořadí ani opakování webhooků. Jiného zákazníka nebo běžící předplatné zrcadlení tiše nepřepíše (`customer_mismatch`, `subscription_mismatch`).
 
 ### Co nastavit
 
-- Proměnné `SPLATNO_SUPPLIER_*`, `COMGATE_*`, `ISDS_*` a
-  `SPLATNO_OPERATOR_EMAILS`. Popis je v `.env.example`.
-- **Comgate:** URL pro oznámení `https://splatno.cz/api/billing/comgate`.
-  Nejdřív testovací režim (`COMGATE_TEST=true`).
-- **ISDS:** přihlašovací údaje datové schránky Splatna pro webové služby.
-  Nejdřív je otestujte na czebox.cz.
+1. **Stripe účet** (nejdřív testovací režim) a firemní údaje Splatna v Dashboardu: název, IČO, DIČ, adresa. Pro české faktury nastavit v Settings → Invoices číslování a patičku.
+2. **Produkty a ceny:** `STRIPE_SECRET_KEY=sk_test_… node scripts/stripe-setup.mjs` (s `--vat`, je-li Splatno plátce DPH). Ceny bere z `src/lib/plans.ts`.
+3. **Webhook:** `https://splatno.cz/api/billing/stripe` s událostmi `checkout.session.completed`, `customer.subscription.*`, `invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required` a `subscription_schedule.*`.
+4. **Proměnné** pro Production i Preview: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, případně `STRIPE_TAX_RATE_ID`.
+5. **Settings → Billing → Subscriptions:** opakování neúspěšných plateb (Smart Retries) a po jejich vyčerpání předplatné označit jako `unpaid` nebo zrušit.
 
 ### Ověřeno jen proti napodobeninám
 
-Klienty Comgate a ISDS jsem psal podle REST API Comgate v2.0 a WSDL ISDS v20.
-Testy je ověřují jen proti napodobeným odpovědím. **Před ostrým provozem je
-nutný průchod v testovacích prostředích** (Comgate test, czebox.cz).
+Logika je otestovaná proti napodobenému Stripe a podepsaným testovacím událostem. **Před ostrým provozem je nutný průchod v testovacím režimu Stripe:**
+
+- karta `4242 4242 4242 4242` → zkušební doba → změna tarifu s doplatkem,
+- karta `4000 0000 0000 0341` → neúspěšná platba → pruh v aplikaci,
+- `stripe trigger` nebo Test clocks na posun času přes konec zkušební doby.
+
+### Zrušeno
+
+- Ověření firmy datovou schránkou (`ISDS_*`)
+- Comgate a platba převodem (`COMGATE_*`, `SPLATNO_SUPPLIER_*`)
+- Vlastní PDF faktury Splatna
+
+Funkce v databázi jsou odstraněné. Tabulky `billing_orders`, `organization_verifications` a `operator_actions` zůstávají prázdné kvůli auditní stopě.
 
 ## 4. Otevřená rozhodnutí
 
-1. **Zkušební doba a placení.** „Vyzkoušet zdarma“ zatím vede na registraci
-   bez omezení. Ceník na landing page je jen informativní.
+1. **Limity tarifů.** Ceník slibuje „až 100 / 500 faktur měsíčně“ (Start/Profi),
+   aplikace je zatím nevynucuje. Hlídá se jen limit 50 faktur ve zkušební době.
 2. **Upozornění pro provozovatele.** Chceš e-mail o každé nově založené firmě?
 3. **Právní texty.** `/podminky` a `/ochrana-osobnich-udaju` jsou viditelně
    označený návrh. Před otevřením veřejnosti je musí zkontrolovat právník a
@@ -143,5 +153,3 @@ nutný průchod v testovacích prostředích** (Comgate test, czebox.cz).
 - **`run_bank_reconciliation_jobs`** zpracuje nejvýš 5 importů denně za všechny
   firmy dohromady. Při více firmách bude potřeba limit rozdělit mezi firmy.
 - **Jeden člověk ve více firmách** (přepínání firem) zatím není.
-- **Nahrání vlastního loga firmy.** Zatím ho jde nastavit jen v databázi
-  (`organizations.logo_path`). Firma bez loga má v aplikaci monogram z názvu.

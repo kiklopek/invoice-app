@@ -1,6 +1,6 @@
 import { normalizeEmail } from "@/lib/auth-policy";
 
-// Provozovatel Splatna (ty): ruční ověření firem a potvrzení plateb převodem.
+// Provozovatel Splatna (ty): přehled firem a jejich předplatného na /provoz.
 // Seznam e-mailů je v SPLATNO_OPERATOR_EMAILS; přístup navíc vyžaduje
 // přihlášení s 2FA (getAuthenticatedSession).
 export function isOperatorEmail(email: string | null | undefined, env: Record<string, string | undefined> = process.env) {

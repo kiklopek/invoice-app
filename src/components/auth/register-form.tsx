@@ -60,7 +60,9 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
         ? "Pro tento e-mail už účet existuje. Přihlaste se, nebo si obnovte heslo."
         : access.kind === "hlavica"
           ? "hlavica"
-          : "Pro tento e-mail zatím nelze vytvořit účet, protože nebyl administrátorem firmy přidán do systému. Kontaktujte prosím jednatele firmy.");
+          : access.kind === "disposable"
+            ? "Firemní účet nejde založit z jednorázové e-mailové schránky. Použijte prosím pracovní e-mail."
+            : "Pro tento e-mail zatím nelze vytvořit účet, protože nebyl administrátorem firmy přidán do systému. Kontaktujte prosím jednatele firmy.");
       setSubmitting(false);
       return;
     }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { subscriptionBlock } from "@/lib/billing-server";
+import { subscriptionBlock, subscriptionErrorResponse } from "@/lib/billing-server";
 import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
@@ -305,6 +305,8 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
+    const blocked = subscriptionErrorResponse(error);
+    if (blocked) return blocked;
     const status = error.code === "23505" ? 409 : 500;
     return NextResponse.json(
       {

@@ -1,31 +1,39 @@
 import { NextResponse } from "next/server";
 import { getRequestIdentity } from "@/lib/auth";
-import { supplierConfiguration, trialWarning } from "@/lib/billing";
-import { loadSubscription } from "@/lib/billing-server";
-import { comgateConfiguration } from "@/lib/comgate";
+import { billingNotice } from "@/lib/billing";
+import { billingDeps, loadSubscription } from "@/lib/billing-server";
+import { canManageMembers } from "@/lib/role-access";
+import { stripeConfiguration } from "@/lib/stripe";
 
-// Předplatné firmy pro stránku Koupit: stav, objednávky a co je k dispozici.
+// Stav předplatného firmy pro onboarding, stránku Předplatné a pruh v aplikaci.
 export async function GET() {
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-  const org = identity.membership.organization_id;
-  const [subscription, ordersResult, companyResult] = await Promise.all([
-    loadSubscription(identity.service, org),
-    identity.service.from("billing_orders")
-      .select("id, order_number, plan, period, gross_halere, payment_method, status, invoice_number, created_at, paid_at")
-      .eq("organization_id", org).order("created_at", { ascending: false }).limit(20),
-    identity.service.from("organizations").select("name, ico, dic, registered_address, email, verified_at").eq("id", org).single(),
-  ]);
-  const company = companyResult.data;
+  const { row, state } = await loadSubscription(identity.service, identity.membership.organization_id);
+  const configuration = stripeConfiguration();
   return NextResponse.json({
-    subscription: { ...subscription.row, state: subscription.state, warning: trialWarning(subscription.row) },
-    orders: ordersResult.data ?? [],
-    verified: Boolean(company?.verified_at),
-    can_order: identity.membership.role === "admin",
-    methods: { card: Boolean(comgateConfiguration()), transfer: Boolean(supplierConfiguration()) },
-    vat_payer: supplierConfiguration()?.vatPayer ?? true,
-    billing_defaults: company
-      ? { name: company.name, ico: company.ico ?? "", dic: company.dic ?? "", address: company.registered_address ?? "", email: company.email ?? "" }
-      : null,
+    subscription: row
+      ? {
+          status: row.status,
+          state,
+          plan: row.plan ?? null,
+          period: row.period ?? null,
+          trial_ends_at: row.trial_ends_at,
+          current_period_end: row.current_period_end,
+          trial_invoices_used: row.trial_invoices_used ?? 0,
+          trial_invoice_limit: row.trial_invoice_limit ?? null,
+          trial_denied_reason: row.trial_denied_reason ?? null,
+          cancel_at_period_end: Boolean(row.cancel_at_period_end),
+          scheduled_plan: row.scheduled_plan ?? null,
+          scheduled_period: row.scheduled_period ?? null,
+          scheduled_at: row.scheduled_at ?? null,
+          has_card: Boolean(row.stripe_customer_id),
+          managed_by_stripe: Boolean(row.stripe_subscription_id),
+        }
+      : { status: "legacy", state, managed_by_stripe: false, has_card: false },
+    notice: billingNotice(row),
+    can_manage: canManageMembers(identity.membership.role),
+    available: Boolean(billingDeps(identity.service)),
+    vat_payer: Boolean(configuration?.taxRateId),
   }, { headers: { "cache-control": "private, no-store" } });
 }

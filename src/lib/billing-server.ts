@@ -1,183 +1,86 @@
 import "server-only";
 
-import { Resend } from "resend";
 import type { RequestIdentity } from "@/lib/auth";
-import { normalizeBillingDetails, subscriptionState, supplierConfiguration, type BillingDetails, type SubscriptionRow } from "@/lib/billing";
-import type { BillingOrderForDocument } from "@/lib/billing-document";
-import { generateBillingPdf } from "@/lib/billing-pdf";
-import { comgateConfiguration, createComgatePayment, getComgatePayment } from "@/lib/comgate";
-import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
-import { getPasswordRecoveryBaseUrl } from "@/lib/password-recovery-server";
-import { findPlan, isBillingPeriod, quote, type BillingPeriod, type PlanId } from "@/lib/plans";
+import { invoiceAllowance, subscriptionState, type SubscriptionRow } from "@/lib/billing";
+import { apiError } from "@/lib/api-response";
+import { BillingError, type BillingDeps, type Service } from "@/lib/stripe-billing";
+import { getStripe, stripeConfiguration } from "@/lib/stripe";
+import { canManageMembers } from "@/lib/role-access";
 import { logError } from "@/lib/structured-log";
-import { createServiceClient } from "@/lib/supabase-server";
 
-const ORDER_COLUMNS = "id, organization_id, order_number, variable_symbol, plan, period, months, net_halere, vat_halere, gross_halere, payment_method, status, gateway_transaction_id, billing, invoice_number, created_at, paid_at";
+const SUBSCRIPTION_COLUMNS = "status, plan, period, trial_ends_at, trial_started_at, current_period_end, trial_invoices_used, trial_invoice_limit, trial_denied_reason, cancel_at_period_end, scheduled_plan, scheduled_period, scheduled_at, stripe_customer_id, stripe_subscription_id";
 
-export async function loadSubscription(service: RequestIdentity["service"], organizationId: string) {
-  const { data } = await service.from("subscriptions")
-    .select("status, plan, period, trial_ends_at, current_period_end")
-    .eq("organization_id", organizationId)
-    .maybeSingle();
-  return { row: data as (SubscriptionRow & { plan: string | null; period: string | null }) | null, state: subscriptionState(data) };
+export async function loadSubscription(service: Service, organizationId: string) {
+  const { data, error } = await service.from("subscriptions").select(SUBSCRIPTION_COLUMNS).eq("organization_id", organizationId).maybeSingle();
+  if (error) logError("Předplatné firmy se nepodařilo načíst", error);
+  const row = (data ?? null) as (SubscriptionRow & Record<string, unknown>) | null;
+  return { row, state: subscriptionState(row), failed: Boolean(error) };
 }
 
-type OrderInput = { plan?: unknown; period?: unknown; method?: unknown; billing?: unknown };
-export type OrderResult =
-  | { ok: true; orderId: string; redirect: string }
-  | { ok: false; status: number; code: string; error: string };
+/** Stripe pro API routy, nebo null, když není nastavený. */
+export function billingDeps(service: Service): BillingDeps | null {
+  const configuration = stripeConfiguration();
+  const stripe = getStripe(configuration);
+  return configuration && stripe ? { stripe, service, taxRateId: configuration.taxRateId } : null;
+}
 
-// Objednávka tarifu. Částku počítá server z plans.ts; z prohlížeče se bere jen
-// volba tarifu, období a způsobu platby. Databáze odmítne neověřenou firmu.
-export async function createOrder(identity: RequestIdentity, input: OrderInput, returnBase = getPasswordRecoveryBaseUrl()): Promise<OrderResult> {
-  const plan = findPlan(typeof input.plan === "string" ? input.plan : null);
-  if (!plan || !isBillingPeriod(input.period)) return { ok: false, status: 400, code: "invalid_plan", error: "Vyberte tarif a období." };
-  const method = input.method === "card" || input.method === "transfer" ? input.method : null;
-  if (!method) return { ok: false, status: 400, code: "invalid_method", error: "Vyberte způsob platby." };
-  const billing = normalizeBillingDetails(input.billing);
-  if (!billing.ok) return { ok: false, status: 400, code: "invalid_billing", error: billing.error };
-  const supplier = supplierConfiguration();
-  if (!supplier) return { ok: false, status: 503, code: "billing_unavailable", error: "Nákup teď není dostupný. Zkuste to prosím později." };
-  if (method === "card" && !comgateConfiguration()) {
-    return { ok: false, status: 503, code: "card_unavailable", error: "Platba kartou teď není dostupná. Zvolte platbu převodem." };
+const SUBSCRIPTION_CODES = new Set(["trial_invoice_limit", "subscription_payment_required", "subscription_expired"]);
+
+/**
+ * Smí firma přidat `count` faktur? Při chybě čtení se neblokuje (výpadek
+ * nesmí zastavit práci); databázový trigger limit hlídá znovu.
+ */
+export async function subscriptionBlock(identity: RequestIdentity, count = 1) {
+  const { row, failed } = await loadSubscription(identity.service, identity.membership.organization_id);
+  if (failed) return null;
+  const allowance = invoiceAllowance(row);
+  if (!allowance.ok) return Response.json({ error: allowance.message, code: allowance.code }, { status: 402 });
+  if (allowance.remaining !== null && count > allowance.remaining) {
+    return Response.json({
+      error: `Ve zkušební době můžete přidat ještě ${allowance.remaining} ${allowance.remaining === 1 ? "fakturu" : allowance.remaining < 5 ? "faktury" : "faktur"}, import jich obsahuje ${count}. Zkraťte import, nebo začněte platit tarif (Nastavení → Předplatné).`,
+      code: "trial_invoice_limit",
+    }, { status: 402 });
   }
+  return null;
+}
 
-  const price = quote(plan.id as PlanId, input.period as BillingPeriod);
-  const vat = supplier.vatPayer ? price.vatHalere : 0;
-  const { data, error } = await identity.service.rpc("create_billing_order", {
-    target_org: identity.membership.organization_id,
-    actor_user: identity.user.id,
-    target_plan: plan.id,
-    target_period: price.period,
-    target_months: price.months,
-    net: price.netHalere,
-    vat,
-    gross: price.netHalere + vat,
-    method,
-    billing: billing.details,
+/** Chyba z databázového triggeru (limit faktur) jako srozumitelná 402. */
+export function subscriptionErrorResponse(error: { message?: string } | null | undefined) {
+  if (!error?.message || !SUBSCRIPTION_CODES.has(error.message)) return null;
+  const allowance = invoiceAllowance({
+    status: error.message === "subscription_payment_required" ? "incomplete" : error.message === "subscription_expired" ? "canceled" : "trialing",
+    trial_ends_at: null,
+    current_period_end: null,
+    trial_invoices_used: Number.MAX_SAFE_INTEGER,
   });
-  if (error) {
-    if (error.message.includes("organization_not_verified")) {
-      return { ok: false, status: 403, code: "not_verified", error: "Před nákupem je potřeba ověřit firmu přes datovou schránku (Nastavení → Firma)." };
-    }
-    if (error.message.includes("insufficient_permission")) return { ok: false, status: 403, code: "forbidden", error: "Tarif může koupit jen administrátor firmy." };
-    logError("Objednávku tarifu se nepodařilo založit", error);
-    return { ok: false, status: 500, code: "order_failed", error: "Objednávku se nepodařilo založit." };
-  }
-  const order = data as { order_id: string; order_number: string; gross_halere: number };
-  const returnUrl = new URL(`/predplatne/navrat?objednavka=${order.order_id}`, returnBase).toString();
-
-  if (method === "card") {
-    const payment = await createComgatePayment({
-      orderId: order.order_id,
-      priceHalere: order.gross_halere,
-      label: `Splatno ${plan.name}`,
-      email: billing.details.email,
-      returnUrl,
-    });
-    if (!payment.ok) return { ok: false, status: 502, code: "gateway_failed", error: "Platební bránu se nepodařilo otevřít. Zkuste to znovu, nebo zvolte převod." };
-    const { error: attachError } = await identity.service.rpc("attach_billing_transaction", { target_order: order.order_id, transaction_id: payment.transId });
-    if (attachError) {
-      logError("Transakci brány se nepodařilo připojit k objednávce", attachError);
-      return { ok: false, status: 500, code: "order_failed", error: "Objednávku se nepodařilo připravit." };
-    }
-    return { ok: true, orderId: order.order_id, redirect: payment.redirect };
-  }
-
-  await sendBillingEmail(order.order_id, "request");
-  return { ok: true, orderId: order.order_id, redirect: returnUrl };
+  return Response.json({ error: allowance.ok ? "Fakturu teď nejde přidat." : allowance.message, code: error.message }, { status: 402 });
 }
 
-export async function loadOrder(orderId: string, organizationId?: string) {
-  let query = createServiceClient().from("billing_orders").select(ORDER_COLUMNS).eq("id", orderId);
-  if (organizationId) query = query.eq("organization_id", organizationId);
-  const { data } = await query.maybeSingle();
-  return data as (BillingOrderForDocument & { id: string; organization_id: string; payment_method: string; gateway_transaction_id: string | null; billing: Partial<BillingDetails> }) | null;
-}
-
-// Zaplacení objednávky (brána nebo provozovatel). Idempotentní v databázi;
-// fakturu e-mailem posíláme jen při prvním zaplacení.
-export async function settleOrder(orderId: string, source: "comgate" | "operator", transactionId: string | null, paidHalere: number) {
-  const { data, error } = await createServiceClient().rpc("mark_billing_order_paid", {
-    target_order: orderId, source, transaction_id: transactionId, paid_halere: paidHalere,
-  });
-  if (error) {
-    logError("Zaplacení objednávky se nepodařilo zapsat", error, { order_id: orderId });
-    return { ok: false as const, reason: error.message };
+/** Jednotná odpověď na chybu předplatného nebo Stripe. */
+export function billingErrorResponse(request: Request, error: unknown) {
+  if (error instanceof BillingError) {
+    if (error.status >= 500) logError(`Předplatné: ${error.code}`, error);
+    return apiError(request, error.message, error.status, error.code);
   }
-  const result = data as { already_paid?: boolean };
-  if (!result.already_paid) await sendBillingEmail(orderId, "invoice");
-  return { ok: true as const, alreadyPaid: Boolean(result.already_paid) };
-}
-
-/** Ověří platbu u Comgate (nikdy jen podle oznámení) a případně ji zapíše. */
-export async function syncCardPayment(orderId: string) {
-  const order = await loadOrder(orderId);
-  if (!order || order.payment_method !== "card" || !order.gateway_transaction_id) return { state: "unknown" as const };
-  if (order.status === "paid") return { state: "paid" as const };
-  const payment = await getComgatePayment(order.gateway_transaction_id);
-  if (!payment.ok) return { state: "unknown" as const };
-  if (payment.refId !== order.id || payment.currency !== "CZK") {
-    logError("Platba z brány nesedí k objednávce", null, { order_id: orderId });
-    return { state: "mismatch" as const };
-  }
-  if (payment.status === "PAID") {
-    const settled = await settleOrder(order.id, "comgate", payment.transId, payment.priceHalere);
-    return { state: settled.ok ? "paid" as const : "mismatch" as const };
-  }
-  return { state: payment.status === "CANCELLED" ? "cancelled" as const : "pending" as const };
-}
-
-/** Faktura e-mailem po zaplacení potvrzeném jinde (provozovatel). */
-export async function sendPaidInvoice(orderId: string) {
-  await sendBillingEmail(orderId, "invoice");
-}
-
-async function sendBillingEmail(orderId: string, kind: "request" | "invoice") {
-  const supplier = supplierConfiguration();
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!supplier || !apiKey || process.env.AUTH_EMAIL_DELIVERY_ENABLED === "false") return;
-  const order = await loadOrder(orderId);
-  const to = order?.billing.email;
-  if (!order || !to) return;
-  try {
-    assertLocalEmailRecipientsAllowed([to]);
-    const pdf = await generateBillingPdf(order, supplier);
-    const subject = kind === "invoice" ? `Faktura Splatno ${order.invoice_number}` : `Splatno: výzva k platbě ${order.order_number}`;
-    const text = kind === "invoice"
-      ? `Děkujeme, platba za objednávku ${order.order_number} dorazila a tarif je aktivní. V příloze je faktura.`
-      : `Děkujeme za objednávku ${order.order_number}. V příloze je výzva k platbě s QR kódem; tarif se aktivuje po připsání platby.`;
-    await new Resend(apiKey).emails.send({
-      from: process.env.AUTH_EMAIL_FROM?.trim() || "Splatno <prihlaseni@mail.splatno.cz>",
-      to,
-      subject,
-      text,
-      attachments: [{ filename: pdf.filename, content: Buffer.from(pdf.bytes) }],
-    }, { idempotencyKey: `billing/${kind}/${order.id}` });
-  } catch (error) {
-    logError("E-mail s dokladem za předplatné se nepodařilo odeslat", error, { order_id: orderId });
-  }
+  logError("Platební brána Stripe odpověděla chybou", error);
+  return apiError(request, "Platební brána teď neodpovídá. Nic se nestrhlo; zkuste to prosím za chvíli.", 502, "stripe_error");
 }
 
 /**
- * Po skončení zkušební doby nebo předplatného nejde zakládat nové faktury.
- * Při chybě čtení nebo neznámých datech se nic neblokuje (výpadek nesmí
- * zastavit práci); vrací odpověď 402, nebo null.
+ * Administrátor firmy + Stripe pro mutující routy předplatného. Původ
+ * požadavku a identitu ověřuje routa sama (isSameOriginMutation,
+ * getRequestIdentity), tady jen role a dostupnost Stripe.
  */
-export async function subscriptionBlock(identity: RequestIdentity) {
-  try {
-    const { data, error } = await identity.service.from("subscriptions")
-      .select("status, trial_ends_at, current_period_end")
-      .eq("organization_id", identity.membership.organization_id)
-      .maybeSingle();
-    const row = data as SubscriptionRow | null;
-    if (error || !row || !["trial", "active", "cancelled"].includes(row.status)) return null;
-    if (subscriptionState(row) !== "expired") return null;
-  } catch {
-    return null;
+export function billingAdmin(request: Request, identity: RequestIdentity | null) {
+  if (!identity) return { error: apiError(request, "Nejste přihlášený uživatel.", 401, "unauthorized") } as const;
+  if (!canManageMembers(identity.membership.role)) {
+    return { error: apiError(request, "Předplatné spravuje administrátor firmy.", 403, "forbidden") } as const;
   }
-  return Response.json({
-    error: "Zkušební doba nebo předplatné skončilo. Nové faktury půjde přidávat po zakoupení tarifu (Nastavení → Předplatné).",
-    code: "subscription_required",
-  }, { status: 402 });
+  const deps = billingDeps(identity.service);
+  if (!deps) return { error: apiError(request, "Platby teď nejsou dostupné. Zkuste to prosím později.", 503, "billing_unavailable") } as const;
+  return { identity, deps } as const;
+}
+
+export function originDenied(request: Request) {
+  return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
 }

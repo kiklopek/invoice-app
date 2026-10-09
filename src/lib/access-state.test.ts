@@ -35,6 +35,12 @@ const table: Record<AccessState, Record<string, RouteDecision>> = {
     "/forgot-password": to("/onboarding"), "/reset-password": show, "/auth/callback": show,
     "/pozvanka/abc": show, "/mfa": to("/onboarding"), "/onboarding": show, "/invoices": to("/onboarding"),
   },
+  // Firma založená, ale bez karty: do aplikace až po dokončení platby.
+  needs_payment: {
+    "/": show, "/login": to("/onboarding"), "/hlavica": to("/onboarding"), "/register": to("/onboarding"),
+    "/forgot-password": to("/onboarding"), "/reset-password": show, "/auth/callback": show,
+    "/pozvanka/abc": show, "/mfa": to("/onboarding"), "/onboarding": show, "/invoices": to("/onboarding"),
+  },
   member: {
     "/": show, "/login": to("/dashboard"), "/hlavica": to("/dashboard"), "/register": to("/dashboard"),
     "/forgot-password": to("/dashboard"), "/reset-password": show, "/auth/callback": show,

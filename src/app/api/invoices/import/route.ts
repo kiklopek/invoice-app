@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { subscriptionBlock } from "@/lib/billing-server";
+import { subscriptionBlock, subscriptionErrorResponse } from "@/lib/billing-server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   const identity = await getRequestIdentity();
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
-  const subscriptionBlocked = await subscriptionBlock(identity);
+  const subscriptionBlocked = await subscriptionBlock(identity, invoices.length);
   if (subscriptionBlocked) return subscriptionBlocked;
   if (!canManageInvoices(identity.membership.role)) return NextResponse.json({ error: "Nemáte oprávnění importovat faktury." }, { status: 403 });
 
@@ -64,6 +64,8 @@ export async function POST(request: Request) {
 
   const { data, error } = await identity.service.from("invoices").insert(rows).select("id");
   if (error) {
+    const blocked = subscriptionErrorResponse(error);
+    if (blocked) return blocked;
     return NextResponse.json({ error: error.code === "23505" ? "Některé číslo faktury už v databázi existuje. Nebyla importována žádná faktura." : "Hromadný import se nepodařilo uložit." }, { status: error.code === "23505" ? 409 : 500 });
   }
   return NextResponse.json({ imported: data?.length ?? invoices.length }, { status: 201 });

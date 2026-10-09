@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { emailMatchesDomain, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { emailMatchesDomain, isDisposableEmail, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { createServiceClient } from "@/lib/supabase-server";
@@ -65,5 +65,7 @@ export async function POST(request: Request) {
   // ("invited"), bez ní zakládají firmu ("founder"). Kdo už účet má, se
   // registrovat nemá -- má se přihlásit.
   if (row?.user_id) return NextResponse.json({ allowed: false, kind: "member" });
+  // Zakladatel firmy z jednorázové schránky: ochrana zkušební doby.
+  if (!row && isDisposableEmail(email)) return NextResponse.json({ allowed: false, kind: "disposable" });
   return NextResponse.json({ allowed: true, kind: row ? "invited" : "founder" });
 }

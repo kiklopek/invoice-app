@@ -1,71 +1,82 @@
 import { describe, expect, it } from "vitest";
-import { normalizeBillingDetails, subscriptionState, supplierConfiguration, trialWarning } from "./billing";
+import { billingNotice, invoiceAllowance, organizationsAllowedToSend, subscriptionState, type SubscriptionRow } from "./billing";
 
-const now = new Date("2026-10-07T12:00:00Z");
+const now = new Date("2026-10-09T10:00:00Z");
+const row = (overrides: Partial<SubscriptionRow>): SubscriptionRow => ({
+  status: "trialing",
+  trial_ends_at: "2026-10-20T10:00:00Z",
+  current_period_end: "2026-10-20T10:00:00Z",
+  trial_invoices_used: 0,
+  trial_invoice_limit: 50,
+  ...overrides,
+});
 
-describe("subscriptionState", () => {
-  it("knows trial, active, unlimited and expired", () => {
-    expect(subscriptionState({ status: "trial", trial_ends_at: "2026-10-20T00:00:00Z", current_period_end: null }, now)).toBe("trial");
-    expect(subscriptionState({ status: "trial", trial_ends_at: "2026-10-01T00:00:00Z", current_period_end: null }, now)).toBe("expired");
-    expect(subscriptionState({ status: "active", trial_ends_at: null, current_period_end: "2027-10-01T00:00:00Z" }, now)).toBe("active");
-    expect(subscriptionState({ status: "active", trial_ends_at: null, current_period_end: null }, now)).toBe("active");
-    expect(subscriptionState({ status: "active", trial_ends_at: null, current_period_end: "2026-10-06T00:00:00Z" }, now)).toBe("expired");
-    expect(subscriptionState({ status: "cancelled", trial_ends_at: null, current_period_end: null }, now)).toBe("expired");
-  });
-
-  // Firma bez řádku předplatného (stávající data) nesmí přijít o přístup kvůli chybě v datech.
-  it("treats a missing subscription as active, never as a lockout", () => {
+describe("stav předplatného", () => {
+  it("never locks a company without a subscription row or with legacy active (R. Hlavica)", () => {
     expect(subscriptionState(null, now)).toBe("active");
+    expect(subscriptionState(row({ status: "active", trial_ends_at: null, current_period_end: null }), now)).toBe("active");
+  });
+
+  it("maps Stripe statuses", () => {
+    expect(subscriptionState(row({ status: "incomplete" }), now)).toBe("needs_payment");
+    expect(subscriptionState(row({ status: "incomplete_expired" }), now)).toBe("needs_payment");
+    expect(subscriptionState(row({ status: "trialing" }), now)).toBe("trial");
+    expect(subscriptionState(row({ status: "active" }), now)).toBe("active");
+    expect(subscriptionState(row({ status: "past_due" }), now)).toBe("past_due");
+    for (const status of ["canceled", "unpaid", "paused"]) expect(subscriptionState(row({ status }), now)).toBe("expired");
+  });
+
+  it("does not expire a Stripe subscription just because the period end passed (renewal webhook may lag)", () => {
+    expect(subscriptionState(row({ status: "active", current_period_end: "2026-10-01T00:00:00Z" }), now)).toBe("active");
+  });
+
+  it("treats unknown statuses as expired rather than free", () => {
+    expect(subscriptionState(row({ status: "něco" }), now)).toBe("expired");
   });
 });
 
-describe("trialWarning", () => {
-  it("warns during the last 7 days and after expiry", () => {
-    expect(trialWarning({ status: "trial", trial_ends_at: "2026-10-30T00:00:00Z", current_period_end: null }, now)).toBeNull();
-    expect(trialWarning({ status: "trial", trial_ends_at: "2026-10-10T12:00:00Z", current_period_end: null }, now)).toEqual({ kind: "ending", daysLeft: 3 });
-    expect(trialWarning({ status: "trial", trial_ends_at: "2026-10-01T00:00:00Z", current_period_end: null }, now)).toEqual({ kind: "expired", daysLeft: 0 });
+describe("faktury podle předplatného", () => {
+  it("allows invoices while trial has room and says how many remain", () => {
+    expect(invoiceAllowance(row({ trial_invoices_used: 12 }), now)).toEqual({ ok: true, remaining: 38 });
+    expect(invoiceAllowance(null, now)).toEqual({ ok: true, remaining: null });
+    expect(invoiceAllowance(row({ status: "active" }), now)).toEqual({ ok: true, remaining: null });
+    expect(invoiceAllowance(row({ status: "past_due" }), now)).toEqual({ ok: true, remaining: null });
+  });
+
+  it("blocks the 51st trial invoice, missing card and ended subscription with a clear reason", () => {
+    expect(invoiceAllowance(row({ trial_invoices_used: 50 }), now)).toMatchObject({ ok: false, code: "trial_invoice_limit" });
+    expect(invoiceAllowance(row({ status: "incomplete" }), now)).toMatchObject({ ok: false, code: "subscription_payment_required" });
+    expect(invoiceAllowance(row({ status: "canceled" }), now)).toMatchObject({ ok: false, code: "subscription_expired" });
   });
 });
 
-describe("normalizeBillingDetails", () => {
-  it("requires name, valid IČO and e-mail and keeps only known fields", () => {
-    expect(normalizeBillingDetails({ name: " Firma ", ico: "27082440", email: "Faktury@Firma.cz", address: "Ulice 1", dic: "cz27082440", extra: "x" }))
-      .toEqual({ ok: true, details: { name: "Firma", ico: "27082440", dic: "CZ27082440", address: "Ulice 1", email: "faktury@firma.cz" } });
-    expect(normalizeBillingDetails({ name: "", ico: "27082440", email: "a@b.cz" }).ok).toBe(false);
-    expect(normalizeBillingDetails({ name: "F", ico: "12345678", email: "a@b.cz" }).ok).toBe(false);
-    expect(normalizeBillingDetails({ name: "F", ico: "27082440", email: "x" }).ok).toBe(false);
+describe("pruh v aplikaci", () => {
+  it("warns 3 days before the trial ends", () => {
+    expect(billingNotice(row({ trial_ends_at: "2026-10-11T09:00:00Z" }), now)).toEqual({ kind: "trial_ending", daysLeft: 2, used: 0, limit: 50 });
+    expect(billingNotice(row({}), now)).toBeNull();
+  });
+
+  it("warns from 45 of 50 trial invoices and when the limit is reached", () => {
+    expect(billingNotice(row({ trial_invoices_used: 45 }), now)).toEqual({ kind: "trial_invoices", daysLeft: 11, used: 45, limit: 50 });
+    expect(billingNotice(row({ trial_invoices_used: 50 }), now)).toEqual({ kind: "trial_limit", daysLeft: 11, used: 50, limit: 50 });
+  });
+
+  it("shows failed payment, ended subscription and missing card", () => {
+    expect(billingNotice(row({ status: "past_due" }), now)?.kind).toBe("payment_failed");
+    expect(billingNotice(row({ status: "canceled" }), now)?.kind).toBe("expired");
+    expect(billingNotice(row({ status: "incomplete" }), now)?.kind).toBe("needs_payment");
+    expect(billingNotice(null, now)).toBeNull();
   });
 });
 
-describe("supplierConfiguration", () => {
-  it("needs the supplier identity and a valid bank account before anything can be invoiced", () => {
-    expect(supplierConfiguration({})).toBeNull();
-    const supplier = supplierConfiguration({
-      SPLATNO_SUPPLIER_NAME: "Splatno s.r.o.", SPLATNO_SUPPLIER_ICO: "27082440", SPLATNO_SUPPLIER_ADDRESS: "Ulice 1, Praha",
-      SPLATNO_SUPPLIER_ACCOUNT: "19-2000145399/0800", SPLATNO_SUPPLIER_VAT_PAYER: "true", SPLATNO_SUPPLIER_DIC: "CZ27082440",
-    });
-    expect(supplier).toMatchObject({ name: "Splatno s.r.o.", vatPayer: true, iban: "CZ6508000000192000145399" });
-    expect(supplierConfiguration({ SPLATNO_SUPPLIER_NAME: "S", SPLATNO_SUPPLIER_ICO: "27082440", SPLATNO_SUPPLIER_ADDRESS: "A", SPLATNO_SUPPLIER_ACCOUNT: "19-2000145398/0800" })).toBeNull();
-  });
-});
-
-describe("organizationsAllowedToSend", () => {
-  it("pauses reminder sending only for companies whose trial or plan has ended", async () => {
-    const { organizationsAllowedToSend } = await import("./billing");
+describe("automat upomínek", () => {
+  it("pauses sending for ended subscriptions and companies without a card", () => {
     const rows = [
-      { organization_id: "trial", status: "trial", trial_ends_at: "2026-10-20T00:00:00Z", current_period_end: null },
-      { organization_id: "expired", status: "trial", trial_ends_at: "2026-10-01T00:00:00Z", current_period_end: null },
-      { organization_id: "paid", status: "active", trial_ends_at: null, current_period_end: "2027-01-01T00:00:00Z" },
+      { ...row({ status: "canceled" }), organization_id: "a" },
+      { ...row({ status: "incomplete" }), organization_id: "b" },
+      { ...row({ status: "past_due" }), organization_id: "c" },
+      { ...row({ status: "trialing" }), organization_id: "d" },
     ];
-    expect(organizationsAllowedToSend(["trial", "expired", "paid", "legacy"], rows, now)).toEqual(["trial", "paid", "legacy"]);
-  });
-});
-
-describe("cron upomínek", () => {
-  it("claims reminder jobs only for companies allowed to send", async () => {
-    const { readFileSync } = await import("node:fs");
-    const source = readFileSync("src/app/api/cron/check-due/route.ts", "utf8");
-    expect(source).toContain("organizationsAllowedToSend(");
-    expect(source).toMatch(/claim_reminder_jobs", \{\s*target_organizations: sendingOrganizationIds,/);
+    expect(organizationsAllowedToSend(["a", "b", "c", "d", "legacy"], rows, now)).toEqual(["c", "d", "legacy"]);
   });
 });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Inter } from "next/font/google";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Bank, Bell, Check, FileText, Home, Mail, Shield, Users } from "@/components/landing/landing-icons";
+import { findPlan, formatCzk, isBillingPeriod, monthlyPrice, PLANS, quote, TRIAL_DAYS, TRIAL_INVOICE_LIMIT, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { RibbonMark } from "@/components/landing/landing-icons";
 import { isValidBankAccount, isValidIco } from "@/lib/company-validation";
 import { confirmAction } from "@/lib/confirm-action";
@@ -20,7 +21,17 @@ const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 type Reminders = { days: number[]; replyTo: string; ccText: string };
-type VerifyState = "idle" | "sending" | "sent" | "manual" | "no_data_box" | "unavailable" | "verifying" | "verified";
+type PaymentState = "idle" | "redirecting" | "activating" | "denied" | "starting" | "done";
+type Denied = { reason: string; dueNowHalere: number; plan: PlanId; period: BillingPeriod };
+export type PaymentContext = { companyName: string; canManage: boolean; plan: string | null; period: string | null };
+
+const PLAN_CHOICE_KEY = "splatno:plan-choice";
+const DENIED_REASON: Record<string, string> = {
+  ico_used: "Firma s tímto IČO už zkušební dobu ve Splatnu využila.",
+  card_used: "Tato karta už byla použita pro zkušební dobu jiné firmy.",
+  ip_limit: "Z této sítě se v posledních 30 dnech spustilo víc zkušebních dob, než povolujeme.",
+  restart: "Předplatné obnovujete, zkušební doba se znovu nepočítá.",
+};
 
 const REMINDER_STAGES = ["before_due", "on_due", "overdue", "escalation"] as const;
 const DAY_OPTIONS = [-7, -3, -1, 0, 3, 7, 14, 30];
@@ -41,7 +52,7 @@ const STEPS: { title: string; sub: string }[] = [
   { title: "Logo", sub: "Vzhled faktur a e-mailů" },
   { title: "Tým", sub: "Pozvěte kolegy" },
   { title: "Shrnutí", sub: "Kontrola a založení" },
-  { title: "Ověření", sub: "Přes datovou schránku" },
+  { title: "Tarif a karta", sub: `${TRIAL_DAYS} dní zdarma` },
 ];
 
 const ART: Record<Step, { src: string; title: string; sub: string }> = {
@@ -52,7 +63,7 @@ const ART: Record<Step, { src: string; title: string; sub: string }> = {
   5: { src: "/brand/mascot/wave.webp", title: "Vaše firma, váš vzhled.", sub: "Logo uvidí zákazníci v upomínkách a kolegové v aplikaci." },
   6: { src: "/brand/mascot/wave.webp", title: "Společně to zvládneme.", sub: "Kolegy pozvete teď, nebo kdykoli později v Nastavení." },
   7: { src: "/brand/mascot/laptop.webp", title: "Faktury pod kontrolou.", sub: "Firma vznikne až posledním tlačítkem." },
-  8: { src: "/brand/mascot/phone.webp", title: "Ověříme, že je to vaše firma.", sub: "Kód pošleme do datové schránky firmy podle IČO." },
+  8: { src: "/brand/mascot/phone.webp", title: `${TRIAL_DAYS} dní zdarma.`, sub: `Až ${TRIAL_INVOICE_LIMIT} faktur ve zkušební době. Tarif se strhne až po ní a zrušit jde kdykoli.` },
 };
 
 const DRAFT_KEY = "splatno:onboarding-draft";
@@ -94,9 +105,9 @@ function writeDraft(value: { company: OnboardingCompany; invites: Invite[]; remi
 // Průvodce založením firmy. Nic se nezakládá průběžně: firma vznikne naráz
 // až tlačítkem „Dokončit nastavení“ (R3). Rozpracované údaje se drží jen
 // v prohlížeči, takže zavření stránky nic napůl nezaloží.
-export function OnboardingClient({ accountEmail, accountName }: { accountEmail: string; accountName: string }) {
-  const [step, setStep] = useState<Step>(1);
-  const [reached, setReached] = useState<Step>(1);
+export function OnboardingClient({ accountEmail, accountName, payment }: { accountEmail: string; accountName: string; payment: PaymentContext | null }) {
+  const [step, setStep] = useState<Step>(payment ? 8 : 1);
+  const [reached, setReached] = useState<Step>(payment ? 8 : 1);
   const [company, setCompany] = useState<OnboardingCompany>({ ...EMPTY, email: accountEmail });
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -109,10 +120,13 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
   const [reminders, setReminders] = useState<Reminders>(DEFAULT_REMINDERS);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
-  const [verify, setVerify] = useState<VerifyState>("idle");
-  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
-  const [verifyCode, setVerifyCode] = useState("");
+  const [created, setCreated] = useState(Boolean(payment));
+  const [canPay, setCanPay] = useState(payment ? payment.canManage : true);
+  const [plan, setPlan] = useState<PlanId>(payment?.plan && findPlan(payment.plan) ? payment.plan as PlanId : "profi");
+  const [period, setPeriod] = useState<BillingPeriod>(isBillingPeriod(payment?.period) ? payment.period : "monthly");
+  const [paymentState, setPaymentState] = useState<PaymentState>("idle");
+  const [paymentInfo, setPaymentInfo] = useState<string | null>(null);
+  const [denied, setDenied] = useState<Denied | null>(null);
   // Ukládat rozpracovaný stav smíme až po jeho načtení; jinak by první
   // vykreslení s prázdnými poli přepsalo uložený koncept.
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -277,7 +291,7 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
 
     // Firma existuje. Zbytek nastavení (upomínky, logo, pozvánky) se uloží
     // po krocích; co se nepovede, jde dodělat v Nastavení a firma tím nijak
-    // neutrpí. Výsledek uvidí uživatel na kroku Ověření.
+    // neutrpí. Varování uvidí uživatel na kroku Tarif a karta.
     const warnings: string[] = [];
     const cc = parseReminderCcInput(reminders.ccText);
     const savedReminders = await fetch("/api/settings/reminders", {
@@ -321,39 +335,117 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
     setReached(8);
   }
 
-  async function sendVerification() {
-    setVerify("sending");
-    setVerifyInfo(null);
-    const response = await fetch("/api/verification/data-box", { method: "POST" }).catch(() => null);
-    const data = await response?.json().catch(() => null) as { status?: string; dataBoxId?: string; error?: string; mismatch?: boolean } | null;
-    if (response?.ok && data?.status === "sent") {
-      setVerify("sent");
-      setVerifyInfo(`Kód jsme poslali do datové schránky ${data.dataBoxId}${data.mismatch ? " (podle IČO; liší se od schránky zadané v kontaktech)" : ""}. Platí 72 hodin.`);
-      return;
+  // Tarif vybraný na landing page (přes registraci) předvyplní výběr.
+  useEffect(() => {
+    if (payment?.plan) return;
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(PLAN_CHOICE_KEY) ?? "null") as { plan?: string; period?: string } | null;
+      if (saved?.plan && findPlan(saved.plan)) setPlan(saved.plan as PlanId);
+      if (isBillingPeriod(saved?.period)) setPeriod(saved.period);
+    } catch {
+      // Bez úložiště zůstane výchozí Profi měsíčně.
     }
-    if (data?.status === "already_verified") {
-      setVerify("verified");
-      return;
+  }, [payment?.plan]);
+
+  function finishOnboarding() {
+    writeDraft(null);
+    try {
+      window.localStorage.removeItem(PLAN_CHOICE_KEY);
+    } catch {
+      // Bez úložiště není co mazat.
     }
-    setVerify(data?.status === "manual" || data?.status === "no_data_box" ? data.status : "unavailable");
-    setVerifyInfo(data?.error ?? "Ověření teď není dostupné. Zkuste to později v Nastavení → Firma.");
+    setPaymentState("done");
+    window.location.replace("/dashboard");
   }
 
-  async function confirmVerification() {
-    setVerify("verifying");
-    const response = await fetch("/api/verification/data-box/confirm", {
+  async function activate(session: string, attempt = 0): Promise<void> {
+    setPaymentState("activating");
+    setPaymentInfo(null);
+    const response = await fetch("/api/billing/activate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: verifyCode }),
+      body: JSON.stringify({ session }),
     }).catch(() => null);
-    const data = await response?.json().catch(() => null) as { status?: string; message?: string; error?: string } | null;
-    if (response?.ok && data?.status === "verified") {
-      setVerify("verified");
-      setVerifyInfo(null);
+    const data = await response?.json().catch(() => null) as
+      | { status?: string; reason?: string; dueNowHalere?: number; choice?: { plan: PlanId; period: BillingPeriod }; error?: string }
+      | null;
+    if (response?.ok && data?.status === "subscribed") return finishOnboarding();
+    if (response?.ok && data?.status === "pending" && attempt < 5) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return activate(session, attempt + 1);
+    }
+    if (response?.ok && data?.status === "trial_denied" && data.choice) {
+      setDenied({ reason: data.reason ?? "", dueNowHalere: data.dueNowHalere ?? 0, plan: data.choice.plan, period: data.choice.period });
+      setPlan(data.choice.plan);
+      setPeriod(data.choice.period);
+      setPaymentState("denied");
       return;
     }
-    setVerify("sent");
-    setVerifyInfo(data?.message ?? data?.error ?? "Kód se nepodařilo ověřit.");
+    if (response?.status === 403) setCanPay(false);
+    setPaymentState("idle");
+    setPaymentInfo(data?.error ?? "Uložení karty se nepodařilo ověřit. Zkuste stránku za chvíli obnovit.");
+  }
+
+  // Návrat z platební brány: ?platba=hotovo&session=… nebo ?platba=zrusena.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get("platba");
+    if (!outcome) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    if (outcome === "zrusena") {
+      setPaymentInfo("Karta se neuložila a nic se nestrhlo. Můžete to zkusit znovu.");
+      return;
+    }
+    const session = params.get("session");
+    if (outcome === "hotovo" && session) void activate(session);
+    // Spouští se jednou po návratu z brány; activate čte jen aktuální stav.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function openCardSetup() {
+    setPaymentInfo(null);
+    setPaymentState("redirecting");
+    const response = await fetch("/api/billing/setup", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ plan, period, from: "onboarding" }),
+    }).catch(() => null);
+    const data = await response?.json().catch(() => null) as { url?: string; error?: string; code?: string } | null;
+    if (response?.ok && data?.url) {
+      window.location.assign(data.url);
+      return;
+    }
+    if (data?.code === "already_subscribed") return finishOnboarding();
+    if (response?.status === 403) setCanPay(false);
+    setPaymentState("idle");
+    setPaymentInfo(data?.error ?? "Platební bránu se nepodařilo otevřít. Zkuste to prosím znovu.");
+  }
+
+  // Bez nároku na zkušební dobu se strhává hned: jen po potvrzení částky (R6).
+  async function startWithoutTrial() {
+    if (!denied) return;
+    const name = findPlan(denied.plan)?.name ?? denied.plan;
+    const confirmed = await confirmAction({
+      title: `Strhnout ${formatCzk(denied.dueNowHalere)} z karty?`,
+      description: `Aktivujeme tarif ${name} (${denied.period === "yearly" ? "ročně" : "měsíčně"}) pro ${payment?.companyName ?? company.name}. Další platby se strhnou automaticky na začátku každého období; zrušit můžete kdykoli v Nastavení → Předplatné.`,
+      confirmLabel: `Zaplatit ${formatCzk(denied.dueNowHalere)}`,
+      confirmVariant: "primary",
+    });
+    if (!confirmed) return;
+    setPaymentState("starting");
+    const response = await fetch("/api/billing/subscription", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "start", confirm: true }),
+    }).catch(() => null);
+    const data = await response?.json().catch(() => null) as { status?: string; url?: string | null; error?: string } | null;
+    if (response?.ok && data?.status === "subscribed") return finishOnboarding();
+    if (response?.ok && data?.status === "requires_action" && data.url) {
+      window.location.assign(data.url);
+      return;
+    }
+    setPaymentState("denied");
+    setPaymentInfo(data?.error ?? "Platba se nepodařila. Nic se nestrhlo; zkuste to znovu nebo jinou kartou.");
   }
 
   const art = ART[step];
@@ -653,38 +745,58 @@ export function OnboardingClient({ accountEmail, accountName }: { accountEmail: 
             )}
             {step === 8 && (
               <>
-                <h1 className={styles.title}>{verify === "verified" ? "Firma je ověřená" : "Ověřte, že je to vaše firma"}</h1>
+                <h1 className={styles.title}>{denied ? "Zkušební doba tentokrát není" : `Vyberte tarif, ${TRIAL_DAYS} dní máte zdarma`}</h1>
                 <p className={styles.sub}>
-                  {verify === "verified"
-                    ? "Hotovo. Firma je založená i ověřená, můžete začít."
-                    : "Firma je založená. Pošleme kód do datové schránky firmy dohledané podle IČO; kdo do ní vidí, firmu ověří. Bez ověření můžete Splatno používat ve zkušební době, k nákupu tarifu je potřeba."}
+                  {denied
+                    ? `${DENIED_REASON[denied.reason] ?? "Na zkušební dobu tato firma nemá nárok."} Karta je uložená, ale nic se nestrhlo.`
+                    : `Firma ${payment?.companyName ?? company.name} je založená. Zadejte kartu: dnes nic neplatíte, ${TRIAL_DAYS} dní zkoušíte zdarma (až ${TRIAL_INVOICE_LIMIT} faktur) a teprve potom se strhne zvolený tarif. Zrušit můžete kdykoli.`}
                 </p>
                 {result ? <p className={styles.notice} style={{ marginTop: 16 }}>{result}</p> : null}
-                <div className={styles.form}>
-                  {verify === "idle" || verify === "sending" ? (
-                    <button className={styles.primary} type="button" disabled={verify === "sending"} onClick={() => void sendVerification()}>
-                      <Shield /> {verify === "sending" ? "Posílám kód…" : "Poslat kód do datové schránky"}
-                    </button>
-                  ) : null}
-                  {verify === "sent" || verify === "verifying" ? (
-                    <form className={styles.form} style={{ marginTop: 0 }} noValidate onSubmit={(event) => { event.preventDefault(); void confirmVerification(); }}>
-                      <label className={styles.field}>
-                        <span className={styles.label}>Kód ze zprávy v datové schránce</span>
-                        <span className={`${styles.control} ${styles.plain}`}><input inputMode="numeric" autoComplete="one-time-code" maxLength={7} placeholder="123456" value={verifyCode} onChange={(event) => setVerifyCode(event.target.value.replace(/[^\d\s]/g, ""))} /></span>
-                      </label>
-                      <button className={styles.primary} type="submit" disabled={verify === "verifying" || verifyCode.replace(/\s/g, "").length !== 6}>
-                        {verify === "verifying" ? "Ověřuji…" : "Ověřit firmu"} <ArrowRight />
-                      </button>
-                      <button type="button" className={styles.textButton} onClick={() => void sendVerification()}>Poslat nový kód</button>
-                    </form>
-                  ) : null}
-                  {verifyInfo ? <p className={verify === "sent" || verify === "verifying" ? styles.hint : styles.notice}>{verifyInfo}</p> : null}
-                  <div className={styles.actions}>
-                    <a className={verify === "verified" ? styles.primary : styles.back} href="/dashboard">
-                      {verify === "verified" ? <>Přejít na nástěnku <ArrowRight /></> : "Ověřím později, pokračovat"}
-                    </a>
+                {!canPay ? (
+                  <div className={styles.info} style={{ marginTop: 20 }}><Shield /><p><b>Platbu dokončuje administrátor firmy.</b> Jakmile zadá kartu, Splatno se vám otevře. Stačí potom tuto stránku obnovit.</p></div>
+                ) : (
+                  <div className={styles.form}>
+                    <div className={styles.periodSwitch} role="radiogroup" aria-label="Období platby">
+                      {(["monthly", "yearly"] as const).map((value) => (
+                        <button key={value} type="button" role="radio" aria-checked={period === value} data-active={period === value || undefined}
+                          disabled={Boolean(denied) || paymentState !== "idle"} onClick={() => setPeriod(value)}>
+                          {value === "monthly" ? "Měsíčně" : <>Ročně <small>2 měsíce zdarma</small></>}
+                        </button>
+                      ))}
+                    </div>
+                    <div className={styles.planGrid} role="radiogroup" aria-label="Tarif">
+                      {PLANS.map((item) => (
+                        <label key={item.id} className={styles.planOption} data-active={plan === item.id || undefined}>
+                          <input type="radio" name="plan" value={item.id} checked={plan === item.id} disabled={Boolean(denied) || paymentState !== "idle"} onChange={() => setPlan(item.id)} />
+                          <span className={styles.planName}>{item.name}</span>
+                          <span className={styles.planPrice}>{monthlyPrice(item.id, period).toLocaleString("cs-CZ")} Kč <small>/ měsíc bez DPH</small></span>
+                          <span className={styles.planNote}>{item.features[0]}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className={styles.info}>
+                      <Check />
+                      <p>
+                        {denied
+                          ? <><b>Dnes zaplatíte {formatCzk(denied.dueNowHalere)}.</b> Další platba za {denied.period === "yearly" ? "rok" : "měsíc"} se strhne automaticky.</>
+                          : <><b>Dnes 0 Kč.</b> Po {TRIAL_DAYS} dnech {formatCzk(quote(plan, period).netHalere)} bez DPH za {period === "yearly" ? "rok" : "měsíc"}. Tarif změníte kdykoli.</>}
+                      </p>
+                    </div>
+                    {paymentInfo ? <p className={styles.notice}>{paymentInfo}</p> : null}
+                    <div className={styles.actions}>
+                      {denied ? (
+                        <button className={styles.primary} type="button" disabled={paymentState === "starting"} onClick={() => void startWithoutTrial()}>
+                          {paymentState === "starting" ? "Platím…" : `Zaplatit ${formatCzk(denied.dueNowHalere)} a začít`} <ArrowRight />
+                        </button>
+                      ) : (
+                        <button className={styles.primary} type="button" disabled={paymentState !== "idle"} onClick={() => void openCardSetup()}>
+                          {paymentState === "redirecting" ? "Otevírám platební bránu…" : paymentState === "activating" ? "Ověřuji kartu…" : "Zadat kartu a začít zdarma"} <ArrowRight />
+                        </button>
+                      )}
+                    </div>
+                    <p className={styles.hint}>Kartu zpracovává Stripe, Splatno číslo karty nikdy nevidí.</p>
                   </div>
-                </div>
+                )}
               </>
             )}
           </div>

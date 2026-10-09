@@ -1,15 +1,35 @@
 import Link from "next/link";
+import type { BillingNotice } from "@/lib/billing";
 
-// Pruh nad obsahem aplikace: posledních 7 dní zkušební doby a po jejím konci.
-export function SubscriptionBanner({ warning, canOrder }: { warning: { kind: "ending" | "expired"; daysLeft: number } | null; canOrder: boolean }) {
-  if (!warning) return null;
-  const text = warning.kind === "expired"
-    ? "Zkušební doba skončila. Data zůstávají, ale nové faktury a automatické upomínky jsou pozastavené."
-    : `Zkušební doba končí za ${warning.daysLeft} ${warning.daysLeft === 1 ? "den" : warning.daysLeft < 5 ? "dny" : "dní"}.`;
+const days = (n: number) => `${n} ${n === 1 ? "den" : n >= 2 && n <= 4 ? "dny" : "dní"}`;
+
+function text(notice: BillingNotice) {
+  switch (notice.kind) {
+    case "trial_ending":
+      return `Zkušební doba končí za ${days(notice.daysLeft)}. Potom se strhne zvolený tarif z uložené karty.`;
+    case "trial_invoices":
+      return `Ve zkušební době jste přidali ${notice.used} z ${notice.limit} faktur.`;
+    case "trial_limit":
+      return `Vyčerpali jste ${notice.limit} faktur zkušební doby. Další přidáte po zahájení placeného tarifu.`;
+    case "payment_failed":
+      return "Poslední platba za Splatno se nezdařila. Aktualizujte prosím kartu, ať se nic nepozastaví.";
+    case "expired":
+      return "Předplatné skončilo. Data zůstávají, ale nové faktury a automatické upomínky jsou pozastavené.";
+    case "needs_payment":
+      return "Pro používání Splatna dokončete nastavení platby.";
+  }
+}
+
+// Pruh nad obsahem aplikace: zkušební doba, limit faktur, nezdařená platba.
+export function SubscriptionBanner({ notice, canManage }: { notice: BillingNotice | null; canManage: boolean }) {
+  if (!notice) return null;
+  const urgent = notice.kind === "expired" || notice.kind === "payment_failed" || notice.kind === "trial_limit";
   return (
-    <div className="subscription-banner" role="status" data-kind={warning.kind}>
-      <span>{text}</span>
-      {canOrder ? <Link href="/predplatne" className="btn primary">Vybrat tarif</Link> : <span>Tarif může koupit administrátor firmy.</span>}
+    <div className="subscription-banner" role="status" data-kind={urgent ? "expired" : notice.kind}>
+      <span>{text(notice)}</span>
+      {canManage
+        ? <Link href="/predplatne" className="btn primary">{notice.kind === "payment_failed" ? "Aktualizovat kartu" : "Spravovat předplatné"}</Link>
+        : <span>Předplatné spravuje administrátor firmy.</span>}
     </div>
   );
 }

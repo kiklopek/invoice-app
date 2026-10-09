@@ -1586,3 +1586,11 @@
     display: none;
   }
 }
+
+.planTrial {
+  margin: 10px 0 0 !important;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}

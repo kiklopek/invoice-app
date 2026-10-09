@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ArrowRight, Check, Headset } from "./landing-icons";
 import styles from "./landing.module.css";
 
-import { PLANS, monthlyPrice } from "@/lib/plans";
+import { PLANS, TRIAL_DAYS, TRIAL_INVOICE_LIMIT, monthlyPrice, periodPrice } from "@/lib/plans";
 
 const czk = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 });
 
@@ -25,7 +25,7 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
             type="button"
             role="switch"
             aria-checked={yearly}
-            aria-label="Roční platba se slevou 20 %"
+            aria-label="Roční platba: 2 měsíce zdarma"
             className={styles.switch}
             data-on={yearly || undefined}
             onClick={() => setYearly((v) => !v)}
@@ -33,7 +33,7 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
             <span />
           </button>
           <span className={yearly ? styles.billingActive : undefined}>Ročně</span>
-          <span className={styles.billingSave}>−20 %</span>
+          <span className={styles.billingSave}>2 měsíce zdarma</span>
         </div>
       </div>
 
@@ -52,7 +52,7 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
                 <strong>{czk.format(price)} Kč</strong> <span>/ měsíc</span>
               </p>
               <p className={styles.planBilled}>
-                {yearly ? `${czk.format(price * 12)} Kč ročně` : " "}
+                {yearly ? `${czk.format(periodPrice(plan.id, "yearly"))} Kč ročně bez DPH` : "bez DPH"}
               </p>
               <ul>
                 {plan.features.map((f) => (
@@ -62,15 +62,13 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
                   </li>
                 ))}
               </ul>
-              <Link href={trialHref} className={plan.featured ? styles.btnPrimary : styles.btnOutline}>
-                Vyzkoušet zdarma
-              </Link>
               <Link
-                href={`/predplatne?tarif=${plan.id}&obdobi=${yearly ? "yearly" : "monthly"}`}
-                className={styles.planBuy}
+                href={`${trialHref}?tarif=${plan.id}&obdobi=${yearly ? "yearly" : "monthly"}`}
+                className={plan.featured ? styles.btnPrimary : styles.btnOutline}
               >
-                Koupit {plan.name}
+                Vyzkoušet {TRIAL_DAYS} dní zdarma
               </Link>
+              <p className={styles.planTrial}>Až {TRIAL_INVOICE_LIMIT} faktur ve zkušební době. Zrušit můžete kdykoli.</p>
             </article>
           );
         })}
