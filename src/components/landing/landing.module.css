@@ -1522,3 +1522,67 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ---------- dotykové plochy a tablet ---------- */
+/* Samostatné odkazy mají na dotykových zařízeních aspoň 44 px na výšku;
+   vnitřní okraje se vrací záporným marginem, aby se nehnulo rozvržení. */
+@media (max-width: 1080px) {
+  .loginLink,
+  .textLink,
+  .playLink,
+  .planBuy,
+  .footer nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .planBuy {
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .btnSm {
+    min-height: 44px;
+  }
+  /* náhled aplikace v hero na užším displeji nepřesahuje okraj */
+  .heroVisual {
+    margin-right: 0;
+  }
+}
+
+/* Kroky „Jak to funguje“ na tabletu: ilustrace vlevo, text vpravo,
+   místo úzkého sloupce s prázdnou pravou polovinou. */
+@media (min-width: 641px) and (max-width: 980px) {
+  .steps {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 36px;
+    align-items: center;
+  }
+  .stepArt {
+    grid-row: 1 / span 2;
+  }
+  .step h3 {
+    align-self: end;
+  }
+  .step > p {
+    align-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer nav a {
+    min-height: 44px;
+  }
+}
+@media (max-width: 330px) {
+  /* na nejužších telefonech se do hlavičky vejde jen hlavní tlačítko */
+  .loginLink {
+    display: none;
+  }
+}

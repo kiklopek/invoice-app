@@ -50,3 +50,16 @@
   color: #6b776f;
   font-size: 14px;
 }
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px 12px 48px;
+  }
+  .article {
+    padding: 24px 18px 32px;
+    border-radius: 16px;
+  }
+  .logo {
+    min-height: 44px;
+  }
+}

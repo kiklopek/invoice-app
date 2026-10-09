@@ -160,7 +160,7 @@
   background: #fff;
   color: var(--ink);
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -414,6 +414,8 @@
   }
   .card {
     grid-template-columns: 1fr;
+    /* pruh s maskotem jen na výšku obsahu, zbytek patří formuláři */
+    grid-template-rows: auto 1fr;
     min-height: 100dvh;
     border-radius: 0;
     box-shadow: none !important;
@@ -421,6 +423,7 @@
   .artSide {
     order: -1;
     grid-template-columns: auto 1fr;
+    align-items: center;
     justify-items: start;
     gap: 14px;
     padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px 12px;
@@ -446,7 +449,21 @@
     height: 32px;
   }
   .body {
+    margin-block: 0 auto;
     padding-top: 22px;
+  }
+  /* dotykové plochy alespoň 44 px (odkazy pod formulářem, logo) */
+  .splatno,
+  .foot a,
+  .row .link,
+  .row .link a,
+  .textButton {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .check {
+    min-height: 44px;
   }
 }
 
