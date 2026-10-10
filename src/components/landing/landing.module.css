@@ -345,6 +345,10 @@
   font-size: 12px;
 }
 
+.trustMascot {
+  display: none;
+}
+
 .heroVisual {
   position: relative;
   margin-right: -36px;
@@ -1110,6 +1114,9 @@
 .switch[data-on] span {
   transform: translateX(18px);
 }
+.billingSeg {
+  display: none;
+}
 .plans {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.9fr);
@@ -1326,18 +1333,106 @@
   .section {
     padding: 48px 0;
   }
+  /* CTA a play ikona v jednom řádku; popisek play odkazu jen pro čtečky */
+  .heroCtas {
+    flex-wrap: nowrap;
+    gap: 14px;
+  }
+  .playLink > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .heroCtas .btnLg {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0 24px;
+  }
+  .playLink {
+    flex-shrink: 0;
+  }
+  .playIcon {
+    width: 52px;
+    height: 52px;
+    font-size: 20px;
+  }
+  .trust li > span {
+    flex-shrink: 0;
+  }
+  /* výhody pod sebou vlevo, maskot vedle nich vpravo */
+  .trustRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+  }
+  .trust {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 16px;
+    margin-top: 0 !important;
+  }
+  .trustMascot {
+    display: block;
+    width: 140px;
+    height: auto;
+    filter: drop-shadow(0 14px 14px rgba(19, 35, 27, 0.14));
+  }
   .heroVisual {
-    padding: 0 0 150px;
+    padding: 0;
   }
-  .heroMascot {
-    right: 0;
-    bottom: 0;
-    width: 130px;
-  }
+  .heroMascot,
   .heroHand {
-    right: 130px;
-    bottom: 30px;
-    font-size: 19px;
+    display: none;
+  }
+  .attentionLogin {
+    display: none;
+  }
+  /* segmentový přepínač období místo malého switche */
+  .pricingHead {
+    display: block;
+  }
+  .billing {
+    display: none;
+  }
+  .billingSeg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 20px;
+    padding: 4px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 0 1px #edf0ee !important;
+  }
+  .billingSeg button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .billingSeg button[data-on] {
+    background: var(--cta);
+    color: #fff;
+  }
+  .billingSeg button[data-on] .billingSave {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
   }
   .dash {
     grid-template-columns: minmax(0, 1fr);
@@ -1415,6 +1510,15 @@
   }
 }
 
+@media (max-width: 360px) {
+  .trustMascot {
+    width: 110px;
+  }
+  .billingSeg button {
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 330px) {
   .loginLink {
     display: none;
@@ -1449,11 +1553,6 @@
   }
 }
 @media (max-width: 640px) {
-  .heroMascot {
-    right: -10px;
-    bottom: 0;
-    width: 160px;
-  }
   .chaos {
     margin-bottom: 20px;
   }
