@@ -33,7 +33,7 @@ describe("MFA and bank statement UI regressions", () => {
     expect(gpcImport).toContain(
       '["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]',
     );
-    expect(gpcImport).toContain("Příchozí CZK platby připravené ke kontrole.");
+    expect(gpcImport).toContain("Příchozí platby připravené ke kontrole.");
     expect(gpcImport).toContain("Odchozí, cizoměnové nebo duplicitní řádky.");
     expect(gpcImport).toContain('["duplicate", "Duplicity"]');
     expect(css).toContain(".import-steps span.current");

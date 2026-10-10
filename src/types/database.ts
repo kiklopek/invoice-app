@@ -353,6 +353,8 @@ export type Database = {
       }
       bank_statement_imports: {
         Row: {
+          bank_code: string | null
+          format_dialect: string | null
           accepted_count: number
           account_mismatch: boolean
           account_mismatch_acknowledged: boolean
@@ -378,6 +380,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bank_code?: string | null
+          format_dialect?: string | null
           accepted_count?: number
           account_mismatch?: boolean
           account_mismatch_acknowledged?: boolean
@@ -403,6 +407,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bank_code?: string | null
+          format_dialect?: string | null
           accepted_count?: number
           account_mismatch?: boolean
           account_mismatch_acknowledged?: boolean

@@ -77,6 +77,7 @@ type Preview = {
   account_mismatch: boolean;
   statement_account: string | null;
   expected_account: string | null;
+  statement_bank?: { code: string | null; name: string | null; verified: boolean } | null;
   totals: { accepted: number; ignored: number; errors: number };
   entries: PreviewEntry[];
   proposal_invoices: Invoice[];
@@ -631,7 +632,7 @@ export function GpcImportPanel({
                 <span className="payments-section-number">01</span>
                 <div><span className="gpc-eyebrow">ZAČNĚTE VÝPISEM</span><h2 id="gpc-import-title">Nahrát bankovní výpis</h2></div>
               </div>
-              <p className="gpc-lead">Vyberte výpis z internetového bankovnictví. Příchozí platby v CZK porovnáme s otevřenými fakturami.</p>
+              <p className="gpc-lead">Vyberte výpis z internetového bankovnictví. Příchozí platby porovnáme s otevřenými fakturami. Banku poznáme podle čísla účtu ve výpisu.</p>
               <label className={`gpc-dropzone ${working ? "is-working" : ""}`}>
                 <input
                   type="file"
@@ -739,7 +740,7 @@ export function GpcImportPanel({
                   <Icon name="alert" />
                 </span>
                 <span className="account-warning-copy">
-                  <strong>Účet ve výpisu nesouhlasí s nastaveným firemním účtem v této měně</strong>
+                  <strong>Účet ve výpisu není mezi účty firmy (Nastavení → Firma)</strong>
                   <span className="account-warning-numbers">
                     <span>Ve výpisu: <strong>{preview.statement_account || "neznámý"}</strong></span>
                     <span>Nastaveno: <strong>{preview.expected_account || "neznámý"}</strong></span>
@@ -760,11 +761,19 @@ export function GpcImportPanel({
                 </label>
               </div>
             )}
+            {preview.statement_bank && !preview.statement_bank.verified && (
+              <p className="form-hint" role="status">
+                {preview.statement_bank.name
+                  ? `Výpis z banky ${preview.statement_bank.name} zatím nemáme ověřený na vzorku.`
+                  : "Banku výpisu se nepodařilo určit (účet ve výpisu není mezi účty firmy)."}
+                {" "}Platby párujeme jen podle variabilního symbolu a částky, ne podle čísla účtu plátce.
+              </p>
+            )}
             <div className="payment-result">
               <div>
                 <span>Přijaté</span>
                 <strong>{preview.totals.accepted}</strong>
-                <small>Příchozí CZK platby připravené ke kontrole.</small>
+                <small>Příchozí platby připravené ke kontrole.</small>
               </div>
               <div>
                 <span>Ignorované</span>

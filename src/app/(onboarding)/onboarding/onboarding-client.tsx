@@ -601,7 +601,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                     </span>
                     {fieldErrors.bank_account_eur ? <p className={styles.fieldError}>{fieldErrors.bank_account_eur}</p> : null}
                   </label>
-                  <div className={styles.info}><Bank /><p><b>Výpisy nahrajete v sekci Platby.</b> Zatím umíme výpisy Komerční banky ve formátu GPC, další banky připravujeme.</p></div>
+                  <div className={styles.info}><Bank /><p><b>Výpisy nahrajete v sekci Platby.</b> Ověřené máme výpisy Komerční banky (GPC). Výpisy dalších bank (GPC, CSV) načteme také, platby z nich ale párujeme jen podle variabilního symbolu, dokud jejich formát neověříme.</p></div>
                   <div className={styles.actions}>
                     <button className={styles.back} type="button" onClick={() => go(2)}><ArrowLeft />Zpět</button>
                     <button className={styles.primary} type="submit">Pokračovat <ArrowRight /></button>
