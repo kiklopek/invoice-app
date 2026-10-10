@@ -68,7 +68,7 @@ export async function getAuthenticatedSession(options: IdentityOptions = {}) {
     requireMfa ? hasVerifiedEmailMfa({ email, userId: data.user.id, sessionId }) : Promise.resolve(true),
     membershipClient
       .from("organization_members")
-      .select("id, organization_id, role, email")
+      .select("id, organization_id, role, email, support_expires_at, support_reason")
       .eq("user_id", data.user.id)
       .eq("email", email)
       .order("created_at", { ascending: true })
@@ -116,16 +116,27 @@ export async function resolveMembership(session: AuthenticatedSession) {
         .update({ user_id: user.id, email, invite_token_hash: null, invite_expires_at: null })
         .eq("id", invitation.id)
         .is("user_id", null)
-        .select("id, organization_id, role, email")
+        .select("id, organization_id, role, email, support_expires_at, support_reason")
         .maybeSingle();
       membership = claimed;
     }
   }
 
   if (!membership || !isAccessRole(membership.role)) return null;
+  // Support provozovatele: dočasné členství. Prošlé se hned ukončí (RLS ho už
+  // neuzná, ale aplikace čte servisním klientem).
+  const supportExpiresAt = membership.support_expires_at ?? null;
+  if (supportExpiresAt && new Date(supportExpiresAt) <= new Date()) {
+    await service.rpc("end_support_session", { operator_user: user.id, ended_by_user: null });
+    return null;
+  }
+  const support = supportExpiresAt
+    ? { expiresAt: supportExpiresAt, reason: membership.support_reason ?? "" }
+    : null;
   return {
     user,
-    membership: { ...membership, role: membership.role },
+    support,
+    membership: { id: membership.id, organization_id: membership.organization_id, email: membership.email, role: membership.role },
     service,
     userClient: cookieAuth,
     sessionId,

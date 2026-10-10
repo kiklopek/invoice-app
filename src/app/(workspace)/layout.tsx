@@ -7,6 +7,8 @@ import { routeFor } from "@/lib/access-state";
 import { billingNotice } from "@/lib/billing";
 import { loadSubscription } from "@/lib/billing-server";
 import { SubscriptionBanner } from "@/components/subscription-banner";
+import { SupportBanner } from "@/components/support-banner";
+import { isOperatorEmail } from "@/lib/operator";
 import { displayName } from "@/lib/user-display";
 import type { AccessProfile } from "@/lib/use-access-role";
 
@@ -14,11 +16,15 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   let cacheKey = "anonymous";
   let initialProfile: AccessProfile | null = null;
   let notice: ReturnType<typeof billingNotice> = null;
+  let support: { expiresAt: string; reason: string } | null = null;
 
   const identity = await getCachedRequestIdentity();
   // Ověřený účet bez firmy je zakladatel před onboardingem (P12): aplikace
   // bez firmy nemá co ukázat, pokračuje se nastavením firmy.
-  if (!identity && await getAuthenticatedSession()) {
+  const sessionWithoutCompany = identity ? null : await getAuthenticatedSession();
+  // Provozovatel bez aktivního supportu patří na /provoz, ne do zakládání firmy.
+  if (sessionWithoutCompany && isOperatorEmail(sessionWithoutCompany.email)) redirect("/provoz");
+  if (sessionWithoutCompany) {
     const decision = routeFor("needs_onboarding", "/dashboard");
     if (decision.type === "redirect") redirect(decision.to);
   }
@@ -33,6 +39,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       if (decision.type === "redirect") redirect(decision.to);
     }
     notice = billingNotice(subscription.row);
+    support = identity.support;
     initialProfile = {
       role: identity.membership.role,
       name: displayName(identity.user.user_metadata.full_name, email),
@@ -48,6 +55,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     <WorkspaceDataProvider key={cacheKey}>
       <ToastProvider>
         <AppShell initialProfile={initialProfile}>
+          <SupportBanner support={support} companyName={initialProfile?.companyName ?? "Firma"} />
           <SubscriptionBanner notice={notice} canManage={initialProfile?.role === "admin"} />
           {children}
         </AppShell>

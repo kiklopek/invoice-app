@@ -477,6 +477,10 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Úklid prošlých přístupů podpory (RLS je neuzná už teď; tohle smaže
+  // dočasné členství a uzavře záznam v historii firmy).
+  const { error: supportCleanupError } = await createServiceClient().rpc("cleanup_expired_support_sessions");
+  if (supportCleanupError) console.warn(JSON.stringify({ event: "support_cleanup_failed", message: supportCleanupError.message }));
   return executeReminderAutomation();
 }
 

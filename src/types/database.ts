@@ -1225,6 +1225,8 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          support_expires_at: string | null
+          support_reason: string | null
           created_at: string
           email: string
           id: string
@@ -1237,6 +1239,8 @@ export type Database = {
           invite_sent_at: string | null
         }
         Insert: {
+          support_expires_at?: string | null
+          support_reason?: string | null
           created_at?: string
           email: string
           id?: string
@@ -1249,6 +1253,8 @@ export type Database = {
           invite_sent_at?: string | null
         }
         Update: {
+          support_expires_at?: string | null
+          support_reason?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1480,6 +1486,42 @@ export type Database = {
           operator_email?: string | null
           created_at?: string
           verified_at?: string | null
+        }
+        Relationships: []
+      }
+      support_sessions: {
+        Row: {
+          ended_at: string | null
+          ended_by: string | null
+          expires_at: string
+          id: string
+          operator_email: string
+          operator_user_id: string | null
+          organization_id: string
+          reason: string
+          started_at: string
+        }
+        Insert: {
+          ended_at?: string | null
+          ended_by?: string | null
+          expires_at: string
+          id?: string
+          operator_email: string
+          operator_user_id?: string | null
+          organization_id: string
+          reason: string
+          started_at?: string
+        }
+        Update: {
+          ended_at?: string | null
+          ended_by?: string | null
+          expires_at?: string
+          id?: string
+          operator_email?: string
+          operator_user_id?: string | null
+          organization_id?: string
+          reason?: string
+          started_at?: string
         }
         Relationships: []
       }
@@ -1870,6 +1912,18 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_expired_support_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      end_support_session: {
+        Args: { operator_user: string; ended_by_user?: string | null }
+        Returns: number
+      }
+      start_support_session: {
+        Args: { target_org: string; operator_user: string; operator_email: string; reason: string; minutes: number }
+        Returns: Json
+      }
       reconcile_bank_statement: {
         Args: { target_org: string; actor_user: string; target_import: string; expected_revision: number; automatic_only?: boolean; acknowledge_account_mismatch?: boolean }
         Returns: Json

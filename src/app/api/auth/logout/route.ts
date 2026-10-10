@@ -4,11 +4,18 @@ import { clearLoginSessionPreference } from "@/lib/login-session-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { createUserServerClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
+import { getAuthenticatedSession } from "@/lib/auth";
+import { isOperatorEmail } from "@/lib/operator";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   const body = await request.json().catch(() => null) as { scope?: unknown } | null;
   const scope = body?.scope === "global" ? "global" : "local";
+  // Odhlášením končí i případný support provozovatele (dočasné členství).
+  const session = await getAuthenticatedSession({ requireMfa: false, requireLoginSession: false }).catch(() => null);
+  if (session && isOperatorEmail(session.email)) {
+    await session.service.rpc("end_support_session", { operator_user: session.user.id, ended_by_user: session.user.id });
+  }
   await clearEmailMfaCookie();
   await clearLoginSessionPreference();
   const supabase = await createUserServerClient();

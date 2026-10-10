@@ -32,6 +32,16 @@ export type SettingsMember = {
   created_at: string;
   invitation?: InvitationStatus;
   invitation_expires_at?: string | null;
+  /** Podpora Splatna: dočasný přístup do tohoto času (jinak null). */
+  support_until?: string | null;
+};
+export type SettingsSupportSession = {
+  id: string;
+  operator_email: string;
+  reason: string;
+  started_at: string;
+  expires_at: string;
+  ended_at: string | null;
 };
 export type SettingsAccessEvent = {
   id: string;
@@ -49,6 +59,8 @@ export type SettingsPageData = {
   current_role: AccessRole;
   /** Firma s vlastním vstupem (R. Hlavica): noví lidé se registrují tam, pozvánka e-mailem jen na vyžádání. */
   registration_path: string | null;
+  /** Vstupy podpory Splatna do firmy (viditelné administrátorům). */
+  support_sessions: SettingsSupportSession[];
 };
 
 export const emptyCompanySettings: CompanySettings = {
@@ -81,7 +93,7 @@ export async function loadSettingsPageData(
   const membersPromise = canManageMembers(identity.membership.role)
     ? identity.service
         .from("organization_members")
-        .select("id, email, role, user_id, created_at, invite_expires_at, invite_sent_at")
+        .select("id, email, role, user_id, created_at, invite_expires_at, invite_sent_at, support_expires_at")
         .eq("organization_id", org)
         .order("created_at", { ascending: true })
     : Promise.resolve({ data: [], error: null });
@@ -96,10 +108,19 @@ export async function loadSettingsPageData(
         .order("id", { ascending: false })
         .limit(10)
     : Promise.resolve({ data: [], error: null });
-  const [companyResult, membersResult, eventsResult] = await Promise.all([
+  const supportPromise = canManageMembers(identity.membership.role)
+    ? identity.service
+        .from("support_sessions")
+        .select("id, operator_email, reason, started_at, expires_at, ended_at")
+        .eq("organization_id", org)
+        .order("started_at", { ascending: false })
+        .limit(10)
+    : Promise.resolve({ data: [], error: null });
+  const [companyResult, membersResult, eventsResult, supportResult] = await Promise.all([
     companyPromise,
     membersPromise,
     eventsPromise,
+    supportPromise,
   ]);
   if (companyResult.error)
     throw new PageDataError(
@@ -122,7 +143,9 @@ export async function loadSettingsPageData(
       created_at: member.created_at,
       invitation: invitationStatus(member),
       invitation_expires_at: member.user_id ? null : member.invite_expires_at,
+      support_until: member.support_expires_at,
     })),
+    support_sessions: (supportResult.error ? [] : supportResult.data ?? []) as SettingsSupportSession[],
     access_events: (eventsResult.error ? [] : eventsResult.data ?? []) as SettingsAccessEvent[],
     current_role: identity.membership.role,
     registration_path: (() => {

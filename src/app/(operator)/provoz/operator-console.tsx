@@ -1,3 +1,5 @@
+import { SupportEntry } from "./support-entry";
+
 export type OperatorCompany = {
   id: string;
   name: string;
@@ -34,7 +36,7 @@ export function OperatorConsole({ operatorEmail, companies, stripeDashboard }: {
         </p>
         <div style={{ overflowX: "auto" }}>
           <table className="data-table">
-            <thead><tr><th>Firma</th><th>IČO</th><th>Založena</th><th>Stav</th><th>Tarif</th><th>Zkušební doba</th><th>Stripe</th></tr></thead>
+            <thead><tr><th>Firma</th><th>IČO</th><th>Založena</th><th>Stav</th><th>Tarif</th><th>Zkušební doba</th><th>Stripe</th><th>Podpora</th></tr></thead>
             <tbody>
               {companies.map((company) => (
                 <tr key={company.id}>
@@ -45,6 +47,7 @@ export function OperatorConsole({ operatorEmail, companies, stripeDashboard }: {
                   <td>{company.plan}</td>
                   <td>{company.trial ?? (company.trialDenied ? `bez: ${DENIED[company.trialDenied] ?? company.trialDenied}` : "—")}</td>
                   <td>{company.stripeCustomer ? <a href={`${stripeDashboard}/customers/${company.stripeCustomer}`} target="_blank" rel="noreferrer">zákazník</a> : "—"}</td>
+                  <td><SupportEntry organizationId={company.id} companyName={company.name} /></td>
                 </tr>
               ))}
             </tbody>

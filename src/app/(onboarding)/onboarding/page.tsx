@@ -5,6 +5,7 @@ import { getAuthenticatedSession, resolveMembership } from "@/lib/auth";
 import { loadSubscription } from "@/lib/billing-server";
 import { canManageMembers } from "@/lib/role-access";
 import { displayName } from "@/lib/user-display";
+import { isOperatorEmail } from "@/lib/operator";
 import { OnboardingClient } from "./onboarding-client";
 
 export const metadata: Metadata = { title: "Nastavení firmy | Splatno" };
@@ -16,6 +17,8 @@ export default async function OnboardingPage() {
   const session = await getAuthenticatedSession();
   if (!session) redirect("/login");
   const membership = await resolveMembership(session);
+  // Účet provozovatele firmu nezakládá (support musí běžet z odděleného účtu).
+  if (!membership && isOperatorEmail(session.email)) redirect("/provoz");
   const accountName = displayName(session.user.user_metadata.full_name, session.email);
 
   if (membership) {

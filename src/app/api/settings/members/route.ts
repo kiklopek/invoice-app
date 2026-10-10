@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   if (!identity) return NextResponse.json({ error: "Nejste přihlášený uživatel." }, { status: 401 });
   if (!canManageMembers(identity.membership.role)) return NextResponse.json({ error: "Přístupy a jejich historii může zobrazit pouze administrátor." }, { status: 403 });
   const [membersResult, eventsResult] = await Promise.all([
-    identity.service.from("organization_members").select("id, email, role, user_id, created_at, invite_expires_at, invite_sent_at")
+    identity.service.from("organization_members").select("id, email, role, user_id, created_at, invite_expires_at, invite_sent_at, support_expires_at")
       .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: true }),
     identity.service.from("organization_member_events").select("id, actor_email, target_email, event_type, previous_role, new_role, created_at")
       .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(10),
@@ -59,6 +59,7 @@ export async function GET(request: Request) {
       created_at: member.created_at,
       invitation: invitationStatus(member),
       invitation_expires_at: member.user_id ? null : member.invite_expires_at,
+      support_until: member.support_expires_at,
     })),
     access_events: eventsResult.data ?? [],
     current_role: identity.membership.role,
@@ -128,6 +129,7 @@ export async function PATCH(request: Request) {
   });
   if (error) {
     if (error.message.includes("last_admin")) return NextResponse.json({ error: "Organizace musí mít alespoň jednoho administrátora." }, { status: 409 });
+    if (error.message.includes("support_member")) return NextResponse.json({ error: "Přístup podpory Splatna nejde přeřadit, jen ukončit." }, { status: 409 });
     if (error.message.includes("member_not_found")) return NextResponse.json({ error: "Uživatel nebyl nalezen." }, { status: 404 });
     logError("Změna role člena selhala", error, { member_id: id });
     return apiError(request, "Roli se nepodařilo změnit.", 500, "member_role_change_failed");
@@ -156,6 +158,18 @@ export async function DELETE(request: Request) {
   if (result.error) return result.error;
   const { identity } = result;
   if (id === identity.membership.id) return NextResponse.json({ error: "Nemůžete odebrat vlastní přístup." }, { status: 409 });
+  // Podpora Splatna: odebrání ukončí její relaci. Nikdy přes běžné odebrání
+  // člena -- to by smazalo přihlašovací účet provozovatele.
+  const { data: supportMember } = await identity.service.from("organization_members").select("user_id, support_expires_at")
+    .eq("organization_id", identity.membership.organization_id).eq("id", id).not("support_expires_at", "is", null).maybeSingle();
+  if (supportMember?.user_id) {
+    const { error: endError } = await identity.service.rpc("end_support_session", { operator_user: supportMember.user_id, ended_by_user: identity.user.id });
+    if (endError) {
+      logError("Ukončení přístupu podpory selhalo", endError, { member_id: id });
+      return apiError(request, "Přístup podpory se nepodařilo ukončit.", 500, "support_end_failed");
+    }
+    return NextResponse.json({ removed: true, support: true });
+  }
   const { data, error } = await identity.service.rpc("delete_organization_member", {
     target_org: identity.membership.organization_id,
     target_member: id,
