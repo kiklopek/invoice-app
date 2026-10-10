@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { cs } from "@/i18n/dictionaries/cs";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
@@ -14,7 +15,9 @@ describe("authentication flow", () => {
       register.indexOf("supabase.auth.signUp")
     );
     // Bez pozvánky se zakládá firma; s pozvánkou se člověk připojí ke své.
-    expect(register).toContain("Založit firemní účet");
+    // Texty jsou ve slovníku (CZ/EN), formulář je bere podle klíče.
+    expect(register).toContain("copy.title");
+    expect(cs.auth.register.title).toBe("Založit firemní účet");
     expect(accessRoute).toContain('kind: row ? "invited" : "founder"');
     expect(accessRoute).toContain('.from("organization_members")');
     expect(accessRoute).toContain('.eq("email", email)');
@@ -27,7 +30,8 @@ describe("authentication flow", () => {
     const settings = source("src/app/(workspace)/settings/settings-client.tsx");
     const membersRoute = source("src/app/api/settings/members/route.ts");
 
-    expect(register).toContain("Potvrďte svůj e-mail");
+    expect(register).toContain("copy.sentTitle");
+    expect(cs.auth.register.sentTitle).toBe("Potvrďte svůj e-mail");
     expect(register).toContain("data.user.identities.length === 0");
     expect(register).not.toContain("auth-account-guidance");
     expect(register).not.toContain("Účet nevytvářejte znovu");
@@ -99,7 +103,8 @@ describe("authentication flow", () => {
     expect(compactLogin).toMatch(/access\.mfaBypassed \? returnTo : withEntry\(`\/mfa\?returnTo=/);
     expect(login).toContain("safeReturnPath(");
     expect(login).toContain('fetch("/api/auth/session-preference"');
-    expect(login).toContain("Zapamatovat si mě");
+    expect(login).toContain("copy.remember");
+    expect(cs.auth.login.remember).toBe("Zapamatovat si mě");
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
     expect(source("src/app/auth/callback/route.ts")).toContain("email: session.email");
@@ -140,10 +145,13 @@ describe("authentication flow", () => {
 
   it("uses one neutral login error with a working password recovery link", () => {
     const login = source("src/components/auth/login-form.tsx");
-    expect(login).toContain("E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na");
-    expect(login).toContain('<Link href={withEntry("/forgot-password", brand)}>„Obnovit heslo“</Link>');
-    expect(login).toContain('<Link href={withEntry("/forgot-password", brand)}>Obnovit heslo</Link>');
+    expect(cs.auth.login.failureBefore).toContain("E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na");
+    expect(login).toContain('{copy.failureBefore}<Link href={withEntry("/forgot-password", brand)}>{copy.failureLink}</Link>');
+    expect(cs.auth.login.failureLink).toBe("„Obnovit heslo“");
+    expect(login).toContain('<Link href={withEntry("/forgot-password", brand)}>{copy.forgot}</Link>');
+    expect(cs.auth.login.forgot).toBe("Obnovit heslo");
     expect(login).not.toContain("Případně si nastavte nové heslo");
+    expect(JSON.stringify(cs.auth.login)).not.toContain("Případně si nastavte nové heslo");
   });
 
   it("sends password recovery through the protected server endpoint", () => {

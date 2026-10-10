@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
+import { useI18n } from "@/i18n/client";
 import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
 import { HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { withEntry } from "@/lib/login-entry";
@@ -23,20 +24,23 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
   const [loginFailure, setLoginFailure] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
+  const { t } = useI18n();
+  const copy = t.auth.login;
+  const common = t.auth.common;
 
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("error");
-    if (reason === "access") setError("Tento firemní účet nemá aktivní přístup. Obraťte se na administrátora.");
-    else if (reason === "domain") setError("Zadejte platnou e-mailovou adresu.");
-    else if (reason === "callback") setError("Ověřovací odkaz je neplatný nebo už vypršel. Pošlete si nový.");
+    if (reason === "access") setError(copy.errors.access);
+    else if (reason === "domain") setError(common.invalidEmail);
+    else if (reason === "callback") setError(copy.errors.callback);
     else if (reason === "password-updated") setPasswordUpdated(true);
-    else if (!supabaseConfigured) setError("Localhost není připojený ke skutečnému Supabase projektu. Doplňte povinné proměnné v .env.local a restartujte server.");
-  }, [supabaseConfigured]);
+    else if (!supabaseConfigured) setError(copy.errors.notConnected);
+  }, [supabaseConfigured, copy, common]);
 
   function validEmail() {
     const normalized = normalizeEmail(email);
     if (!isValidEmail(normalized)) {
-      setError("Zadejte platnou e-mailovou adresu.");
+      setError(common.invalidEmail);
       return null;
     }
     return normalized;
@@ -58,8 +62,8 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     return {
       ok: false as const,
       message: response.status === 403 && result?.code === "access_denied"
-        ? "Tento účet nemá aktivní přístup do aplikace. Obraťte se na administrátora své firmy."
-        : "Přihlášení se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.",
+        ? copy.errors.accessDenied
+        : copy.errors.accessFailed,
     };
   }
 
@@ -83,7 +87,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     const normalizedEmail = validEmail();
     if (!normalizedEmail) return;
     if (!hasSupabaseBrowserConfig()) {
-      setError("Přihlášení není nakonfigurované. Doplňte Supabase proměnné prostředí.");
+      setError(copy.errors.notConfigured);
       return;
     }
     setSubmitting(true);
@@ -97,7 +101,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     const accessToken = signInData.session?.access_token;
     if (!accessToken) {
       await supabase.auth.signOut({ scope: "local" });
-      setError("Přihlášení nevytvořilo platnou relaci. Obnovte stránku a zkuste to znovu.");
+      setError(copy.errors.noSession);
       setSubmitting(false);
       return;
     }
@@ -109,7 +113,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     }
     if (!await saveSessionPreference(accessToken)) {
       await supabase.auth.signOut({ scope: "local" });
-      setError("Přihlášení se nepodařilo bezpečně uložit. Zkuste to znovu.");
+      setError(copy.errors.sessionSave);
       setSubmitting(false);
       return;
     }
@@ -128,40 +132,40 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
   }
 
   return (
-    <AuthShell art="wave" brand={brand} claim={<>Méně hledání.<br />Více hotových faktur.</>}>
+    <AuthShell art="wave" brand={brand} claim={<>{copy.claim1}<br />{copy.claim2}</>}>
       {brand === "hlavica" ? <span className={styles.eyebrow}>{HLAVICA_ENTRY.name}</span> : null}
-      <h1 className={styles.title}>Přihlášení</h1>
-      <p className={styles.sub}>Vítejte zpět. Pokračujte ve správě faktur a pohledávek.</p>
+      <h1 className={styles.title}>{copy.title}</h1>
+      <p className={styles.sub}>{copy.sub}</p>
       <form onSubmit={signIn} className={styles.form}>
-        {passwordUpdated && <p className={styles.success}>Heslo bylo změněno. Nyní se můžete přihlásit.</p>}
+        {passwordUpdated && <p className={styles.success}>{copy.passwordUpdated}</p>}
         <label className={styles.field}>
-          <span>Firemní e-mail</span>
+          <span>{common.companyEmail}</span>
           <span className={styles.control}>
             <Mail />
-            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={brand === "hlavica" ? `jmeno@${HLAVICA_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={brand === "hlavica" ? common.emailPlaceholderAt(HLAVICA_EMAIL_DOMAIN) : common.emailPlaceholder} value={email} onChange={(event) => setEmail(event.target.value)} />
           </span>
         </label>
         <label className={styles.field}>
-          <span>Heslo</span>
+          <span>{common.password}</span>
           <span className={styles.control}>
             <Lock />
-            <PasswordInput autoComplete="current-password" enterKeyHint="go" required placeholder="Zadejte své heslo" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <PasswordInput autoComplete="current-password" enterKeyHint="go" required placeholder={copy.passwordPlaceholder} value={password} onChange={(event) => setPassword(event.target.value)} />
           </span>
         </label>
         <div className={styles.row}>
-          <label className={styles.check}><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>Zapamatovat si mě</span></label>
-          <span className={styles.link}><Link href={withEntry("/forgot-password", brand)}>Obnovit heslo</Link></span>
+          <label className={styles.check}><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /><span>{copy.remember}</span></label>
+          <span className={styles.link}><Link href={withEntry("/forgot-password", brand)}>{copy.forgot}</Link></span>
         </div>
-        {loginFailure && <p className={styles.error}>E-mail nebo heslo není správné. Zkuste to znovu nebo klikněte na <Link href={withEntry("/forgot-password", brand)}>„Obnovit heslo“</Link>.</p>}
+        {loginFailure && <p className={styles.error}>{copy.failureBefore}<Link href={withEntry("/forgot-password", brand)}>{copy.failureLink}</Link>{copy.failureAfter}</p>}
         {error && <p className={styles.error}>{error}</p>}
         <button type="submit" className={styles.primary} disabled={submitting || !supabaseConfigured}>
-          {submitting ? "Přihlašuji…" : "Přihlásit se"} <ArrowRight />
+          {submitting ? copy.submitting : copy.submit} <ArrowRight />
         </button>
       </form>
       {brand === "hlavica"
-        ? <p className={styles.foot}>Ještě nemáte účet?<Link href={`${HLAVICA_ENTRY.path}/registrace`}>Vytvořit účet</Link></p>
-        : <p className={styles.foot}>Ještě nemáte účet?<Link href="/register">Založit firemní účet</Link></p>}
-      <p className={styles.note}>Přihlášení je chráněno heslem a jednorázovým kódem zaslaným na váš e-mail.</p>
+        ? <p className={styles.foot}>{copy.noAccount}<Link href={`${HLAVICA_ENTRY.path}/registrace`}>{copy.createAccount}</Link></p>
+        : <p className={styles.foot}>{copy.noAccount}<Link href="/register">{copy.createCompanyAccount}</Link></p>}
+      <p className={styles.note}>{copy.note}</p>
     </AuthShell>
   );
 }

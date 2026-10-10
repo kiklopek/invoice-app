@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
 import { currentEntryLoginPath, useEntryBrand, withEntry } from "@/lib/login-entry";
 import { ArrowRight, Lock } from "@/components/landing/landing-icons";
-import { passwordProblem } from "@/lib/password-policy";
+import { passwordRule } from "@/lib/password-policy";
+import { useI18n } from "@/i18n/client";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
 export default function ResetPasswordPage() {
@@ -17,10 +18,14 @@ export default function ResetPasswordPage() {
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useI18n();
+  const copy = t.auth.reset;
+  const common = t.auth.common;
+  const notConfigured = copy.errors.notConfigured;
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) {
-      setError("Obnova hesla není nakonfigurovaná.");
+      setError(notConfigured);
       setChecking(false);
       return;
     }
@@ -29,19 +34,19 @@ export default function ResetPasswordPage() {
       if (!data.user) router.replace(withEntry("/forgot-password", new URLSearchParams(window.location.search).get("vstup") === "hlavica" ? "hlavica" : "splatno"));
       else setChecking(false);
     });
-  }, [router]);
+  }, [router, notConfigured]);
 
   async function updatePassword(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    const problem = passwordProblem(password);
-    if (problem) return setError(problem);
-    if (password !== confirmation) return setError("Zadaná hesla se neshodují.");
+    const rule = passwordRule(password);
+    if (rule) return setError(common.passwordRules[rule]);
+    if (password !== confirmation) return setError(common.passwordsMismatch);
     setSubmitting(true);
     const supabase = createClient();
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
-      setError("Heslo se nepodařilo změnit. Odkaz mohl vypršet; požádejte o nový.");
+      setError(copy.errors.updateFailed);
       setSubmitting(false);
       return;
     }
@@ -50,24 +55,24 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <AuthShell art="laptop" brand={brand} claim="Ještě krok a jste zpět." claimSub="Nové heslo platí hned pro všechna zařízení.">
-      <span className={styles.eyebrow}>Nové heslo</span>
-      <h1 className={styles.title}>Nastavení hesla</h1>
-      <p className={styles.sub}>Zvolte nové bezpečné heslo pro svůj účet.</p>
-      {checking ? <p className={styles.note}>Ověřuji odkaz…</p> : (
+    <AuthShell art="laptop" brand={brand} claim={copy.claim} claimSub={copy.claimSub}>
+      <span className={styles.eyebrow}>{copy.eyebrow}</span>
+      <h1 className={styles.title}>{copy.title}</h1>
+      <p className={styles.sub}>{copy.sub}</p>
+      {checking ? <p className={styles.note}>{copy.checking}</p> : (
         <form onSubmit={updatePassword} className={styles.form}>
           <label className={styles.field}>
-            <span>Nové heslo</span>
+            <span>{copy.newPassword}</span>
             <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="next" required minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /></span>
-            <small>Alespoň 12 znaků, velké a malé písmeno a číslo.</small>
+            <small>{common.passwordHint}</small>
           </label>
           <label className={styles.field}>
-            <span>Nové heslo znovu</span>
+            <span>{copy.newPasswordAgain}</span>
             <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="done" required minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
           </label>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting}>
-            {submitting ? "Ukládám…" : "Nastavit nové heslo"} <ArrowRight />
+            {submitting ? copy.submitting : copy.submit} <ArrowRight />
           </button>
         </form>
       )}

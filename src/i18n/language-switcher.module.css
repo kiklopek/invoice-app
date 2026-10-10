@@ -1,0 +1,53 @@
+/* Segmentový přepínač CZ | EN. minimal.css globálně ruší box-shadow
+   (`* { box-shadow: none !important }`), proto se obrys kreslí rámečkem. */
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid rgba(31, 106, 74, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+}
+.switcher[data-pending] {
+  opacity: 0.6;
+}
+.switcher button {
+  min-width: 34px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #3f5a4b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.switcher button:hover:not([aria-pressed="true"]) {
+  background: rgba(31, 106, 74, 0.08);
+}
+.switcher button[aria-pressed="true"] {
+  background: #17583c;
+  color: #fff;
+  cursor: default;
+}
+.switcher button:focus-visible {
+  outline: 2px solid #1f6a4a;
+  outline-offset: 2px;
+}
+
+/* na dotykových zařízeních větší cíl */
+@media (pointer: coarse) {
+  .switcher button {
+    min-height: 36px;
+    min-width: 40px;
+  }
+}

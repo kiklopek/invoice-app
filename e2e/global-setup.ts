@@ -116,7 +116,7 @@ export default async function globalSetup(config: FullConfig) {
 
   const baseURL = config.projects[0]?.use?.baseURL ?? "http://127.0.0.1:3000";
   const browser = await chromium.launch();
-  const page = await browser.newPage({ baseURL });
+  const page = await browser.newPage({ baseURL, locale: "cs-CZ" });
   try {
     const signedIn = password
       ? await signInWithPassword(page, email, password)

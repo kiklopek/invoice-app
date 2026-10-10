@@ -6,18 +6,16 @@ import { useState } from "react";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
 import { CompanyLogo } from "@/components/company-logo";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
-import { passwordProblem } from "@/lib/password-policy";
-import { roleNames, type AccessRole } from "@/lib/role-access";
+import { invitationApiError } from "@/i18n/api-errors";
+import { useI18n } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import { passwordRule } from "@/lib/password-policy";
+import type { AccessRole } from "@/lib/role-access";
 import { signOutCurrentSession } from "@/lib/sign-out";
 
 type Invitation =
   | { status: "valid"; email: string; role: AccessRole; companyName: string; companyLogo: string | null; expiresAt: string }
   | { status: "invalid" | "expired" | "unavailable" };
-
-function czechDate(value: string) {
-  const date = new Date(value);
-  return `${date.getDate()}. ${date.getMonth() + 1}. ${date.getFullYear()}`;
-}
 
 // Přijetí pozvánky: e-mail je daný pozvánkou a nejde změnit. Kdo už účet
 // má (např. si dřív zaregistroval prázdný účet), zadá jeho heslo a připojí
@@ -31,19 +29,22 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const { locale, t } = useI18n();
+  const copy = t.auth.invite;
+  const common = t.auth.common;
 
   if (invitation.status !== "valid") {
     const message = invitation.status === "expired"
-      ? "Platnost pozvánky vypršela. Požádejte administrátora své firmy, ať vám pošle novou."
+      ? copy.expired
       : invitation.status === "unavailable"
-        ? "Pozvánku se teď nepodařilo ověřit. Zkuste odkaz otevřít znovu za chvíli."
-        : "Odkaz už neplatí. Pozvánka mohla být přijata, zrušena, nebo vám administrátor poslal novější.";
+        ? copy.unavailable
+        : copy.invalid;
     return (
-      <AuthShell art="phone" claim="Pozvánka do firmy." claimSub="Odkaz z e-mailu platí 7 dní a jen jednou.">
-        <span className={styles.eyebrow}>Pozvánka</span>
-        <h1 className={styles.title}>Odkaz nelze použít</h1>
+      <AuthShell art="phone" claim={copy.invalidClaim} claimSub={copy.invalidClaimSub}>
+        <span className={styles.eyebrow}>{copy.eyebrow}</span>
+        <h1 className={styles.title}>{copy.invalidTitle}</h1>
         <p className={styles.sub}>{message}</p>
-        <p className={styles.foot}>Už jste pozvánku přijali?<Link href="/login">Přihlásit se</Link></p>
+        <p className={styles.foot}>{copy.alreadyAccepted}<Link href="/login">{common.login}</Link></p>
       </AuthShell>
     );
   }
@@ -54,11 +55,11 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
     event.preventDefault();
     if (invitation.status !== "valid") return;
     setError(null);
-    if (fullName.trim().length < 3) return setError("Zadejte celé jméno.");
-    const problem = existingAccount ? null : passwordProblem(password);
-    if (problem) return setError(problem);
-    if (!existingAccount && password !== confirmation) return setError("Zadaná hesla se neshodují.");
-    if (!acceptTerms) return setError("Pro vstup je potřeba souhlasit s podmínkami.");
+    if (fullName.trim().length < 3) return setError(copy.errors.fullName);
+    const rule = existingAccount ? null : passwordRule(password);
+    if (rule) return setError(common.passwordRules[rule]);
+    if (!existingAccount && password !== confirmation) return setError(common.passwordsMismatch);
+    if (!acceptTerms) return setError(copy.errors.terms);
     setSubmitting(true);
     const response = await fetch(`/api/invitations/${encodeURIComponent(token)}`, {
       method: "POST",
@@ -71,72 +72,72 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
       return;
     }
     if (data?.code === "existing_account_password") setExistingAccount(true);
-    setError(data?.error ?? "Pozvánku se nepodařilo přijmout. Zkontrolujte připojení a zkuste to znovu.");
+    setError(invitationApiError(locale, data, copy.errors.failed));
     setSubmitting(false);
   }
 
   return (
-    <AuthShell art="wave" claim={<>Vítejte v týmu<br />{invitation.companyName.replace(/\.$/, "")}.</>} claimSub="Faktury, platby a upomínky na jednom místě.">
-      <span className={styles.eyebrow}>Pozvánka do firmy</span>
+    <AuthShell art="wave" claim={<>{copy.welcome}<br />{invitation.companyName.replace(/\.$/, "")}.</>} claimSub={copy.claimSub}>
+      <span className={styles.eyebrow}>{copy.validEyebrow}</span>
       <div className={styles.inviteCompany}>
         <CompanyLogo src={invitation.companyLogo} name={invitation.companyName} className={styles.inviteLogo} />
-        <h1 className={styles.title}>{invitation.companyName} vás zve do Splatna</h1>
+        <h1 className={styles.title}>{copy.invites(invitation.companyName)}</h1>
       </div>
-      <p className={styles.sub}>Vaše role: <b>{roleNames[invitation.role]}</b>. Pozvánka platí do {czechDate(invitation.expiresAt)}.</p>
+      <p className={styles.sub}>{copy.role}<b>{common.roles[invitation.role]}</b>{copy.validUntil(formatDate(locale, invitation.expiresAt))}</p>
 
       {otherAccount ? (
         <div className={styles.sent}>
           <User width={22} height={22} />
           <div>
-            <strong>Jste přihlášeni jako {signedInAs}</strong>
-            <p>Pozvánka je pro {invitation.email}. Pro přijetí se nejdřív odhlaste.</p>
+            <strong>{copy.signedInAs(signedInAs)}</strong>
+            <p>{copy.otherEmail(invitation.email)}</p>
             <button type="button" className={styles.textButton} disabled={signingOut} onClick={async () => {
               setSigningOut(true);
               await signOutCurrentSession().catch(() => null);
               window.location.reload();
-            }}>{signingOut ? "Odhlašuji…" : "Odhlásit a pokračovat"}</button>
+            }}>{signingOut ? common.signingOut : copy.signOutContinue}</button>
           </div>
         </div>
       ) : (
         <form onSubmit={accept} className={styles.form}>
           <label className={styles.field}>
-            <span>E-mail</span>
+            <span>{common.email}</span>
             <span className={styles.control}><Mail /><input type="email" value={invitation.email} readOnly aria-readonly="true" /></span>
           </label>
           <label className={styles.field}>
-            <span>Jméno a příjmení</span>
-            <span className={styles.control}><User /><input autoComplete="name" required placeholder="Jan Novák" value={fullName} onChange={(event) => setFullName(event.target.value)} /></span>
+            <span>{common.fullName}</span>
+            <span className={styles.control}><User /><input autoComplete="name" required placeholder={common.namePlaceholder} value={fullName} onChange={(event) => setFullName(event.target.value)} /></span>
           </label>
           {existingAccount ? (
             <label className={styles.field}>
-              <span>Heslo k vašemu účtu</span>
+              <span>{copy.existingPassword}</span>
               <span className={styles.control}><Lock /><PasswordInput autoComplete="current-password" enterKeyHint="go" required value={password} onChange={(event) => setPassword(event.target.value)} /></span>
-              <small>Pro tento e-mail už účet máte. <Link href="/forgot-password">Zapomenuté heslo?</Link></small>
+              <small>{copy.existingHint}<Link href="/forgot-password">{copy.forgot}</Link></small>
             </label>
           ) : (
             <div className={styles.pair}>
               <label className={styles.field}>
-                <span>Heslo</span>
-                <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="next" required minLength={12} placeholder="Zvolte si heslo" value={password} onChange={(event) => setPassword(event.target.value)} /></span>
+                <span>{common.password}</span>
+                <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="next" required minLength={12} placeholder={common.choosePassword} value={password} onChange={(event) => setPassword(event.target.value)} /></span>
               </label>
               <label className={styles.field}>
-                <span>Heslo znovu</span>
-                <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="done" required minLength={12} placeholder="Zopakujte heslo" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
+                <span>{common.passwordAgain}</span>
+                <span className={styles.control}><Lock /><PasswordInput autoComplete="new-password" enterKeyHint="done" required minLength={12} placeholder={common.repeatPassword} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></span>
               </label>
             </div>
           )}
-          {!existingAccount ? <small className={styles.note} style={{ marginTop: -6 }}>Alespoň 12 znaků, velké a malé písmeno a číslo.</small> : null}
+          {!existingAccount ? <small className={styles.note} style={{ marginTop: -6 }}>{common.passwordHint}</small> : null}
           <label className={styles.check}>
             <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
-            <span>Souhlasím s <Link href="/podminky" target="_blank">podmínkami</Link> a <Link href="/ochrana-osobnich-udaju" target="_blank">zpracováním osobních údajů</Link>.</span>
+            <span>{common.terms.before}<Link href="/podminky" target="_blank">{common.terms.terms}</Link>{common.terms.between}<Link href="/ochrana-osobnich-udaju" target="_blank">{common.terms.privacy}</Link>{common.terms.after}</span>
           </label>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting}>
-            {submitting ? "Připojuji…" : "Vstoupit do firmy"} <ArrowRight />
+            {submitting ? copy.submitting : copy.submit} <ArrowRight />
           </button>
         </form>
       )}
-      <p className={styles.note}>Příště se přihlásíte běžně e-mailem, heslem a kódem z e-mailu.</p>
+      <p className={styles.note}>{copy.note}</p>
     </AuthShell>
   );
 }

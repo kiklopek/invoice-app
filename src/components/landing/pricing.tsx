@@ -2,46 +2,50 @@
 
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
+import { useI18n } from "@/i18n/client";
+import { formatCzk } from "@/i18n/format";
 import { ArrowRight, Check, Headset } from "./landing-icons";
 import styles from "./landing.module.css";
 
 import { PLANS, TRIAL_DAYS, TRIAL_INVOICE_LIMIT, monthlyPrice, periodPrice } from "@/lib/plans";
 
-const czk = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 });
-
+// Ceny a tarify jsou z @/lib/plans; popisy tarifů pro ceník jsou ve slovníku
+// podle id tarifu, aby šly přeložit (plans.ts zůstává česky pro aplikaci).
 export function Pricing({ contactHref, trialHref }: { contactHref: string; trialHref: string }) {
   const [yearly, setYearly] = useState(false);
+  const { locale, t } = useI18n();
+  const copy = t.pricing;
 
   return (
     <>
       <div className={styles.pricingHead} data-reveal="">
         <div>
-          <span className={styles.eyebrow}>Ceník</span>
-          <h2 className={styles.h2}>Jednoduché a transparentní tarify.</h2>
+          <span className={styles.eyebrow}>{copy.eyebrow}</span>
+          <h2 className={styles.h2}>{copy.title}</h2>
         </div>
         <div className={styles.billing}>
-          <span className={yearly ? undefined : styles.billingActive}>Měsíčně</span>
+          <span className={yearly ? undefined : styles.billingActive}>{copy.monthly}</span>
           <button
             type="button"
             role="switch"
             aria-checked={yearly}
-            aria-label="Roční platba: 2 měsíce zdarma"
+            aria-label={copy.switchAria}
             className={styles.switch}
             data-on={yearly || undefined}
             onClick={() => setYearly((v) => !v)}
           >
             <span />
           </button>
-          <span className={yearly ? styles.billingActive : undefined}>Ročně</span>
-          <span className={styles.billingSave}>2 měsíce zdarma</span>
+          <span className={yearly ? styles.billingActive : undefined}>{copy.yearly}</span>
+          <span className={styles.billingSave}>{copy.save}</span>
         </div>
         {/* Mobilní varianta: dva segmenty ovladatelné palcem místo malého přepínače. */}
-        <div className={styles.billingSeg} role="radiogroup" aria-label="Období platby">
+        <div className={styles.billingSeg} role="radiogroup" aria-label={copy.periodAria}>
           <button type="button" role="radio" aria-checked={!yearly} data-on={!yearly || undefined} onClick={() => setYearly(false)}>
-            Měsíčně
+            {copy.monthly}
           </button>
           <button type="button" role="radio" aria-checked={yearly} data-on={yearly || undefined} onClick={() => setYearly(true)}>
-            Ročně <span className={styles.billingSave}>2 měsíce zdarma</span>
+            {copy.yearly} <span className={styles.billingSave}>{copy.save}</span>
           </button>
         </div>
       </div>
@@ -49,6 +53,7 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
       <div className={styles.plans}>
         {PLANS.map((plan, index) => {
           const price = monthlyPrice(plan.id, yearly ? "yearly" : "monthly");
+          const planCopy = copy.plans[plan.id];
           return (
             <article
               key={plan.name}
@@ -56,17 +61,17 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
               data-reveal=""
               style={{ "--i": index + 1 } as CSSProperties}
             >
-              {plan.featured ? <span className={styles.planBadge}>Nejoblíbenější</span> : null}
+              {plan.featured ? <span className={styles.planBadge}>{copy.popular}</span> : null}
               <h3>{plan.name}</h3>
-              <p className={styles.planNote}>{plan.note}</p>
+              <p className={styles.planNote}>{planCopy.note}</p>
               <p className={styles.planPrice}>
-                <strong>{czk.format(price)} Kč</strong> <span>/ měsíc</span>
+                <strong>{formatCzk(locale, price)}</strong> <span>{copy.perMonth}</span>
               </p>
               <p className={styles.planBilled}>
-                {yearly ? `${czk.format(periodPrice(plan.id, "yearly"))} Kč ročně bez DPH` : "bez DPH"}
+                {yearly ? copy.billedYearly(formatCzk(locale, periodPrice(plan.id, "yearly"))) : copy.noVat}
               </p>
               <ul>
-                {plan.features.map((f) => (
+                {planCopy.features.map((f) => (
                   <li key={f}>
                     <Check />
                     {f}
@@ -77,19 +82,19 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
                 href={`${trialHref}?tarif=${plan.id}&obdobi=${yearly ? "yearly" : "monthly"}`}
                 className={plan.featured ? styles.btnPrimary : styles.btnOutline}
               >
-                Vyzkoušet {TRIAL_DAYS} dní zdarma
+                {copy.trial(TRIAL_DAYS)}
               </Link>
-              <p className={styles.planTrial}>Až {TRIAL_INVOICE_LIMIT} faktur ve zkušební době. Zrušit můžete kdykoli.</p>
+              <p className={styles.planTrial}>{copy.trialNote(TRIAL_INVOICE_LIMIT)}</p>
             </article>
           );
         })}
 
         <aside className={styles.planCustom} data-reveal="" style={{ "--i": PLANS.length + 1 } as CSSProperties}>
           <Headset className={styles.planCustomIcon} />
-          <h3>Potřebujete jiný plán?</h3>
-          <p>Rádi s vámi najdeme řešení na míru.</p>
+          <h3>{copy.customTitle}</h3>
+          <p>{copy.customText}</p>
           <a href={contactHref} className={styles.textLink}>
-            Kontaktovat nás <ArrowRight />
+            {copy.contact} <ArrowRight />
           </a>
         </aside>
       </div>

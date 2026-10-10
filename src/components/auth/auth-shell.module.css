@@ -53,6 +53,13 @@
   justify-content: space-between;
   gap: 16px;
 }
+/* logo (u firemního vstupu logo firmy) s přepínačem jazyka vpravo */
+.brandEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
 .splatno {
   display: inline-flex;
   align-items: center;

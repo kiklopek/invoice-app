@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AuthShell, authStyles as styles } from "@/components/auth/auth-shell";
 import { ArrowRight, Mail } from "@/components/landing/landing-icons";
+import { useI18n } from "@/i18n/client";
 import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { useEntryBrand } from "@/lib/login-entry";
 
@@ -13,18 +14,21 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useI18n();
+  const copy = t.auth.forgot;
+  const common = t.auth.common;
 
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("error");
-    if (reason === "expired") setError("Odkaz je neplatný, vypršel nebo už byl použit. Pošlete si nový.");
-    else if (reason === "technical") setError("Obnovu se nepodařilo dokončit kvůli technické chybě. Pošlete si nový odkaz.");
-  }, []);
+    if (reason === "expired") setError(copy.errors.expired);
+    else if (reason === "technical") setError(copy.errors.technical);
+  }, [copy]);
 
   async function requestReset(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     const normalizedEmail = normalizeEmail(email);
-    if (!isValidEmail(normalizedEmail)) return setError("Zadejte platnou e-mailovou adresu.");
+    if (!isValidEmail(normalizedEmail)) return setError(common.invalidEmail);
     setSubmitting(true);
     try {
       const response = await fetch("/api/auth/password-recovery", {
@@ -33,46 +37,44 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: normalizedEmail, entry: brand }),
       });
       if (!response.ok) {
-        setError(response.status === 429
-          ? "Nový odkaz lze poslat nejdříve za jednu minutu."
-          : "Odkaz se nepodařilo odeslat kvůli technické chybě. Zkuste to prosím znovu.");
+        setError(response.status === 429 ? copy.errors.rateLimited : copy.errors.sendFailed);
       } else {
         setEmail(normalizedEmail);
         setSent(true);
       }
     } catch {
-      setError("Odkaz se nepodařilo odeslat kvůli technické chybě. Zkuste to prosím znovu.");
+      setError(copy.errors.sendFailed);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <AuthShell art="phone" brand={brand} claim="Nové heslo za pár minut." claimSub="Pošleme vám bezpečný jednorázový odkaz.">
-      <span className={styles.eyebrow}>Obnova přístupu</span>
-      <h1 className={styles.title}>Zapomenuté heslo</h1>
-      <p className={styles.sub}>Pošleme vám bezpečný odkaz pro nastavení nového hesla.</p>
+    <AuthShell art="phone" brand={brand} claim={copy.claim} claimSub={copy.claimSub}>
+      <span className={styles.eyebrow}>{copy.eyebrow}</span>
+      <h1 className={styles.title}>{copy.title}</h1>
+      <p className={styles.sub}>{copy.sub}</p>
       {sent ? (
         <div className={styles.sent}>
           <Mail width={22} height={22} />
           <div>
-            <strong>Zkontrolujte e-mail</strong>
-            <p>Pokud má adresa <b>{email}</b> aktivní účet, obdrží odkaz pro změnu hesla.</p>
+            <strong>{copy.sentTitle}</strong>
+            <p>{copy.sentBefore}<b>{email}</b>{copy.sentAfter}</p>
           </div>
         </div>
       ) : (
         <form onSubmit={requestReset} className={styles.form}>
           <label className={styles.field}>
-            <span>E-mail</span>
-            <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder="jmeno@firma.cz" value={email} onChange={(event) => setEmail(event.target.value)} /></span>
+            <span>{common.email}</span>
+            <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={common.emailPlaceholder} value={email} onChange={(event) => setEmail(event.target.value)} /></span>
           </label>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting}>
-            {submitting ? "Odesílám…" : "Poslat odkaz pro obnovu"} <ArrowRight />
+            {submitting ? common.sending : copy.submit} <ArrowRight />
           </button>
         </form>
       )}
-      <p className={styles.foot}>Heslo si pamatujete?<Link href="/login">Zpět na přihlášení</Link></p>
+      <p className={styles.foot}>{copy.remember}<Link href="/login">{copy.back}</Link></p>
     </AuthShell>
   );
 }

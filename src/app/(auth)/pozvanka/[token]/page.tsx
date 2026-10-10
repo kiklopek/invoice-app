@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { getAuthenticatedSession } from "@/lib/auth";
 import { loadInvitation, type InvitationLookup } from "@/lib/invitation-server";
+import { getDictionary, getLocale } from "@/i18n/server";
 import { InvitationClient } from "./invitation-client";
 
-export const metadata: Metadata = { title: "Pozvánka do firmy | Splatno" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: getDictionary(await getLocale()).meta.invitationTitle };
+}
 
 type Props = { params: Promise<{ token: string }> };
 

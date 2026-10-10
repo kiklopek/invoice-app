@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-const numberFormat = new Intl.NumberFormat("cs-CZ");
+import { formatCzk, formatNumber } from "@/i18n/format";
+import type { Locale } from "@/i18n/locales";
 
 // Po této době od načtení stránky už hero animace doběhla a uživatel číslo
 // viděl; pozdní hydratace ho pak nemá znovu shazovat na nulu.
@@ -19,6 +19,10 @@ export function countUpValue(target: number, progress: number, step = 1) {
   return Math.round((target * (1 - (1 - t) ** 4)) / step) * step;
 }
 
+function display(locale: Locale, currency: boolean, n: number) {
+  return currency ? formatCzk(locale, n) : formatNumber(locale, n);
+}
+
 // Číslo v náhledu nástěnky, které při načtení naběhne od nuly. Server
 // vyrenderuje cílovou hodnotu, takže bez JavaScriptu a při „omezit pohyb“
 // je hned vidět finální číslo. Text se přepisuje přímo v DOM (bez re-renderu).
@@ -27,13 +31,16 @@ export function CountUp({
   delay = 0,
   duration = 1600,
   step = 1,
-  suffix = "",
+  locale,
+  currency = false,
 }: {
   value: number;
   delay?: number;
   duration?: number;
   step?: number;
-  suffix?: string;
+  locale: Locale;
+  /** Částka v korunách („1 340 000 Kč“ / „CZK 1,340,000“). */
+  currency?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -44,7 +51,7 @@ export function CountUp({
     if (performance.now() > LATE_HYDRATION_MS) return;
 
     const render = (n: number) => {
-      element.textContent = numberFormat.format(n) + suffix;
+      element.textContent = display(locale, currency, n);
     };
     let frame = 0;
     render(0);
@@ -63,12 +70,7 @@ export function CountUp({
       cancelAnimationFrame(frame);
       render(value);
     };
-  }, [value, delay, duration, step, suffix]);
+  }, [value, delay, duration, step, locale, currency]);
 
-  return (
-    <span ref={ref}>
-      {numberFormat.format(value)}
-      {suffix}
-    </span>
-  );
+  return <span ref={ref}>{display(locale, currency, value)}</span>;
 }

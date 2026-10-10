@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
+import { useI18n } from "@/i18n/client";
+import { LanguageSwitcher } from "@/i18n/language-switcher";
 import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { ArrowLeft, RibbonMark } from "@/components/landing/landing-icons";
 import styles from "./auth-shell.module.css";
@@ -38,6 +42,7 @@ export function AuthShell({
   children: ReactNode;
 }) {
   const image = ART[art];
+  const copy = useI18n().t.auth.shell;
   return (
     <main className={`${styles.page} ${inter.className}`}>
       <div className={styles.card}>
@@ -45,23 +50,29 @@ export function AuthShell({
           <div className={styles.brandRow}>
             {brand === "hlavica" ? (
               <>
-                <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
+                <Link href="/" className={styles.splatno} aria-label={copy.logoAria}>
                   <RibbonMark size={30} />
                   <span>splatno</span>
                 </Link>
-                <span className={styles.company}>
-                  <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
+                <span className={styles.brandEnd}>
+                  <span className={styles.company}>
+                    <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
+                  </span>
+                  <LanguageSwitcher />
                 </span>
               </>
             ) : (
               <>
                 <Link href="/" className={styles.backHome}>
-                  <ArrowLeft /><span>Zpět na <span className={styles.backHomeLong}>úvodní stránku</span><span className={styles.backHomeShort}>úvod</span></span>
+                  <ArrowLeft /><span>{copy.backHome}<span className={styles.backHomeLong}>{copy.backHomeLong}</span><span className={styles.backHomeShort}>{copy.backHomeShort}</span></span>
                 </Link>
-                <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
-                  <RibbonMark size={30} />
-                  <span>splatno</span>
-                </Link>
+                <span className={styles.brandEnd}>
+                  <Link href="/" className={styles.splatno} aria-label={copy.logoAria}>
+                    <RibbonMark size={30} />
+                    <span>splatno</span>
+                  </Link>
+                  <LanguageSwitcher />
+                </span>
               </>
             )}
           </div>
@@ -69,8 +80,8 @@ export function AuthShell({
             {/* Splatno má zpětnou šipku přímo v řádku s logem; vstup R. Hlavica
                 tam má logo firmy, proto ji dostane nad formulářem. */}
             {brand === "hlavica" ? (
-              <nav className={styles.backNavigation} aria-label="Návrat na úvodní stránku">
-                <Link href="/" className={styles.backHome}><ArrowLeft /><span>Zpět na úvodní stránku</span></Link>
+              <nav className={styles.backNavigation} aria-label={copy.backNavAria}>
+                <Link href="/" className={styles.backHome}><ArrowLeft /><span>{copy.backHomeFull}</span></Link>
               </nav>
             ) : null}
             {children}

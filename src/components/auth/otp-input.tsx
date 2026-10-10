@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useI18n } from "@/i18n/client";
 import { authStyles as styles } from "./auth-shell";
 
 const LENGTH = 6;
@@ -21,6 +22,7 @@ export function OtpInput({
   autoFocus?: boolean;
 }) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const common = useI18n().t.auth.common;
   // Poslední zapsaný kód. Při rychlém psaní přijde další číslice dřív, než
   // React překreslí políčka s novou hodnotou; bez toho by se číslice ztrácely.
   const latest = useRef(value);
@@ -48,14 +50,14 @@ export function OtpInput({
   }
 
   return (
-    <div className={styles.otp} role="group" aria-label="Šestimístný kód">
+    <div className={styles.otp} role="group" aria-label={common.otpGroup}>
       {digits.map((digit, index) => (
         <input
           key={index}
           ref={(element) => { refs.current[index] = element; }}
           inputMode="numeric"
           autoComplete={index === 0 ? "one-time-code" : "off"}
-          aria-label={`Číslice ${index + 1}`}
+          aria-label={common.otpDigit(index + 1)}
           maxLength={index === 0 ? LENGTH : 1}
           autoFocus={autoFocus && index === 0}
           disabled={disabled}

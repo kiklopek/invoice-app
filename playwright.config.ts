@@ -34,6 +34,9 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     storageState,
+    // Landing a přihlášení se bez uložené volby řídí jazykem prohlížeče
+    // (Playwright jinak posílá en-US); testy ověřují české rozhraní.
+    locale: "cs-CZ",
   },
   // Sirky odpovidaji ctyrem breakpointum, na ktere se sjednocuje CSS (F3B):
   // 480 / 768 / 1024 / 1280. Driv se testoval jen desktop a Pixel 5, takze

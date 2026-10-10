@@ -7,6 +7,8 @@ import { ArrowLeft, ArrowRight } from "@/components/landing/landing-icons";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import { safeReturnPath } from "@/lib/safe-return-path";
 import { currentEntryLoginPath, useEntryBrand } from "@/lib/login-entry";
+import { useI18n } from "@/i18n/client";
+import { mfaApiError } from "@/i18n/api-errors";
 
 export default function MfaPage() {
   const brand = useEntryBrand();
@@ -20,6 +22,9 @@ export default function MfaPage() {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const { locale, t } = useI18n();
+  const copy = t.auth.mfa;
+  const common = t.auth.common;
 
   async function signOutAndReturnToLogin() {
     setSigningOut(true);
@@ -61,18 +66,18 @@ export default function MfaPage() {
       if (typeof data.retry_after === "number") setCooldown(Math.max(1, Math.ceil(data.retry_after)));
       if (!response.ok) {
         setCodeAvailable(data.can_verify === true);
-        setError(data.error || "Kód se nepodařilo odeslat.");
+        setError(mfaApiError(locale, data, copy.errors.sendFailed));
         return;
       }
       setCodeAvailable(true);
       setCooldown(60);
     } catch {
-      setError("Kód se nepodařilo odeslat. Zkontrolujte připojení.");
+      setError(copy.errors.sendOffline);
     } finally {
       setLoading(false);
       setResending(false);
     }
-  }, []);
+  }, [locale, copy]);
 
   useEffect(() => {
     if (requested.current) return;
@@ -89,7 +94,7 @@ export default function MfaPage() {
   async function verify(event: FormEvent) {
     event.preventDefault();
     if (!/^\d{6}$/.test(code)) {
-      setError("Zadejte platný šestimístný kód.");
+      setError(copy.errors.invalidCode);
       return;
     }
     setSubmitting(true);
@@ -109,10 +114,10 @@ export default function MfaPage() {
         return;
       }
       if (data.code === "challenge_expired" || data.code === "challenge_missing") setCodeAvailable(false);
-      setError(data.error || "Kód se nepodařilo ověřit.");
+      setError(mfaApiError(locale, data, copy.errors.verifyFailed));
       setCode("");
     } catch {
-      setError("Kód se nepodařilo ověřit. Zkontrolujte připojení.");
+      setError(copy.errors.verifyOffline);
     } finally {
       setSubmitting(false);
     }
@@ -122,26 +127,26 @@ export default function MfaPage() {
     <AuthShell
       art="phone"
       brand={brand}
-      claim={<>Vaše bezpečí<br />je pro nás důležité.</>}
-      claimSub="Dvoufázové ověření pomáhá chránit vaše data a faktury."
+      claim={<>{copy.claim1}<br />{copy.claim2}</>}
+      claimSub={copy.claimSub}
     >
-      <span className={styles.eyebrow}>Ověření e-mailem</span>
-      <h1 className={styles.title}>Ověření ve 2 krocích</h1>
+      <span className={styles.eyebrow}>{copy.eyebrow}</span>
+      <h1 className={styles.title}>{copy.title}</h1>
       <p className={styles.sub}>
         {loading
-          ? "Odesíláme jednorázový kód…"
+          ? copy.sending
           : codeAvailable
-            ? <>Zadejte kód, který jsme vám právě poslali na e-mail <b>{email || "váš firemní e-mail"}</b>.</>
-            : "Ověřovací kód zatím nebyl odeslán."}
+            ? <>{copy.sentBefore}<b>{email || copy.fallbackEmail}</b>{copy.sentAfter}</>
+            : copy.notSent}
       </p>
 
       {!loading && codeAvailable && (
         <form onSubmit={verify} className={styles.form}>
           <OtpInput value={code} onChange={setCode} disabled={submitting} autoFocus />
-          <small className={styles.note} style={{ marginTop: -4 }}>Kód platí 10 minut, lze jej použít pouze jednou a po pěti chybných pokusech se zablokuje.</small>
+          <small className={styles.note} style={{ marginTop: -4 }}>{copy.validity}</small>
           {error && <p className={styles.error}>{error}</p>}
           <button type="submit" className={styles.primary} disabled={submitting || code.length !== 6}>
-            {submitting ? "Ověřuji…" : "Ověřit a pokračovat"} <ArrowRight />
+            {submitting ? copy.submitting : copy.submit} <ArrowRight />
           </button>
         </form>
       )}
@@ -150,14 +155,14 @@ export default function MfaPage() {
 
       {!loading && (
         <p className={styles.resend} style={{ marginTop: 22 }}>
-          Nepřišel vám kód?
+          {copy.noCode}
           <button
             type="button"
             className={styles.textButton}
             disabled={resending || cooldown > 0}
             onClick={() => void requestCode(true)}
           >
-            {resending ? "Odesílám…" : cooldown > 0 ? `Poslat znovu (${cooldown} s)` : "Poslat znovu"}
+            {resending ? common.sending : cooldown > 0 ? copy.resendIn(cooldown) : copy.resend}
           </button>
         </p>
       )}
@@ -168,7 +173,7 @@ export default function MfaPage() {
           disabled={signingOut}
           onClick={() => void signOutAndReturnToLogin()}
         >
-          <ArrowLeft /> {signingOut ? "Odhlašuji…" : "Zpět na přihlášení jiným účtem"}
+          <ArrowLeft /> {signingOut ? common.signingOut : copy.back}
         </button>
       )}
     </AuthShell>
