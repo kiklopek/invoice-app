@@ -238,8 +238,8 @@ const codeLines = (body: string) =>
 describe("reconcile_bank_statement přeskočí nesouvisející řádky", () => {
   const current = latest("reconcile_bank_statement");
 
-  it("živá definice je v nové migraci a má stejnou signaturu", () => {
-    expect(current.file).toMatch(/_gpc_unrelated_rows\.sql$/);
+  it("živá definice (automatika po firmách) zachovává signaturu", () => {
+    expect(current.file).toMatch(/_auto_booking_per_organization\.sql$/);
     expect(current.body).toContain(
       "target_org uuid, actor_user uuid, target_import uuid, expected_revision integer,\n  automatic_only boolean default false, acknowledge_account_mismatch boolean default false\n) returns jsonb",
     );
@@ -263,7 +263,9 @@ describe("reconcile_bank_statement přeskočí nesouvisející řádky", () => {
 
   it("jinak je tělo shodné s předchozí živou verzí -- žádná kontrola nezmizela", () => {
     const all = definitionsOf("reconcile_bank_statement");
-    const previous = all[all.length - 2];
+    const unrelatedRows = all[all.length - 2];
+    const previous = all[all.length - 3];
+    expect(unrelatedRows.file).toMatch(/_gpc_unrelated_rows\.sql$/);
     expect(previous.file).toBe("20260920140111_gpc_account_checksum_unverified.sql");
     // Řádky, které tahle migrace záměrně mění. Všechno ostatní musí přežít.
     const intentionallyChanged = new Set([
@@ -272,9 +274,26 @@ describe("reconcile_bank_statement přeskočí nesouvisející řádky", () => {
       "select count(*) into remaining from public.bank_statement_entries where import_id=target_import and disposition='accepted' and bank_payment_id is null;",
       "'imported',done,'matched',matched,'remaining',remaining,'errors',failures,'idempotent',false);",
     ]);
+    const now = new Set(codeLines(unrelatedRows.body));
+    const missing = codeLines(previous.body).filter((line) => !now.has(line) && !intentionallyChanged.has(line));
+    expect(missing).toEqual([]);
+  });
+
+  // Automatika po firmách mění jen to, kdy se smí účtovat bez člověka.
+  it("automatika po firmách nezahodila žádnou kontrolu", () => {
+    const all = definitionsOf("reconcile_bank_statement");
+    const previous = all[all.length - 2];
+    const intentionallyChanged = new Set([
+      "if automatic_only and (a.amount<>inv.amount-inv.paid_amount or not (",
+      "or (coalesce(e.counterparty_account_verified,true)",
+      "or (private.names_match(e.counterparty_name,inv.counterparty_name)",
+      ")) then raise exception 'proposal_changed'; end if;",
+    ]);
     const now = new Set(codeLines(current.body));
     const missing = codeLines(previous.body).filter((line) => !now.has(line) && !intentionallyChanged.has(line));
     expect(missing).toEqual([]);
+    expect(current.body).toContain("booking_mode='off' or (s.account_mismatch and not s.account_mismatch_acknowledged)");
+    expect(current.body).toContain("not coalesce(");
   });
 });
 
@@ -336,7 +355,9 @@ describe("nová migrace", () => {
   // migrace žádnou z nich nepřepíše.
   it("drží živá těla funkcí -- žádná novější migrace je nepřepisuje", () => {
     expect(file).toBeDefined();
-    const later = migrationFiles.filter((name) => name > file!);
+    // 20261010122000_auto_booking_per_organization.sql vědomě předefinovává
+    // reconcile_bank_statement (kontrolu má vlastní test výše).
+    const later = migrationFiles.filter((name) => name > file! && !name.endsWith("_auto_booking_per_organization.sql"));
     for (const name of later) {
       const source = readFileSync(join(migrationsDir, name), "utf8");
       for (const fn of ["reconcile_bank_statement", "save_bank_statement_allocations", "run_bank_reconciliation_jobs"])

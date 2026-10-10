@@ -11,7 +11,7 @@ import {
   resolveBatchConflicts,
   type MatchableInvoice,
 } from "@/lib/payment-matching";
-import { assignStatementPayments } from "@/lib/statement-assignment";
+import { applyAutoBookingPolicy, assignStatementPayments, type AutoBookingPolicy } from "@/lib/statement-assignment";
 import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     ] = await Promise.all([
       identity.service
         .from("organizations")
-        .select("bank_account_czk, bank_account_eur")
+        .select("bank_account_czk, bank_account_eur, auto_booking")
         .eq("id", org)
         .single(),
       identity.service
@@ -209,7 +209,10 @@ export async function POST(request: Request) {
           paid_amount: Number(invoice.paid_amount),
         });
     }
-    const assignments = assignStatementPayments(
+    // Co smí firma zaúčtovat bez člověka (nová firma jen podle VS); databáze
+    // to při zaúčtování vynucuje znovu.
+    const bookingPolicy = (company.auto_booking ?? "vs") as AutoBookingPolicy;
+    const assignments = applyAutoBookingPolicy(assignStatementPayments(
       parsed.entries.flatMap((entry) =>
         entry.payment && entry.disposition === "accepted"
           ? [{ key: entry.fingerprint, ...entry.payment }]
@@ -218,7 +221,7 @@ export async function POST(request: Request) {
       invoices,
       icoByAccount,
       settledInvoices,
-    );
+    ), bookingPolicy);
     const entries = resolveBatchConflicts(parsed.entries.map((entry) => {
       const historyIcos = entry.payment
         ? (icoByAccount.get(entry.payment.counterparty_account ?? "") ?? [])
@@ -243,7 +246,7 @@ export async function POST(request: Request) {
       for (const ico of historyIcos)
         for (const grouped of invoicesByCounterparty.get(ico) ?? [])
           relevant.set(grouped.id, grouped);
-      const proposal =
+      const candidate =
         assigned ??
         (directProposal?.kind === "exact" || directProposal?.kind === "ambiguous"
           ? directProposal
@@ -254,6 +257,9 @@ export async function POST(request: Request) {
                 historyIcos,
               )
             : null);
+      const proposal = bookingPolicy === "off" && candidate?.confidence === "safe"
+        ? { ...candidate, confidence: "review" as const, reason: `Ke kontrole: ${candidate.reason}` }
+        : candidate;
       return {
         line_number: entry.line,
         record_type: entry.recordType,

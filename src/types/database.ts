@@ -1240,6 +1240,7 @@ export type Database = {
           registered_address: string | null
           settings_revision: number
           allowed_email_domain: string | null
+          auto_booking: string
           logo_path: string | null
           created_by: string | null
           onboarding_completed_at: string | null
@@ -1261,6 +1262,7 @@ export type Database = {
           registered_address?: string | null
           settings_revision?: number
           allowed_email_domain?: string | null
+          auto_booking?: string
           logo_path?: string | null
           created_by?: string | null
           onboarding_completed_at?: string | null
@@ -1282,6 +1284,7 @@ export type Database = {
           registered_address?: string | null
           settings_revision?: number
           allowed_email_domain?: string | null
+          auto_booking?: string
           logo_path?: string | null
           created_by?: string | null
           onboarding_completed_at?: string | null

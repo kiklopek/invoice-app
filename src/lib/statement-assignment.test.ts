@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyAutoBookingPolicy,
   assignStatementPayments,
   type AssignablePayment,
 } from "./statement-assignment";
@@ -238,5 +239,34 @@ describe("statement assignment (one payment, one invoice)", () => {
       [invoice("x", 5000, { variable_symbol: "5555", issue_date: undefined })],
     );
     expect(result.get("a")?.proposal.confidence).toBe("safe");
+  });
+});
+
+// Automatické zaúčtování po firmách (organizations.auto_booking). Nová firma
+// ('vs') účtuje sama jen podle VS / čísla faktury; jméno a potvrzený účet
+// plátce identifikují plátce, ne fakturu, a u ní jsou jen návrh ke kontrole.
+// Databáze to hlídá znovu (reconcile_bank_statement), tady jde o to, aby
+// náhled neslibovala automatiku, která neproběhne.
+describe("applyAutoBookingPolicy", () => {
+  const invoices = [invoice("A", 500, { counterparty_name: "Novák Stavby s.r.o.", counterparty_ico: "111" }), invoice("B", 700, { variable_symbol: "222", counterparty_ico: "222" })];
+  const payments = [
+    payment("by-name", 500, { counterparty_name: "NOVAK STAVBY S.R.O.", booked_on: "2026-09-10" }),
+    payment("by-vs", 700, { variable_symbol: "222", booked_on: "2026-09-10" }),
+  ];
+
+  it("keeps name-based bookings automatic only for companies that chose it", () => {
+    const hlavica = applyAutoBookingPolicy(assignStatementPayments(payments, invoices), "vs_and_name");
+    expect(hlavica.get("by-name")?.proposal.confidence).toBe("safe");
+
+    const newCompany = applyAutoBookingPolicy(assignStatementPayments(payments, invoices), "vs");
+    expect(newCompany.get("by-name")?.tier).toBe("name");
+    expect(newCompany.get("by-name")?.proposal.confidence).toBe("review");
+    expect(newCompany.get("by-name")?.proposal.reason).toMatch(/kontrol/i);
+    expect(newCompany.get("by-vs")?.proposal.confidence).toBe("safe");
+  });
+
+  it("books nothing automatically when the company switched automation off", () => {
+    const off = applyAutoBookingPolicy(assignStatementPayments(payments, invoices), "off");
+    for (const key of ["by-name", "by-vs"]) expect(off.get(key)?.proposal.confidence).toBe("review");
   });
 });

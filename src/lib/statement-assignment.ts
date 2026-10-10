@@ -530,3 +530,35 @@ export function assignStatementPayments(
 
   return results;
 }
+
+/** organizations.auto_booking -- co smí firma zaúčtovat bez člověka. */
+export type AutoBookingPolicy = "off" | "vs" | "vs_and_name";
+
+/** Úrovně, které identifikují plátce, ne fakturu (jméno, potvrzený účet). */
+const PAYER_TIERS = new Set(["account", "name", "name_combination"]);
+
+/**
+ * Přizpůsobí návrhy režimu firmy: u 'vs' zůstanou automatické jen shody
+ * podle VS / čísla faktury, u 'off' nic. Ostatní se jen převedou na návrh
+ * ke kontrole (tier i faktury zůstávají, aby člověk viděl, co sedělo).
+ * Stejné pravidlo vynucuje reconcile_bank_statement v databázi.
+ */
+export function applyAutoBookingPolicy(
+  assignments: Map<string, StatementAssignment>,
+  policy: AutoBookingPolicy,
+) {
+  if (policy === "vs_and_name") return assignments;
+  for (const [key, assignment] of assignments) {
+    if (assignment.proposal.confidence !== "safe") continue;
+    if (policy === "vs" && !PAYER_TIERS.has(assignment.tier ?? "")) continue;
+    assignments.set(key, {
+      ...assignment,
+      proposal: {
+        ...assignment.proposal,
+        confidence: "review",
+        reason: `Ke kontrole: ${assignment.proposal.reason}`,
+      },
+    });
+  }
+  return assignments;
+}
