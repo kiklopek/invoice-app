@@ -19,6 +19,7 @@ import {
   Wallet,
   Zap,
 } from "./landing-icons";
+import { CountUp } from "./count-up";
 import { LandingMotion } from "./landing-motion";
 import { LandingVideo } from "./landing-video";
 import { Pricing } from "./pricing";
@@ -190,23 +191,23 @@ function DashboardPreview() {
         <div className={styles.dashStats}>
           <div>
             <small>Celkem faktur</small>
-            <strong>124</strong>
+            <strong><CountUp value={124} delay={450} /></strong>
             <em className={styles.up}>↑ 12 %</em>
           </div>
           <div>
             <small>Čeká na úhradu</small>
-            <strong className={styles.toneOrange}>18</strong>
-            <em>1 340 000 Kč</em>
+            <strong className={styles.toneOrange}><CountUp value={18} delay={530} /></strong>
+            <em><CountUp value={1340000} step={1000} suffix=" Kč" delay={530} /></em>
           </div>
           <div>
             <small className={styles.toneRed}>Po splatnosti</small>
-            <strong className={styles.toneRed}>7</strong>
-            <em className={styles.toneRed}>320 000 Kč</em>
+            <strong className={styles.toneRed}><CountUp value={7} delay={610} /></strong>
+            <em className={styles.toneRed}><CountUp value={320000} step={1000} suffix=" Kč" delay={610} /></em>
           </div>
           <div>
             <small>Zaplaceno</small>
-            <strong className={styles.toneGreen}>99</strong>
-            <em className={styles.toneGreen}>1 980 000 Kč</em>
+            <strong className={styles.toneGreen}><CountUp value={99} delay={690} /></strong>
+            <em className={styles.toneGreen}><CountUp value={1980000} step={1000} suffix=" Kč" delay={690} /></em>
           </div>
         </div>
 
@@ -234,7 +235,7 @@ function DashboardPreview() {
             <div className={styles.donutWrap}>
               <div className={styles.donut}>
                 <div>
-                  <strong>124</strong>
+                  <strong><CountUp value={124} delay={500} /></strong>
                 </div>
               </div>
               <ul className={styles.donutLegend}>

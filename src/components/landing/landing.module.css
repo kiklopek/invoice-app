@@ -1662,6 +1662,13 @@
   .heroVisual .dash {
     animation: lpRise 0.7s 0.15s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
+  /* Dlaždice statistik vyjíždějí postupně; čísla v nich napočítá CountUp. */
+  .dashStats > div {
+    animation: lpRise 0.55s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .dashStats > :nth-child(2) { animation-delay: 0.38s; }
+  .dashStats > :nth-child(3) { animation-delay: 0.46s; }
+  .dashStats > :nth-child(4) { animation-delay: 0.54s; }
   .barPair span {
     transform-origin: bottom;
     animation: lpGrow 0.9s 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
