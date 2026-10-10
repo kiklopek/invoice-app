@@ -19,7 +19,9 @@ const DENIED: Record<string, string> = { ico_used: "IČO už mělo zkušební do
 
 // Přehled firem a předplatného. Platby, karty, faktury a vratky se řeší ve
 // Stripe Dashboardu (odkaz u firmy), ne tady.
-export function OperatorConsole({ operatorEmail, companies, stripeDashboard }: { operatorEmail: string; companies: OperatorCompany[]; stripeDashboard: string }) {
+export function OperatorConsole({ operatorEmail, companies, stripeDashboard, page = 1, totalCompanies, pageSize = 100 }: { operatorEmail: string; companies: OperatorCompany[]; stripeDashboard: string; page?: number; totalCompanies?: number; pageSize?: number }) {
+  const total = totalCompanies ?? companies.length;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
   const counts = companies.reduce<Record<string, number>>((all, company) => ({ ...all, [company.state]: (all[company.state] ?? 0) + 1 }), {});
   return (
     <main style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 20px", display: "grid", gap: 24 }}>
@@ -30,9 +32,16 @@ export function OperatorConsole({ operatorEmail, companies, stripeDashboard }: {
         </p>
       </header>
       <section className="page-panel">
-        <h2 style={{ marginTop: 0 }}>Firmy ({companies.length})</h2>
+        <h2 style={{ marginTop: 0 }}>Firmy ({total})</h2>
+        {pages > 1 ? (
+          <p>
+            Strana {page} z {pages}{" "}
+            {page > 1 ? <a href={`/provoz?strana=${page - 1}`}>← novější</a> : null}{" "}
+            {page < pages ? <a href={`/provoz?strana=${page + 1}`}>starší →</a> : null}
+          </p>
+        ) : null}
         <p style={{ color: "#5f6b64" }}>
-          Zkušební doba {counts.trial ?? 0} · placené {counts.active ?? 0} · nezdařená platba {counts.past_due ?? 0} · bez karty {counts.needs_payment ?? 0} · ukončené {counts.expired ?? 0}
+          Na této straně: zkušební doba {counts.trial ?? 0} · placené {counts.active ?? 0} · nezdařená platba {counts.past_due ?? 0} · bez karty {counts.needs_payment ?? 0} · ukončené {counts.expired ?? 0}
         </p>
         <div style={{ overflowX: "auto" }}>
           <table className="data-table">

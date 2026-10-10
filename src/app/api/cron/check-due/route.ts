@@ -139,10 +139,17 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   const today = todayInTimeZone();
   const runKey = crypto.randomUUID();
   const startedAt = new Date().toISOString();
-  let organizationsQuery = db.from("organizations").select("id");
-  if (targetOrganizationId) organizationsQuery = organizationsQuery.eq("id", targetOrganizationId);
-  const { data: organizations, error: organizationsError } = await organizationsQuery;
-  if (organizationsError) return NextResponse.json({ error: "Organizace se nepodařilo načíst." }, { status: 500 });
+  // Stránkovaně: PostgREST vrací nejvýš 1000 řádků, firmy za tou hranicí by
+  // se jinak nikdy nezpracovaly.
+  const organizations: { id: string }[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    let organizationsQuery = db.from("organizations").select("id").order("id").range(offset, offset + 999);
+    if (targetOrganizationId) organizationsQuery = organizationsQuery.eq("id", targetOrganizationId);
+    const { data: page, error: organizationsError } = await organizationsQuery;
+    if (organizationsError) return NextResponse.json({ error: "Organizace se nepodařilo načíst." }, { status: 500 });
+    organizations.push(...(page ?? []));
+    if ((page?.length ?? 0) < 1000) break;
+  }
 
   const organizationCounters = new Map<string, AutomationRunCounters>();
   const organizationErrors = new Map<string, string[]>();
@@ -233,15 +240,26 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   }
 
   // Existing partial index (organization_id, next_reminder_at, id) matches this query.
-  const { data: invoiceRows, error: invoicesError } = await db.from("invoices")
-    .select(INVOICE_REMINDER_POLICY_SELECT)
-    .in("organization_id", startedOrganizationIds)
-    .in("status", ["pending", "overdue"])
-    .not("next_reminder_at", "is", null)
-    .lte("next_reminder_at", startedAt)
-    .order("next_reminder_at", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(PLANNER_INVOICE_LIMIT);
+  // Each company gets its own share of the planner budget: one company with a
+  // huge backlog must not push everyone else's due reminders out of the run.
+  const plannerLimitPerOrganization = Math.max(50, Math.ceil(PLANNER_INVOICE_LIMIT / Math.max(startedOrganizationIds.length, 1)));
+  const invoiceRows: unknown[] = [];
+  let invoicesError: { message: string } | null = null;
+  for (let index = 0; index < startedOrganizationIds.length && !invoicesError; index += 10) {
+    const pages = await Promise.all(startedOrganizationIds.slice(index, index + 10).map((organizationId) => db.from("invoices")
+      .select(INVOICE_REMINDER_POLICY_SELECT)
+      .eq("organization_id", organizationId)
+      .in("status", ["pending", "overdue"])
+      .not("next_reminder_at", "is", null)
+      .lte("next_reminder_at", startedAt)
+      .order("next_reminder_at", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(plannerLimitPerOrganization)));
+    for (const page of pages) {
+      if (page.error) { invoicesError = page.error; break; }
+      invoiceRows.push(...(page.data ?? []));
+    }
+  }
   if (invoicesError) {
     const failure = reminderDatabaseError("Načtení splatných faktur pro automat", invoicesError);
     console.error("[reminder-automation] due invoice query failed", failure);
@@ -343,7 +361,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   // zůstanou ve frontě a odejdou po zaplacení. Při chybě čtení předplatného
   // se odesílání nezastavuje (výpadek nesmí tiše vypnout upomínky všem).
   const { data: subscriptionRows, error: subscriptionError } = await db.from("subscriptions")
-    .select("organization_id, status, trial_ends_at, current_period_end")
+    .select("organization_id, status, trial_ends_at, current_period_end, billing_exempt")
     .in("organization_id", startedOrganizationIds);
   if (subscriptionError) logError("Předplatné pro automat upomínek se nepodařilo načíst", subscriptionError);
   const sendingOrganizationIds = subscriptionError
