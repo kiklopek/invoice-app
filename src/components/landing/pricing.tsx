@@ -35,6 +35,15 @@ export function Pricing({ contactHref, trialHref }: { contactHref: string; trial
           <span className={yearly ? styles.billingActive : undefined}>Ročně</span>
           <span className={styles.billingSave}>2 měsíce zdarma</span>
         </div>
+        {/* Mobilní varianta: dva segmenty ovladatelné palcem místo malého přepínače. */}
+        <div className={styles.billingSeg} role="radiogroup" aria-label="Období platby">
+          <button type="button" role="radio" aria-checked={!yearly} data-on={!yearly || undefined} onClick={() => setYearly(false)}>
+            Měsíčně
+          </button>
+          <button type="button" role="radio" aria-checked={yearly} data-on={yearly || undefined} onClick={() => setYearly(true)}>
+            Ročně <span className={styles.billingSave}>2 měsíce zdarma</span>
+          </button>
+        </div>
       </div>
 
       <div className={styles.plans}>

@@ -319,7 +319,7 @@ export function LandingPage() {
                 <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
                   Vyzkoušet zdarma <ArrowRight />
                 </Link>
-                <a href="#jak-to-funguje" className={styles.playLink}>
+                <a href="#jak-to-funguje" className={styles.playLink} aria-label="Podívat se, jak to funguje (2 min)">
                   <span className={styles.playIcon}>
                     <Play />
                   </span>
@@ -329,29 +329,41 @@ export function LandingPage() {
                   </span>
                 </a>
               </div>
-              <ul className={styles.trust}>
-                <li>
-                  <span><Zap /></span>
-                  <div>
-                    <strong>Rychlé spuštění</strong>
-                    <small>Do 10 minut</small>
-                  </div>
-                </li>
-                <li>
-                  <span><Layers /></span>
-                  <div>
-                    <strong>Bez změny účetnictví</strong>
-                    <small>Snadný import dat</small>
-                  </div>
-                </li>
-                <li>
-                  <span><Shield /></span>
-                  <div>
-                    <strong>Bezpečná data</strong>
-                    <small>Dvoufázové ověření</small>
-                  </div>
-                </li>
-              </ul>
+              <div className={styles.trustRow}>
+                <ul className={styles.trust}>
+                  <li>
+                    <span><Zap /></span>
+                    <div>
+                      <strong>Rychlé spuštění</strong>
+                      <small>Do 10 minut</small>
+                    </div>
+                  </li>
+                  <li>
+                    <span><Layers /></span>
+                    <div>
+                      <strong>Bez změny účetnictví</strong>
+                      <small>Snadný import dat</small>
+                    </div>
+                  </li>
+                  <li>
+                    <span><Shield /></span>
+                    <div>
+                      <strong>Bezpečná data</strong>
+                      <small>Dvoufázové ověření</small>
+                    </div>
+                  </li>
+                </ul>
+                {/* Na mobilu stojí maskot vedle výhod místo pod nástěnkou. */}
+                <Image
+                  src="/landing/mascot-wave.webp"
+                  alt=""
+                  aria-hidden="true"
+                  width={640}
+                  height={554}
+                  className={styles.trustMascot}
+                  sizes="140px"
+                />
+              </div>
             </div>
 
             <div className={styles.heroVisual}>
@@ -519,7 +531,7 @@ export function LandingPage() {
                 Splatno automaticky zpracuje jasné případy. Nejasné platby a výjimky vám přehledně
                 ukáže, abyste je mohli snadno vyřešit.
               </p>
-              <Link href={LOGIN_HREF} className={styles.btnOutline}>
+              <Link href={LOGIN_HREF} className={`${styles.btnOutline} ${styles.attentionLogin}`}>
                 Přihlásit se do aplikace <ArrowRight />
               </Link>
             </div>
