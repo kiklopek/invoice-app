@@ -1,5 +1,6 @@
 import { normalizeVariableSymbol } from "./payment-import";
 import { minorUnits } from "./money";
+import { compactInvoiceNumber, numericInvoiceNumber } from "./invoice-number";
 import { exactCombinations, type MatchableInvoice, type MatchProposal } from "./payment-matching";
 
 /**
@@ -161,12 +162,12 @@ function matchesIdentifier(invoice: MatchableInvoice, normalizedVs: string) {
   const invoiceVs = normalizeVariableSymbol(invoice.variable_symbol);
   if (invoiceVs) return invoiceVs === normalizedVs;
   // No VS on the invoice at all (a template that never prints the field) --
-  // payers then use the invoice number, which only works when it's numeric.
-  return (
-    /^\d+$/.test(invoice.invoice_number.trim()) &&
-    normalizeVariableSymbol(invoice.invoice_number) === normalizedVs
-  );
+  // payers then use the invoice number, which only works when it's numeric
+  // (separators allowed: "2026/001" is paid with VS 2026001).
+  const numeric = numericInvoiceNumber(invoice.invoice_number);
+  return Boolean(numeric) && normalizeVariableSymbol(numeric) === normalizedVs;
 }
+
 
 /**
  * Shortest invoice number that may be recognised inside a free-text message.
@@ -187,20 +188,16 @@ export function referencesInvoiceNumber(
   note: string | null | undefined,
   invoiceNumber: string,
 ) {
-  const needle = invoiceNumber.trim().toUpperCase();
-  const haystack = (note ?? "").toUpperCase();
-  // Alphanumeric only: the database reconciler re-derives this same rule before
-  // it books anything, and keeping both engines to a form that needs no regex
-  // escaping is what keeps their two answers identical.
-  if (!/^[0-9A-Z]+$/.test(needle) || needle.length < MINIMUM_REFERENCE_LENGTH || !haystack)
-    return false;
-  const glued = (character: string | undefined) =>
-    character !== undefined && /[0-9A-Z]/.test(character);
-  for (let at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + 1)) {
-    if (!glued(haystack[at - 1]) && !glued(haystack[at + needle.length]))
-      return true;
-  }
-  return false;
+  // Compared without separators, so "FV-2026/001", "FV2026001" and
+  // "fv-2026-001" are the same number. The database reconciler re-derives this
+  // same rule (private.message_references_invoice) before it books anything.
+  const needle = compactInvoiceNumber(invoiceNumber);
+  if (needle.length < MINIMUM_REFERENCE_LENGTH || !/\d/.test(needle) || !note) return false;
+  // A token is what the payer wrote between spaces and punctuation that never
+  // belongs to an invoice number; it counts only as a whole.
+  return note
+    .split(/[\s,;:()[\]"'„“]+/)
+    .some((token) => compactInvoiceNumber(token) === needle);
 }
 
 function gatherEvidence(

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyAutoBookingPolicy,
   assignStatementPayments,
+  referencesInvoiceNumber,
   type AssignablePayment,
 } from "./statement-assignment";
 import type { MatchableInvoice } from "./payment-matching";
@@ -268,5 +269,29 @@ describe("applyAutoBookingPolicy", () => {
   it("books nothing automatically when the company switched automation off", () => {
     const off = applyAutoBookingPolicy(assignStatementPayments(payments, invoices), "off");
     for (const key of ["by-name", "by-vs"]) expect(off.get(key)?.proposal.confidence).toBe("review");
+  });
+});
+
+// Čísla faktur s oddělovači („FV-2026/001“). R. Hlavica má čísla jen
+// z číslic, jiné firmy ne: dřív se taková faktura nikdy nenašla ani ve
+// zprávě pro příjemce, ani jako VS.
+describe("čísla faktur s oddělovači", () => {
+  it("finds the invoice number in the message whether the payer kept the separators or not", () => {
+    expect(referencesInvoiceNumber("Úhrada FV-2026/001, díky", "FV-2026/001")).toBe(true);
+    expect(referencesInvoiceNumber("faktura FV2026001", "FV-2026/001")).toBe(true);
+    expect(referencesInvoiceNumber("faktura fv-2026-001", "FV2026001")).toBe(true);
+  });
+
+  it("still requires a whole token", () => {
+    expect(referencesInvoiceNumber("doklad XFV-2026/0011", "FV-2026/001")).toBe(false);
+    expect(referencesInvoiceNumber("FV-2026/0012", "FV-2026/001")).toBe(false);
+  });
+
+  it("uses a separated numeric invoice number as VS when the invoice has none", () => {
+    const result = assignStatementPayments(
+      [payment("p", 900, { variable_symbol: "2026001", booked_on: "2026-09-10" })],
+      [invoice("2026/001", 900, { invoice_number: "2026/001", variable_symbol: null })],
+    );
+    expect(result.get("p")).toMatchObject({ tier: "identifier", proposal: { confidence: "safe", invoiceIds: ["2026/001"] } });
   });
 });

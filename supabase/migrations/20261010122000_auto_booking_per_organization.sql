@@ -10,6 +10,8 @@
 --   vznikla kvůli chybě čtení permutovaného účtu KB, která je opravená
 --   (ověřeno na produkčních importech: hlavní účet R. Hlavica už sedí).
 --
+-- * Čísla faktur s oddělovači („FV-2026/001“) se najdou ve zprávě i jako VS
+--   (reconcile_bank_statement i trigger private.guard_automatic_payment).
 -- * Oprava: pojistka „znovu ověř důkaz před automatickým zaúčtováním“ se u
 --   platby bez VS tiše přeskočila (NULL v `not (...)`), takže rozhodla jen
 --   webová vrstva. Teď je výsledek coalesce(..., false).
@@ -25,6 +27,34 @@ alter table public.organizations
 update public.organizations set auto_booking='vs_and_name';
 
 revoke update (auto_booking) on public.organizations from anon, authenticated;
+
+-- Číslo faktury při párování (stejná pravidla jako src/lib/invoice-number.ts
+-- a referencesInvoiceNumber ve statement-assignment.ts). Dřív se ve zprávě
+-- hledalo jen číslo bez oddělovačů a jako VS jen čistě číselné číslo, takže
+-- faktury firem s čísly „FV-2026/001“ se nikdy nenašly.
+create or replace function private.compact_invoice_number(value text)
+returns text language sql immutable set search_path = pg_catalog
+as $$ select upper(regexp_replace(coalesce(value,''), '[^0-9A-Za-z]', '', 'g')) $$;
+
+create or replace function private.numeric_invoice_number(value text)
+returns text language sql immutable set search_path = pg_catalog
+as $$ select case when btrim(coalesce(value,'')) ~ '^[0-9]+([-/. ][0-9]+)*$'
+  then regexp_replace(btrim(value), '[^0-9]', '', 'g') else '' end $$;
+
+create or replace function private.message_references_invoice(note text, invoice_number text)
+returns boolean language sql immutable set search_path = pg_catalog, public
+as $$
+  select length(private.compact_invoice_number(invoice_number)) >= 4
+    and private.compact_invoice_number(invoice_number) ~ '[0-9]'
+    and note is not null
+    and exists (
+      select 1 from regexp_split_to_table(note, '[[:space:],;:()"''„“\[\]]+') token
+      where private.compact_invoice_number(token) = private.compact_invoice_number(invoice_number)
+    )
+$$;
+revoke all on function private.compact_invoice_number(text) from public, anon, authenticated;
+revoke all on function private.numeric_invoice_number(text) from public, anon, authenticated;
+revoke all on function private.message_references_invoice(text, text) from public, anon, authenticated;
 
 create or replace function public.reconcile_bank_statement(
   target_org uuid, actor_user uuid, target_import uuid, expected_revision integer,
@@ -100,13 +130,14 @@ begin
           -- The payment's symbol is the invoice's own symbol...
           nullif(ltrim(regexp_replace(coalesce(inv.variable_symbol,''),'\s','','g'),'0'),'')=nullif(ltrim(e.variable_symbol,'0'),'')
           -- ...or its number, for invoices printed without a symbol at all.
-          or (nullif(trim(inv.variable_symbol),'') is null and trim(inv.invoice_number) ~ '^[0-9]+$'
-            and nullif(ltrim(inv.invoice_number,'0'),'')=nullif(ltrim(e.variable_symbol,'0'),''))
+          -- Separators allowed: "2026/001" is paid with VS 2026001.
+          or (nullif(trim(inv.variable_symbol),'') is null and private.numeric_invoice_number(inv.invoice_number)<>''
+            and nullif(ltrim(private.numeric_invoice_number(inv.invoice_number),'0'),'')=nullif(ltrim(e.variable_symbol,'0'),''))
           -- ...or the payer wrote the invoice number in the message, as a whole
           -- token: without the boundaries, invoice 1234 matches inside document
           -- number 091500001234567 and books a stranger's payment.
-          or (trim(inv.invoice_number) ~ '^[0-9A-Za-z]{4,}$' and e.note is not null
-            and e.note ~* ('(^|[^0-9A-Za-z])'||trim(inv.invoice_number)||'([^0-9A-Za-z]|$)'))
+          -- Compared without separators ("FV-2026/001" = "FV2026001").
+          or private.message_references_invoice(e.note, inv.invoice_number)
           -- ...or the payer's account is a confirmed identity for this customer
           -- AND identifies only this one customer. An account confirmed for two
           -- customers names neither, so it cannot carry an unattended booking.
@@ -190,4 +221,62 @@ begin
     where id=target_import;
   return jsonb_build_object('status',case when remaining=0 then 'committed' else 'review' end,'revision',s.revision+1,
     'imported',done,'matched',matched,'remaining',remaining,'unrelated',skipped,'errors',failures,'idempotent',false);
+end $$;
+
+-- Trigger, který při automatickém zaúčtování znovu seřadí kandidáty, musí
+-- číslo faktury číst stejně (jinak by shodu „FV2026001“ ↔ „FV-2026/001“
+-- odmítl). Aktuální tělo: 20260919133000_reconciliation_integrity_guards.sql;
+-- mění se jen čtení čísla faktury, trigger zůstává.
+create or replace function private.guard_automatic_payment() returns trigger
+language plpgsql security definer set search_path=public as $$
+declare selected_invoice public.invoices%rowtype; candidate record; best integer:=99;
+  winners uuid[]:='{}'; rank integer; account_icos text[]; symbol text; targets uuid[];
+begin
+  if new.match_reason is null then return new; end if; -- explicit human decisions
+  -- A split payment (one payment across several invoices) has no single
+  -- invoice_id to re-check here -- it books with invoice_id null and its own
+  -- combination path (name_combination_auto_match.sql) already re-validates
+  -- every candidate invoice inline, in the same transaction, before this row
+  -- is even inserted. Written before that path existed, this guard assumed
+  -- every automatic bank_payments row named exactly one invoice; left as-is
+  -- it would raise proposal_changed on every automatic split payment ever
+  -- since NULL never matches an id.
+  if new.invoice_id is null then return new; end if;
+  select * into selected_invoice from public.invoices
+    where id=new.invoice_id and organization_id=new.organization_id for update;
+  if not found then raise exception 'proposal_changed'; end if;
+  select array_agg(distinct counterparty_ico) into account_icos from public.counterparty_payment_accounts
+    where organization_id=new.organization_id and account_number=new.counterparty_account;
+  if cardinality(account_icos)>0 and not coalesce(selected_invoice.counterparty_ico=any(account_icos),false) then
+    raise exception 'proposal_changed';
+  end if;
+  symbol:=nullif(ltrim(regexp_replace(coalesce(new.variable_symbol,''),'\s','','g'),'0'),'');
+  -- A known explicit reference must not be replaced by a coincidental amount.
+  select array_agg(id) into targets from public.invoices i
+  where i.organization_id=new.organization_id and i.currency=new.currency and i.status<>'cancelled'
+    and (nullif(ltrim(regexp_replace(coalesce(nullif(trim(i.variable_symbol),''),
+        nullif(private.numeric_invoice_number(i.invoice_number),''),''),'\s','','g'),'0'),'')=symbol
+      or private.message_references_invoice(new.note, i.invoice_number));
+  if cardinality(targets)>0 and (cardinality(targets)<>1 or targets[1]<>new.invoice_id) then
+    raise exception 'proposal_changed';
+  end if;
+  for candidate in select * from public.invoices i
+    where i.organization_id=new.organization_id and i.currency=new.currency
+      and i.status in ('pending','overdue') and i.amount-i.paid_amount=new.amount
+    order by id for update
+  loop
+    rank:=99;
+    if nullif(ltrim(regexp_replace(coalesce(nullif(trim(candidate.variable_symbol),''),
+        nullif(private.numeric_invoice_number(candidate.invoice_number),''),''),'\s','','g'),'0'),'')=symbol then rank:=1;
+    elsif private.message_references_invoice(new.note, candidate.invoice_number) then rank:=2;
+    elsif new.booked_on>=candidate.issue_date then
+      if cardinality(account_icos)=1 and candidate.counterparty_ico=account_icos[1] then rank:=3;
+      elsif private.names_match(new.counterparty_name,candidate.counterparty_name) then rank:=4;
+      end if;
+    end if;
+    if rank<best then best:=rank; winners:=array[candidate.id];
+    elsif rank=best then winners:=array_append(winners,candidate.id); end if;
+  end loop;
+  if best=99 or cardinality(winners)<>1 or winners[1]<>new.invoice_id then raise exception 'proposal_changed'; end if;
+  return new;
 end $$;

@@ -85,7 +85,27 @@ begin
     raise exception 'Company with automatic booking off got a payment booked: %', result;
   end if;
 
-  -- 5) Režim firmy nemění přihlášený uživatel.
+  -- 5) Číslo faktury s oddělovači ve zprávě (bez nich) se automaticky zaúčtuje.
+  update public.organizations set auto_booking='vs' where id=org;
+  insert into public.invoices(organization_id,invoice_number,counterparty_name,counterparty_email,
+    amount_without_vat,vat_rate,amount,currency,issue_date,due_date,created_by)
+  values(org,'FV-2026/001','Čtvrtá s.r.o.','c@example.cz',450,0,450,'CZK',current_date-1,current_date,actor);
+  response:=public.create_bank_statement_preview(org,actor,jsonb_build_object('source_format','gpc','original_filename','e.gpc',
+    'file_hash',repeat('5',64),'accepted_count',1,'automation_mode','automatic'),
+    jsonb_build_array(jsonb_build_object('line_number',1,'record_type','075','fingerprint',repeat('e',64),
+      'disposition','accepted','external_id','ref-sep','booked_on',current_date,'amount',450,'currency','CZK',
+      'note','Uhrada FV2026001','proposal_kind','exact','proposal_confidence','safe','proposal_reason','zpráva',
+      'proposed_invoice_ids',jsonb_build_array((select id from public.invoices where invoice_number='FV-2026/001' and organization_id=org)))));
+  statement:=(response->>'id')::uuid;
+  result:=public.reconcile_bank_statement(org,actor,statement,(response->>'revision')::int,true,false);
+  if (select paid_amount from public.invoices where invoice_number='FV-2026/001' and organization_id=org)<>450 then
+    raise exception 'Invoice number with separators referenced in the message was not booked: %', result;
+  end if;
+  if private.message_references_invoice('doklad XFV-2026/0011', 'FV-2026/001') then
+    raise exception 'Invoice number matched inside a longer token';
+  end if;
+
+  -- 6) Režim firmy nemění přihlášený uživatel.
   if has_column_privilege('authenticated','public.organizations','auto_booking','UPDATE') then
     raise exception 'authenticated may change auto_booking';
   end if;

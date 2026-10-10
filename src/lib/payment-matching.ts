@@ -1,5 +1,6 @@
 import { normalizeVariableSymbol } from "./payment-import";
 import { minorUnits } from "./money";
+import { numericInvoiceNumber } from "./invoice-number";
 
 export interface MatchableInvoice {
   id: string;
@@ -81,8 +82,8 @@ export function exactCombinations(
 function matchesVariableSymbol(invoice: MatchableInvoice, normalizedVs: string) {
   return (
     normalizeVariableSymbol(invoice.variable_symbol) === normalizedVs ||
-    (!normalizeVariableSymbol(invoice.variable_symbol) && /^\d+$/.test(invoice.invoice_number.trim()) &&
-      normalizeVariableSymbol(invoice.invoice_number) === normalizedVs)
+    (!normalizeVariableSymbol(invoice.variable_symbol) && Boolean(numericInvoiceNumber(invoice.invoice_number)) &&
+      normalizeVariableSymbol(numericInvoiceNumber(invoice.invoice_number)) === normalizedVs)
   );
 }
 

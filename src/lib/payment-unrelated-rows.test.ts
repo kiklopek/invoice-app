@@ -287,6 +287,10 @@ describe("reconcile_bank_statement přeskočí nesouvisející řádky", () => {
       "if automatic_only and (a.amount<>inv.amount-inv.paid_amount or not (",
       "or (coalesce(e.counterparty_account_verified,true)",
       "or (private.names_match(e.counterparty_name,inv.counterparty_name)",
+      "or (nullif(trim(inv.variable_symbol),'') is null and trim(inv.invoice_number) ~ '^[0-9]+$'",
+      "and nullif(ltrim(inv.invoice_number,'0'),'')=nullif(ltrim(e.variable_symbol,'0'),''))",
+      "or (trim(inv.invoice_number) ~ '^[0-9A-Za-z]{4,}$' and e.note is not null",
+      "and e.note ~* ('(^|[^0-9A-Za-z])'||trim(inv.invoice_number)||'([^0-9A-Za-z]|$)'))",
       ")) then raise exception 'proposal_changed'; end if;",
     ]);
     const now = new Set(codeLines(current.body));

@@ -11,6 +11,7 @@ import {
   resolveBatchConflicts,
   type MatchableInvoice,
 } from "@/lib/payment-matching";
+import { numericInvoiceNumber } from "@/lib/invoice-number";
 import { applyAutoBookingPolicy, assignStatementPayments, type AutoBookingPolicy } from "@/lib/statement-assignment";
 import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies, statementCurrencyFor } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
@@ -181,8 +182,10 @@ export async function POST(request: Request) {
       // this second key too is what lets proposePaymentMatch (which already
       // checks both fields) actually see it as a candidate in the first
       // place; see matchesVariableSymbol in payment-matching.ts.
-      const numberKey = `${invoice.currency}:${normalizeVariableSymbol(invoice.invoice_number)}`;
-      if (!normalizeVariableSymbol(invoice.variable_symbol) && /^\d+$/.test(invoice.invoice_number.trim()))
+      // Separators allowed ("2026/001" → VS 2026001), see invoice-number.ts.
+      const numericNumber = numericInvoiceNumber(invoice.invoice_number);
+      const numberKey = `${invoice.currency}:${normalizeVariableSymbol(numericNumber)}`;
+      if (!normalizeVariableSymbol(invoice.variable_symbol) && numericNumber)
         invoicesByVs.set(numberKey, [...(invoicesByVs.get(numberKey) ?? []), invoice]);
       const counterpartyKey =
         invoice.counterparty_ico || invoice.counterparty_name;
