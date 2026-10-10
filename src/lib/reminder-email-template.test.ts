@@ -40,7 +40,7 @@ describe("branded reminder email", () => {
     expect(result.html).toContain("247 300,00 CZK");
     expect(result.html).toContain("6844160247/0100");
     expect(result.html).toContain("<!--[if mso]>");
-    expect(result.html).toContain("Kontaktovat účetní oddělení");
+    expect(result.html).toContain("Kontaktovat nás");
     expect(result.text).toContain("ÚDAJE K PLATBĚ");
     expect(result.text).toContain("R. Hlavica s.r.o.");
   });
@@ -67,7 +67,7 @@ describe("branded reminder email", () => {
       values: { ...values, currency: "EUR" },
     });
     expect(result.html).toContain("94-2613370257/0100");
-    expect(result.html).not.toContain("Kontaktovat účetní oddělení");
+    expect(result.html).not.toContain("Kontaktovat nás");
   });
 
   it.each<ReminderStage>(["before_due", "on_due", "overdue", "escalation"])(
@@ -150,7 +150,7 @@ describe("QR platba v upomínce", () => {
     const html = render({ qrSrc: "cid:qr-platba", replyTo: "ucetni@hlavica.cz" }).html;
     const qr = html.indexOf("Zaplaťte QR kódem");
     const signature = html.indexOf("S pozdravem");
-    const button = html.indexOf("Kontaktovat účetní oddělení");
+    const button = html.indexOf("Kontaktovat nás");
     expect(qr).toBeGreaterThan(-1);
     expect(signature).toBeGreaterThan(qr);
     expect(button).toBeGreaterThan(signature);

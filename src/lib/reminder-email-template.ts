@@ -176,8 +176,8 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   const cta = replyHref ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0;">
       <tr><td>
-        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${escapeHtml(replyHref)}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="12%" stroke="f" fillcolor="#17462f"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Kontaktovat účetní oddělení</center></v:roundrect><![endif]-->
-        <!--[if !mso]><!--><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:13px 20px;background:#17462f;border-radius:6px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;text-decoration:none;">Kontaktovat účetní oddělení</a><!--<![endif]-->
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${escapeHtml(replyHref)}" style="height:44px;v-text-anchor:middle;width:180px;" arcsize="12%" stroke="f" fillcolor="#17462f"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Kontaktovat nás</center></v:roundrect><![endif]-->
+        <!--[if !mso]><!--><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:13px 20px;background:#17462f;border-radius:6px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;text-decoration:none;">Kontaktovat nás</a><!--<![endif]-->
       </td></tr>
     </table>` : "";
   const qrSrc = safeQrSrc(params.qrSrc);

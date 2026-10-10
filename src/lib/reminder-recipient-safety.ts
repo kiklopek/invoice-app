@@ -13,6 +13,11 @@ const PUBLIC_MAILBOX_DOMAINS = new Set([
   "yahoo.com", "icloud.com", "me.com", "mac.com",
   "proton.me", "protonmail.com", "gmx.com", "gmx.net", "gmx.de",
   "azet.sk", "zoznam.sk", "pobox.sk", "centrum.sk",
+  // Další běžné schránky (firmy mimo CZ/SK, osobní adresy podnikatelů).
+  "yahoo.cz", "yahoo.de", "yahoo.co.uk", "hotmail.cz", "hotmail.sk", "outlook.sk",
+  "web.de", "t-online.de", "freenet.de", "aol.com", "mail.com", "gmx.at", "gmx.ch",
+  "yandex.com", "yandex.ru", "zoho.com", "tutanota.com", "tuta.io", "pm.me",
+  "wp.pl", "o2.pl", "onet.pl", "interia.pl", "post.sk", "inmail.sk", "atlas.sk",
 ]);
 
 export function isIssuerReminderAddress(

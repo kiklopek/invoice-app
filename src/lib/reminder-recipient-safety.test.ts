@@ -38,3 +38,14 @@ describe("vlastní e-mail vystavitele", () => {
     expect(isIssuerReminderAddress("kontakt@hlavica.cz", issuer)).toBe(false);
   });
 });
+
+// Firma s e-mailem na veřejné schránce blokuje jen svou přesnou adresu,
+// ne všechny zákazníky na stejném poskytovateli.
+describe("veřejné schránky mimo CZ", () => {
+  it("does not block customers sharing a public provider with the issuer", () => {
+    for (const domain of ["web.de", "yahoo.cz", "wp.pl", "aol.com"]) {
+      expect(isIssuerReminderAddress(`zakaznik@${domain}`, { email: `firma@${domain}` })).toBe(false);
+      expect(isIssuerReminderAddress(`firma@${domain}`, { email: `firma@${domain}` })).toBe(true);
+    }
+  });
+});
