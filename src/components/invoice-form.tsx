@@ -13,6 +13,7 @@ import { relevantOcrWarnings, type OcrFieldCandidate, type OcrFieldDecision, typ
 import { normalizeCounterpartyIco } from "@/lib/counterparty-reminder-preferences";
 import { alternativeOcrCandidates, backfillOcrDraft, ocrSourceLabel } from "@/lib/ocr-field-review";
 import { INVOICE_CURRENCIES, normalizeInvoiceCurrency, unambiguousCurrency } from "@/lib/invoice-currency";
+import { useAccessProfile } from "@/lib/use-access-role";
 
 export const createEmptyInvoice = (): InvoiceInput => ({
   invoice_number: "",
@@ -84,10 +85,12 @@ export function InvoiceForm({
   onSubmit: (value: InvoiceInput) => Promise<void>;
 }) {
   const pathname = usePathname();
+  const profile = useAccessProfile();
   const draftKey = JSON.stringify([pathname, initial?.file_url ?? "", initial?.invoice_number ?? ""]);
   const [form, setForm] = useState<InvoiceInput>(() => {
     const draft = readInvoiceDraft(draftKey);
-    if (!draft) return initial ?? createEmptyInvoice();
+    // Neplátce DPH: nová faktura začíná na 0 %, ne na 21 %.
+    if (!draft) return initial ?? { ...createEmptyInvoice(), vat_rate: profile?.vatPayer === false ? 0 : DEFAULT_VAT_RATE };
     // A saved draft can predate a later OCR retry for the same upload and
     // keep an empty currency even when the new extraction found it. Preserve
     // the person's draft when filled, but backfill that empty select from the

@@ -109,6 +109,8 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
   const [step, setStep] = useState<Step>(payment ? 8 : 1);
   const [reached, setReached] = useState<Step>(payment ? 8 : 1);
   const [company, setCompany] = useState<OnboardingCompany>({ ...EMPTY, email: accountEmail });
+  // Plátce DPH: bez výslovné volby se odhadne podle DIČ (DIČ mívají plátci).
+  const [vatPayer, setVatPayer] = useState<boolean | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AccessRole>("accounting");
@@ -290,7 +292,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
     const response = await fetch("/api/onboarding/organization", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(company),
+      body: JSON.stringify({ ...company, vat_payer: vatPayer ?? Boolean(company.dic.trim()) }),
     }).catch(() => null);
     const data = await response?.json().catch(() => null) as { error?: string; code?: string; fields?: { field: string; message: string }[] } | null;
     if (!response?.ok) {
@@ -534,6 +536,10 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                       <span className={styles.label}>DIČ <small>(nepovinné)</small></span>
                       <span className={`${styles.control} ${styles.plain}`}><input autoComplete="off" placeholder="CZ12345678" value={company.dic} aria-invalid={Boolean(fieldErrors.dic)} onChange={(event) => update("dic", event.target.value)} /></span>
                       {fieldErrors.dic ? <p className={styles.fieldError}>{fieldErrors.dic}</p> : null}
+                      <span className={styles.label}>
+                        <input type="checkbox" checked={vatPayer ?? Boolean(company.dic.trim())} onChange={(event) => setVatPayer(event.target.checked)} />{" "}
+                        Jsme plátci DPH
+                      </span>
                     </label>
                     <label className={styles.field}>
                       <span className={styles.label}>Sídlo</span>

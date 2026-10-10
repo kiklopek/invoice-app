@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const { data, error } = await identity.service
     .from("organizations")
     .select(
-      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, settings_revision",
+      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, vat_payer, settings_revision",
     )
     .eq("id", identity.membership.organization_id)
     .single();
@@ -96,11 +96,16 @@ export async function PUT(request: Request) {
     );
   const { data, error } = await identity.service
     .from("organizations")
-    .update({ ...company, settings_revision: expectedRevision + 1 })
+    .update({
+      ...company,
+      // Plátce DPH: jen výslovné ano/ne; chybějící hodnotu nepřepisuje.
+      ...(typeof body.vat_payer === "boolean" ? { vat_payer: body.vat_payer } : {}),
+      settings_revision: expectedRevision + 1,
+    })
     .eq("id", identity.membership.organization_id)
     .eq("settings_revision", expectedRevision)
     .select(
-      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, settings_revision",
+      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, vat_payer, settings_revision",
     )
     .maybeSingle();
   // IČO patří nejvýš jedné firmě (unikátní index) a nelze si vzít ani IČO,

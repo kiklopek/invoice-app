@@ -1278,6 +1278,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          vat_payer: boolean | null
           bank_account_czk: string | null
           bank_account_eur: string | null
           created_at: string
@@ -1300,6 +1301,7 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          vat_payer?: boolean | null
           bank_account_czk?: string | null
           bank_account_eur?: string | null
           created_at?: string
@@ -1322,6 +1324,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          vat_payer?: boolean | null
           bank_account_czk?: string | null
           bank_account_eur?: string | null
           created_at?: string

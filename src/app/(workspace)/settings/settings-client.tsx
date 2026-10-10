@@ -454,6 +454,14 @@ export function SettingsClient({
                   />
                   {fieldErrors.bank_account_eur && <small className="field-error">{fieldErrors.bank_account_eur}</small>}
                 </label>
+                <label className="wide checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={company.vat_payer !== false}
+                    onChange={(e) => { setDirty(true); setCompany((current) => ({ ...current, vat_payer: e.target.checked })); }}
+                  />
+                  <span>Jsme plátci DPH (bez zaškrtnutí faktury bez DPH a s textem „Nejsem plátce DPH“)</span>
+                </label>
               </section>
               </div>
             </fieldset>

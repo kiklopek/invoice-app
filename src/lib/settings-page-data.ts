@@ -21,6 +21,8 @@ export type CompanySettings = {
   email: string;
   bank_account_czk: string;
   bank_account_eur: string;
+  /** Plátce DPH (null = neuvedeno, chová se jako plátce). */
+  vat_payer: boolean | null;
   revision: number;
 };
 export type SettingsMember = {
@@ -74,6 +76,7 @@ export const emptyCompanySettings: CompanySettings = {
   email: "",
   bank_account_czk: "",
   bank_account_eur: "",
+  vat_payer: null,
   revision: 1,
 };
 export async function loadSettingsPageData(
@@ -86,7 +89,7 @@ export async function loadSettingsPageData(
   const companyPromise = identity.service
     .from("organizations")
     .select(
-      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, settings_revision, allowed_email_domain",
+      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, vat_payer, settings_revision, allowed_email_domain",
     )
     .eq("id", org)
     .single();

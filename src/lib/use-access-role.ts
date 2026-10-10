@@ -9,6 +9,8 @@ export type AccessProfile = {
   email: string;
   companyName: string;
   companyLogo?: string | null;
+  /** Plátce DPH (false = neplátce: nové faktury bez DPH). */
+  vatPayer?: boolean | null;
 };
 
 let cachedProfile: AccessProfile | null = null;
@@ -35,7 +37,7 @@ export function loadProfile() {
     pendingProfile = fetch("/api/auth/access", { method: "POST", signal: AbortSignal.timeout(15_000) })
       .then(async response => {
         if (!response.ok) return null;
-        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown; companyName?: unknown; companyLogo?: unknown };
+        const data = await response.json() as { role?: unknown; name?: unknown; email?: unknown; companyName?: unknown; companyLogo?: unknown; vatPayer?: unknown };
         if (!isAccessRole(data.role) || typeof data.name !== "string" || typeof data.email !== "string" || typeof data.companyName !== "string") return null;
         return {
           role: data.role,
@@ -43,6 +45,7 @@ export function loadProfile() {
           email: data.email,
           companyName: data.companyName,
           ...(typeof data.companyLogo === "string" ? { companyLogo: data.companyLogo } : {}),
+          ...(typeof data.vatPayer === "boolean" ? { vatPayer: data.vatPayer } : {}),
         };
       })
       .catch(() => null)

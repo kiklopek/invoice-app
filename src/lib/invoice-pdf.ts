@@ -21,6 +21,8 @@ export type InvoicePdfCompany = {
   bank_account_eur?: string | null;
   /** Další účty firmy (organization_bank_accounts) pro měny bez hlavního účtu. */
   bank_accounts?: { account: string; currency: string }[] | null;
+  /** false = neplátce DPH: bez řádků DPH, s poznámkou. null/true = plátce. */
+  vat_payer?: boolean | null;
 };
 
 const PAGE_WIDTH = 595.28; // A4 at 72dpi
@@ -174,9 +176,13 @@ export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCo
   const remaining = Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount));
   const vatAmount = Number(invoice.amount) - Number(invoice.amount_without_vat);
   drawText(cursor, "Vyúčtování", leftX, { font: bold, size: 11, lineGap: 8 });
-  drawKeyValueRow(cursor, "Částka bez DPH:", formatAmount(Number(invoice.amount_without_vat), invoice.currency), leftX, font, font);
-  drawKeyValueRow(cursor, "Sazba DPH:", `${invoice.vat_rate} %`, leftX, font, font);
-  drawKeyValueRow(cursor, "DPH:", formatAmount(vatAmount, invoice.currency), leftX, font, font);
+  if (company.vat_payer === false) {
+    drawText(cursor, "Nejsem plátce DPH.", leftX, { font, size: 10, lineGap: 6 });
+  } else {
+    drawKeyValueRow(cursor, "Částka bez DPH:", formatAmount(Number(invoice.amount_without_vat), invoice.currency), leftX, font, font);
+    drawKeyValueRow(cursor, "Sazba DPH:", `${invoice.vat_rate} %`, leftX, font, font);
+    drawKeyValueRow(cursor, "DPH:", formatAmount(vatAmount, invoice.currency), leftX, font, font);
+  }
   drawKeyValueRow(cursor, "Celkem k úhradě:", formatAmount(Number(invoice.amount), invoice.currency), leftX, bold, bold);
   drawKeyValueRow(cursor, "Uhrazeno:", formatAmount(Number(invoice.paid_amount), invoice.currency), leftX, font, font);
   drawKeyValueRow(cursor, "Zbývá uhradit:", formatAmount(remaining, invoice.currency), leftX, bold, bold);

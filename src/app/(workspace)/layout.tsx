@@ -30,7 +30,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   }
   if (identity) {
     const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
-    const { data: organization } = await identity.service.from("organizations").select("name, logo_path").eq("id", identity.membership.organization_id).single();
+    const { data: organization } = await identity.service.from("organizations").select("name, logo_path, vat_payer").eq("id", identity.membership.organization_id).single();
     cacheKey = `${identity.membership.organization_id}:${identity.user.id}`;
     const subscription = await loadSubscription(identity.service, identity.membership.organization_id);
     // Firma bez zadané karty (P12: needs_payment) dokončí platbu v onboardingu.
@@ -46,6 +46,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       email,
       companyName: organization?.name?.trim() || "Firma",
       companyLogo: organization?.logo_path ?? null,
+      vatPayer: organization?.vat_payer ?? null,
     };
   }
 
