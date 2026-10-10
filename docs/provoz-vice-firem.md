@@ -154,3 +154,118 @@ Funkce v databázi jsou odstraněné. Tabulky `billing_orders`, `organization_ve
 - **`run_bank_reconciliation_jobs`** zpracuje nejvýš 5 importů denně za všechny
   firmy dohromady. Při více firmách bude potřeba limit rozdělit mezi firmy.
 - **Jeden člověk ve více firmách** (přepínání firem) zatím není.
+
+## 6. Pro všechny firmy: co platí od 10. 10.
+
+### Exkluzivita R. Hlavica (jen pro ni, záměrně)
+
+- **Vlastní vstup s logem** `/hlavica` a `/hlavica/registrace`. Kód je jen
+  v `src/lib/tenant-entries.ts` (`CUSTOM_ENTRY`). Test
+  `src/lib/tenant-exclusivity.test.ts` hlídá, že se jméno firmy nikde jinde
+  v kódu neobjeví. Vstup se pozná podle `organizations.allowed_email_domain`,
+  který nastavuje jen migrace. API Nastavení ho nepřijme.
+- **Trvale zdarma.** Řídí to `subscriptions.billing_exempt`. Firmu s tímto
+  příznakem Stripe nikdy nepřepíše, Checkout ani portál ji nepustí dál.
+  Firma bez řádku předplatného už nefakturuje zdarma.
+- **Automatické zaúčtování i podle jména plátce.** Řídí to
+  `organizations.auto_booking = 'vs_and_name'`. Nové firmy mají `'vs'`:
+  automaticky jen podle VS nebo čísla faktury. Hodnotu mění jen migrace nebo
+  provozovatel.
+
+### Bezpečnost a oddělení firem
+
+- Čekající členství převezme jen účet s **potvrzeným e-mailem** a s pozvánkou,
+  které neprošla platnost.
+- RLS uzná člena jen podle převzatého členství (`user_id`), nikdy jen podle
+  e-mailu v přihlašovacím tokenu.
+- Jedno IČO patří nejvýš jedné firmě. Nejde převzít ani IČO, na které už
+  proběhla zkušební doba jiné firmy.
+- Veřejné API registrace neprozradí, kdo je pozvaný nebo kdo už má účet.
+
+### Bankovní účty a výpisy
+
+- **Další účty firmy:** Nastavení → Firma → Další bankovní účty (i zahraniční
+  IBAN). Výpis z kteréhokoli účtu firmy nehlásí neshodu účtu. Výpis z cizího
+  účtu se automaticky nezaúčtuje, dokud ho člověk nepotvrdí.
+- Účty se porovnávají **včetně kódu banky**.
+- **Měna výpisu GPC** se řídí účtem, ke kterému výpis patří.
+- **Faktura, QR i upomínka** berou účet v měně faktury, nikdy korunový účet.
+- **Registr bank** (`src/lib/bank-formats/`): formát se pozná podle obsahu.
+  Banka se pozná podle sebeoznačení souboru, nebo podle účtu firmy. Ověřená je
+  zatím jen KB (permutace KM). Výpis jiné banky se načte, ale platby z něj se
+  párují jen podle VS a čísla účtů se neučí. **Postup pro další banku:**
+  1. oficiální specifikace do `docs/bank-formats/`;
+  2. anonymizovaný reálný výpis jako fixture;
+  3. test (mod-11 všech účtů, zlaté hodnoty);
+  4. teprve potom `verified: true` v `registry.ts`.
+- CSV z bank: odchozí platby se přeskočí. Nejednoznačná částka („1.500“) a
+  prázdná měna jsou chybou řádku. Reference RF… jde do zprávy.
+- Čísla faktur s oddělovači („FV-2026/001“) se najdou ve zprávě i jako VS.
+
+### Support přístup provozovatele
+
+- `/provoz` → „Vstoupit jako podpora“: důvod, 15/60/240 minut a potvrzení s
+  počtem upozorněných administrátorů. Provozovatel je pak ve firmě jako
+  dočasný administrátor.
+- Firma to vidí:
+  - e-mail administrátorům;
+  - Nastavení → Tým (označení s časem a historie vstupů);
+  - v aplikaci provozovatele pruh „Režim podpory“.
+- Přístup končí:
+  - vypršením (RLS ho hned neuzná, cron ho uklidí);
+  - tlačítkem Ukončit;
+  - odhlášením;
+  - když ho admin firmy odebere.
+- **Support musí běžet z odděleného účtu** v `SPLATNO_OPERATOR_EMAILS`, vždy
+  s 2FA. Účet s obchvatem 2FA (testovací `test-admin@hlavica.cz`)
+  provozovatelem být nemůže.
+
+### Škálování
+
+- Fronta upomínek se dělí mezi firmy po kolech. Plánovač má díl na firmu.
+  Seznam firem se načítá stránkovaně a `/provoz` stránkuje.
+- Strop 25 upomínek na jeden běh cronu zůstává. Při růstu je potřeba spouštět
+  cron `check-due` častěji (vyžaduje tarif Vercel, který to dovolí).
+
+### Fakturace
+
+- `organizations.vat_payer`: neplátce má PDF bez řádků DPH s textem „Nejsem
+  plátce DPH“ a nová faktura začíná na 0 %.
+- Upomínky odcházejí jako „Firma X přes Splatno“ z adresy
+  `REMINDER_EMAIL_FROM`. Odpovědi jdou na e-mail firmy.
+
+### Proměnné prostředí
+
+- `REMINDER_TEST_RECIPIENTS` (čárkami) nahrazuje `ALLOW_ADAM_REMINDER_TEST_EMAIL`.
+  V produkci (`VERCEL_ENV=production`) se ignoruje a validace ji odmítne.
+  **Starou proměnnou z Vercelu odstraňte.**
+- `SPLATNO_OPERATOR_EMAILS`: přidejte samostatný účet podpory.
+
+### Migrace a pořadí nasazení
+
+Nové migrace (zatím jen v repozitáři, do produkce **až po schválení**):
+
+1. `20261010120000_tenant_isolation_guards.sql`
+2. `20261010121000_billing_exempt.sql`
+3. `20261010122000_auto_booking_per_organization.sql`
+4. `20261010123000_organization_bank_accounts.sql`
+5. `20261010124000_statement_bank_dialect.sql`
+6. `20261010125000_support_sessions.sql`
+7. `20261010126000_fair_reminder_queue.sql`
+8. `20261010127000_vat_payer.sql`
+
+**Migrace musí do databáze dřív než kód**: kód čte nové sloupce a funkce.
+Po `apply_migration` přejmenovat lokální soubory podle `list_migrations`
+(viz CLAUDE.md). Testy: `node scripts/test-multi-tenant-db.mjs` a
+`node scripts/test-payment-assistance-db.mjs`.
+
+### Zatím nevyřešeno
+
+- **Identita plátce bez IČO.** Naučené účty plátců jsou dál vázané na IČO
+  zákazníka. Zahraniční a soukromí zákazníci se tak nenaučí. Řešení by
+  vyžadovalo přestavět klíč napříč SQL párováním i asistentem plateb.
+- **Zmrazení údajů vystavitele na faktuře.** PDF ke staré faktuře ukáže
+  aktuální adresu a účet firmy.
+- **Asistent plateb** se dál zapíná přes env (`PAYMENT_ASSISTANCE_ORGANIZATIONS`).
+- **`run_bank_reconciliation_jobs`**: limit 5 importů denně platí pro všechny
+  firmy dohromady (viz §5).
