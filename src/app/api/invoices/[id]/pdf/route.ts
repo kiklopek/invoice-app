@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: Context) {
   if (!invoice) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
   const { data: company, error: companyError } = await identity.service.from("organizations")
-    .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur")
+    .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, bank_accounts:organization_bank_accounts(account, currency)")
     .eq("id", organizationId).maybeSingle();
   if (companyError || !company) {
     logError("Firemní údaje pro PDF se nepodařilo načíst", companyError, { invoice_id: id });

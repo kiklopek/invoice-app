@@ -59,5 +59,25 @@ begin
   exception when others then failed := sqlerrm;
   end;
   if failed is distinct from 'ico_taken' then raise exception 'trial IČO takeover not blocked: %', failed; end if;
+
+  -- 6) Další bankovní účty: člen vidí jen účty své firmy a zapisovat je
+  --    nesmí (jen API administrátora přes service_role).
+  insert into public.organization_bank_accounts(organization_id, account, canonical, currency)
+    values (org_a, '6844160247/0100', 'CZ3601000000006844160247', 'CZK'),
+           (org_b, '19-2000145399/0800', 'CZ6508000000192000145399', 'CZK');
+  perform set_config('test.uid', member_a::text, true);
+  if exists (select 1 from public.organization_bank_accounts a where private.is_org_member(a.organization_id) and a.organization_id = org_b) then
+    raise exception 'member sees bank accounts of another company';
+  end if;
+  if has_table_privilege('authenticated', 'public.organization_bank_accounts', 'INSERT')
+     or has_table_privilege('authenticated', 'public.organization_bank_accounts', 'UPDATE') then
+    raise exception 'authenticated may write bank accounts directly';
+  end if;
+  begin
+    insert into public.organization_bank_accounts(organization_id, account, canonical, currency)
+      values (org_a, '6844160247/0100', 'CZ3601000000006844160247', 'CZK');
+    raise exception 'expected duplicate';
+  exception when unique_violation then null;
+  end;
 end $$;
 rollback;

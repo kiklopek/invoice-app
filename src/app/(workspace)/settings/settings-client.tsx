@@ -18,6 +18,7 @@ import type {
 } from "@/lib/settings-page-data";
 import { apiFetch } from "@/lib/api-client";
 import { validateCompanyFields } from "@/lib/company-validation";
+import { BankAccountsSection } from "./bank-accounts-section";
 
 type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
@@ -451,6 +452,7 @@ export function SettingsClient({
             </fieldset>
             </form>
           )}
+          <BankAccountsSection canEdit={canAdminister} onMessage={(text, variant) => (variant === "success" ? notifyOk(text) : notifyError(text))} />
         </section>
       </div>
       {canAdminister && (

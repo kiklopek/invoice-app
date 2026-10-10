@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { parsePaymentCsv } from "./payment-import";
+import { parseStatementCsv } from "./payment-import";
 import type { GpcParseResult, GpcPreviewEntry } from "./gpc-parser";
 
 function sha256(value: Uint8Array | string) {
@@ -29,15 +29,17 @@ function decodeCsv(bytes: Uint8Array) {
 // (which only applies to structured formats like GPC) is skipped for this format.
 export function parseCsvStatement(bytes: Uint8Array): GpcParseResult {
   if (bytes.byteLength === 0) throw new Error("Soubor CSV je prázdný.");
-  const payments = parsePaymentCsv(decodeCsv(bytes));
+  const rows = parseStatementCsv(decodeCsv(bytes));
 
-  const entries: GpcPreviewEntry[] = payments.map((payment, index) => ({
-    line: index + 2,
+  const entries: GpcPreviewEntry[] = rows.map((row) => ({
+    line: row.line,
     recordType: "csv",
-    disposition: "accepted",
-    fingerprint: sha256(`csv:${payment.external_id}`),
-    payment,
+    disposition: row.disposition,
+    reason: row.reason,
+    fingerprint: row.payment ? sha256(`csv:${row.payment.external_id}`) : sha256(`csv-line:${row.line}`),
+    payment: row.payment,
   }));
+  const payments = rows.flatMap((row) => (row.payment ? [row.payment] : []));
 
   return {
     fileHash: sha256(bytes),
@@ -46,8 +48,8 @@ export function parseCsvStatement(bytes: Uint8Array): GpcParseResult {
     payments,
     totals: {
       accepted: payments.length,
-      ignored: 0,
-      errors: 0,
+      ignored: entries.filter((entry) => entry.disposition === "ignored").length,
+      errors: entries.filter((entry) => entry.disposition === "error").length,
     },
   };
 }

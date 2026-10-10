@@ -369,7 +369,7 @@ async function executeReminderAutomation(targetOrganizationId?: string, manualTr
   const [templatesResult, companiesResult] = claimedOrganizationIds.length
     ? await Promise.all([
       db.from("email_templates").select("organization_id, stage, subject, body, reply_to, cc").in("organization_id", claimedOrganizationIds),
-      db.from("organizations").select("id, name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path").in("id", claimedOrganizationIds),
+      db.from("organizations").select("id, name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path, bank_accounts:organization_bank_accounts(account, currency)").in("id", claimedOrganizationIds),
     ])
     : [{ data: [], error: null }, { data: [], error: null }];
   if (templatesResult.error || companiesResult.error) {

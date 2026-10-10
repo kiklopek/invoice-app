@@ -12,7 +12,7 @@ import {
   type MatchableInvoice,
 } from "@/lib/payment-matching";
 import { applyAutoBookingPolicy, assignStatementPayments, type AutoBookingPolicy } from "@/lib/statement-assignment";
-import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies } from "@/lib/payment-import";
+import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies, statementCurrencyFor } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
 import { canUseGpcImport } from "@/lib/gpc-feature";
@@ -110,6 +110,7 @@ export async function POST(request: Request) {
     const [
       { data: company, error: companyError },
       { data: knownAccounts, error: accountError },
+      { data: extraAccountRows, error: extraAccountError },
     ] = await Promise.all([
       identity.service
         .from("organizations")
@@ -120,9 +121,24 @@ export async function POST(request: Request) {
         .from("counterparty_payment_accounts")
         .select("account_number, counterparty_ico")
         .eq("organization_id", org),
+      identity.service
+        .from("organization_bank_accounts")
+        .select("account, currency")
+        .eq("organization_id", org),
     ]);
-    if (companyError || accountError)
+    if (companyError || accountError || extraAccountError)
       throw new Error("Databázová konfigurace plateb není dostupná.");
+
+    const extraAccounts = extraAccountRows ?? [];
+    // GPC nemá pole měny. Měnu určí účet firmy, ke kterému výpis patří
+    // (eurový účet → EUR). Dřív byl každý GPC výpis v CZK, takže 1 000 EUR
+    // zaplatilo fakturu na 1 000 Kč. Neznámý účet zůstává v CZK, ale import
+    // hlásí neshodu účtu a automatika ho bez člověka nezaúčtuje.
+    if (sourceFormat === "gpc") {
+      const statementCurrency = statementCurrencyFor(parsed.accountNumber, company, extraAccounts);
+      if (statementCurrency && statementCurrency !== "CZK")
+        for (const entry of parsed.entries) if (entry.payment) entry.payment.currency = statementCurrency;
+    }
 
     const invoices: MatchableInvoice[] = [];
     for (let from = 0; from <= 10_000; from += 1000) {
@@ -287,8 +303,9 @@ export async function POST(request: Request) {
       statementAccountNumber: parsed.accountNumber,
       paymentCurrencies,
       company,
+      extraAccounts,
     });
-    const expectedAccount = resolveConfiguredAccountForCurrencies(paymentCurrencies, company);
+    const expectedAccount = resolveConfiguredAccountForCurrencies(paymentCurrencies, company, extraAccounts);
     const storagePath = `${org}/${parsed.fileHash}.${sourceFormat}`;
     const { error: storageError } = await identity.service.storage
       .from("bank-statements")

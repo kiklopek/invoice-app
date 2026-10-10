@@ -1176,6 +1176,47 @@ export type Database = {
           },
         ]
       }
+      organization_bank_accounts: {
+        Row: {
+          account: string
+          canonical: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          label: string | null
+          organization_id: string
+        }
+        Insert: {
+          account: string
+          canonical: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          id?: string
+          label?: string | null
+          organization_id: string
+        }
+        Update: {
+          account?: string
+          canonical?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          label?: string | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_bank_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectStatementAccountMismatch, parsePaymentCsv, resolveConfiguredAccountForCurrencies, validatePaymentRows } from "./payment-import";
+import { detectStatementAccountMismatch, parsePaymentCsv, resolveConfiguredAccountForCurrencies, statementCurrencyFor, validatePaymentRows } from "./payment-import";
 
 describe("payment import", () => {
   it("parses Czech semicolon CSV and Czech dates", () => {
@@ -44,59 +44,40 @@ describe("payment import", () => {
   });
 
   describe("detectStatementAccountMismatch", () => {
-    const company = { bank_account_czk: "123456789/0100", bank_account_eur: "987654321/0100" };
+    const company = { bank_account_czk: "6786420257/0100", bank_account_eur: "94-2613370257/0100" };
+    const extraAccounts = [{ account: "6844160247/0100", currency: "CZK" }];
+    const check = (statementAccountNumber: string | null, extra = extraAccounts) =>
+      detectStatementAccountMismatch({ statementAccountNumber, paymentCurrencies: ["CZK"], company, extraAccounts: extra });
 
-    it("flags a CZK statement against the wrong CZK account", () => {
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "111111111",
-        paymentCurrencies: ["CZK", "CZK"],
-        company,
-      })).toBe(true);
+    it("accepts a statement from any registered account of the company", () => {
+      expect(check("6786420257/0100")).toBe(false);
+      expect(check("94-2613370257/0100")).toBe(false);
+      // Druhý účet R. Hlavica: dřív neshoda u každého výpisu.
+      expect(check("6844160247/0100")).toBe(false);
     });
 
-    it("does not flag a CZK statement matching the configured CZK account", () => {
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "123456789",
-        paymentCurrencies: ["CZK"],
-        company,
-      })).toBe(false);
+    it("flags a statement from somebody else's account", () => {
+      expect(check("19-2000145399/0800")).toBe(true);
+      expect(check("6844160247/0100", [])).toBe(true);
     });
 
-    it("checks against the EUR account when the statement's payments are all EUR", () => {
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "123456789", // matches CZK, not EUR
-        paymentCurrencies: ["EUR", "EUR"],
-        company,
-      })).toBe(true);
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "987654321",
-        paymentCurrencies: ["EUR"],
-        company,
-      })).toBe(false);
+    // Dřív se porovnávala jen číslice bez kódu banky.
+    it("flags the same number at another bank", () => {
+      expect(check("6786420257/0800")).toBe(true);
     });
 
-    it("skips the check for a mixed-currency statement -- there is no single account to compare against", () => {
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "111111111",
-        paymentCurrencies: ["CZK", "EUR"],
-        company,
-      })).toBe(false);
+    it("skips the check when the statement carries no account (CSV) or the company has none", () => {
+      expect(check(null)).toBe(false);
+      expect(detectStatementAccountMismatch({ statementAccountNumber: "19-2000145399/0800", paymentCurrencies: ["CZK"], company: {} })).toBe(false);
     });
+  });
 
-    it("skips the check when the org has no configured account for the statement's currency", () => {
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "111111111",
-        paymentCurrencies: ["USD"],
-        company,
-      })).toBe(false);
-    });
-
-    it("skips the check when there are no accepted payments at all", () => {
-      expect(detectStatementAccountMismatch({
-        statementAccountNumber: "111111111",
-        paymentCurrencies: [],
-        company,
-      })).toBe(false);
+  describe("statementCurrencyFor", () => {
+    it("takes the currency from the company account the statement belongs to", () => {
+      const company = { bank_account_czk: "6786420257/0100", bank_account_eur: "94-2613370257/0100" };
+      expect(statementCurrencyFor("94-2613370257/0100", company)).toBe("EUR");
+      expect(statementCurrencyFor("6786420257/0100", company)).toBe("CZK");
+      expect(statementCurrencyFor("19-2000145399/0800", company)).toBeNull();
     });
   });
 });

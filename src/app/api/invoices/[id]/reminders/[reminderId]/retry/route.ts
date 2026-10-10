@@ -141,7 +141,7 @@ export async function POST(request: Request, { params }: Context) {
 
   try {
     const { data: company, error: companyError } = await identity.service.from("organizations")
-      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path")
+      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path, bank_accounts:organization_bank_accounts(account, currency)")
       .eq("id", organizationId).maybeSingle();
     if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
     const attachment = { filename: invoicePdfFilename(currentInvoice as Invoice), content: await generateInvoicePdf(currentInvoice as Invoice, company) };

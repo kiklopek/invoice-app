@@ -41,7 +41,7 @@ export async function sendReminderEmail(params: {
   const { data: company, error: companyError } = params.company
     ? { data: params.company, error: null }
     : await service!.from("organizations")
-      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path")
+      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path, bank_accounts:organization_bank_accounts(account, currency)")
       .eq("id", params.invoice.organization_id).single();
   if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
   if (isBlockedReminderRecipient(params.to, company)) {

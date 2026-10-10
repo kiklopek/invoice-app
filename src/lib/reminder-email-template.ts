@@ -1,4 +1,5 @@
 import type { ReminderStage } from "@/types/invoice";
+import { paymentAccountFor } from "@/lib/bank-accounts";
 import type { ReminderTemplateValues } from "@/lib/reminder-template";
 
 export type ReminderEmailCompany = {
@@ -11,6 +12,8 @@ export type ReminderEmailCompany = {
   email?: string | null;
   bank_account_czk?: string | null;
   bank_account_eur?: string | null;
+  /** Další účty firmy (organization_bank_accounts) pro měny bez hlavního účtu. */
+  bank_accounts?: { account: string; currency: string }[] | null;
   logo_path?: string | null;
 };
 
@@ -145,9 +148,8 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   if (!companyName) throw new Error("Chybí název firmy pro upomínkový e-mail.");
   const logoUrl = safeLogoUrl(params.logoUrl);
   const replyAddress = safeReplyAddress(params.replyTo) ?? safeReplyAddress(params.company.email);
-  const bankAccount = params.values.currency === "EUR"
-    ? params.company.bank_account_eur?.trim()
-    : params.company.bank_account_czk?.trim();
+  // Účet v měně faktury; nikdy korunový účet u faktury v jiné měně.
+  const bankAccount = paymentAccountFor(params.values.currency, params.company, params.company.bank_accounts ?? []);
   const details = [
     ["Číslo faktury", params.values.invoice_number],
     ...(params.payment

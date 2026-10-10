@@ -1,5 +1,6 @@
 import "server-only";
 
+import { paymentAccountFor } from "@/lib/bank-accounts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import fontkit from "@pdf-lib/fontkit";
@@ -18,6 +19,8 @@ export type InvoicePdfCompany = {
   email?: string | null;
   bank_account_czk?: string | null;
   bank_account_eur?: string | null;
+  /** Další účty firmy (organization_bank_accounts) pro měny bez hlavního účtu. */
+  bank_accounts?: { account: string; currency: string }[] | null;
 };
 
 const PAGE_WIDTH = 595.28; // A4 at 72dpi
@@ -146,7 +149,7 @@ export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCo
   if (company.operating_address && company.operating_address !== company.registered_address) {
     drawText(cursor, company.operating_address, leftX, { font, size: 10, lineGap: 4 });
   }
-  const bankAccount = invoice.currency === "EUR" ? company.bank_account_eur : company.bank_account_czk;
+  const bankAccount = paymentAccountFor(invoice.currency, company, company.bank_accounts ?? []);
   if (bankAccount) drawText(cursor, `Bankovní účet: ${bankAccount}`, leftX, { font, size: 10, lineGap: 4 });
   if (company.phone) drawText(cursor, `Tel.: ${company.phone}`, leftX, { font, size: 10, lineGap: 4 });
   if (company.email) drawText(cursor, `E-mail: ${company.email}`, leftX, { font, size: 10, lineGap: 4 });

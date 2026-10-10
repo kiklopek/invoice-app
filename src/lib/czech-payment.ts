@@ -1,3 +1,5 @@
+import { paymentAccountFor } from "./bank-accounts";
+
 // QR platba na faktuře: v Česku to zákazník očekává a ručně přepsaný
 // variabilní symbol je nejčastější důvod, proč platba nedojde spárovat.
 //
@@ -79,7 +81,9 @@ export type SpaydPayment = {
  * žádný, protože vypadá funkčně.
  */
 export function buildSpayd(payment: SpaydPayment): string | null {
-  const iban = czechAccountToIban(payment.account);
+  // Český účet se převede, zahraniční IBAN (SK, Wise…) se použije, je-li platný.
+  const raw = (payment.account ?? "").replace(/\s/g, "").toUpperCase();
+  const iban = /^[A-Z]{2}\d{2}/.test(raw) ? (isValidIban(raw) ? raw : null) : czechAccountToIban(payment.account);
   if (!iban) return null;
   if (!Number.isFinite(payment.amount) || payment.amount <= 0) return null;
   if (!/^[A-Z]{3}$/.test(payment.currency)) return null;
@@ -125,7 +129,11 @@ export function invoiceSpayd(
     currency: string;
     due_date?: string | null;
   },
-  company: { bank_account_czk?: string | null; bank_account_eur?: string | null },
+  company: {
+    bank_account_czk?: string | null;
+    bank_account_eur?: string | null;
+    bank_accounts?: { account: string; currency: string }[] | null;
+  },
 ): string | null {
   const remaining = Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount));
   // Zpráva pro příjemce: podle čísla faktury a jména odběratele účetní na
@@ -133,7 +141,7 @@ export function invoiceSpayd(
   // v buildSpayd nikdy neuřízne -- zkrátí se nanejvýš jméno.
   const payer = invoice.counterparty_name?.trim();
   return buildSpayd({
-    account: invoice.currency === "EUR" ? company.bank_account_eur : company.bank_account_czk,
+    account: paymentAccountFor(invoice.currency, company, company.bank_accounts ?? []),
     amount: remaining > 0 ? remaining : Number(invoice.amount),
     currency: invoice.currency,
     variableSymbol: invoice.variable_symbol,
