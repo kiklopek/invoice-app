@@ -12,6 +12,7 @@ async function fixture(client) {
   const org=randomUUID(),actor=randomUUID(),invoice=randomUUID(),p1=randomUUID(),p2=randomUUID();
   await client.query(`insert into auth.users(id,email) values($1,$2)`,[actor,`${actor}@hlavica.cz`]);
   await client.query(`insert into organizations(id,name,ico) values($1,'Concurrent fixture','12345678')`,[org]);
+  await client.query("insert into subscriptions(organization_id,status,plan,period,billing_exempt) select id,'active','business','yearly',true from organizations o where not exists(select 1 from subscriptions s where s.organization_id=o.id)");
   await client.query(`insert into organization_members(organization_id,user_id,email,role) values($1,$2,$3,'admin')`,[org,actor,`${actor}@hlavica.cz`]);
   await client.query(`insert into invoices(id,organization_id,invoice_number,counterparty_name,counterparty_ico,counterparty_email,amount_without_vat,vat_rate,amount,currency,issue_date,due_date,created_by)
     values($1,$2,'1001','Customer','12345678','c@example.cz',100,0,100,'CZK',current_date,current_date,$3)`,[invoice,org,actor]);

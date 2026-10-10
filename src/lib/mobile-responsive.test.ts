@@ -156,7 +156,7 @@ describe("mobile application layout", () => {
     const login = source("src/components/auth/login-form.tsx");
     const shell = source("src/components/auth/auth-shell.tsx");
     expect(login).toContain("<AuthShell");
-    expect(shell).toContain('brand === "hlavica"');
+    expect(shell).toContain('isCustomEntryBrand(brand)');
     expect(shell).toContain("<CompanyLogo");
     expect(source("src/app/(auth)/login/page.tsx")).toContain('brand="splatno"');
     expect(source("src/app/(auth)/hlavica/page.tsx")).toContain('brand="hlavica"');

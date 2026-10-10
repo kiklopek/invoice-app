@@ -5,6 +5,10 @@ declare org uuid:=gen_random_uuid(); actor uuid:=gen_random_uuid(); result jsonb
 begin
   insert into auth.users(id,email) values(actor,'dashboard-scroll@hlavica.cz');
   insert into public.organizations(id,name) values(org,'Dashboard scroll test');
+  -- Fixture: firmy mají trvalý přístup (bez řádku předplatného se nefakturuje).
+  insert into public.subscriptions(organization_id, status, plan, period, billing_exempt)
+    select o.id, 'active', 'business', 'yearly', true from public.organizations o
+    where not exists (select 1 from public.subscriptions s where s.organization_id = o.id);
   insert into public.organization_members(organization_id,user_id,email,role)
     values(org,actor,'dashboard-scroll@hlavica.cz','admin');
   insert into public.invoices(organization_id,invoice_number,counterparty_name,counterparty_email,

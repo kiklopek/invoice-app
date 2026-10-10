@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
-import { emailMatchesDomain, HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { CUSTOM_ENTRY_EMAIL_DOMAIN, emailMatchesDomain, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { withEntry } from "@/lib/login-entry";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
@@ -19,7 +19,7 @@ import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 // - "hlavica" (/hlavica/registrace): jako dřív, jen e-mail @hlavica.cz,
 //   který administrátor R. Hlavica předem pozval.
 export function RegisterForm({ brand }: { brand: AuthBrand }) {
-  const hlavica = brand === "hlavica";
+  const customEntry = isCustomEntryBrand(brand);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,11 +35,11 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     const normalizedEmail = normalizeEmail(email);
     if (fullName.trim().length < 3) return setError("Zadejte celé jméno uživatele.");
     if (!isValidEmail(normalizedEmail)) return setError("Zadejte platnou e-mailovou adresu.");
-    if (hlavica && !emailMatchesDomain(normalizedEmail, HLAVICA_EMAIL_DOMAIN)) return setError(`Registrace je povolena pouze pro e-maily @${HLAVICA_EMAIL_DOMAIN}.`);
+    if (customEntry && !emailMatchesDomain(normalizedEmail, CUSTOM_ENTRY_EMAIL_DOMAIN)) return setError(`Registrace je povolena pouze pro e-maily @${CUSTOM_ENTRY_EMAIL_DOMAIN}.`);
     const problem = passwordProblem(password);
     if (problem) return setError(problem);
     if (password !== confirmation) return setError("Zadaná hesla se neshodují.");
-    if (!hlavica && !acceptTerms) return setError("Pro vytvoření účtu je potřeba souhlasit s podmínkami.");
+    if (!customEntry && !acceptTerms) return setError("Pro vytvoření účtu je potřeba souhlasit s podmínkami.");
     if (!hasSupabaseBrowserConfig()) return setError("Registrace není nakonfigurovaná. Doplňte Supabase proměnné prostředí.");
 
     setSubmitting(true);
@@ -57,8 +57,8 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     if (!access.allowed) {
       setError(access.kind === "member"
         ? "Pro tento e-mail už účet existuje. Přihlaste se, nebo si obnovte heslo."
-        : access.kind === "hlavica"
-          ? "hlavica"
+        : access.kind === "custom_entry"
+          ? "custom_entry"
           : access.kind === "disposable"
             ? "Firemní účet nejde založit z jednorázové e-mailové schránky. Použijte prosím pracovní e-mail."
             : "Pro tento e-mail zatím nelze vytvořit účet, protože nebyl administrátorem firmy přidán do systému. Kontaktujte prosím jednatele firmy.");
@@ -72,7 +72,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}${withEntry("/auth/callback?next=/mfa", brand)}`,
-        data: hlavica
+        data: customEntry
           ? { full_name: fullName.trim() }
           : { full_name: fullName.trim(), terms_accepted_at: new Date().toISOString() },
       },
@@ -121,13 +121,13 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       art="laptop"
       brand={brand}
       claim="Společně to zvládneme."
-      claimSub={hlavica
+      claimSub={customEntry
         ? "Účet si vytvoříte jen s pozvánkou od administrátora vaší firmy."
         : "Po ověření e-mailu nastavíte svou firmu a můžete pozvat kolegy."}
     >
       <span className={styles.eyebrow}>Nový účet</span>
-      <h1 className={styles.title}>{hlavica ? "Vytvořte si účet" : "Založit firemní účet"}</h1>
-      <p className={styles.sub}>{hlavica
+      <h1 className={styles.title}>{customEntry ? "Vytvořte si účet" : "Založit firemní účet"}</h1>
+      <p className={styles.sub}>{customEntry
         ? "Registrace pro uživatele pozvané do firemní aplikace."
         : "Účet zakladatele firmy. Kolegy pak pozvete sami v nastavení."}</p>
       {sent ? (
@@ -136,7 +136,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
           <div>
             <strong>Potvrďte svůj e-mail</strong>
             <p>Na adresu <b>{email}</b> jsme poslali ověřovací odkaz. Otevřete jej a dokončete vytvoření účtu.</p>
-            {hlavica ? null : <p>Máte-li pozvánku do firmy, po ověření se k ní rovnou připojíte. Jinak po ověření e-mailu a přihlašovacího kódu nastavíte svou firmu.</p>}
+            {customEntry ? null : <p>Máte-li pozvánku do firmy, po ověření se k ní rovnou připojíte. Jinak po ověření e-mailu a přihlašovacího kódu nastavíte svou firmu.</p>}
           </div>
         </div>
       ) : (
@@ -148,7 +148,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
             </label>
             <label className={styles.field}>
               <span>Firemní e-mail</span>
-              <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={hlavica ? `jmeno@${HLAVICA_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} /></span>
+              <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={customEntry ? `jmeno@${CUSTOM_ENTRY_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} /></span>
             </label>
           </div>
           <div className={styles.pair}>
@@ -162,14 +162,14 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
             </label>
           </div>
           <small className={styles.note} style={{ marginTop: -6 }}>Alespoň 12 znaků, velké a malé písmeno a číslo.</small>
-          {hlavica ? null : (
+          {customEntry ? null : (
             <label className={styles.check}>
               <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
               <span>Souhlasím s <Link href="/podminky" target="_blank">podmínkami</Link> a <Link href="/ochrana-osobnich-udaju" target="_blank">zpracováním osobních údajů</Link>.</span>
             </label>
           )}
-          {error === "hlavica" ? (
-            <p className={styles.error}>Pro tento e-mail je registrace na vstupu vaší firmy: <Link href={`${HLAVICA_ENTRY.path}/registrace`}>{`splatno.cz${HLAVICA_ENTRY.path}/registrace`}</Link>.</p>
+          {error === "custom_entry" ? (
+            <p className={styles.error}>Pro tento e-mail je registrace na vstupu vaší firmy: <Link href={CUSTOM_ENTRY_REGISTRATION_PATH}>{`splatno.cz${CUSTOM_ENTRY_REGISTRATION_PATH}`}</Link>.</p>
           ) : error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" className={styles.primary} disabled={submitting}>
             {submitting ? "Vytvářím účet…" : "Vytvořit účet"} <ArrowRight />

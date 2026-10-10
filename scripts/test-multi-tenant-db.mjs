@@ -8,8 +8,10 @@ import { pg_trgm } from "../.cache/reconciliation-tools/node_modules/@electric-s
 const db = new PGlite({ extensions: { pg_trgm } });
 try {
   await replayMigrations((sql) => db.exec(sql), true);
-  await db.exec((await readFile("supabase/tests/multi_tenant_guards.sql", "utf8")).replace(/^\\.*$/gm, ""));
-  console.log("Passed organization isolation guards.");
+  for (const name of ["multi_tenant_guards.sql", "billing_exempt.sql"]) {
+    await db.exec((await readFile(`supabase/tests/${name}`, "utf8")).replace(/^\\.*$/gm, ""));
+    console.log(`Passed ${name}`);
+  }
 } catch (error) {
   console.error(error.message, error.detail ?? "", error.where ?? "");
   process.exitCode = 1;

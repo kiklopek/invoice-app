@@ -106,7 +106,10 @@ export async function PUT(request: Request) {
   // IČO patří nejvýš jedné firmě (unikátní index) a nelze si vzít ani IČO,
   // na které už proběhla zkušební doba jiné firmy (trigger ico_taken).
   if (error && (error.code === "23505" || error.message?.includes("ico_taken")))
-    return apiError(request, "Toto IČO už ve Splatnu používá jiná firma. Pokud jde o vaši firmu, kontaktujte podporu.", 409, "ico_taken");
+    return NextResponse.json(
+      { error: "Toto IČO už ve Splatnu používá jiná firma. Pokud jde o vaši firmu, kontaktujte podporu.", code: "ico_taken" },
+      { status: 409 },
+    );
   if (error) {
     logError("Firemní údaje se nepodařilo uložit", error);
     return apiError(request, "Firemní údaje se nepodařilo uložit.", 500, "company_write_failed");

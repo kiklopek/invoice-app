@@ -6,6 +6,10 @@ declare org uuid:=gen_random_uuid(); actor uuid:=gen_random_uuid(); other_actor 
 begin
   insert into auth.users(id,email) values(actor,'assistance@hlavica.cz'),(other_actor,'other-assistance@hlavica.cz');
   insert into public.organizations(id,name,ico) values(org,'Assistance','12345678'),(other_org,'Other','87654321');
+  -- Fixture: firmy mají trvalý přístup (bez řádku předplatného se nefakturuje).
+  insert into public.subscriptions(organization_id, status, plan, period, billing_exempt)
+    select o.id, 'active', 'business', 'yearly', true from public.organizations o
+    where not exists (select 1 from public.subscriptions s where s.organization_id = o.id);
   insert into public.organization_members(organization_id,user_id,email,role) values(org,actor,'assistance@hlavica.cz','admin'),(other_org,other_actor,'other-assistance@hlavica.cz','admin');
   insert into public.invoices(id,organization_id,invoice_number,counterparty_name,counterparty_ico,counterparty_email,amount_without_vat,vat_rate,amount,currency,issue_date,due_date,created_by)
     values(inv,org,'1001','Customer','12345678','customer@example.cz',100,0,100,'CZK',current_date,current_date,actor);

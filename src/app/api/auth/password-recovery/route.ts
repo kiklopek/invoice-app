@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
 import { consumePublicAuthLimit } from "@/lib/auth-rate-limit";
 import { logError, requestId } from "@/lib/structured-log";
+import { CUSTOM_ENTRY, isCustomEntryBrand } from "@/lib/tenant-entries";
 
 const neutralResponse = () => NextResponse.json({ sent: true });
 
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
   const recoveryUrl = new URL("/auth/recovery", getPasswordRecoveryBaseUrl());
   recoveryUrl.searchParams.set("token_hash", linkData.properties.hashed_token);
   // Vstup R. Hlavica si nese svůj vzhled i na stránku nového hesla.
-  if (body.entry === "hlavica") recoveryUrl.searchParams.set("vstup", "hlavica");
+  if (isCustomEntryBrand(body.entry)) recoveryUrl.searchParams.set("vstup", CUSTOM_ENTRY.brand);
   try {
     await sendPasswordRecoveryEmail({ email, recoveryUrl: recoveryUrl.toString(), userId: userData.user.id });
   } catch (error) {

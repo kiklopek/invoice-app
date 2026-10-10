@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { emailMatchesDomain, isDisposableEmail, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY, registrationAccessDecision } from "@/lib/tenant-entries";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { createServiceClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
@@ -47,26 +47,11 @@ export async function POST(request: Request) {
 
   const row = data?.[0];
   const organization = Array.isArray(row?.organizations) ? row.organizations[0] : row?.organizations;
-  const hlavicaEmail = emailMatchesDomain(email, HLAVICA_ENTRY.emailDomain);
-  const hlavicaInvitation = organization?.allowed_email_domain === HLAVICA_ENTRY.emailDomain;
-
-  // Vstup R. Hlavica (splatno.cz/hlavica/registrace) funguje jako dřív:
-  // jen e-mail @hlavica.cz, který administrátor R. Hlavica předem pozval.
-  if (body.entry === "hlavica") {
-    if (!hlavicaEmail || !row || !hlavicaInvitation) return NextResponse.json({ allowed: false, kind: "not_invited" });
-    if (row.user_id) return NextResponse.json({ allowed: false, kind: "member" });
-    return NextResponse.json({ allowed: true, kind: "invited" });
-  }
-
-  // Obecná registrace s R. Hlavica nijak nesouvisí: jejich lidi posílá na
-  // jejich vlastní registraci, aby si omylem nezaložili samostatnou firmu.
-  if (hlavicaEmail || hlavicaInvitation) return NextResponse.json({ allowed: false, kind: "hlavica" });
-  // Ostatní: s pozvánkou se po potvrzení e-mailu připojí ke své firmě, bez
-  // ní zakládají firmu. Veřejná odpověď to ale nerozlišuje (ani stávající
-  // účet): jinak by kdokoli zjistil, kdo je kam pozvaný. Existující účet
-  // odhalí až signUp (prázdné identities), a to jen tomu, kdo zná heslo
-  // k e-mailu, kam přijde potvrzení.
-  // Zakladatel firmy z jednorázové schránky: ochrana zkušební doby.
-  if (!row && isDisposableEmail(email)) return NextResponse.json({ allowed: false, kind: "disposable" });
-  return NextResponse.json({ allowed: true, kind: "signup" });
+  // Rozhodnutí (vstup firmy vs. obecná registrace) je v tenant-entries.ts.
+  return NextResponse.json(registrationAccessDecision({
+    entry: body.entry,
+    emailMatchesEntryDomain: emailMatchesDomain(email, CUSTOM_ENTRY.emailDomain),
+    invitation: row ? { claimed: Boolean(row.user_id), organizationDomain: organization?.allowed_email_domain } : null,
+    disposable: isDisposableEmail(email),
+  }));
 }

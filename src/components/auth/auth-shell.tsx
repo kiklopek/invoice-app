@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY, isCustomEntryBrand, type EntryBrand } from "@/lib/tenant-entries";
 import { ArrowLeft, RibbonMark } from "@/components/landing/landing-icons";
 import styles from "./auth-shell.module.css";
 
@@ -19,7 +19,7 @@ const ART: Record<AuthArt, { src: string; width: number; height: number }> = {
 
 // "splatno" je obecný vzhled pro všechny firmy; "hlavica" je vstup
 // splatno.cz/hlavica s logem R. Hlavica (R8: jejich logo jinde nepatří).
-export type AuthBrand = "splatno" | "hlavica";
+export type AuthBrand = EntryBrand;
 
 // Společný rám přihlášení, registrace a ověření: formulář vlevo, maskot
 // s claimem vpravo (na telefonu jako pruh nad formulářem). Stránky si
@@ -43,14 +43,14 @@ export function AuthShell({
       <div className={styles.card}>
         <section className={styles.formSide}>
           <div className={styles.brandRow}>
-            {brand === "hlavica" ? (
+            {isCustomEntryBrand(brand) ? (
               <>
                 <Link href="/" className={styles.splatno} aria-label="Splatno – zpět na úvodní stránku">
                   <RibbonMark size={30} />
                   <span>splatno</span>
                 </Link>
                 <span className={styles.company}>
-                  <CompanyLogo src={HLAVICA_ENTRY.logo} name={HLAVICA_ENTRY.name} className={styles.companyLogo} />
+                  <CompanyLogo src={CUSTOM_ENTRY.logo} name={CUSTOM_ENTRY.name} className={styles.companyLogo} />
                 </span>
               </>
             ) : (
@@ -68,7 +68,7 @@ export function AuthShell({
           <div className={styles.body}>
             {/* Splatno má zpětnou šipku přímo v řádku s logem; vstup R. Hlavica
                 tam má logo firmy, proto ji dostane nad formulářem. */}
-            {brand === "hlavica" ? (
+            {isCustomEntryBrand(brand) ? (
               <nav className={styles.backNavigation} aria-label="Návrat na úvodní stránku">
                 <Link href="/" className={styles.backHome}><ArrowLeft /><span>Zpět na úvodní stránku</span></Link>
               </nav>

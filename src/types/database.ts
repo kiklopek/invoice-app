@@ -1448,6 +1448,7 @@ export type Database = {
           trial_invoice_limit: number
           trial_invoices_used: number
           trial_denied_reason: string | null
+          billing_exempt: boolean
           cancel_at_period_end: boolean
           scheduled_plan: string | null
           scheduled_period: string | null
@@ -1468,6 +1469,7 @@ export type Database = {
           trial_invoice_limit?: number
           trial_invoices_used?: number
           trial_denied_reason?: string | null
+          billing_exempt?: boolean
           cancel_at_period_end?: boolean
           scheduled_plan?: string | null
           scheduled_period?: string | null
@@ -1488,6 +1490,7 @@ export type Database = {
           trial_invoice_limit?: number
           trial_invoices_used?: number
           trial_denied_reason?: string | null
+          billing_exempt?: boolean
           cancel_at_period_end?: boolean
           scheduled_plan?: string | null
           scheduled_period?: string | null

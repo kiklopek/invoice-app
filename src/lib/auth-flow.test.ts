@@ -15,7 +15,8 @@ describe("authentication flow", () => {
     );
     // Bez pozvánky se zakládá firma; s pozvánkou se člověk připojí ke své.
     expect(register).toContain("Založit firemní účet");
-    expect(accessRoute).toContain('kind: "signup"');
+    expect(accessRoute).toContain("registrationAccessDecision(");
+    expect(source("src/lib/tenant-entries.ts")).toContain('kind: "signup"');
     expect(accessRoute).toContain('.from("organization_members")');
     expect(accessRoute).toContain('.eq("email", email)');
     expect(accessRoute).toContain("isSameOriginMutation(request)");

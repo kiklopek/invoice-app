@@ -12,9 +12,15 @@ const row = (overrides: Partial<SubscriptionRow>): SubscriptionRow => ({
 });
 
 describe("stav předplatného", () => {
-  it("never locks a company without a subscription row or with legacy active (R. Hlavica)", () => {
-    expect(subscriptionState(null, now)).toBe("active");
-    expect(subscriptionState(row({ status: "active", trial_ends_at: null, current_period_end: null }), now)).toBe("active");
+  it("keeps a billing-exempt company (R. Hlavica) permanently active whatever the status says", () => {
+    expect(subscriptionState(row({ status: "active", trial_ends_at: null, current_period_end: null, billing_exempt: true }), now)).toBe("active");
+    expect(subscriptionState(row({ status: "canceled", billing_exempt: true }), now)).toBe("active");
+  });
+
+  // Firma bez řádku předplatného dřív fungovala zdarma navždy. Řádek má
+  // každá firma (onboarding, legacy migrace); bez něj se platí jako bez karty.
+  it("does not give a company without a subscription row free use", () => {
+    expect(subscriptionState(null, now)).toBe("needs_payment");
   });
 
   it("maps Stripe statuses", () => {
@@ -38,7 +44,7 @@ describe("stav předplatného", () => {
 describe("faktury podle předplatného", () => {
   it("allows invoices while trial has room and says how many remain", () => {
     expect(invoiceAllowance(row({ trial_invoices_used: 12 }), now)).toEqual({ ok: true, remaining: 38 });
-    expect(invoiceAllowance(null, now)).toEqual({ ok: true, remaining: null });
+    expect(invoiceAllowance(row({ status: "active", billing_exempt: true }), now)).toEqual({ ok: true, remaining: null });
     expect(invoiceAllowance(row({ status: "active" }), now)).toEqual({ ok: true, remaining: null });
     expect(invoiceAllowance(row({ status: "past_due" }), now)).toEqual({ ok: true, remaining: null });
   });
@@ -65,7 +71,7 @@ describe("pruh v aplikaci", () => {
     expect(billingNotice(row({ status: "past_due" }), now)?.kind).toBe("payment_failed");
     expect(billingNotice(row({ status: "canceled" }), now)?.kind).toBe("expired");
     expect(billingNotice(row({ status: "incomplete" }), now)?.kind).toBe("needs_payment");
-    expect(billingNotice(null, now)).toBeNull();
+    expect(billingNotice(row({ status: "active", billing_exempt: true }), now)).toBeNull();
   });
 });
 
@@ -76,7 +82,8 @@ describe("automat upomínek", () => {
       { ...row({ status: "incomplete" }), organization_id: "b" },
       { ...row({ status: "past_due" }), organization_id: "c" },
       { ...row({ status: "trialing" }), organization_id: "d" },
+      { ...row({ status: "active", billing_exempt: true }), organization_id: "legacy" },
     ];
-    expect(organizationsAllowedToSend(["a", "b", "c", "d", "legacy"], rows, now)).toEqual(["c", "d", "legacy"]);
+    expect(organizationsAllowedToSend(["a", "b", "c", "d", "legacy", "no-row"], rows, now)).toEqual(["c", "d", "legacy"]);
   });
 });

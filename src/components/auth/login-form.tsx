@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
-import { HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { CUSTOM_ENTRY_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { withEntry } from "@/lib/login-entry";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY, CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
 // Přihlášení (P8). /login (obecný vzhled Splatna) i /hlavica (vzhled
@@ -129,7 +129,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
 
   return (
     <AuthShell art="wave" brand={brand} claim={<>Méně hledání.<br />Více hotových faktur.</>}>
-      {brand === "hlavica" ? <span className={styles.eyebrow}>{HLAVICA_ENTRY.name}</span> : null}
+      {isCustomEntryBrand(brand) ? <span className={styles.eyebrow}>{CUSTOM_ENTRY.name}</span> : null}
       <h1 className={styles.title}>Přihlášení</h1>
       <p className={styles.sub}>Vítejte zpět. Pokračujte ve správě faktur a pohledávek.</p>
       <form onSubmit={signIn} className={styles.form}>
@@ -138,7 +138,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
           <span>Firemní e-mail</span>
           <span className={styles.control}>
             <Mail />
-            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={brand === "hlavica" ? `jmeno@${HLAVICA_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={isCustomEntryBrand(brand) ? `jmeno@${CUSTOM_ENTRY_EMAIL_DOMAIN}` : "jmeno@firma.cz"} value={email} onChange={(event) => setEmail(event.target.value)} />
           </span>
         </label>
         <label className={styles.field}>
@@ -158,8 +158,8 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
           {submitting ? "Přihlašuji…" : "Přihlásit se"} <ArrowRight />
         </button>
       </form>
-      {brand === "hlavica"
-        ? <p className={styles.foot}>Ještě nemáte účet?<Link href={`${HLAVICA_ENTRY.path}/registrace`}>Vytvořit účet</Link></p>
+      {isCustomEntryBrand(brand)
+        ? <p className={styles.foot}>Ještě nemáte účet?<Link href={CUSTOM_ENTRY_REGISTRATION_PATH}>Vytvořit účet</Link></p>
         : <p className={styles.foot}>Ještě nemáte účet?<Link href="/register">Založit firemní účet</Link></p>}
       <p className={styles.note}>Přihlášení je chráněno heslem a jednorázovým kódem zaslaným na váš e-mail.</p>
     </AuthShell>

@@ -30,9 +30,9 @@ describe("obecná registrace (splatno.cz/register)", () => {
   });
 
   it("sends every @hlavica.cz address to the R. Hlavica registration", async () => {
-    expect(await (await call({ email: "novy@hlavica.cz" })).json()).toEqual({ allowed: false, kind: "hlavica" });
+    expect(await (await call({ email: "novy@hlavica.cz" })).json()).toEqual({ allowed: false, kind: "custom_entry" });
     rows([hlavicaInvite]);
-    expect(await (await call({ email: "pozvany@hlavica.cz" })).json()).toEqual({ allowed: false, kind: "hlavica" });
+    expect(await (await call({ email: "pozvany@hlavica.cz" })).json()).toEqual({ allowed: false, kind: "custom_entry" });
   });
 });
 

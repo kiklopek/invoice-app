@@ -10,6 +10,10 @@ declare
 begin
   insert into auth.users(id, email) values (actor, actor::text || '@hlavica.cz'), (other_actor, other_actor::text || '@hlavica.cz'), (viewer, viewer::text || '@hlavica.cz');
   insert into public.organizations(id, name, ico) values (org, 'Contact fixture', '12345678'), (other_org, 'Other fixture', '87654321');
+  -- Fixture: firmy mají trvalý přístup (bez řádku předplatného se nefakturuje).
+  insert into public.subscriptions(organization_id, status, plan, period, billing_exempt)
+    select o.id, 'active', 'business', 'yearly', true from public.organizations o
+    where not exists (select 1 from public.subscriptions s where s.organization_id = o.id);
   insert into public.organization_members(organization_id, user_id, email, role) values
     (org, actor, actor::text || '@hlavica.cz', 'accounting'),
     (other_org, other_actor, other_actor::text || '@hlavica.cz', 'admin'),

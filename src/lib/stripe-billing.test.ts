@@ -9,6 +9,7 @@ import {
   changePlan,
   mirrorPayload,
   previewChange,
+  startCardSetup,
   startPaidSubscription,
   type BillingDeps,
 } from "./stripe-billing";
@@ -173,6 +174,31 @@ describe("placené předplatné bez zkušební doby", () => {
     const result = await startPaidSubscription(deps(stripe, fakeService(row)), ORG);
     expect(result).toEqual({ status: "requires_action", url: "https://invoice.stripe.com/i/1" });
     expect(stripe.subscriptions.create).toHaveBeenCalledWith(expect.objectContaining({ payment_behavior: "allow_incomplete", items: [{ price: "price_start_monthly" }] }), expect.anything());
+  });
+});
+
+// Trvale zdarma (R. Hlavica): Stripe se k firmě nesmí dostat. Dřív stačilo
+// projít Checkoutem, uložil se stripe_customer_id a zrcadlení pak trvalé
+// předplatné tiše přepsalo na placené.
+describe("firma s trvalým přístupem bez platby", () => {
+  const exempt: Row = { status: "active", billing_exempt: true, stripe_customer_id: null, stripe_subscription_id: null, plan: null, period: null };
+
+  it("refuses card setup before touching Stripe or the subscription row", async () => {
+    const stripe = fakeStripe();
+    const service = fakeService({ ...exempt });
+    await expect(startCardSetup(deps(stripe, service), {
+      organizationId: ORG, choice: { plan: "start", period: "monthly" }, ipHash: null,
+      returnBase: "https://splatno.cz", returnPath: "/predplatne",
+    })).rejects.toMatchObject({ code: "billing_exempt", status: 409 });
+    expect(service.updates).toEqual([]);
+    expect(service.rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paid subscription", async () => {
+    const stripe = fakeStripe();
+    await expect(startPaidSubscription(deps(stripe, fakeService({ ...exempt, stripe_customer_id: "cus_1" })), ORG))
+      .rejects.toMatchObject({ code: "billing_exempt" });
+    expect(stripe.subscriptions.create).not.toHaveBeenCalled();
   });
 });
 

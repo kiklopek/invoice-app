@@ -5,6 +5,10 @@ declare org uuid:=gen_random_uuid(); actor uuid:=gen_random_uuid(); result jsonb
 begin
   insert into auth.users(id,email) values(actor,'camt-test@hlavica.cz');
   insert into public.organizations(id,name,ico) values(org,'CAMT test','12345678');
+  -- Fixture: firmy mají trvalý přístup (bez řádku předplatného se nefakturuje).
+  insert into public.subscriptions(organization_id, status, plan, period, billing_exempt)
+    select o.id, 'active', 'business', 'yearly', true from public.organizations o
+    where not exists (select 1 from public.subscriptions s where s.organization_id = o.id);
   insert into public.organization_members(organization_id,user_id,email,role) values(org,actor,'camt-test@hlavica.cz','admin');
   rows:=jsonb_build_array(jsonb_build_object('line_number',1,'record_type','075','fingerprint',repeat('d',64),'disposition','accepted','external_id','gpc-cross-test',
     'booked_on',current_date,'amount',100,'currency','CZK','counterparty_account','19-2000145399/0800','counterparty_name','Customer'));

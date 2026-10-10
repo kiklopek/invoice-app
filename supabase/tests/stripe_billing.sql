@@ -23,8 +23,10 @@ begin
     (legacy_admin, 'admin@stara-firma.cz'), (founder, 'zakladatel@novafirma.cz'),
     (second_founder, 'jiny@druhafirma.cz'), (third_founder, 'treti@tretifirma.cz');
 
-  -- 0) Stávající firma bez předplatného (a R. Hlavica s trvalým active) fakturuje dál.
+  -- 0) Stávající firma s trvalým přístupem (R. Hlavica, billing_exempt) fakturuje dál.
   insert into public.organizations(id, name, ico) values (legacy, 'Stará firma s.r.o.', '25596641');
+  insert into public.subscriptions(organization_id, status, plan, period, billing_exempt)
+    values (legacy, 'active', 'business', 'yearly', true);
   insert into public.organization_members(organization_id, user_id, email, role) values (legacy, legacy_admin, 'admin@stara-firma.cz', 'admin');
   insert into public.invoices(organization_id, invoice_number, counterparty_name, counterparty_email,
     amount_without_vat, vat_rate, amount, currency, issue_date, due_date, status, created_by)
