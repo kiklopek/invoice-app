@@ -311,7 +311,8 @@
   background: #fff;
   color: var(--cta);
   font-size: 18px;
-  box-shadow: 0 0 0 1px var(--line), 0 6px 14px -6px rgba(19, 35, 27, 0.25) !important;
+  /* tenký průsvitný zelený okraj */
+  box-shadow: 0 0 0 1px rgba(31, 106, 74, 0.32) !important;
 }
 .trust {
   display: flex;
@@ -753,7 +754,8 @@
   width: 100%;
   max-width: 470px;
   aspect-ratio: 460 / 340;
-  margin-inline: auto;
+  /* místo pod kartičkami pro ručně psaný popisek */
+  margin: 0 auto 96px;
 }
 .chaosFlow {
   position: absolute;
@@ -789,13 +791,15 @@
   font-size: clamp(11px, 1.2vw, 14px);
   font-weight: 500;
 }
+/* Popisek vycentrovaný pod kartičkami: nepřekrývá karty ani šipky. */
 .chaosHand {
   position: absolute;
-  right: -8%;
-  top: 30%;
-  font-size: clamp(17px, 1.7vw, 22px);
+  top: calc(100% + 22px);
+  left: 0;
+  right: 0;
+  font-size: clamp(23px, 2.1vw, 28px);
   text-align: center;
-  transform: rotate(-7deg);
+  transform: rotate(-3deg);
 }
 
 /* jak to funguje */
@@ -1553,16 +1557,8 @@
   }
 }
 @media (max-width: 640px) {
-  .chaos {
-    margin-bottom: 20px;
-  }
   .chaosCard {
     border-radius: 14px;
-  }
-  .chaosHand {
-    top: auto;
-    right: 0;
-    bottom: -6%;
   }
   .miniInvoice {
     left: 44px;
