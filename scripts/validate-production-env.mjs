@@ -25,6 +25,9 @@ export function validateProductionEnv(env = process.env) {
   if (env.EMAIL_MFA_BYPASS_EMAILS?.trim()) {
     errors.push("EMAIL_MFA_BYPASS_EMAILS musí být v produkci prázdné.");
   }
+  if (env.VERCEL_ENV === "production" && env.REMINDER_TEST_RECIPIENTS?.trim()) {
+    errors.push("REMINDER_TEST_RECIPIENTS musí být v produkci prázdné.");
+  }
   if ((env.EMAIL_MFA_SECRET?.trim().length ?? 0) < 32) {
     errors.push("EMAIL_MFA_SECRET musí mít alespoň 32 znaků.");
   }

@@ -12,7 +12,7 @@ const call = (body: unknown, origin?: string) => PATCH(request(body, origin), { 
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubEnv("ALLOW_ADAM_REMINDER_TEST_EMAIL", "false");
+  vi.stubEnv("REMINDER_TEST_RECIPIENTS", "");
   mocks.identity.mockResolvedValue(fakeIdentity({ service: { from: mocks.from, rpc: mocks.rpc } }));
   mocks.from.mockReturnValue(fakeChain({ data: { email: "info@hlavica.cz" }, error: null }));
   mocks.rpc.mockResolvedValue({ data: { customer: { id: SOME_UUID, email: "customer@example.cz", phone: null }, updated_invoice_count: 2 }, error: null });
@@ -51,7 +51,7 @@ describe("customer contact editing", () => {
   });
   it("permits only the enabled testing address on the issuer domain", async () => {
     expect((await call({ email: "adam@hlavica.cz" })).status).toBe(400);
-    vi.stubEnv("ALLOW_ADAM_REMINDER_TEST_EMAIL", "true");
+    vi.stubEnv("REMINDER_TEST_RECIPIENTS", "adam@hlavica.cz");
     expect((await call({ email: "adam@hlavica.cz" })).status).toBe(200);
     expect((await call({ email: "info@hlavica.cz" })).status).toBe(400);
     expect((await call({ email: "adam@mail.hlavica.cz" })).status).toBe(400);

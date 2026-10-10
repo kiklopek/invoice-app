@@ -70,9 +70,9 @@ const send = async (extra: Record<string, unknown> = {}) => {
 describe("sendReminderEmail", () => {
   it("sends to the testing mailbox only when enabled, retaining other issuer blocks", async () => {
     const ownCompany = { ...company, email: "info@hlavica.cz" };
-    delete process.env.ALLOW_ADAM_REMINDER_TEST_EMAIL;
+    delete process.env.REMINDER_TEST_RECIPIENTS;
     await expect(send({ to: "adam@hlavica.cz", company: ownCompany })).rejects.toThrow(/vystavitele/);
-    process.env.ALLOW_ADAM_REMINDER_TEST_EMAIL = "true";
+    process.env.REMINDER_TEST_RECIPIENTS = "adam@hlavica.cz";
     await send({ to: "adam@hlavica.cz", company: ownCompany });
     expect(sent[0].payload.to).toBe("adam@hlavica.cz");
     await expect(send({ to: "info@hlavica.cz", company: ownCompany })).rejects.toThrow(/vystavitele/);

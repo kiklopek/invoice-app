@@ -7,6 +7,7 @@ import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { hasServerLoginSession } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
 import { isAccessRole } from "@/lib/role-access";
+import { canClaimInvitation } from "@/lib/invitation-claim";
 export { canManageInvoices } from "@/lib/role-access";
 
 type IdentityOptions = {
@@ -103,13 +104,13 @@ export async function resolveMembership(session: AuthenticatedSession) {
   if (!membership) {
     const { data: invitation } = await service
       .from("organization_members")
-      .select("id, organization_id, role, email")
+      .select("id, organization_id, role, email, invite_expires_at")
       .is("user_id", null)
       .eq("email", email)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    if (invitation) {
+    if (invitation && canClaimInvitation(user, invitation)) {
       const { data: claimed } = await service
         .from("organization_members")
         .update({ user_id: user.id, email, invite_token_hash: null, invite_expires_at: null })

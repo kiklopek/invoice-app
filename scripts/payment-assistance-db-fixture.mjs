@@ -20,7 +20,7 @@ export async function replayMigrations(exec, withoutPgcrypto = false) {
   }
 }
 export async function runSqlRegressions(exec) {
-  for (const name of ['robust_reconciliation.sql','reconciliation_integrity_guards.sql','payment_assistance.sql','camt_statement_evidence.sql','release_security_permissions.sql','customer_email_edit.sql','organization_onboarding.sql','stripe_billing.sql']) {
+  for (const name of ['robust_reconciliation.sql','reconciliation_integrity_guards.sql','payment_assistance.sql','camt_statement_evidence.sql','release_security_permissions.sql','customer_email_edit.sql','organization_onboarding.sql','stripe_billing.sql','multi_tenant_guards.sql']) {
     const sql = (await readFile(`supabase/tests/${name}`, 'utf8')).replace(/^\\.*$/gm, '');
     await exec(sql);
     console.log(`Passed ${name}`);

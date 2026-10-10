@@ -11,7 +11,6 @@ import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
 import { passwordProblem } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
-type RegistrationKind = "founder" | "invited";
 
 // Registrace. Dva oddělené vstupy:
 // - "splatno" (/register): kdo nemá pozvánku, zakládá firemní účet a po
@@ -27,7 +26,6 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
   const [confirmation, setConfirmation] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [sent, setSent] = useState(false);
-  const [kind, setKind] = useState<RegistrationKind>("founder");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,8 +65,6 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       setSubmitting(false);
       return;
     }
-    const registrationKind: RegistrationKind = access.kind === "invited" ? "invited" : "founder";
-    setKind(registrationKind);
 
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -87,7 +83,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       return;
     }
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-      setError("Přihlašovací účet pro tento e-mail stále existuje. Administrátor musí přístup nejprve odebrat a znovu přidat.");
+      setError("Pro tento e-mail už účet existuje. Přihlaste se, nebo si obnovte heslo.");
       setSubmitting(false);
       return;
     }
@@ -140,9 +136,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
           <div>
             <strong>Potvrďte svůj e-mail</strong>
             <p>Na adresu <b>{email}</b> jsme poslali ověřovací odkaz. Otevřete jej a dokončete vytvoření účtu.</p>
-            {hlavica ? null : <p>{kind === "invited"
-              ? "Na tento e-mail čeká pozvánka do firmy. Po ověření se k ní rovnou připojíte."
-              : "Po ověření e-mailu a přihlašovacího kódu nastavíte svou firmu."}</p>}
+            {hlavica ? null : <p>Máte-li pozvánku do firmy, po ověření se k ní rovnou připojíte. Jinak po ověření e-mailu a přihlašovacího kódu nastavíte svou firmu.</p>}
           </div>
         </div>
       ) : (

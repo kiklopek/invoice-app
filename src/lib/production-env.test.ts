@@ -35,6 +35,19 @@ describe("production environment validation", () => {
     })).toContain("EMAIL_MFA_BYPASS_EMAILS musí být v produkci prázdné.");
   });
 
+  it("blocks reminder test recipients on the production deployment only", () => {
+    expect(validateProductionEnv({
+      ...validProductionEnv,
+      VERCEL_ENV: "production",
+      REMINDER_TEST_RECIPIENTS: "adam@hlavica.cz",
+    })).toContain("REMINDER_TEST_RECIPIENTS musí být v produkci prázdné.");
+    expect(validateProductionEnv({
+      ...validProductionEnv,
+      VERCEL_ENV: "preview",
+      REMINDER_TEST_RECIPIENTS: "adam@hlavica.cz",
+    })).toEqual([]);
+  });
+
   it("blocks production when authentication e-mail delivery is disabled", () => {
     expect(validateProductionEnv({
       ...validProductionEnv,

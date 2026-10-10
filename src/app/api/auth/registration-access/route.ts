@@ -61,11 +61,12 @@ export async function POST(request: Request) {
   // Obecná registrace s R. Hlavica nijak nesouvisí: jejich lidi posílá na
   // jejich vlastní registraci, aby si omylem nezaložili samostatnou firmu.
   if (hlavicaEmail || hlavicaInvitation) return NextResponse.json({ allowed: false, kind: "hlavica" });
-  // Ostatní: s pozvánkou se po potvrzení e-mailu připojí ke své firmě
-  // ("invited"), bez ní zakládají firmu ("founder"). Kdo už účet má, se
-  // registrovat nemá -- má se přihlásit.
-  if (row?.user_id) return NextResponse.json({ allowed: false, kind: "member" });
+  // Ostatní: s pozvánkou se po potvrzení e-mailu připojí ke své firmě, bez
+  // ní zakládají firmu. Veřejná odpověď to ale nerozlišuje (ani stávající
+  // účet): jinak by kdokoli zjistil, kdo je kam pozvaný. Existující účet
+  // odhalí až signUp (prázdné identities), a to jen tomu, kdo zná heslo
+  // k e-mailu, kam přijde potvrzení.
   // Zakladatel firmy z jednorázové schránky: ochrana zkušební doby.
   if (!row && isDisposableEmail(email)) return NextResponse.json({ allowed: false, kind: "disposable" });
-  return NextResponse.json({ allowed: true, kind: row ? "invited" : "founder" });
+  return NextResponse.json({ allowed: true, kind: "signup" });
 }

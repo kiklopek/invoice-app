@@ -18,13 +18,15 @@ beforeEach(() => {
 });
 
 describe("obecná registrace (splatno.cz/register)", () => {
-  it("lets a new company founder register", async () => {
-    expect(await (await call({ email: "jan@novafirma.cz" })).json()).toEqual({ allowed: true, kind: "founder" });
-  });
-
-  it("joins an invited person to their (non-Hlavica) company", async () => {
+  // Veřejná odpověď neprozradí, jestli je adresa pozvaná nebo už má účet:
+  // zakladatel, pozvaný i stávající člen dostanou totéž. Kam patří, se
+  // rozhodne až po potvrzení e-mailu.
+  it("answers founders, invited people and existing members identically", async () => {
+    expect(await (await call({ email: "jan@novafirma.cz" })).json()).toEqual({ allowed: true, kind: "signup" });
     rows([otherInvite]);
-    expect(await (await call({ email: "ucetni@novafirma.cz" })).json()).toEqual({ allowed: true, kind: "invited" });
+    expect(await (await call({ email: "ucetni@novafirma.cz" })).json()).toEqual({ allowed: true, kind: "signup" });
+    rows([{ ...otherInvite, user_id: "u1" }]);
+    expect(await (await call({ email: "clen@novafirma.cz" })).json()).toEqual({ allowed: true, kind: "signup" });
   });
 
   it("sends every @hlavica.cz address to the R. Hlavica registration", async () => {

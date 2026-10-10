@@ -201,11 +201,11 @@ describe("Kontakt uloženého klienta", () => {
     expect(mergeCustomerReminderEmail(original, "nespravna-adresa", organization)).toBe(original);
   });
   it("offers the enabled saved testing contact for confirmation, without trusting document issuer email", () => {
-    vi.stubEnv("ALLOW_ADAM_REMINDER_TEST_EMAIL", "true");
+    vi.stubEnv("REMINDER_TEST_RECIPIENTS", "adam@hlavica.cz");
     const merged = mergeCustomerReminderEmail(result("info@hlavica.cz"), "adam@hlavica.cz", organization);
     expect(merged.invoice.counterparty_email).toBe("adam@hlavica.cz");
     expect(merged.field_decisions.counterparty_email).toMatchObject({ status: "review", needs_confirmation: true });
-    vi.stubEnv("ALLOW_ADAM_REMINDER_TEST_EMAIL", "false");
+    vi.stubEnv("REMINDER_TEST_RECIPIENTS", "");
     const original = result("");
     expect(mergeCustomerReminderEmail(original, "adam@hlavica.cz", organization)).toBe(original);
   });
