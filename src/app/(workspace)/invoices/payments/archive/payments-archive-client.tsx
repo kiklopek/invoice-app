@@ -12,6 +12,7 @@ import { REVIEW_COPY } from "@/lib/payment-review-copy";
 import { StatementArchive } from "./statement-archive";
 import { PaymentAssistancePanel } from "./payment-assistance-panel";
 import styles from "./payments-archive.module.css";
+import { formatDate } from "../review/types";
 
 type SavedPayment = PaymentsPagePayment;
 type OpenInvoice = PaymentsPageOpenInvoice;
@@ -319,7 +320,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
                 <div className="payment-history-identity">
                   <strong>{payment.counterparty_name || "Plátce neuveden"}</strong>
                   <div className="payment-history-meta">
-                    <time dateTime={payment.booked_on}>{payment.booked_on}</time>
+                    <time dateTime={payment.booked_on}>{formatDate(payment.booked_on)}</time>
                     {payment.variable_symbol && <span>Var. symbol {payment.variable_symbol}</span>}
                   </div>
                 </div>
