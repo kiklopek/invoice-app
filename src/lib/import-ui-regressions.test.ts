@@ -15,6 +15,9 @@ const paymentsUploadPage = source(
 const paymentsArchivePage = source(
   "src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx",
 );
+const paymentCard = source("src/app/(workspace)/invoices/payments/review/payment-card.tsx");
+const accountQuestion = source("src/app/(workspace)/invoices/payments/review/account-question.tsx");
+const reviewCss = source("src/app/(workspace)/invoices/payments/review/payment-review.module.css");
 const icons = source("src/components/icons.tsx");
 const appShell = source("src/components/layout/app-shell.tsx");
 const mobileNavigation = source(
@@ -28,47 +31,50 @@ describe("MFA and bank statement UI regressions", () => {
     expect(mfaPage).toContain('<p className={styles.resend}');
   });
 
-  it("explains GPC totals and names the current import stage in the file summary", () => {
+  it("names the current import stage and asks about a foreign account instead of a checkbox", () => {
     expect(gpcImport).toContain("const activeImportStep =");
-    expect(gpcImport).toContain(
-      '["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]',
-    );
-    expect(gpcImport).toContain("Příchozí platby připravené ke kontrole.");
-    expect(gpcImport).toContain("Odchozí, cizoměnové nebo duplicitní řádky.");
-    expect(gpcImport).toContain('["duplicate", "Duplicity"]');
-    expect(css).toContain(".import-steps span.current");
-    expect(gpcImport).toContain('className="account-warning-icon"');
-    expect(gpcImport).toContain("Potvrdit kontrolu");
-    expect(gpcImport).toContain('className="account-warning-check"');
-    expect(css).toContain("grid-template-columns: 40px minmax(0, 1fr) auto;");
-    expect(css).toContain(".account-warning > .account-warning-confirm");
-    expect(css).toContain(".account-warning > .account-warning-icon {");
-    expect(css).toContain("overflow: hidden;");
-    expect(css).toContain(".payments-page .gpc-safety-card li::before");
-    expect(css).toContain("grid-template-columns: 48px minmax(0, 1fr);");
-    expect(css).toContain("grid-column: 1 / -1;");
+    expect(gpcImport).toContain('const IMPORT_STEPS = ["Soubor", "Kontrola plateb", "Zaúčtování", "Hotovo"];');
+    expect(gpcImport).toContain('className="import-steps"');
+    expect(gpcImport).toContain("<AccountQuestion");
+    expect(accountQuestion).toContain("Ano, přidat k účtům firmy");
+    expect(accountQuestion).toContain("Ano, jen tentokrát");
+    expect(accountQuestion).toContain("Ne, je to omyl");
+    // Zaúčtovat jde až po odpovědi; zablokované tlačítko říká proč.
+    expect(gpcImport).toContain("Nejdřív odpovězte na otázku k bankovnímu účtu nahoře.");
+    expect(gpcImport).not.toContain("ve upozornění");
   });
 
-  it("lays out the proposed combination action without crowding its explanation", () => {
-    expect(gpcImport).toContain('className="gpc-proposal-row"');
-    expect(gpcImport).toContain("const hasReviewableProposal =");
-    expect(css).toContain(".payments-page .gpc-proposal-row");
-    expect(css).toContain(".payments-page .gpc-proposal-button");
+  it("offers the proposal as a plain question with one-click answers", () => {
+    expect(paymentCard).toContain("REVIEW_COPY.acceptOne");
+    expect(paymentCard).toContain("REVIEW_COPY.chooseOther");
+    expect(paymentCard).toContain("REVIEW_COPY.notInvoice");
+    expect(paymentCard).toContain('className="payment-question"');
+    expect(paymentCard).toContain("Zaplatil odběratel jen část?");
+    // Technické údaje jsou schované, ne navrchu karty.
+    expect(paymentCard).toContain("REVIEW_COPY.details");
+    expect(paymentCard).not.toContain("Řádek {entry.line_number} ·");
   });
 
-  it("keeps the booked-payment correction available without emphasizing it", () => {
-    expect(gpcImport).toContain('className="btn secondary compact gpc-release-button"');
-    expect(gpcImport).toContain('aria-label="Uvolnit platbu a přiřadit ji jinak"');
-    expect(gpcImport).toContain("Změnit přiřazení");
-    expect(css).toContain(".payments-page .gpc-entry-booked .gpc-release-button");
-    expect(css).toContain("min-height: 40px");
+  it("keeps the booked-payment correction available under one verb", () => {
+    expect(paymentCard).toContain('className="btn secondary payment-action gpc-release-button"');
+    expect(paymentCard).toContain("aria-label={REVIEW_COPY.unbookLabel}");
+    expect(paymentCard).toContain("{REVIEW_COPY.unbook}");
+    expect(reviewCss).toContain("min-height: 44px");
   });
 
-  it("aligns the open assignment editor to one consistent content width", () => {
-    expect(gpcImport).toContain('className="gpc-allocation-field"');
-    expect(css).toContain(".payments-page .invoice-choice-list label:only-child");
-    expect(css).toContain(".payments-page .gpc-allocation-field");
-    expect(css).toContain("width: min(calc(100% - 40px), 720px)");
+  it("lays the review out as one centred column with a sticky commit bar", () => {
+    expect(reviewCss).toContain("container-type: inline-size;");
+    expect(reviewCss).toContain("@container (min-width: 520px)");
+    expect(reviewCss).toContain("@container (min-width: 820px)");
+    expect(reviewCss).toContain("grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));");
+    expect(reviewCss).toMatch(/\.payment-commit-bar\) \{\s*position: sticky;\s*bottom: 0;/);
+    expect(reviewCss).toContain("env(safe-area-inset-bottom, 0px)");
+    // Na mobilu žádný vnořený posuvník; výběr faktury scrolluje až od 768 px.
+    expect(reviewCss).toMatch(/@media \(min-width: 768px\) \{\s*\.review\.review :global\(\.invoice-picker-list\) \{ max-height/);
+    // Žádné písmo pod 12 px v kontrole výpisu.
+    expect(reviewCss).not.toMatch(/font-size: (?:[0-9]|1[01])px/);
+    // Sticky by na body s overflow-x: hidden nefungovalo.
+    expect(css).toContain("html:has(.gpc-panel.is-reviewing), body:has(.gpc-panel.is-reviewing)");
   });
 
   it("lays out payment history without a wide table or visible transaction IDs", () => {

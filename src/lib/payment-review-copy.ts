@@ -74,3 +74,24 @@ export function commitTitle(booked: number, invoices: number) {
     ? `Zaúčtovat ${countLabel(booked, PAYMENT_FORMS_ACCUSATIVE)} k ${countLabel(invoices, INVOICE_FORMS_DATIVE)}?`
     : "Uložit platby bez zaúčtování k fakturám?";
 }
+
+/** Krátký štítek stavu na kartě platby. */
+export const STATUS_LABELS = {
+  booked: "Zaúčtováno",
+  ready: "Připraveno",
+  ready_partial: "Částečná úhrada",
+  ready_overpaid: "Přeplatek",
+  left_unmatched: "Zůstane nespárovaná",
+  suggested: "Navrhujeme fakturu",
+  no_match: "Bez faktury",
+  underpaid: "Nesedí částka",
+  overpaid: "Nesedí částka",
+  over_allocated: "Nesedí částka",
+  possible_duplicate: "Možná duplicita",
+  unrelated: "Nesouvisí s fakturami",
+  own_transfer: "Vlastní převod",
+  outgoing: "Odchozí platba",
+  ignored: "Nepárujeme",
+  duplicate: "Už zaúčtovaná",
+  error: "Chyba řádku",
+} as const;

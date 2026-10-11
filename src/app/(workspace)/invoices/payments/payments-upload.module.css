@@ -135,7 +135,7 @@
   .page.page :global(.gpc-dropzone-icon) { width: 36px; height: 36px; margin-bottom: 8px; }
   .page.page :global(.gpc-select-file) { margin-top: 12px; padding: 10px 18px; }
   .page.page :global(.gpc-file-formats) { margin-top: 8px; }
-  .page.page :global(.gpc-safety-card li span) { font-size: 11px; }
+  .page.page :global(.gpc-safety-card li span) { font-size: 12px; }
   .page.page :global(.gpc-safety-card ol) { gap: 14px; }
 }
 
@@ -155,3 +155,30 @@
 .page.page :global(.gpc-safety-card li)::before { background: #ffffff12; border-color: #8eb69d; color: #e5f1c9; }
 .page.page :global(.payments-switch-archive) { background: #edf4e9; border-color: #a9c3ad; }
 .page.page :global(.payments-switch-icon) { background: #235c42; color: #fff; }
+
+/*
+ * Kontrola výpisu (panel .is-reviewing): stránka plyne s obsahem místo
+ * pevné výšky s posuvníkem uvnitř panelu (dvojí rolování, potvrzovací
+ * tlačítko mimo obrazovku) a hlavička i panel sdílí jeden užší sloupec.
+ */
+.page.page > .stage:has(:global(.gpc-panel.is-reviewing)) { max-width: 1120px; height: auto; margin: 0 auto; }
+.page.page:has(:global(.gpc-panel.is-flowing)) { height: auto; min-height: 100dvh; }
+.page.page :global(.gpc-panel.is-flowing) { overflow: visible; flex: none; min-height: 0; }
+.page.page > .stage:has(:global(.gpc-panel.is-flowing)) { height: auto; }
+@media (min-width: 1181px) and (min-height: 761px) {
+  .page.page > .stage:has(:global(.gpc-panel.is-reviewing)) { height: auto; }
+}
+
+/* Čitelnost: nic pod 12 px ani na nahrávací stránce. */
+.page.page :global(.payments-hero-copy > p) { font-size: 12px; }
+.page.page :global(.payments-switch-copy small) { font-size: 12px; }
+.page.page :global(.gpc-eyebrow) { font-size: 12px; }
+.page.page :global(.gpc-lead) { font-size: 13px; }
+.page.page :global(.gpc-upload-note) { font-size: 12px; }
+.page.page :global(.gpc-file-formats > span) { font-size: 12px; }
+.page.page :global(.gpc-file-formats small) { font-size: 12px; }
+.page.page :global(.gpc-safety-card li span) { font-size: 12px; }
+.page.page :global(.gpc-upload-column .form-error),
+.page.page :global(.gpc-upload-column .form-success) { margin: 16px 0 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.page.page :global(.gpc-error-reference) { display: block; margin-top: 4px; font-size: 12px; opacity: .85; }
+.page.page :global(.gpc-upload-column .gpc-queue-next) { margin-top: 12px; min-height: 44px; }

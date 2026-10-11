@@ -54,6 +54,12 @@ describe("tři krabice: hotovo, potřebuje odpověď, nesouvisí", () => {
     });
   });
 
+  it("potvrzená duplicita se přeskočí jako nesouvisející řádek", () => {
+    expect(review({ overlap_warning: true }, { unrelated: true, duplicateSkipped: true })).toMatchObject({
+      bucket: "not_invoice", plainReason: "Stejná platba jako v jiném výpisu – podruhé se nezapíše.",
+    });
+  });
+
   it("možná duplicita se musí potvrdit, i když je faktura vybraná", () => {
     expect(review({ overlap_warning: true }, { selectedIds: ["a"] })).toMatchObject({ bucket: "needs_answer", status: "possible_duplicate" });
     expect(review({ overlap_warning: true, overlap_acknowledged_by: "u" }, { selectedIds: ["a"] }).status).toBe("ready");
@@ -134,6 +140,7 @@ describe("výběr faktury", () => {
   it("hledání se předvyplní symbolem, jinak jménem plátce", () => {
     expect(defaultInvoiceQuery({ variable_symbol: "0020260001", counterparty_name: "X" })).toBe("20260001");
     expect(defaultInvoiceQuery({ variable_symbol: null, counterparty_name: "  Novák stavby s.r.o." })).toBe("Novák stavby");
+    expect(defaultInvoiceQuery({ variable_symbol: null, counterparty_name: "Mezinárodní stavební, obchodní s.r.o." })).toBe("Mezinárodní stavební");
   });
 
   it("důvod návrhu bez textu ze serveru je i tak česká věta", () => {

@@ -51,6 +51,8 @@ export type ReviewChoice = {
   overpaymentAccepted?: boolean;
   /** Řádek označený „Nesouvisí s fakturami“. */
   unrelated?: boolean;
+  /** Možnou duplicitu uživatel označil „Je to stejná platba“ (uloží se jako nesouvisející). */
+  duplicateSkipped?: boolean;
   /** Uživatel výslovně odpověděl „Nechat nespárovanou“. */
   leftUnmatched?: boolean;
   /** Proč řádek vypadá jako převod mezi vlastními účty. */
@@ -153,6 +155,8 @@ export function reviewPayment(entry: ReviewEntry, choice: ReviewChoice, invoices
   if (entry.bank_payment_id)
     return result("done", "booked", choice.autoReason ? `Zaúčtováno automaticky: ${lowerFirst(choice.autoReason)}` : "Zaúčtováno.", false);
 
+  if (choice.unrelated && choice.duplicateSkipped)
+    return result("not_invoice", "unrelated", "Stejná platba jako v jiném výpisu – podruhé se nezapíše.", true);
   if (choice.unrelated)
     return choice.ownTransferReason
       ? result("not_invoice", "own_transfer", `Převod mezi vašimi účty: ${lowerFirst(choice.ownTransferReason)}`, true)
@@ -221,7 +225,9 @@ export function rankCandidates<T extends ReviewInvoice>(entry: Pick<ReviewEntry,
 export function defaultInvoiceQuery(entry: Pick<ReviewEntry, "variable_symbol" | "counterparty_name">) {
   const symbol = entry.variable_symbol?.replace(/^0+/, "");
   if (symbol) return symbol;
-  return (entry.counterparty_name ?? "").trim().split(/\s+/).slice(0, 2).join(" ");
+  // Dvě první slova jména; čárka za slovem („Novák, s.r.o.“) by hledání
+  // zbytečně zúžila.
+  return (entry.counterparty_name ?? "").trim().split(/\s+/).slice(0, 2).map((word) => word.replace(/[,;:]+$/, "")).filter(Boolean).join(" ");
 }
 
 export function summarize(reviews: PaymentReview[]) {

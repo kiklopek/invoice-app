@@ -1,0 +1,388 @@
+/*
+ * Kontrola plateb z výpisu: jeden layout systém pro celou obrazovku.
+ *
+ * - Jeden sloupec: hlavička, souhrn, seznam i spodní lišta mají stejné
+ *   left/width (kontroluje scripts/payment-review-layout-check.mjs).
+ * - Mezery jen ze stupnice --space-1…6, písmo min. 14 px (popisky 12 px),
+ *   ovládací prvky min. 44 px.
+ * - Karta platby se řídí vlastní šířkou (container query), ne oknem:
+ *   < 520 px jeden sloupec, 520–819 px dva sloupce + akce pod nimi,
+ *   od 820 px tři zóny vedle sebe.
+ * - Částky, data a symboly se nezalamují; jména a čísla účtů ano.
+ *
+ * `.review.review` zvedá specifičnost nad starší globální pravidla
+ * (.payments-page .gpc-…), která jinak nastavují 9–11 px písmo.
+ */
+.review.review {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --pad: clamp(12px, 3.2vw, 28px);
+  --ink: #173c2d;
+  --muted: #4d6156;
+  --line: #d7e1da;
+  --accent: #235c42;
+  --accent-ink: #1b4a35;
+  --accent-soft: #edf4ef;
+  --warn-ink: #6f4a07;
+  --warn-soft: #fff7e6;
+  --warn-line: #ecd29d;
+  --warn-accent: #c48a1b;
+  --quiet-ink: #4f5a54;
+  --quiet-soft: #f4f5f3;
+  --quiet-accent: #a7b0aa;
+  --done-accent: #3d8a63;
+  --radius: 14px;
+  --radius-small: 10px;
+  --text: 14px;
+  --text-large: 16px;
+  --label: 12px;
+  overflow: visible;
+  padding: 0;
+  color: var(--ink);
+  font-size: var(--text);
+}
+
+.review.review :global(.gpc-preview) {
+  container: review / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--pad);
+  min-width: 0;
+}
+
+.review.review :global(.gpc-preview) > * { margin: 0; min-width: 0; }
+
+/* ------------------------------------------------------------ texty a tlačítka */
+.review.review :global(.btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--radius-small);
+  font-size: var(--text);
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  float: none;
+}
+.review.review :global(.btn:focus-visible),
+.review.review :global(summary:focus-visible),
+.review.review :global(input:focus-visible) { outline: 3px solid #74a889; outline-offset: 2px; }
+.review.review :global(.money),
+.review.review :global(.symbol) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.review.review :global(.account) { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.review.review :global(.form-error),
+.review.review :global(.form-success),
+.review.review :global(.form-hint) { font-size: var(--text); line-height: 1.5; padding: var(--space-3) var(--space-4); border-radius: var(--radius-small); }
+.review.review :global(.gpc-error-reference) { display: block; margin-top: var(--space-1); font-size: var(--label); opacity: .85; }
+
+/* ------------------------------------------------------------ hlavička souboru */
+.review.review :global(.gpc-file-summary) {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: 0 0 var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.review.review :global(.gpc-file-summary-icon) { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.review.review :global(.gpc-file-summary-icon svg) { width: 20px; height: 20px; }
+.review.review :global(.gpc-file-summary-copy) { min-width: 0; }
+.review.review :global(.gpc-file-summary-copy h2) { margin: 0; font-size: clamp(18px, 2.2vw, 22px); line-height: 1.25; letter-spacing: -.3px; color: var(--ink); }
+.review.review :global(.gpc-file-summary-copy > p) { margin: var(--space-1) 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.review.review :global(.gpc-file-name) { font-weight: 650; }
+.review.review :global(.import-steps) { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: var(--space-2) 0 0; padding: 0; list-style: none; counter-reset: step; }
+.review.review :global(.import-steps li) { counter-increment: step; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: var(--label); font-weight: 650; }
+.review.review :global(.import-steps li)::before { content: counter(step); display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line); font-size: var(--label); background: #fff; }
+.review.review :global(.import-steps li.done)::before { content: "✓"; background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.review.review :global(.import-steps li.current) { color: var(--accent-ink); }
+.review.review :global(.import-steps li.current)::before { background: var(--accent); border-color: var(--accent); color: #fff; }
+.review.review :global(.import-steps span) { padding: 0; border: 0; background: none; font-size: inherit; color: inherit; }
+.review.review :global(.gpc-change-file) { justify-self: end; }
+.review.review :global(.gpc-next-actions) { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+@container review (max-width: 560px) {
+  .review.review :global(.gpc-file-summary) { grid-template-columns: 44px minmax(0, 1fr); }
+  .review.review :global(.gpc-change-file) { grid-column: 1 / -1; justify-self: stretch; }
+  .review.review :global(.gpc-next-actions .btn) { flex: 1 1 100%; }
+}
+
+/* ------------------------------------------------------------ otázka k účtu */
+.review.review :global(.account-question) {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--warn-line);
+  border-radius: var(--radius);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.review.review :global(.account-question-icon) { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #fde9bf; color: var(--warn-ink); }
+.review.review :global(.account-question-icon svg) { width: 20px; height: 20px; }
+.review.review :global(.account-question h3) { margin: 0 0 var(--space-1); font-size: var(--text-large); line-height: 1.35; color: #4c3206; }
+.review.review :global(.account-question p) { margin: 0; font-size: var(--text); line-height: 1.5; }
+.review.review :global(.account-question-actions) { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.review.review :global(.account-question-actions .btn) { flex: 1 1 200px; }
+.review.review :global(.account-question.is-answered) { grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; border-color: #b9d3c1; background: var(--accent-soft); color: var(--accent-ink); }
+.review.review :global(.account-question.is-answered .account-question-icon) { background: #d6e8dc; color: var(--accent); }
+@container review (max-width: 560px) {
+  .review.review :global(.account-question.is-answered) { grid-template-columns: 40px minmax(0, 1fr); }
+  .review.review :global(.account-question.is-answered .btn) { grid-column: 1 / -1; }
+}
+
+/* ------------------------------------------------------------ souhrn */
+.review.review :global(.payment-review-summary) { display: grid; gap: var(--space-3); }
+.review.review :global(.review-buckets) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-3);
+}
+.review.review :global(.review-bucket) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: inset 4px 0 0 var(--bucket-accent, var(--line));
+}
+.review.review :global(.review-bucket:hover) { border-color: var(--bucket-accent); }
+.review.review :global(.review-bucket.is-needs_answer) { --bucket-accent: var(--warn-accent); --bucket-soft: var(--warn-soft); }
+.review.review :global(.review-bucket.is-done) { --bucket-accent: var(--done-accent); --bucket-soft: var(--accent-soft); }
+.review.review :global(.review-bucket.is-not_invoice) { --bucket-accent: var(--quiet-accent); --bucket-soft: var(--quiet-soft); }
+.review.review :global(.review-bucket.is-active) { background: var(--bucket-soft); border-color: var(--bucket-accent); outline: 2px solid var(--bucket-accent); outline-offset: -2px; }
+.review.review :global(.review-bucket-count) { min-width: 2ch; font-size: clamp(24px, 3vw, 30px); font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; }
+.review.review :global(.review-bucket-copy) { display: grid; gap: 2px; min-width: 0; }
+.review.review :global(.review-bucket-label) { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.review.review :global(.review-bucket-hint) { font-size: var(--label); line-height: 1.4; color: var(--muted); }
+.review.review :global(.review-filter-row) { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.review.review :global(.review-filter-row p) { margin: 0; color: var(--muted); font-size: var(--text); line-height: 1.45; flex: 1 1 240px; }
+@container review (max-width: 560px) {
+  .review.review :global(.review-filter-row .btn) { flex: 1 1 100%; }
+}
+
+/* ------------------------------------------------------------ seznam a karta */
+.review.review :global(.gpc-entry-list) { display: grid; gap: var(--space-3); max-height: none; padding: 0; overflow: visible; }
+.review.review :global(.payment-review-empty) { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-6) var(--space-4); border: 1px dashed var(--line); border-radius: var(--radius); text-align: center; color: var(--muted); }
+.review.review :global(.payment-review-empty strong) { color: var(--ink); font-size: var(--text-large); }
+
+.review.review :global(.gpc-entry.payment-card) {
+  container-type: inline-size;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: inset 4px 0 0 var(--card-accent, var(--line));
+  min-width: 0;
+}
+.review.review :global(.payment-card.is-needs_answer) { --card-accent: var(--warn-accent); --card-soft: var(--warn-soft); --card-line: var(--warn-line); --card-ink: var(--warn-ink); }
+.review.review :global(.payment-card.is-done) { --card-accent: var(--done-accent); --card-soft: var(--accent-soft); --card-line: #c9ddd0; --card-ink: var(--accent-ink); }
+.review.review :global(.payment-card.is-not_invoice) { --card-accent: var(--quiet-accent); --card-soft: var(--quiet-soft); --card-line: #dde2df; --card-ink: var(--quiet-ink); background: #fcfcfb; }
+
+.review.review :global(.payment-card-body) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) calc(var(--space-4) + 4px);
+}
+.review.review :global(.payment-card-payment),
+.review.review :global(.payment-card-found),
+.review.review :global(.payment-card-actions) { min-width: 0; }
+
+.review.review :global(.payment-card-payer) {
+  margin: 0;
+  font-size: var(--text-large);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+/* Zóna platby je vlastní kontejner: částka se zmenší podle místa, které
+   opravdu má (sloupec karty), a nikdy se nezalomí ani nevyteče. */
+.review.review :global(.payment-card-payment) { container-type: inline-size; }
+.review.review :global(.payment-card-amount) { margin: var(--space-1) 0 0; font-size: clamp(16px, 9.5cqi, 24px); font-weight: 750; line-height: 1.2; letter-spacing: -.3px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+.review.review :global(.payment-card-amount.is-outgoing) { color: var(--quiet-ink); }
+.review.review :global(.payment-card-meta) { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: var(--space-2) 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.review.review :global(.payment-card-meta > span) { white-space: nowrap; }
+
+.review.review :global(.payment-card-found) {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--card-line, var(--line));
+  border-radius: var(--radius-small);
+  background: var(--card-soft, #fafbf9);
+}
+.review.review :global(.payment-card-found) { container-type: inline-size; }
+.review.review :global(.payment-card-found p) { margin: 0; }
+.review.review :global(.payment-card-status-pill) { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; background: #fff; border: 1px solid var(--card-line, var(--line)); color: var(--card-ink, var(--ink)); font-size: var(--label); font-weight: 750; line-height: 1.4; }
+.review.review :global(.payment-card-reason) { font-size: var(--text); line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.review.review :global(.payment-card-error) { color: #9b2c1f; font-size: var(--text); line-height: 1.5; }
+.review.review :global(.payment-card-invoices) { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.review.review :global(.payment-card-invoices li) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--card-line, var(--line));
+}
+.review.review :global(.payment-card-invoices strong) { font-size: var(--text); line-height: 1.35; overflow-wrap: break-word; min-width: 0; }
+.review.review :global(.payment-card-customer) { font-size: 13px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.review.review :global(.payment-card-remaining) { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.review.review :global(.payment-card-remaining .money) { color: var(--ink); font-weight: 650; }
+
+.review.review :global(.payment-question) { display: grid; gap: var(--space-2); padding: var(--space-3); border-radius: 8px; background: #fff; border: 1px solid var(--warn-line); }
+.review.review :global(.payment-question p) { font-size: var(--text); line-height: 1.5; font-weight: 600; color: var(--warn-ink); }
+.review.review :global(.payment-question-actions) { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.review.review :global(.payment-question-actions .btn) { flex: 1 1 100%; }
+
+.review.review :global(.payment-card-actions) { display: flex; flex-direction: column; gap: var(--space-2); }
+.review.review :global(.payment-card-actions .btn) { width: 100%; }
+
+.review.review :global(.payment-card-details) { grid-column: 1 / -1; margin: 0; padding: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; overflow: visible; }
+.review.review :global(.payment-card-details summary) { display: flex; align-items: center; min-height: 44px; padding: 0; color: var(--accent); font-size: var(--text); font-weight: 650; cursor: pointer; background: none; border: 0; }
+.review.review :global(.payment-card-details[open] summary) { background: none; border: 0; }
+.review.review :global(.payment-card-details dl) { display: grid; gap: var(--space-2); margin: 0 0 var(--space-1); }
+.review.review :global(.payment-card-details dl > div) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.review.review :global(.payment-card-details dt) { color: var(--muted); font-size: var(--label); font-weight: 650; }
+.review.review :global(.payment-card-details dd) { margin: 0; font-size: var(--text); line-height: 1.45; overflow-wrap: anywhere; }
+
+@container (min-width: 420px) {
+  .review.review :global(.payment-question-actions .btn) { flex: 1 1 180px; }
+  .review.review :global(.payment-card-details dl > div) { grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: var(--space-3); }
+}
+@container (min-width: 520px) {
+  .review.review :global(.payment-card-body) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--space-3) var(--space-4); }
+  .review.review :global(.payment-card-actions) { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+  .review.review :global(.payment-card-actions .btn) { width: auto; flex: 1 1 180px; }
+}
+@container (min-width: 820px) {
+  .review.review :global(.payment-card-body) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(200px, .8fr); }
+  .review.review :global(.payment-card-actions) { grid-column: auto; flex-direction: column; flex-wrap: nowrap; }
+  .review.review :global(.payment-card-actions .btn) { width: 100%; flex: none; }
+  .review.review :global(.payment-card-body.no-actions > .payment-card-found) { grid-column: span 2; }
+}
+
+@container (min-width: 440px) {
+  .review.review :global(.payment-card-invoices li) { grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); }
+  .review.review :global(.payment-card-invoices strong) { grid-column: 1; grid-row: 1; }
+  .review.review :global(.payment-card-customer) { grid-column: 1; grid-row: 2; }
+  .review.review :global(.payment-card-remaining) { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; }
+}
+
+/* ------------------------------------------------------------ výběr faktury */
+.review.review :global(.invoice-picker) { grid-column: 1 / -1; display: grid; gap: var(--space-3); padding: var(--space-3); border: 1px solid #c9ddd0; border-radius: var(--radius-small); background: #fbfdfb; min-width: 0; }
+.review.review :global(.invoice-picker-search) { display: grid; gap: var(--space-1); }
+.review.review :global(.invoice-picker-search span) { font-size: 13px; font-weight: 700; color: var(--ink); }
+.review.review :global(.invoice-picker-search input) { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #b9cbbf; border-radius: var(--radius-small); background: #fff; font-size: 16px; color: var(--ink); }
+.review.review :global(.invoice-picker-hint),
+.review.review :global(.invoice-picker-empty) { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.review.review :global(.invoice-picker-list) { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.review.review :global(.invoice-option) {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-areas: "box main" "box side";
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: #fff;
+  cursor: pointer;
+}
+.review.review :global(.invoice-option.is-selected) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.review.review :global(.invoice-option input) { grid-area: box; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.review.review :global(.invoice-option-main) { grid-area: main; display: grid; gap: 2px; min-width: 0; }
+.review.review :global(.invoice-option-main strong) { font-size: var(--text); line-height: 1.35; overflow-wrap: break-word; min-width: 0; }
+.review.review :global(.invoice-option-customer) { font-size: 13px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.review.review :global(.invoice-option-side) { grid-area: side; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; }
+.review.review :global(.invoice-option-amount) { font-size: 13px; color: var(--muted); }
+.review.review :global(.invoice-option-amount .money) { color: var(--ink); font-weight: 650; }
+.review.review :global(.invoice-option-fit) { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); }
+.review.review :global(.invoice-option-fit span) { padding: 2px 8px; border-radius: 999px; background: #dcefe3; color: var(--accent-ink); font-size: var(--label); font-weight: 700; white-space: nowrap; }
+.review.review :global(.invoice-picker-amounts) { display: grid; gap: var(--space-2); }
+.review.review :global(.invoice-picker-amounts p) { margin: 0; font-size: 13px; font-weight: 650; }
+.review.review :global(.gpc-allocation-field) { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); width: auto; margin: 0; }
+.review.review :global(.gpc-allocation-field span) { font-size: 13px; overflow-wrap: anywhere; }
+.review.review :global(.gpc-allocation-field input) { min-height: 44px; width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid #b9cbbf; border-radius: var(--radius-small); font-size: 16px; font-variant-numeric: tabular-nums; }
+.review.review :global(.invoice-picker-footer) { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.review.review :global(.invoice-picker-balance) { margin: 0; flex: 1 1 220px; font-size: var(--text); line-height: 1.45; font-weight: 650; }
+.review.review :global(.invoice-picker-balance.is-ok) { color: var(--accent); }
+.review.review :global(.invoice-picker-balance.is-off) { color: var(--warn-ink); }
+.review.review :global(.invoice-picker-balance.is-empty) { color: var(--muted); font-weight: 500; }
+.review.review :global(.invoice-picker-done) { flex: 0 0 auto; min-width: 120px; }
+@container (min-width: 520px) {
+  .review.review :global(.invoice-option) { grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-areas: "box main side"; }
+  .review.review :global(.invoice-option-side) { flex-direction: column; align-items: flex-end; text-align: right; }
+  .review.review :global(.gpc-allocation-field) { grid-template-columns: minmax(0, 1fr) minmax(140px, 200px); align-items: center; gap: var(--space-3); }
+}
+@container (max-width: 419px) {
+  .review.review :global(.invoice-picker-footer .btn) { flex: 1 1 100%; }
+}
+/* Na mobilu žádný vnořený posuvník: seznam plyne se stránkou. */
+@media (min-width: 768px) {
+  .review.review :global(.invoice-picker-list) { max-height: 480px; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+}
+
+/* ------------------------------------------------------------ stránkování */
+.review.review :global(.payment-review-pages) { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2) var(--space-3); margin: 0; padding: 0; border: 0; }
+.review.review :global(.payment-review-pages span) { font-size: var(--text); color: var(--muted); }
+
+/* ------------------------------------------------------------ spodní lišta */
+.review.review :global(.payment-commit-bar) {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: 0 -10px 28px rgba(22, 59, 43, .10);
+}
+.review.review :global(.payment-commit-copy) { display: grid; align-content: center; gap: 2px; flex: 1 1 260px; min-width: 0; margin: 0; text-align: left; }
+.review.review :global(.payment-commit-copy > *) { display: block; margin: 0; }
+.review.review :global(.payment-commit-copy strong) { font-size: 15px; line-height: 1.35; }
+.review.review :global(.payment-commit-copy span) { font-size: 13px; line-height: 1.45; color: var(--muted); }
+.review.review :global(.payment-commit-copy .gpc-confirm-blocked) { color: var(--warn-ink); font-weight: 650; }
+.review.review :global(.payment-commit-bar .import-confirm) { flex: 0 1 auto; min-height: 48px; min-width: 200px; padding-inline: var(--space-5); font-size: 15px; }
+@container review (max-width: 560px) {
+  .review.review :global(.payment-commit-bar) { padding-inline: var(--space-3); }
+  .review.review :global(.payment-commit-bar .import-confirm) { flex: 1 1 100%; min-width: 0; }
+}

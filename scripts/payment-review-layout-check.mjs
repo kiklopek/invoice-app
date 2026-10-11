@@ -158,7 +158,7 @@ function scenario(name) {
     expected_account: '6786420257/0100',
     statement_bank: { code: '0100', name: 'Komerční banka', verified: true },
     totals,
-    entries: entries.map(({ id, ...rest }) => rest),
+    entries: entries.map(({ id: _id, ...rest }) => rest),
     proposal_invoices: invoices,
     total_entries: entries.length,
     request_id: 'req-1',
@@ -297,6 +297,17 @@ function measure({ width }) {
     }
   }
 
+  function clipToAncestors(raw, element) {
+    let rect = { left: raw.left, right: raw.right, top: raw.top, bottom: raw.bottom };
+    for (let el = element; el && el !== document.body; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      if (style.overflowX === 'visible' && style.overflowY === 'visible') continue;
+      const box = el.getBoundingClientRect();
+      rect = { left: Math.max(rect.left, box.left), right: Math.min(rect.right, box.right), top: Math.max(rect.top, box.top), bottom: Math.min(rect.bottom, box.bottom) };
+      if (rect.right - rect.left <= 1 || rect.bottom - rect.top <= 1) return null;
+    }
+    return { ...rect, width: rect.right - rect.left, height: rect.bottom - rect.top };
+  }
   // 2) Překryv textu sourozenců (obdélníky textu, ne bloků).
   const scopes = [...document.querySelectorAll('.gpc-entry, .gpc-file-summary, .payments-hero, .gpc-confirm-bar, .payment-review-summary, .payment-commit-bar')].filter(visible);
   for (const scope of scopes) {
@@ -307,7 +318,11 @@ function measure({ width }) {
       if (!node.textContent.trim() || !visible(node.parentElement)) continue;
       const range = document.createRange();
       range.selectNodeContents(node);
-      for (const rect of range.getClientRects()) if (rect.width > 1 && rect.height > 1) boxes.push({ rect, node: node.parentElement, text: node.textContent.trim().slice(0, 24) });
+      for (const raw of range.getClientRects()) {
+        // Řádky schované zkrácením (line-clamp, overflow) nejsou vidět.
+        const rect = clipToAncestors(raw, node.parentElement);
+        if (rect && rect.width > 1 && rect.height > 1) boxes.push({ rect, node: node.parentElement, text: node.textContent.trim().slice(0, 24) });
+      }
     }
     for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) {
       if (boxes[a].node === boxes[b].node) continue;
@@ -340,7 +355,10 @@ function measure({ width }) {
     if (Math.abs(hero.left - column.left) > 1 || Math.abs(hero.width - column.width) > 1) problems.push({ rule: 3, heroNotAligned: true });
     for (const element of [document.querySelector('.payment-review-summary'), document.querySelector('.gpc-entry-list'), document.querySelector('.payment-commit-bar')].filter(Boolean)) {
       const rect = element.getBoundingClientRect();
-      const inner = document.querySelector('.gpc-preview').getBoundingClientRect();
+      const previewElement = document.querySelector('.gpc-preview');
+      const outer = previewElement.getBoundingClientRect();
+      const previewStyle = getComputedStyle(previewElement);
+      const inner = { left: outer.left + parseFloat(previewStyle.paddingLeft), width: outer.width - parseFloat(previewStyle.paddingLeft) - parseFloat(previewStyle.paddingRight) };
       if (Math.abs(rect.left - inner.left) > 1 || Math.abs(rect.width - inner.width) > 1) problems.push({ rule: 3, columnMisaligned: name(element), left: Math.round(rect.left), width: Math.round(rect.width), expected: [Math.round(inner.left), Math.round(inner.width)] });
     }
   }
@@ -405,8 +423,10 @@ function measure({ width }) {
   // 8) Karta platby: počet zón podle vlastní šířky.
   for (const card of [...document.querySelectorAll('.gpc-entry')].filter(visible).slice(0, 12)) {
     const zones = [...card.querySelectorAll(':scope [data-zone]')].filter(visible);
-    const cardWidth = card.getBoundingClientRect().width;
-    const expected = cardWidth < 520 ? 1 : cardWidth < 820 ? 2 : 3;
+    // Šířka, kterou vidí container query karty: obsah bez rámečku a odsazení.
+    const style = getComputedStyle(card);
+    const cardWidth = card.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const expected = Math.min(cardWidth < 520 ? 1 : cardWidth < 820 ? 2 : 3, zones.length);
     if (!zones.length) { problems.push({ rule: 8, cardWithoutZones: textOf(card) }); continue; }
     const columns = new Set(zones.map(zone => Math.round(zone.getBoundingClientRect().left))).size;
     if (columns !== expected) problems.push({ rule: 8, wrongZones: columns, expected, cardWidth: Math.round(cardWidth) });
@@ -423,18 +443,18 @@ async function stickyBar(page) {
     if (!list || !bar) return problems;
     const cards = [...list.querySelectorAll('.gpc-entry')];
     if (!cards.length) return problems;
-    cards[0].scrollIntoView({ block: 'start' });
+    cards[0].scrollIntoView({ block: 'start', behavior: 'instant' });
     await new Promise(requestAnimationFrame);
     const button = bar.querySelector('button.btn.primary, button');
     const rect = button.getBoundingClientRect();
     if (list.getBoundingClientRect().bottom > innerHeight && (rect.bottom > innerHeight + 1 || rect.top < 0)) problems.push({ rule: 5, commitButtonOffscreen: Math.round(rect.top) });
-    scrollTo(0, document.documentElement.scrollHeight);
+    scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
     for (const scroller of document.querySelectorAll('main, .gpc-panel')) scroller.scrollTop = scroller.scrollHeight;
     await new Promise(requestAnimationFrame);
     const last = cards[cards.length - 1].getBoundingClientRect();
     const barRect = bar.getBoundingClientRect();
     if (last.bottom > barRect.top + 1 && last.top < barRect.bottom) problems.push({ rule: 5, lastCardUnderBar: Math.round(last.bottom - barRect.top) });
-    scrollTo(0, 0);
+    scrollTo({ top: 0, behavior: 'instant' });
     return problems;
   });
 }
@@ -459,6 +479,7 @@ try {
       page.on('pageerror', error => errors.push(error.message));
       await page.setViewportSize(zoom === 2 ? { width: 720, height: 450 } : { width: 1280, height: 900 });
       await page.setContent(html);
+      await page.addStyleTag({ content: 'html, * { scroll-behavior: auto !important; }' });
       await page.waitForSelector('input[type="file"]', { state: 'attached', timeout: 5000 });
       await page.setInputFiles('input[type="file"]', { name: 'vypis-rijen-2026.gpc', mimeType: 'application/octet-stream', buffer: Buffer.from('074') });
       if (fixture.fail) await page.waitForSelector('.form-error', { timeout: 5000 });

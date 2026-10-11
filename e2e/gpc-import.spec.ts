@@ -131,12 +131,11 @@ test.fixme("GPC preview can be reviewed and committed without rendering an unbou
     mimeType: "application/octet-stream",
     buffer: Buffer.from("mocked-gpc"),
   });
-  await expect(page.getByText(/VS 42 · Přesná shoda/)).toBeVisible();
   await expect(page.locator(".gpc-entry-list .gpc-entry")).toHaveCount(1);
-  await page
-    .getByRole("button", { name: "Uložit kontrolu a potvrdit import" })
-    .click();
-  await expect(page.getByText(/Import je dokončený: 1 plateb/)).toBeVisible({
+  await expect(page.locator(".gpc-entry")).toContainText("Var. symbol 42");
+  await page.getByRole("button", { name: "Zaúčtovat 1 platbu" }).click();
+  await page.getByRole("button", { name: "Zaúčtovat", exact: true }).click();
+  await expect(page.getByText(/Průběh byl uložen|Import proběhl úspěšně/)).toBeVisible({
     timeout: 15_000,
   });
 });
@@ -157,6 +156,7 @@ test("nahrávací část importu výpisů je dostupná a vysvětluje postup", as
   const input = page.locator('input[type="file"][accept*=".gpc"]');
   await expect(input).toHaveCount(1);
 
-  // Kroky průvodce dávají uživateli vědět, co ho čeká, než potvrdí peníze.
-  await expect(page.locator(".import-steps")).toBeVisible();
+  // Postup dává uživateli vědět, co ho čeká, než potvrdí peníze
+  // (na úzkém displeji je karta s postupem skrytá, zůstává poznámka).
+  await expect(page.getByText("Nic se nezapíše, dokud platby sami nezaúčtujete.")).toBeVisible();
 });

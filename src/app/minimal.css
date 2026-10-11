@@ -685,6 +685,8 @@ tr:hover td { background: #fafbf9; }
    kontejnerem, který sticky náhled „zamrazí“. clip před vodorovným posunem
    chrání stejně, ale scroll kontejner nevytváří. */
 html:has(.invoice-import-workspace.is-split), body:has(.invoice-import-workspace.is-split) { overflow-x: clip; }
+/* Totéž pro spodní lištu kontroly výpisu (position: sticky). */
+html:has(.gpc-panel.is-reviewing), body:has(.gpc-panel.is-reviewing), .content:has(.gpc-panel.is-reviewing) { overflow-x: clip; }
 .invoice-import-data-column { min-width: 0; }
 .invoice-import-data-column .standalone-form { width: 100%; }
 .invoice-import-preview-column {
