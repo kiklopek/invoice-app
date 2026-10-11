@@ -33,35 +33,39 @@ export type InvoiceDetailPageData = {
 export async function loadInvoiceDetailPageData(identity: RequestIdentity | null, id: string): Promise<InvoiceDetailPageData> {
   if (!identity) throw new PageDataError("Nejste přihlášený uživatel.", 401);
   const organizationId = identity.membership.organization_id;
-  const { data: invoice, error: invoiceError } = await identity.service.from("invoices")
-    .select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)")
-    .eq("id", id).eq("organization_id", organizationId).maybeSingle();
-  if (invoiceError) throw new PageDataError("Fakturu se nepodařilo načíst.", 500);
-  if (!invoice) throw new PageDataError("Faktura nebyla nalezena.", 404);
-
-  const [paymentsResult, historyResult, suppressionResult, eventsResult] = await Promise.all([
+  // Dřív tři kola za sebou: faktura -> (historie, upomínky, události) ->
+  // autoři událostí. Všechno kromě e-mailové blokace potřebuje jen id
+  // faktury, takže to jde naráz. Nic z toho se nevrátí, pokud faktura
+  // v této firmě neexistuje (kontrola níž), takže souběh nic neprozradí.
+  const [invoiceResult, paymentsResult, historyResult, eventsResult, membersResult] = await Promise.all([
+    identity.service.from("invoices")
+      .select("*, reminder_policy:reminder_policies!invoices_policy_same_org_fkey(name, archived_at)")
+      .eq("id", id).eq("organization_id", organizationId).maybeSingle(),
     loadInvoicePaymentHistory(identity.service, organizationId, id).then(
       (value) => ({ data: value, error: null }),
       (error) => ({ data: null, error }),
     ),
     identity.service.from("reminder_log").select("id, stage, scheduled_for, sent_at, sent_to, status, attempt_count, error_message, delivery_status, delivery_event_at, delivered_at, delivery_error")
-      .eq("invoice_id", id).order("scheduled_for", { ascending: false }),
-    identity.service.from("email_suppressions").select("reason, last_event_at").eq("organization_id", organizationId)
-      .eq("email", invoice.counterparty_email.toLowerCase()).maybeSingle(),
+      .eq("invoice_id", id).eq("organization_id", organizationId).order("scheduled_for", { ascending: false }),
     identity.service.from("invoice_events").select("id, actor_user_id, event_type, details, created_at")
       .eq("invoice_id", id).eq("organization_id", organizationId).order("created_at", { ascending: false }).limit(100),
+    // Autoři událostí: členů firmy je málo, levnější je vzít všechny než
+    // čekat na seznam autorů a ptát se znovu.
+    identity.service.from("organization_members").select("user_id, email")
+      .eq("organization_id", organizationId).not("user_id", "is", null).limit(1000),
   ]);
+  const { data: invoice, error: invoiceError } = invoiceResult;
+  if (invoiceError) throw new PageDataError("Fakturu se nepodařilo načíst.", 500);
+  if (!invoice) throw new PageDataError("Faktura nebyla nalezena.", 404);
+
+  const suppressionResult = await identity.service.from("email_suppressions").select("reason, last_event_at").eq("organization_id", organizationId)
+    .eq("email", invoice.counterparty_email.toLowerCase()).maybeSingle();
   if (paymentsResult.error || historyResult.error || suppressionResult.error || eventsResult.error) {
     throw new PageDataError("Údaje faktury se nepodařilo načíst.", 500);
   }
 
-  const actorIds = [...new Set((eventsResult.data ?? []).map(event => event.actor_user_id).filter((value): value is string => Boolean(value)))];
   const actors = new Map<string, string>();
-  if (actorIds.length) {
-    const { data: members } = await identity.service.from("organization_members").select("user_id, email")
-      .eq("organization_id", organizationId).in("user_id", actorIds);
-    for (const member of members ?? []) if (member.user_id) actors.set(member.user_id, member.email);
-  }
+  for (const member of membersResult.data ?? []) if (member.user_id) actors.set(member.user_id, member.email);
   const events = (eventsResult.data ?? []).map(event => ({
     id: event.id,
     event_type: event.event_type,
