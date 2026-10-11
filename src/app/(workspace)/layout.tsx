@@ -7,7 +7,6 @@ import { routeFor } from "@/lib/access-state";
 import { billingNotice } from "@/lib/billing";
 import { loadSubscription } from "@/lib/billing-server";
 import { SubscriptionBanner } from "@/components/subscription-banner";
-import { RouterCacheInvalidator } from "@/components/router-cache-invalidator";
 import { displayName } from "@/lib/user-display";
 import type { AccessProfile } from "@/lib/use-access-role";
 
@@ -25,13 +24,9 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   }
   if (identity) {
     const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
-    // Firma a předplatné na sobě nezávisí: dřív se čekalo na jedno, pak na
-    // druhé -- o jedno kolo k databázi víc při každém načtení stránky.
-    const [{ data: organization }, subscription] = await Promise.all([
-      identity.service.from("organizations").select("name, logo_path").eq("id", identity.membership.organization_id).single(),
-      loadSubscription(identity.service, identity.membership.organization_id),
-    ]);
+    const { data: organization } = await identity.service.from("organizations").select("name, logo_path").eq("id", identity.membership.organization_id).single();
     cacheKey = `${identity.membership.organization_id}:${identity.user.id}`;
+    const subscription = await loadSubscription(identity.service, identity.membership.organization_id);
     // Firma bez zadané karty (P12: needs_payment) dokončí platbu v onboardingu.
     if (subscription.state === "needs_payment") {
       const decision = routeFor("needs_payment", "/dashboard");
@@ -53,7 +48,6 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     <WorkspaceDataProvider key={cacheKey}>
       <ToastProvider>
         <AppShell initialProfile={initialProfile}>
-          <RouterCacheInvalidator />
           <SubscriptionBanner notice={notice} canManage={initialProfile?.role === "admin"} />
           {children}
         </AppShell>
