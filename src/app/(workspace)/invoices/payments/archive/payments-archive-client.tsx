@@ -8,8 +8,10 @@ import { confirmAction } from "@/lib/confirm-action";
 import { apiFetch } from "@/lib/api-client";
 import type { PaymentsPageData, PaymentsPagePayment, PaymentsPageOpenInvoice } from "@/lib/payments-page-data";
 import { proposePaymentMatch } from "@/lib/payment-matching";
+import { REVIEW_COPY } from "@/lib/payment-review-copy";
 import { StatementArchive } from "./statement-archive";
 import { PaymentAssistancePanel } from "./payment-assistance-panel";
+import styles from "./payments-archive.module.css";
 
 type SavedPayment = PaymentsPagePayment;
 type OpenInvoice = PaymentsPageOpenInvoice;
@@ -17,11 +19,12 @@ type PaymentSort = "default" | "amount_desc" | "amount_asc" | "name_asc" | "name
 
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("cs-CZ", { style: "currency", currency }).format(value);
+// Stejné stavy a slovesa jako kontrola výpisu (payment-review-copy).
 const statusLabel = {
   matched: "Spárováno",
-  split: "Rozděleno na více faktur",
-  unmatched: "Nenalezená faktura",
-  ambiguous: "Vyžaduje kontrolu",
+  split: "Spárováno s více fakturami",
+  unmatched: "Nespárováno",
+  ambiguous: "Potřebuje vaši odpověď",
 };
 const matchStatusOrder: Record<SavedPayment["match_status"], number> = {
   matched: 0,
@@ -137,9 +140,9 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
   async function unassign(payment: SavedPayment) {
     if (
       !await confirmAction({
-        title: "Uvolnit tuto platbu z faktury?",
-        description: "Zůstatek faktury a její upomínky se automaticky přepočítají.",
-        confirmLabel: "Uvolnit platbu",
+        title: "Odpárovat platbu od faktury?",
+        description: "Faktura bude znovu neuhrazená (nebo zčásti uhrazená) a její upomínky se přepočítají. Platbu pak můžete přiřadit jinak.",
+        confirmLabel: REVIEW_COPY.unbook,
       })
     )
       return;
@@ -156,7 +159,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
         body: JSON.stringify({ payment_id: payment.id }),
       });
       await refreshPayments();
-      setNotice(typeof data.remaining === "number" ? `Platba byla uvolněna. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.` : "Všechna přiřazení platby byla bezpečně uvolněna.");
+      setNotice(typeof data.remaining === "number" ? `Platba je odpárovaná. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.` : "Platba je odpárovaná od všech faktur.");
     } catch (cause) {
       setMessage(
         cause instanceof Error
@@ -223,7 +226,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
       <div className="payment-assignment">
         {suggested && (
           <small className="assignment-suggestion">
-            Navržená shoda podle VS a částky. Před potvrzením ji zkontrolujte.
+            Navrhujeme podle variabilního symbolu a částky. Před přiřazením zkontrolujte.
           </small>
         )}
         <select
@@ -245,7 +248,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
                 Number(invoice.amount) - Number(invoice.paid_amount),
                 invoice.currency,
               )}{" "}
-              · VS {invoice.variable_symbol || "—"}
+              · var. symbol {invoice.variable_symbol || "—"}
             </option>
           ))}
         </select>
@@ -262,7 +265,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
   }
 
   return (
-    <AppFrame className="content section-page payments-page payments-archive-page">
+    <AppFrame className={`content section-page payments-page payments-archive-page ${styles.archive}`}>
       <header className="section-header payments-archive-header">
         <div>
           <p>BANKOVNÍ PÁROVÁNÍ</p>
@@ -291,7 +294,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
             <input
               value={historyQuery}
               onChange={(event) => setHistoryQuery(event.target.value)}
-              placeholder="Protistrana, VS nebo číslo faktury"
+              placeholder="Plátce, variabilní symbol nebo číslo faktury"
             />
           </label>
           <label className="payments-history-sort">
@@ -314,10 +317,10 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
             {filteredHistory.map((payment) => (
               <article className={`payment-history-item ${payment.match_status}`} role="listitem" key={payment.id}>
                 <div className="payment-history-identity">
-                  <strong>{payment.counterparty_name || "Neznámá protistrana"}</strong>
+                  <strong>{payment.counterparty_name || "Plátce neuveden"}</strong>
                   <div className="payment-history-meta">
                     <time dateTime={payment.booked_on}>{payment.booked_on}</time>
-                    {payment.variable_symbol && <span>VS {payment.variable_symbol}</span>}
+                    {payment.variable_symbol && <span>Var. symbol {payment.variable_symbol}</span>}
                   </div>
                 </div>
                 <div className="payment-history-summary">
@@ -334,7 +337,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
                       </Link>)}
                       {canManage && (
                         <button type="button" className="btn secondary compact" disabled={working} onClick={() => unassign(payment)}>
-                          Uvolnit přiřazení
+                          {REVIEW_COPY.unbook}
                         </button>
                       )}
                     </div>

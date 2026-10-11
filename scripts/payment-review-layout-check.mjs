@@ -70,6 +70,7 @@ function collect(path) {
 }
 const shellId = collect(join(root, 'src/components/layout/app-shell.tsx'));
 const clientId = collect(join(root, 'src/app/(workspace)/invoices/payments/payments-client.tsx'));
+const archiveId = collect(join(root, 'src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx'));
 const fromReactDom = createRequire(require.resolve('react-dom/package.json'));
 const resolvePackage = (name) => { try { return require.resolve(`${name}/package.json`); } catch { return fromReactDom.resolve(`${name}/package.json`); } };
 const packageFile = (name, file) => readFileSync(join(dirname(resolvePackage(name)), 'cjs', file), 'utf8');
@@ -179,6 +180,35 @@ function scenario(name) {
   return { name, preview, detail, invoices, fail: name === 'error' };
 }
 
+// Platby a archiv: uložené platby ve všech stavech a seznam výpisů.
+function archiveScenario(name) {
+  const stress = name === 'archive-stress';
+  const invoices = Array.from({ length: stress ? 30 : 6 }, (_, index) => invoice(index, stress));
+  const statuses = ['matched', 'split', 'unmatched', 'ambiguous'];
+  const payments = Array.from({ length: stress ? 40 : 8 }, (_, index) => {
+    const status = statuses[index % 4];
+    const inv = invoices[index % invoices.length];
+    return {
+      id: `pay-${index}`, external_id: `ext-${index}`, booked_on: '2026-10-08',
+      amount: stress ? 999999999.99 : inv.amount, currency: 'CZK',
+      variable_symbol: inv.variable_symbol, counterparty_name: stress ? `${LONG} ${index}` : inv.counterparty_name,
+      match_status: status, source: index % 5 === 0 ? 'manual' : 'bank_import',
+      invoice_id: status === 'matched' ? inv.id : null,
+      match_reason: index % 7 === 0 ? 'Automaticky podle jména a částky' : null,
+      invoices: status === 'matched' ? { invoice_number: inv.invoice_number, counterparty_name: inv.counterparty_name } : null,
+      allocations: status === 'split' ? [inv, invoices[(index + 1) % invoices.length]].map(item => ({ invoice_id: item.id, amount: stress ? 499999999.99 : 1000, invoice_number: item.invoice_number, counterparty_name: item.counterparty_name })) : [],
+    };
+  });
+  const imports = Array.from({ length: stress ? 12 : 4 }, (_, index) => ({
+    id: `00000000-0000-4000-8000-00000000000${index % 10}`,
+    original_filename: stress ? `vypis-${'velmi-dlouhy-nazev-souboru-'.repeat(4)}${index}.gpc` : `vypis-${index + 1}-2026.gpc`,
+    status: ['review', 'committed', 'discarded', 'committed'][index % 4], revision: 1,
+    entry_count: 40, accepted_count: stress ? 123456 : 12, ignored_count: 3, error_count: index % 2,
+    created_at: '2026-10-08T10:00:00Z', committed_at: null,
+  }));
+  return { name, page: 'archive', invoices, payments, imports, detail: {}, preview: {} };
+}
+
 // ---------------------------------------------------------------- browser
 function pageHtml(fixture) {
   return `<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Párování – kontrola rozložení</title><style>${css}</style></head><body><div id="root"></div><script>${mountScript(fixture)}</script></body></html>`;
@@ -209,7 +239,7 @@ function mountScript(fixture) {
         if (fixture.fail) throw new ApiRequestError('Výpis se nepodařilo přečíst: soubor nemá platnou hlavičku výpisu (řádek 1). Zkontrolujte, že jde o export ve formátu GPC nebo CSV z internetového bankovnictví.', 400, 'invalid', 'req-0123456789abcdef');
         return delay(fixture.preview);
       }
-      if (path === '/api/payments/imports' && method === 'GET') return delay({ imports: [] });
+      if (path === '/api/payments/imports' && method === 'GET') return delay({ imports: fixture.imports || [], can_manage: true });
       if (path === '/api/payments/invoice-candidates') {
         const q = new URL(String(url), 'http://x').searchParams.get('q') || '';
         const list = fixture.invoices.filter(item => !q || (item.invoice_number + ' ' + item.counterparty_name + ' ' + item.variable_symbol).toLowerCase().includes(q.toLowerCase()));
@@ -254,10 +284,10 @@ function mountScript(fixture) {
       return module.exports;
     }
     const { AppShell } = load(${JSON.stringify(shellId)});
-    const { PaymentsClient } = load(${JSON.stringify(clientId)});
-    const initialData = { payments: [], open_invoices: fixture.invoices, can_manage: true, gpc_enabled: true, runtime_mode: 'production-database', assistance_flags: { camt: false } };
+    const initialData = { payments: fixture.payments || [], open_invoices: fixture.invoices, can_manage: true, gpc_enabled: true, runtime_mode: 'production-database' };
+    const Page = fixture.page === 'archive' ? load(${JSON.stringify(archiveId)}).PaymentsArchiveClient : load(${JSON.stringify(clientId)}).PaymentsClient;
     vendorRequire('react-dom/client').createRoot(document.getElementById('root')).render(
-      React.createElement(AppShell, { initialProfile: { role: 'admin', name: 'Účetní', email: 'ucetni@example.cz', companyName: 'Firma s.r.o.' } }, React.createElement(PaymentsClient, { initialData })));
+      React.createElement(AppShell, { initialProfile: { role: 'admin', name: 'Účetní', email: 'ucetni@example.cz', companyName: 'Firma s.r.o.' } }, React.createElement(Page, { initialData })));
   })();`;
 }
 // moduleClassName uses relative()/root in Node; the browser gets precomputed ids.
@@ -338,7 +368,7 @@ function measure({ width }) {
   const mainRect = main.getBoundingClientRect();
   const contentLeft = mainRect.left + parseFloat(mainStyle.paddingLeft);
   const contentRight = mainRect.right - parseFloat(mainStyle.paddingRight);
-  const columnParts = ['.payments-hero', '.gpc-panel', '.payment-review-summary', '.gpc-entry-list', '.payment-commit-bar, .gpc-confirm-bar'].map(selector => document.querySelector(selector)).filter(element => element && visible(element));
+  const columnParts = ['.payments-archive-header', '.payments-hero', '.gpc-panel', '.payment-review-summary', '.gpc-entry-list', '.payment-commit-bar, .gpc-confirm-bar'].map(selector => document.querySelector(selector)).filter(element => element && visible(element));
   const reference = columnParts[0]?.getBoundingClientRect();
   if (reference) {
     const leftGap = reference.left - contentLeft;
@@ -464,13 +494,13 @@ const executablePath = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium', 
 const browser = await chromium.launch({ executablePath, headless: true });
 const widths = quick ? [320, 390, 768, 1280, 1920] : [320, 360, 375, 390, 414, 430, 480, 600, 768, 820, 1024, 1180, 1280, 1366, 1440, 1600, 1920, 2560];
 const heights = quick ? [900] : [600, 900];
-const scenarios = ['normal', 'stress', 'empty', 'error', 'mismatch'];
-const shots = new Set(['normal@320', 'normal@390', 'normal@768', 'normal@1280', 'normal@1920', 'normal@zoom', 'mismatch@390', 'mismatch@1280', 'stress@390', 'stress@1440', 'error@390', 'empty@1280']);
+const scenarios = ['normal', 'stress', 'empty', 'error', 'mismatch', 'archive-normal', 'archive-stress'];
+const shots = new Set(['archive-normal@390', 'archive-normal@1280', 'archive-stress@390', 'normal@320', 'normal@390', 'normal@768', 'normal@1280', 'normal@1920', 'normal@zoom', 'mismatch@390', 'mismatch@1280', 'stress@390', 'stress@1440', 'error@390', 'empty@1280']);
 const results = [];
 const label = process.env.SHOT_LABEL || 'current';
 try {
   for (const name of scenarios) {
-    const fixture = scenario(name);
+    const fixture = name.startsWith('archive') ? archiveScenario(name) : scenario(name);
     const html = pageHtml(fixture).replace(moduleClassName.toString(), browserModuleClassName);
     writeFileSync(join(output, `${name}.html`), html);
     for (const zoom of [1, 2]) {
@@ -480,10 +510,15 @@ try {
       await page.setViewportSize(zoom === 2 ? { width: 720, height: 450 } : { width: 1280, height: 900 });
       await page.setContent(html);
       await page.addStyleTag({ content: 'html, * { scroll-behavior: auto !important; }' });
-      await page.waitForSelector('input[type="file"]', { state: 'attached', timeout: 5000 });
-      await page.setInputFiles('input[type="file"]', { name: 'vypis-rijen-2026.gpc', mimeType: 'application/octet-stream', buffer: Buffer.from('074') });
-      if (fixture.fail) await page.waitForSelector('.form-error', { timeout: 5000 });
-      else await page.waitForSelector(name === 'empty' ? '.gpc-preview' : '.gpc-entry', { timeout: 5000 });
+      if (fixture.page === 'archive') {
+        await page.waitForSelector('.payment-history-table', { timeout: 5000 });
+        await page.waitForSelector('.statement-archive-list', { timeout: 5000 });
+      } else {
+        await page.waitForSelector('input[type="file"]', { state: 'attached', timeout: 5000 });
+        await page.setInputFiles('input[type="file"]', { name: 'vypis-rijen-2026.gpc', mimeType: 'application/octet-stream', buffer: Buffer.from('074') });
+        if (fixture.fail) await page.waitForSelector('.form-error', { timeout: 5000 });
+        else await page.waitForSelector(name === 'empty' ? '.gpc-preview' : '.gpc-entry', { timeout: 5000 });
+      }
       await page.waitForTimeout(150);
       const sizes = zoom === 2 ? [[720, 450]] : widths.flatMap(width => heights.map(height => [width, height]));
       for (const [width, height] of sizes) {

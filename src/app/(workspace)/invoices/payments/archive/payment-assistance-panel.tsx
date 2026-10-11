@@ -8,6 +8,8 @@ import type { AssistanceFlags } from "@/lib/payment-assistance-flags";
 import type { AssistanceProposalRow, PayerMemoryRow, AssistanceJobRow } from "@/types/payment-assistance";
 import type { PaymentsPagePayment } from "@/lib/payments-page-data";
 import styles from "./payment-assistance.module.css";
+import { countLabel } from "@/lib/czech-plural";
+import { INVOICE_FORMS, PAYMENT_FORMS, REVIEW_COPY } from "@/lib/payment-review-copy";
 
 type Source = { id: string; counterparty_ico: string; customer_name: string; counterparty_account: string | null; counterparty_name: string | null; note: string | null; amount: number; currency: string };
 type Overview = {
@@ -17,7 +19,8 @@ type Overview = {
 };
 const endpoint = "/api/payments/assistance";
 const money = (amount: number, currency: string) => new Intl.NumberFormat("cs-CZ", { style:"currency",currency }).format(amount);
-const labels = { unique:"Návrh k potvrzení",ambiguous:"Nejednoznačné",waiting:"Chybí přesná shoda",complex:"Nutná ruční kontrola" };
+const labels = { unique:"Navrhujeme tuto fakturu",ambiguous:"Víc možných faktur",waiting:"Čeká na fakturu",complex:"Potřebuje vaši odpověď" };
+const scope = (payments: number, invoices: number) => `${countLabel(payments,PAYMENT_FORMS)} → ${countLabel(invoices,INVOICE_FORMS)}`;
 
 export function PaymentAssistancePanel({ flags, payments, onConfirmed }: { flags: AssistanceFlags; payments: PaymentsPagePayment[]; onConfirmed: () => Promise<void> }) {
   const [data,setData] = useState<Overview | null>(null);
@@ -50,7 +53,7 @@ export function PaymentAssistancePanel({ flags, payments, onConfirmed }: { flags
     if (accept) {
       const p = row.proposal;
       const amount = p.allocations.reduce((sum,a) => sum+a.amount,0);
-      if (!await confirmAction({ title:"Potvrdit navržené přiřazení?",description:`${p.payment_ids.length} plateb → ${p.invoice_ids.length} faktur, celkem ${money(amount,p.currency)}. Faktury budou označeny jako uhrazené.`,confirmLabel:"Potvrdit přiřazení" })) return;
+      if (!await confirmAction({ title:"Zaúčtovat navržené platby?",description:`${scope(p.payment_ids.length,p.invoice_ids.length)}, celkem ${money(amount,p.currency)}. Faktury se označí jako uhrazené; vrátit to lze tlačítkem „${REVIEW_COPY.unbook}“.`,confirmLabel:REVIEW_COPY.book,confirmVariant:"primary" })) return;
     }
     await mutate({ action:"decide",proposal_id:row.id,accept },accept);
   }
@@ -71,24 +74,24 @@ export function PaymentAssistancePanel({ flags, payments, onConfirmed }: { flags
   if (data?.flags.mode === "off") return null;
   return <section className={`page-panel ${styles.panel}`} aria-labelledby="assistance-title">
     <header className={styles.header}><div><h2 id="assistance-title">Nové návrhy párování</h2>
-      <p>{flags.mode === "shadow" ? "Probíhá porovnávání bez změny úhrad. Současné párování pokračuje." : "Tyto návrhy se zaúčtují až po vašem potvrzení. Současné párování pokračuje."}</p></div>
+      <p>{flags.mode === "shadow" ? "Návrhy se zatím jen zkoušejí a na faktury nic nezapisují." : "Návrhy se zaúčtují až po vašem potvrzení."}</p></div>
       <button type="button" className="btn secondary compact" disabled={working} onClick={() => mutate({ action:"reevaluate" })}>Znovu vyhodnotit</button>
     </header>
     {error && <p className="form-error" role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
-    {data?.job?.last_error && <p role="status">Vyhodnocení se nepodařilo dokončit. Fronta zachovala požadavek pro další pokus.</p>}
-    {data?.job && data.job.requested_generation > data.job.completed_generation && <p role="status">Nové vyhodnocení čeká na zpracování.</p>}
+    {data?.job?.last_error && <p role="status">Návrhy se teď nepodařilo připravit. Zkusíme to znovu automaticky.</p>}
+    {data?.job && data.job.requested_generation > data.job.completed_generation && <p role="status">Připravujeme nové návrhy…</p>}
     {flags.mode === "review" && data && <>
-      {!data.proposals.length && <p>Zatím nejsou nové návrhy. Použijte současné ruční přiřazení nebo spusťte nové vyhodnocení.</p>}
+      {!data.proposals.length && <p>Zatím nemáme žádné nové návrhy. Platby můžete přiřadit ručně výše.</p>}
       <div className={styles.list}>{data.proposals.map(row => {
         const p = row.proposal;
         return <article key={row.id} className={styles.card}>
-          <strong>{labels[p.kind]} · {p.payment_ids.length} plateb / {p.invoice_ids.length} faktur</strong><p>{p.reason}</p>
+          <strong>{labels[p.kind]} · {scope(p.payment_ids.length,p.invoice_ids.length)}</strong><p>{p.reason}</p>
           {p.snapshot.payments.map(payment => <p key={payment.id}>Platba {payment.booked_on} · {payment.counterparty_name || "Neznámý plátce"} · {money(payment.amount-payment.allocated_amount,payment.currency)}</p>)}
           {p.allocations.map(a => <p key={`${a.payment_id}:${a.invoice_id}`}>
             {p.snapshot.payments.find(payment => payment.id === a.payment_id)?.booked_on} → <Link href={`/invoices/${a.invoice_id}`}>Faktura {p.snapshot.invoices.find(i => i.id === a.invoice_id)?.invoice_number}</Link> · {money(a.amount,p.currency)}
           </p>)}
-          <div className={styles.actions}>{p.kind === "unique" && <button type="button" className="btn primary compact" disabled={working} onClick={() => decide(row,true)}>Potvrdit přiřazení</button>}
+          <div className={styles.actions}>{p.kind === "unique" && <button type="button" className="btn primary compact" disabled={working} onClick={() => decide(row,true)}>{REVIEW_COPY.book}</button>}
             <button type="button" className="btn secondary compact" disabled={working} onClick={() => decide(row,false)}>Odmítnout návrh</button></div>
         </article>;
       })}</div>
@@ -114,7 +117,7 @@ export function PaymentAssistancePanel({ flags, payments, onConfirmed }: { flags
           </div>
         </form>
       </details>}
-      <small>Potvrzeno: {data.metrics.confirmed} · odmítnuto: {data.metrics.rejected}. Seznamy zobrazují nejvýše 100 posledních položek.</small>
+      <small>Zaúčtováno z návrhů: {data.metrics.confirmed} · odmítnuto: {data.metrics.rejected}.</small>
     </>}
   </section>;
 }

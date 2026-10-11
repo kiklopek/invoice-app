@@ -21,21 +21,21 @@ describe("assistance review UI", () => {
   it("requires a concrete confirmation and refreshes the old ledger after accepting", async () => {
     mocks.fetch.mockResolvedValue({ ...base,proposals:[proposal] }); mocks.confirm.mockResolvedValue(true);
     await act(async () => root.render(<PaymentAssistancePanel flags={base.flags} payments={[]} onConfirmed={refreshed} />));
-    await click("Potvrdit přiřazení");
-    expect(mocks.confirm.mock.calls[0][0].description).toContain("2 plateb → 1 faktur");
+    await click("Zaúčtovat");
+    expect(mocks.confirm.mock.calls[0][0].description).toContain("2 platby → 1 faktura");
     expect(mocks.fetch.mock.calls.some(([,options]) => options?.body===JSON.stringify({ action:"decide",proposal_id:"proposal",accept:true }))).toBe(true);
     expect(refreshed).toHaveBeenCalledOnce();
   });
   it("cancellation never writes an allocation", async () => {
     mocks.fetch.mockResolvedValue({ ...base,proposals:[proposal] }); mocks.confirm.mockResolvedValue(false);
     await act(async () => root.render(<PaymentAssistancePanel flags={base.flags} payments={[]} onConfirmed={refreshed} />));
-    await click("Potvrdit přiřazení");
+    await click("Zaúčtovat");
     expect(mocks.fetch.mock.calls.some(([,options]) => options?.method==="POST")).toBe(false);
   });
   it("does not provide a confirm action for ambiguous proposals", async () => {
     mocks.fetch.mockResolvedValue({ ...base,proposals:[{ ...proposal,proposal:{ ...proposal.proposal,kind:"ambiguous" } }] });
     await act(async () => root.render(<PaymentAssistancePanel flags={base.flags} payments={[]} onConfirmed={refreshed} />));
-    expect([...host.querySelectorAll("button")].some(b => b.textContent==="Potvrdit přiřazení")).toBe(false);
+    expect([...host.querySelectorAll("button")].some(b => b.textContent==="Zaúčtovat")).toBe(false);
   });
   it("shows a failed request while leaving the old ledger usable", async () => {
     mocks.fetch.mockRejectedValue(new Error("Návrhy nejsou dostupné."));

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { apiFetch } from "@/lib/api-client";
 import { confirmAction } from "@/lib/confirm-action";
+import { czechPlural } from "@/lib/czech-plural";
 
 type ArchiveItem = {
   id: string;
@@ -19,11 +20,11 @@ type ArchiveItem = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  committed: "Potvrzeno",
+  committed: "Zaúčtováno",
   discarded: "Zahozeno",
   failed: "Chyba zpracování",
   committing: "Zaúčtovává se",
-  review: "Ke kontrole",
+  review: "Potřebuje vaši odpověď",
 };
 
 // Zahodit jde jen výpis, ze kterého ještě nevznikly platby. Stav 'committing'
@@ -103,13 +104,19 @@ export function StatementArchive() {
                 <span>{new Date(item.created_at).toLocaleString("cs-CZ")}</span>
               </div>
               <div className="statement-file-stats">
-                <span><strong>{item.accepted_count}</strong> přijatých</span>
-                <span className={item.error_count ? "has-errors" : ""}><strong>{item.error_count}</strong> chyb</span>
+                <span><strong>{item.accepted_count}</strong> {czechPlural(item.accepted_count, ["příchozí platba", "příchozí platby", "příchozích plateb"])}</span>
+                {item.error_count > 0 && <span className="has-errors"><strong>{item.error_count}</strong> {czechPlural(item.error_count, ["chybný řádek", "chybné řádky", "chybných řádků"])}</span>}
               </div>
               <div className="statement-file-actions">
                 <span className={`statement-status ${item.status === "committed" ? "committed" : item.status === "discarded" ? "discarded" : "review"}`}>
                   {STATUS_LABELS[item.status] ?? "Ke kontrole"}
                 </span>
+                {/* Rozpracovaný výpis šel dřív jen zahodit; teď se k němu dá vrátit. */}
+                {canManage && item.status === "review" && (
+                  <a className="btn primary compact statement-continue" href={`/invoices/payments?import=${item.id}`}>
+                    Pokračovat v kontrole
+                  </a>
+                )}
                 {canManage && DISCARDABLE.has(item.status) && (
                   <button
                     type="button"

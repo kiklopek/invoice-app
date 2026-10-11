@@ -94,11 +94,12 @@ describe("MFA and bank statement UI regressions", () => {
     expect(paymentsArchivePage.indexOf('id="historie-plateb"')).toBeLessThan(
       paymentsArchivePage.indexOf("<StatementArchive"),
     );
-    expect(paymentsArchivePage).toContain('<span className="payments-section-number">01</span>');
+    // Číslo sekce z archivu záměrně zmizelo při sjednocení záhlaví (c692494).
     // Nahrávací podstránka obsahuje jen import výpisu a přepínač na archiv.
     expect(paymentsUploadPage).toContain('href="/invoices/payments/archive"');
     expect(paymentsUploadPage).not.toContain('id="historie-plateb"');
-    expect(gpcImport).toContain('<span className="payments-section-number">03</span>');
+    // Archiv výpisů je jen na podstránce Platby a archiv, ne podruhé u nahrávání.
+    expect(gpcImport).not.toContain('id="archiv-vypisu"');
     expect(css).toContain(".payments-page .payments-history { order: 1; }");
     expect(css).toContain(".payments-page .import-archive { order: 2; }");
     expect(css).toContain(".payments-archive-page .payment-history-table { display: grid;");

@@ -1,0 +1,102 @@
+/*
+ * Platby a archiv: stejná pravidla jako kontrola výpisu
+ * (review/payment-review.module.css) -- písmo min. 12 px, ovládací prvky
+ * min. 44 px, částky se nezalamují, názvy ano, řádky se skládají podle
+ * šířky seznamu (container query), ne okna. Hlídá to
+ * scripts/payment-review-layout-check.mjs (scénáře archive-*).
+ *
+ * `.archive.archive` zvedá specifičnost nad starší pravidla v minimal.css.
+ */
+.archive.archive {
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --label: 12px;
+  --text: 14px;
+}
+
+/* ------------------------------------------------------------ záhlaví */
+.archive.archive :global(.payments-switch-copy small) { font-size: var(--label); }
+.archive.archive :global(.payments-section-number) { font-size: var(--label); }
+.archive.archive :global(.payments-section-heading > small) { font-size: var(--label); }
+.archive.archive :global(.payments-record-count) { font-size: var(--label); }
+.archive.archive :global(.form-error),
+.archive.archive :global(.form-success) { font-size: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------ platby */
+.archive.archive :global(.payment-history-table) { container: history / inline-size; }
+.archive.archive :global(.payment-history-item) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.archive.archive :global(.payment-history-identity),
+.archive.archive :global(.payment-history-summary),
+.archive.archive :global(.payment-history-action) { grid-column: auto; grid-row: auto; min-width: 0; }
+.archive.archive :global(.payment-history-identity > strong) { font-size: 15px; overflow-wrap: anywhere; }
+.archive.archive :global(.payment-history-summary) { justify-items: start; }
+/* Poznámky pod částkou nesmí roztáhnout sloupec částky přes jméno plátce. */
+.archive.archive :global(.payment-history-summary > small) { max-width: 32ch; }
+.archive.archive :global(.payment-history-summary > strong) { font-size: clamp(17px, 1.4vw, 21px); white-space: nowrap; overflow-wrap: normal; }
+.archive.archive :global(.payment-history-summary > small) { font-size: var(--label); line-height: 1.45; }
+.archive.archive :global(.payment-match) { font-size: var(--label); }
+.archive.archive :global(.payment-history-action) { padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.archive.archive :global(.payment-history-action .payment-assignment) { grid-template-columns: minmax(0, 1fr); }
+.archive.archive :global(.payment-history-action .payment-assignment select) { min-height: 44px; font-size: var(--text); }
+.archive.archive :global(.payment-history-action .payment-assignment .btn) { grid-column: auto; grid-row: auto; justify-self: stretch; width: 100%; max-width: none; min-height: 44px; padding: 10px 16px; font-size: var(--text); }
+.archive.archive :global(.payment-history-action .assignment-suggestion),
+.archive.archive :global(.payment-history-action .assignment-help) { font-size: var(--label); line-height: 1.45; }
+.archive.archive :global(.payment-history-action .matched-payment a) { font-size: 13px; min-height: 44px; }
+.archive.archive :global(.payment-history-action .matched-payment a strong) { white-space: nowrap; overflow-wrap: normal; }
+
+@container history (min-width: 560px) {
+  .archive.archive :global(.payment-history-item) { grid-template-columns: minmax(0, 1fr) fit-content(45%); gap: var(--space-3) var(--space-4); }
+  .archive.archive :global(.payment-history-summary) { justify-items: end; text-align: right; }
+  .archive.archive :global(.payment-history-action) { grid-column: 1 / -1; }
+  .archive.archive :global(.payment-history-action .payment-assignment) { grid-template-columns: minmax(0, 1fr) auto; }
+  .archive.archive :global(.payment-history-action .payment-assignment .btn) { width: auto; }
+  .archive.archive :global(.payment-history-action .assignment-suggestion) { grid-column: 1 / -1; }
+}
+@container history (min-width: 960px) {
+  .archive.archive :global(.payment-history-item) { grid-template-columns: minmax(0, 1.2fr) fit-content(30%) minmax(260px, 1fr); gap: var(--space-4) 20px; }
+  .archive.archive :global(.payment-history-action) { grid-column: auto; padding-top: 0; border-top: 0; }
+}
+
+/* ------------------------------------------------------------ archiv výpisů */
+.archive.archive :global(.statement-archive-list) { container: statements / inline-size; }
+.archive.archive :global(.statement-archive-item) {
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  transform: none;
+}
+.archive.archive :global(.statement-file-icon) { width: 44px; height: 44px; }
+.archive.archive :global(.statement-file-main) { grid-column: 2; grid-row: 1; }
+.archive.archive :global(.statement-file-main strong) {
+  font-size: var(--text);
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.archive.archive :global(.statement-file-main span) { font-size: var(--label); }
+.archive.archive :global(.statement-file-stats) { grid-column: 1 / -1; grid-row: auto; display: flex; flex-wrap: wrap; gap: 4px var(--space-4); }
+.archive.archive :global(.statement-file-stats span) { font-size: 13px; white-space: normal; }
+.archive.archive :global(.statement-file-stats strong) { font-size: var(--text); white-space: nowrap; }
+.archive.archive :global(.statement-file-actions) { grid-column: 1 / -1; grid-row: auto; align-self: auto; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: var(--space-2); }
+.archive.archive :global(.statement-status) { font-size: var(--label); white-space: normal; }
+.archive.archive :global(.statement-file-actions .btn) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; font-size: var(--text); white-space: normal; text-align: center; text-decoration: none; }
+.archive.archive :global(.statement-file-actions .statement-continue) { flex: 1 1 200px; }
+.archive.archive :global(.statement-download) { width: 44px; height: 44px; flex: 0 0 44px; }
+
+@container statements (min-width: 860px) {
+  .archive.archive :global(.statement-archive-item) { grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, .8fr) auto; gap: var(--space-4); }
+  .archive.archive :global(.statement-file-stats) { grid-column: 3; grid-row: 1; }
+  .archive.archive :global(.statement-file-actions) { grid-column: 4; grid-row: 1; flex-wrap: nowrap; justify-content: flex-end; }
+  .archive.archive :global(.statement-file-actions .statement-continue) { flex: 0 0 auto; }
+}
