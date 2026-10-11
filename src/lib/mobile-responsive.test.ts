@@ -43,6 +43,19 @@ describe("mobile application layout", () => {
     expect(css).toContain("grid-template-rows: minmax(0, 1fr)");
   });
 
+  // Čip s trojúhelníkem u „Vyžaduje pozornost“: na desktopu byl absolutně
+  // umístěný a překrýval konec nadpisu; velikost se neřídila šířkou panelu.
+  it("keeps the attention chip in the header flow and sizes it by the panel width", () => {
+    const dashboardCss = source("src/app/(workspace)/dashboard/dashboard-summary.module.css");
+    const chipRules = [...dashboardCss.matchAll(/:global\(\.dashboard-attention-count\)\s*\{([^}]*)\}/g)].map((match) => match[1]).join("\n");
+    expect(chipRules).not.toMatch(/position:\s*absolute/);
+    expect(dashboardCss).toMatch(/:global\(\.dashboard-attention-panel\)\s*\{[^}]*container-type:\s*inline-size/);
+    expect(chipRules).toMatch(/font-size:\s*clamp\([^)]*cqi/);
+    expect(dashboardCss).toMatch(/:global\(\.dashboard-attention-count svg\)\s*\{[^}]*width:\s*1\.15em/);
+    // Pevný kruh 32×32 px už nemá s pilulkou soupeřit.
+    expect(css).not.toMatch(/\.dashboard-attention-count\s*\{[^}]*width:\s*32px/);
+  });
+
   it("keeps the attention count in the compact header without a redundant list subtitle", () => {
     expect(dashboardPage).toContain('className="dashboard-attention-count"');
     expect(dashboardPage).toContain('className="dashboard-invoice-compact-list"');

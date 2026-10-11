@@ -267,30 +267,43 @@
     font-size: 12px;
     white-space: normal;
   }
-  .page.page :global(.dashboard-attention-panel .panel-head > div) {
-    flex: 1 1 160px;
+  /* Čip s trojúhelníkem u „Vyžaduje pozornost“ se řídí šířkou panelu
+   * (container query), ne oknem: v úzkém sloupci vedle tabulky je menší,
+   * v širokém panelu větší. Zůstává v toku hlavičky vedle nadpisu -- nadpis
+   * se zalomí, čip se nesmrskne a nikdy ho nepřekryje. */
+  .page.page :global(.dashboard-attention-panel) {
+    container-type: inline-size;
   }
-  /* Drobný čip vedle nadpisu: velikost se odvozuje od písma nadpisu panelu,
-   * aby nepřerůstal štítek „PRIORITY“ ani na telefonu, ani na desktopu. */
+  .page.page :global(.dashboard-attention-panel .panel-head) {
+    align-items: flex-start;
+  }
+  .page.page :global(.dashboard-attention-panel .panel-head > div) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .page.page :global(.dashboard-attention-count) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: auto;
-    height: auto;
-    min-height: 0;
     flex: 0 0 auto;
     align-self: flex-start;
-    gap: 4px;
-    padding: 3px 8px;
-    font-size: clamp(11px, 1vw, 12px);
+    gap: 0.35em;
+    padding: 0.25em 0.7em;
+    font-size: clamp(11px, 3.2cqi, 14px);
     line-height: 1.4;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
+  @supports not (container-type: inline-size) {
+    .page.page :global(.dashboard-attention-count) {
+      font-size: clamp(11px, 1vw, 12px);
+    }
+  }
   .page.page :global(.dashboard-attention-count svg) {
-    width: 1.1em;
-    height: 1.1em;
+    width: 1.15em;
+    height: 1.15em;
     flex: 0 0 auto;
+  }
+  /* Čára trojúhelníku zůstane ostrá v každé velikosti čipu. */
+  .page.page :global(.dashboard-attention-count svg *) {
+    vector-effect: non-scaling-stroke;
   }
   .page.page :global(.dashboard-invoice-table),
   .page.page :global(.dashboard-attention-panel .timeline) {
@@ -508,18 +521,6 @@
     .page.page :global(.panel-head) {
       flex: 0 0 auto;
       padding: 16px;
-    }
-    .page.page :global(.dashboard-attention-panel .panel-head) {
-      position: relative;
-    }
-    .page.page :global(.dashboard-attention-panel .dashboard-panel-eyebrow) {
-      min-height: 28px;
-      padding-right: 64px;
-    }
-    .page.page :global(.dashboard-attention-count) {
-      position: absolute;
-      top: 16px;
-      right: 16px;
     }
     .page.page :global(.dashboard-invoice-table),
     .page.page :global(.dashboard-attention-panel .timeline) {

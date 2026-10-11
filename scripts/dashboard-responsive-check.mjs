@@ -33,6 +33,8 @@ function load(path) {
     if (name.endsWith('.css')) return stubs[name] || {};
     if (stubs[name]) return stubs[name];
     if (name === 'react' || name === 'react/jsx-runtime') return require(name);
+    // Doplňky shellu, které rozložení nástěnky neovlivňují (asistent apod.).
+    if (name.startsWith('@/components/')) return new Proxy({}, { get: (_target, key) => key === '__esModule' ? true : () => null });
     throw new Error(`Unexpected UI dependency: ${name}`);
   } }, { filename: path });
   return mod.exports;
@@ -63,7 +65,10 @@ function htmlFor(stress, empty = false, error = false) {
 }
 // Mount the same components in the browser to verify their real event handlers.
 function browserFixture() {
-  const packageFile = (name, file) => readFileSync(join(dirname(require.resolve(`${name}/package.json`)), 'cjs', file), 'utf8');
+  // pnpm: scheduler je závislost react-dom, ne projektu -- hledá se od react-dom.
+  const fromReactDom = createRequire(require.resolve('react-dom/package.json'));
+  const resolvePackage = (name) => { try { return require.resolve(`${name}/package.json`); } catch { return fromReactDom.resolve(`${name}/package.json`); } };
+  const packageFile = (name, file) => readFileSync(join(dirname(resolvePackage(name)), 'cjs', file), 'utf8');
   const sources = {
     react: packageFile('react', 'react.production.js'),
     'react/jsx-runtime': packageFile('react', 'react-jsx-runtime.production.js'),
@@ -99,6 +104,7 @@ function browserFixture() {
       if (stubs[name]) return stubs[name];
       if (name.endsWith('.css')) return {};
       if (cache[name]) return cache[name].exports;
+      if (!sources[name] && name.startsWith('@/components/')) return new Proxy({}, { get: (_target, key) => key === '__esModule' ? true : () => null });
       if (!sources[name]) throw new Error('Unknown browser dependency: ' + name);
       const module = cache[name] = { exports: {} };
       new Function('module', 'exports', 'require', 'process', sources[name])(module, module.exports, require, { env: { NODE_ENV: 'production' } });
@@ -184,6 +190,24 @@ try {
             const rect = element.getBoundingClientRect();
             if (!rect.width || !rect.height) continue;
             if (rect.left < -1 || rect.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 2) problems.push({ element: element.className || element.tagName, text: element.textContent.slice(0, 30), width: Math.round(rect.width), scrollWidth: element.scrollWidth });
+          }
+          // Čip s trojúhelníkem u „Vyžaduje pozornost“: nesmí překrýt nadpis,
+          // vyčnívat z panelu ani se smrsknout; ikona roste s čipem.
+          const chip = document.querySelector('.dashboard-attention-count');
+          const chipTitle = document.querySelector('.dashboard-attention-panel .panel-head h2');
+          if (chip && chip.getClientRects().length && chipTitle) {
+            const c = chip.getBoundingClientRect();
+            // Skutečný text nadpisu (h2 je blok přes celou šířku hlavičky).
+            const titleRange = document.createRange();
+            titleRange.selectNodeContents(chipTitle);
+            const t = titleRange.getBoundingClientRect();
+            const panelRect = chip.closest('.dashboard-attention-panel').getBoundingClientRect();
+            const icon = chip.querySelector('svg').getBoundingClientRect();
+            const chipFont = parseFloat(getComputedStyle(chip).fontSize);
+            if (Math.min(c.right, t.right) > Math.max(c.left, t.left) + 1 && Math.min(c.bottom, t.bottom) > Math.max(c.top, t.top) + 1) problems.push({ chipOverlapsTitle: true, chip: [Math.round(c.left), Math.round(c.right)], title: [Math.round(t.left), Math.round(t.right)] });
+            if (c.right > panelRect.right + 1 || c.left < panelRect.left - 1) problems.push({ chipOutsidePanel: true });
+            if (icon.width < 12 || icon.height < 12 || Math.abs(icon.width - chipFont * 1.15) > 1.5) problems.push({ chipIconNotProportional: Math.round(icon.width), chipFont });
+            if (chip.scrollWidth > chip.clientWidth + 1 || c.height < icon.height) problems.push({ chipSquashed: true });
           }
           for (const panel of document.querySelectorAll('.invoice-panel, .dashboard-attention-panel')) {
             const list = panel.querySelector('.dashboard-invoice-table, .timeline');

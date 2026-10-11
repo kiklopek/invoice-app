@@ -529,7 +529,8 @@ input:focus, select:focus, textarea:focus,
 .dashboard-attention-panel .panel-head h2 { font-size: 21px; line-height: 1.2; letter-spacing: -.025em; }
 .dashboard-attention-panel .panel-head p { margin-top: 7px; font-size: 11px; line-height: 1.45; }
 .dashboard-panel-eyebrow { display: block; margin-bottom: 8px; color: var(--green); font-size: 9px; font-weight: 800; letter-spacing: 1.5px; }
-.dashboard-attention-count { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border: 1px solid #e9c34d; border-radius: 999px; background: #ffe58a; color: #694900; font-size: 11px; font-weight: 750; }
+/* Čip „trojúhelník + počet“: pilulka, velikost a umístění řídí dashboard-summary.module.css. */
+.dashboard-attention-count { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: .35em; padding: .25em .7em; border: 1px solid #e9c34d; border-radius: 999px; background: #ffe58a; color: #694900; font-size: 11px; font-weight: 750; line-height: 1.4; white-space: nowrap; }
 .dashboard-timeline-item:focus-visible { outline: 3px solid rgba(52,120,83,.18); outline-offset: 2px; }
 .dashboard-attention-panel .timeline {
   padding: 0 14px 18px; }
