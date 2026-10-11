@@ -1,7 +1,6 @@
 import { Fragment, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Caveat, Inter } from "next/font/google";
 import {
   ArrowRight,
   Bank,
@@ -20,28 +19,15 @@ import {
   Zap,
 } from "./landing-icons";
 import { I18nProvider } from "@/i18n/client";
-import type { Dictionary } from "@/i18n/dictionaries";
+import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { formatCzk, formatDate } from "@/i18n/format";
 import { LanguageSwitcher } from "@/i18n/language-switcher";
 import type { Locale } from "@/i18n/locales";
-import { getDictionary, getLocale } from "@/i18n/server";
 import { CountUp } from "./count-up";
 import { LandingMotion } from "./landing-motion";
 import { LandingVideo } from "./landing-video";
 import { Pricing } from "./pricing";
 import styles from "./landing.module.css";
-
-const inter = Inter({
-  subsets: ["latin", "latin-ext"],
-  variable: "--lp-font-sans",
-  display: "swap",
-});
-const caveat = Caveat({
-  subsets: ["latin", "latin-ext"],
-  weight: ["500", "600"],
-  variable: "--lp-font-hand",
-  display: "swap",
-});
 
 // Landing je vstupní brána aplikace: výzvy vedou na registraci (založení
 // firemního účtu), přihlášení na obecné /login. Firemní vstupy (/hlavica)
@@ -50,6 +36,8 @@ const caveat = Caveat({
 const CONTACT_HREF = "mailto:info@splatno.cz";
 const TRIAL_HREF = "/register";
 const LOGIN_HREF = "/login";
+// Česká landing je `/`, anglická `/en`; obě se generují dopředu.
+const HOME_HREF: Record<Locale, string> = { cs: "/", en: "/en" };
 
 const NAV = [
   { href: "#jak-to-funguje", key: "how" },
@@ -269,18 +257,17 @@ function DashboardPreview({ t, locale }: { t: Dictionary; locale: Locale }) {
   );
 }
 
-export async function LandingPage() {
-  const locale = await getLocale();
+export function LandingPage({ locale }: { locale: Locale }) {
   const t = getDictionary(locale);
   const { header, hero, problem, how, attention: attentionCopy, audience, final, footer } = t.landing;
 
   return (
     <I18nProvider locale={locale}>
-      <div className={`${styles.page} ${inter.variable} ${caveat.variable}`}>
+      <div className={styles.page}>
         <LandingMotion />
         <header className={styles.header}>
           <div className={`${styles.container} ${styles.headerInner}`}>
-            <Link href="/" aria-label={header.homeAria}>
+            <Link href={HOME_HREF[locale]} aria-label={header.homeAria}>
               <Logo />
             </Link>
             <nav className={styles.nav} aria-label={header.navAria}>
@@ -291,7 +278,7 @@ export async function LandingPage() {
               ))}
             </nav>
             <div className={styles.headerActions}>
-              <LanguageSwitcher className={styles.headerSwitcher} />
+              <LanguageSwitcher className={styles.headerSwitcher} hrefs={HOME_HREF} />
               <Link href={LOGIN_HREF} className={styles.loginLink}>
                 {header.login}
               </Link>
@@ -312,7 +299,7 @@ export async function LandingPage() {
               <div className={styles.heroCopy}>
                 <div className={styles.heroTop}>
                   <span className={styles.eyebrowSoft}>{hero.eyebrow}</span>
-                  <LanguageSwitcher className={styles.heroSwitcher} />
+                  <LanguageSwitcher className={styles.heroSwitcher} hrefs={HOME_HREF} />
                 </div>
                 <h1 className={styles.h1}>
                   {hero.titleLine1} <br />
@@ -351,6 +338,9 @@ export async function LandingPage() {
                     height={554}
                     className={styles.trustMascot}
                     sizes="140px"
+                    // Hlavní obsah (LCP) na mobilu. Zůstává lazy, takže na
+                    // desktopu, kde je skrytý, se nestáhne vůbec.
+                    fetchPriority="high"
                   />
                 </div>
               </div>
@@ -363,7 +353,11 @@ export async function LandingPage() {
                   width={640}
                   height={554}
                   className={styles.heroMascot}
-                  loading="eager"
+                  sizes="250px"
+                  // Na mobilu je skrytý: bez eager/preload se tam nestáhne;
+                  // na desktopu se načte s vysokou prioritou (Next 16 docs,
+                  // Image: „use fetchPriority="high"“ místo eager u skrytých).
+                  fetchPriority="high"
                 />
                 <p className={`${styles.hand} ${styles.heroHand}`}>
                   {hero.hand1}
@@ -591,7 +585,7 @@ export async function LandingPage() {
               <a href="#cenik">{footer.pricing}</a>
               <a href={CONTACT_HREF}>{footer.contact}</a>
             </nav>
-            <LanguageSwitcher className={styles.footerSwitcher} />
+            <LanguageSwitcher className={styles.footerSwitcher} hrefs={HOME_HREF} />
             <small className={styles.muted}>© {new Date().getFullYear()} Splatno</small>
           </div>
         </footer>

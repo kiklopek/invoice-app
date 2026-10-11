@@ -12,9 +12,10 @@ function rememberLocale(locale: Locale) {
   document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
 }
 
-// Přepínač CZ | EN. Volbu uloží do cookie a nechá server stránku
-// přerenderovat; adresa i rozepsaný formulář zůstanou.
-export function LanguageSwitcher({ className }: { className?: string }) {
+// Přepínač CZ | EN. Volbu uloží do cookie (převezme ji přihlášení). S `hrefs`
+// přejde na stránku daného jazyka -- landing má pevnou `/` a `/en`, aby se
+// generovala dopředu; bez nich nechá server stránku přerenderovat.
+export function LanguageSwitcher({ className, hrefs }: { className?: string; hrefs?: Record<Locale, string> }) {
   const { locale, t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -22,7 +23,10 @@ export function LanguageSwitcher({ className }: { className?: string }) {
   function choose(next: Locale) {
     if (next === locale || pending) return;
     rememberLocale(next);
-    startTransition(() => router.refresh());
+    startTransition(() => {
+      if (hrefs) router.push(hrefs[next]);
+      else router.refresh();
+    });
   }
 
   return (

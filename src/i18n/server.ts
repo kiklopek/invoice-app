@@ -1,14 +1,15 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
-import { dictionaries, type Dictionary } from "./dictionaries";
+import { cookies } from "next/headers";
 import { LOCALE_COOKIE, resolveLocale, type Locale } from "./locales";
 
-/** Jazyk veřejné části pro aktuální požadavek: cookie, jinak jazyk prohlížeče. */
-export async function getLocale(): Promise<Locale> {
-  const [cookieStore, headerList] = await Promise.all([cookies(), headers()]);
-  return resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value, headerList.get("accept-language"));
-}
+export { getDictionary } from "./dictionaries";
 
-export function getDictionary(locale: Locale): Dictionary {
-  return dictionaries[locale];
+/**
+ * Jazyk přihlašovacích stránek pro aktuální požadavek: volba z přepínače na
+ * landing page, jinak čeština. Landing sama tohle nevolá (čtení cookies by z
+ * ní udělalo dynamickou stránku); má pevnou `/` (cs) a `/en`.
+ */
+export async function getLocale(): Promise<Locale> {
+  const cookieStore = await cookies();
+  return resolveLocale(cookieStore.get(LOCALE_COOKIE)?.value);
 }

@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n/client";
 import { getDictionary, getLocale } from "@/i18n/server";
 
-// Přihlášení, registrace a obnova hesla jdou přepnout CZ/EN (přepínač
-// v AuthShell). Aplikace po přihlášení zůstává česky.
+// Přihlášení, registrace a obnova hesla mluví jazykem zvoleným na landing
+// page (přepínač je jen tam, tady se jen převezme). Aplikace po přihlášení
+// zůstává česky.
 export async function generateMetadata(): Promise<Metadata> {
   const { meta } = getDictionary(await getLocale());
   return { title: meta.authTitle };

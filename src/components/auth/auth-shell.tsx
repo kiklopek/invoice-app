@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { CompanyLogo } from "@/components/company-logo";
 import { useI18n } from "@/i18n/client";
-import { LanguageSwitcher } from "@/i18n/language-switcher";
 import { CUSTOM_ENTRY, isCustomEntryBrand, type EntryBrand } from "@/lib/tenant-entries";
 import { ArrowLeft, RibbonMark } from "@/components/landing/landing-icons";
 import styles from "./auth-shell.module.css";
@@ -42,7 +41,10 @@ export function AuthShell({
   children: ReactNode;
 }) {
   const image = ART[art];
-  const copy = useI18n().t.auth.shell;
+  const { locale, t } = useI18n();
+  const copy = t.auth.shell;
+  // Úvodní stránka v jazyce, který si návštěvník zvolil na landing page.
+  const home = locale === "en" ? "/en" : "/";
   return (
     <main className={`${styles.page} ${inter.className}`}>
       <div className={styles.card}>
@@ -50,29 +52,23 @@ export function AuthShell({
           <div className={styles.brandRow}>
             {isCustomEntryBrand(brand) ? (
               <>
-                <Link href="/" className={styles.splatno} aria-label={copy.logoAria}>
+                <Link href={home} className={styles.splatno} aria-label={copy.logoAria}>
                   <RibbonMark size={30} />
                   <span>splatno</span>
                 </Link>
-                <span className={styles.brandEnd}>
-                  <span className={styles.company}>
-                    <CompanyLogo src={CUSTOM_ENTRY.logo} name={CUSTOM_ENTRY.name} className={styles.companyLogo} />
-                  </span>
-                  <LanguageSwitcher />
+                <span className={styles.company}>
+                  <CompanyLogo src={CUSTOM_ENTRY.logo} name={CUSTOM_ENTRY.name} className={styles.companyLogo} />
                 </span>
               </>
             ) : (
               <>
-                <Link href="/" className={styles.backHome}>
+                <Link href={home} className={styles.backHome}>
                   <ArrowLeft /><span>{copy.backHome}<span className={styles.backHomeLong}>{copy.backHomeLong}</span><span className={styles.backHomeShort}>{copy.backHomeShort}</span></span>
                 </Link>
-                <span className={styles.brandEnd}>
-                  <Link href="/" className={styles.splatno} aria-label={copy.logoAria}>
-                    <RibbonMark size={30} />
-                    <span>splatno</span>
-                  </Link>
-                  <LanguageSwitcher />
-                </span>
+                <Link href={home} className={styles.splatno} aria-label={copy.logoAria}>
+                  <RibbonMark size={30} />
+                  <span>splatno</span>
+                </Link>
               </>
             )}
           </div>
@@ -81,7 +77,7 @@ export function AuthShell({
                 tam má logo firmy, proto ji dostane nad formulářem. */}
             {isCustomEntryBrand(brand) ? (
               <nav className={styles.backNavigation} aria-label={copy.backNavAria}>
-                <Link href="/" className={styles.backHome}><ArrowLeft /><span>{copy.backHomeFull}</span></Link>
+                <Link href={home} className={styles.backHome}><ArrowLeft /><span>{copy.backHomeFull}</span></Link>
               </nav>
             ) : null}
             {children}
