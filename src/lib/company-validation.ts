@@ -1,4 +1,5 @@
 import { parseCzechAccount, isPlausibleCzechAccount } from "@/lib/czech-payment";
+import { isValidPaymentAccount } from "./bank-accounts";
 
 // Firemní údaje se dřív neověřovaly vůbec (kromě "IČO má osm číslic").
 // Chybné číslo bankovního účtu je přitom nejdražší překlep v aplikaci:
@@ -63,14 +64,20 @@ export function validateCompanyFields(company: {
   if (company.dic?.trim() && !isValidDic(company.dic)) {
     errors.push({ field: "dic", message: "DIČ má mít tvar CZ a 8 až 10 číslic." });
   }
-  for (const [field, label] of [["bank_account_czk", "korunový"], ["bank_account_eur", "eurový"]] as const) {
-    const value = company[field]?.trim();
-    if (value && !isValidBankAccount(value)) {
-      errors.push({
-        field,
-        message: `Zadejte ${label} účet ve tvaru předčíslí-číslo/kód banky. Číslo neprošlo kontrolní číslicí — chybný účet rozbije párování plateb.`,
-      });
-    }
+  const czk = company.bank_account_czk?.trim();
+  if (czk && !isValidBankAccount(czk)) {
+    errors.push({
+      field: "bank_account_czk",
+      message: "Zadejte korunový účet ve tvaru předčíslí-číslo/kód banky. Číslo neprošlo kontrolní číslicí — chybný účet rozbije párování plateb.",
+    });
+  }
+  // Eurový účet bývá i zahraniční (slovenský, Wise…): přijme se i platný IBAN.
+  const eur = company.bank_account_eur?.trim();
+  if (eur && !isValidPaymentAccount(eur)) {
+    errors.push({
+      field: "bank_account_eur",
+      message: "Zadejte eurový účet ve tvaru předčíslí-číslo/kód banky nebo jako IBAN. Číslo neprošlo kontrolní číslicí — chybný účet rozbije párování plateb.",
+    });
   }
   return errors;
 }

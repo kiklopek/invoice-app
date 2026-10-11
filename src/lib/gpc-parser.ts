@@ -27,6 +27,10 @@ export interface GpcPreviewEntry {
 export interface GpcParseResult {
   fileHash: string;
   accountNumber: string | null;
+  /** GPC only: which reading of account numbers was used ("km" = KB's permuted format). */
+  dialect?: GpcDialect;
+  /** GPC only: the header's raw 16-digit account field, for matching against the company's accounts. */
+  headerAccountDigits?: string | null;
   entries: GpcPreviewEntry[];
   payments: PaymentImportRow[];
   totals: { accepted: number; ignored: number; errors: number };
@@ -103,6 +107,22 @@ function formatAccount(edition: string, bankCode: string) {
 
 type ReadAccountResult = { value: string; verified: boolean };
 
+/** "km" = KB's klientský formát KM (permuted accounts), "edition" = plain. */
+export type GpcDialect = "km" | "edition";
+
+/**
+ * The header account read in the given dialect, without a bank code
+ * ("6786420257", "107-6625740217"); null when it fails the mod-11 check.
+ * Used to recognise which of the company's accounts a statement belongs to
+ * when the file itself does not say which bank produced it.
+ */
+export function readHeaderAccount(raw16: string, dialect: GpcDialect): string | null {
+  const digits = raw16.replace(/\D/g, "");
+  if (digits.length !== 16 || Number(digits) === 0) return null;
+  const edition = dialect === "km" ? KM_EDITION_FROM_INTERNAL.map((position) => digits[position]).join("") : digits;
+  return isPlausibleCzechAccount(edition) ? formatAccount(edition, "") : null;
+}
+
 /**
  * The permutation is applied only to statements that identify themselves as
  * KB's KM format. Other banks' GPC exports carry the edition format directly,
@@ -138,7 +158,7 @@ function decodeGpc(bytes: Uint8Array) {
   }
 }
 
-export function parseGpc(bytes: Uint8Array): GpcParseResult {
+export function parseGpc(bytes: Uint8Array, options: { dialect?: GpcDialect; bankCode?: string } = {}): GpcParseResult {
   if (bytes.byteLength === 0) throw new Error("Soubor GPC je prázdný.");
   const text = decodeGpc(bytes);
   const lines = text.split(/\r?\n/).filter((line) => line.length > 0);
@@ -162,11 +182,13 @@ export function parseGpc(bytes: Uint8Array): GpcParseResult {
   // KB+ stamps its channel ("MB") at 123-124 and the IBAN's country/check/bank
   // prefix at 115-122. Either one identifies the KM dialect, whose account
   // numbers are permuted; anything else is read as a plain edition-format GPC.
+  // Callers that know the bank (src/lib/bank-formats/detect.ts) force the
+  // dialect and the company's own bank code; otherwise the file's markers decide.
   const ownBankCode =
-    header && /^CZ\d{6}$/.test(header.slice(114, 122)) ? header.slice(118, 122) : "";
-  const kmFormat = Boolean(
-    header && (header.slice(122, 124) === "MB" || ownBankCode),
-  );
+    header && /^CZ\d{6}$/.test(header.slice(114, 122)) ? header.slice(118, 122) : options.bankCode ?? "";
+  const kmFormat = options.dialect
+    ? options.dialect === "km"
+    : Boolean(header && (header.slice(122, 124) === "MB" || ownBankCode));
   // The header's own account is only ever used for display/mismatch
   // comparison, never for auto-matching, so its verification state isn't
   // carried further -- unlike the counterparty account below.
@@ -270,6 +292,8 @@ export function parseGpc(bytes: Uint8Array): GpcParseResult {
   return {
     fileHash: sha256(bytes),
     accountNumber,
+    dialect: kmFormat ? "km" : "edition",
+    headerAccountDigits: header && header.length >= 19 ? header.slice(3, 19) : null,
     entries,
     payments,
     totals: {

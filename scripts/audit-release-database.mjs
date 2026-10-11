@@ -17,6 +17,7 @@ try {
   await client.query("create or replace function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$; create or replace function auth.jwt() returns jsonb language sql as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$");
   await client.query('insert into auth.users(id,email) values($1,$2)',[actor,'release-audit@hlavica.cz']);
   await client.query("insert into organizations(id,name,ico) values($1,'Synthetic scale','12345678'),($2,'Other organization','87654321')",[org,other]);
+  await client.query("insert into subscriptions(organization_id,status,plan,period,billing_exempt) select id,'active','business','yearly',true from organizations o where not exists(select 1 from subscriptions s where s.organization_id=o.id)");
   await client.query("insert into organization_members(organization_id,user_id,email,role) values($1,$2,'release-audit@hlavica.cz','accounting')",[org,actor]);
   await step('seed invoices',`create table audit_fixture as select g,gen_random_uuid() invoice,gen_random_uuid() payment from generate_series(1,$1::integer) g;
   `,[count]);

@@ -72,6 +72,28 @@ describe("generateInvoicePdf", () => {
   });
 });
 
+// Neplátce DPH nesmí na faktuře uvádět DPH; dřív PDF tiskl „Sazba DPH“
+// a „DPH“ každé firmě.
+describe("plátce a neplátce DPH", () => {
+  const textOf = async (company: InvoicePdfCompany, invoice = fixtureInvoice) => {
+    const pdf = await getDocumentProxy(await generateInvoicePdf(invoice, company));
+    return (await extractText(pdf, { mergePages: true })).text.replace(/ /g, " ");
+  };
+
+  it("prints VAT lines for a VAT payer", async () => {
+    const text = await textOf({ ...fixtureCompany, vat_payer: true });
+    expect(text).toContain("Sazba DPH");
+    expect(text).not.toContain("Nejsem plátce DPH");
+  });
+
+  it("prints no VAT lines and states it for a non-payer", async () => {
+    const text = await textOf({ ...fixtureCompany, vat_payer: false }, { ...fixtureInvoice, vat_rate: 0, amount_without_vat: 12100 });
+    expect(text).toContain("Nejsem plátce DPH");
+    expect(text).not.toContain("Sazba DPH");
+    expect(text).toContain("12 100,00 CZK");
+  });
+});
+
 describe("Czech text in the generated PDF", () => {
   // Standardni fonty pdf-lib umi jen WinAnsi, kde chybi pismena s hackem
   // a krouzkem. Generator je proto transliteroval: na fakture, kterou

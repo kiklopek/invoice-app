@@ -1,3 +1,5 @@
+import { CUSTOM_ENTRY, CUSTOM_ENTRY_REGISTRATION_PATH } from "@/lib/tenant-entries";
+
 // Jedno místo, kde se rozhoduje, kam smí kdo jít (tabulka P12 v návrhu
 // procesů). Proxy, layout aplikace i onboarding volají tuhle funkci, takže
 // se jejich pravidla nemohou rozejít.
@@ -34,7 +36,7 @@ export type RouteDecision =
   | { type: "show"; signOut?: true }
   | { type: "redirect"; to: string; signOut?: true };
 
-export const LOGIN_PAGES = ["/login", "/hlavica"] as const;
+export const LOGIN_PAGES = ["/login", CUSTOM_ENTRY.path] as const;
 export const APP_SECTIONS = ["/dashboard", "/customers", "/invoices", "/predplatne", "/reminders", "/reports", "/settings"] as const;
 
 function within(pathname: string, base: string) {
@@ -44,7 +46,7 @@ function within(pathname: string, base: string) {
 export function pageKind(pathname: string): PageKind {
   if (pathname === "/") return "landing";
   if ((LOGIN_PAGES as readonly string[]).includes(pathname)) return "login";
-  if (pathname === "/register" || pathname === "/hlavica/registrace" || pathname === "/forgot-password") return "signup";
+  if (pathname === "/register" || pathname === CUSTOM_ENTRY_REGISTRATION_PATH || pathname === "/forgot-password") return "signup";
   if (pathname === "/reset-password") return "recovery";
   if (within(pathname, "/auth") && pathname !== "/auth") return "callback";
   if (/^\/pozvanka\/[^/]+$/.test(pathname)) return "invitation";

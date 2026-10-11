@@ -29,8 +29,9 @@ export async function GET() {
           scheduled_at: row.scheduled_at ?? null,
           has_card: Boolean(row.stripe_customer_id),
           managed_by_stripe: Boolean(row.stripe_subscription_id),
+          billing_exempt: Boolean(row.billing_exempt),
         }
-      : { status: "legacy", state, managed_by_stripe: false, has_card: false },
+      : { status: "missing", state, managed_by_stripe: false, has_card: false, billing_exempt: false },
     notice: billingNotice(row),
     can_manage: canManageMembers(identity.membership.role),
     available: Boolean(billingDeps(identity.service)),

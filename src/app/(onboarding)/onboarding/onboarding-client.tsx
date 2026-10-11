@@ -109,6 +109,8 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
   const [step, setStep] = useState<Step>(payment ? 8 : 1);
   const [reached, setReached] = useState<Step>(payment ? 8 : 1);
   const [company, setCompany] = useState<OnboardingCompany>({ ...EMPTY, email: accountEmail });
+  // Plátce DPH: bez výslovné volby se odhadne podle DIČ (DIČ mívají plátci).
+  const [vatPayer, setVatPayer] = useState<boolean | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AccessRole>("accounting");
@@ -290,7 +292,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
     const response = await fetch("/api/onboarding/organization", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(company),
+      body: JSON.stringify({ ...company, vat_payer: vatPayer ?? Boolean(company.dic.trim()) }),
     }).catch(() => null);
     const data = await response?.json().catch(() => null) as { error?: string; code?: string; fields?: { field: string; message: string }[] } | null;
     if (!response?.ok) {
@@ -534,6 +536,10 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                       <span className={styles.label}>DIČ <small>(nepovinné)</small></span>
                       <span className={`${styles.control} ${styles.plain}`}><input autoComplete="off" placeholder="CZ12345678" value={company.dic} aria-invalid={Boolean(fieldErrors.dic)} onChange={(event) => update("dic", event.target.value)} /></span>
                       {fieldErrors.dic ? <p className={styles.fieldError}>{fieldErrors.dic}</p> : null}
+                      <span className={styles.label}>
+                        <input type="checkbox" checked={vatPayer ?? Boolean(company.dic.trim())} onChange={(event) => setVatPayer(event.target.checked)} />{" "}
+                        Jsme plátci DPH
+                      </span>
                     </label>
                     <label className={styles.field}>
                       <span className={styles.label}>Sídlo</span>
@@ -601,7 +607,7 @@ export function OnboardingClient({ accountEmail, accountName, payment }: { accou
                     </span>
                     {fieldErrors.bank_account_eur ? <p className={styles.fieldError}>{fieldErrors.bank_account_eur}</p> : null}
                   </label>
-                  <div className={styles.info}><Bank /><p><b>Výpisy nahrajete v sekci Platby.</b> Zatím umíme výpisy Komerční banky ve formátu GPC, další banky připravujeme.</p></div>
+                  <div className={styles.info}><Bank /><p><b>Výpisy nahrajete v sekci Platby.</b> Ověřené máme výpisy Komerční banky (GPC). Výpisy dalších bank (GPC, CSV) načteme také, platby z nich ale párujeme jen podle variabilního symbolu, dokud jejich formát neověříme.</p></div>
                   <div className={styles.actions}>
                     <button className={styles.back} type="button" onClick={() => go(2)}><ArrowLeft />Zpět</button>
                     <button className={styles.primary} type="submit">Pokračovat <ArrowRight /></button>

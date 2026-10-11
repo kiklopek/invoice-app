@@ -9,6 +9,7 @@ import { ArrowRight, Lock } from "@/components/landing/landing-icons";
 import { passwordRule } from "@/lib/password-policy";
 import { useI18n } from "@/i18n/client";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
+import { entryFromSearch } from "@/lib/tenant-entries";
 
 export default function ResetPasswordPage() {
   const brand = useEntryBrand();
@@ -31,7 +32,7 @@ export default function ResetPasswordPage() {
     }
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.replace(withEntry("/forgot-password", new URLSearchParams(window.location.search).get("vstup") === "hlavica" ? "hlavica" : "splatno"));
+      if (!data.user) router.replace(withEntry("/forgot-password", entryFromSearch(new URLSearchParams(window.location.search))));
       else setChecking(false);
     });
   }, [router, notConfigured]);

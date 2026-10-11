@@ -1,4 +1,5 @@
 import type { ReminderStage } from "@/types/invoice";
+import { paymentAccountFor } from "@/lib/bank-accounts";
 import type { ReminderTemplateValues } from "@/lib/reminder-template";
 
 export type ReminderEmailCompany = {
@@ -11,6 +12,8 @@ export type ReminderEmailCompany = {
   email?: string | null;
   bank_account_czk?: string | null;
   bank_account_eur?: string | null;
+  /** Další účty firmy (organization_bank_accounts) pro měny bez hlavního účtu. */
+  bank_accounts?: { account: string; currency: string }[] | null;
   logo_path?: string | null;
 };
 
@@ -145,9 +148,8 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   if (!companyName) throw new Error("Chybí název firmy pro upomínkový e-mail.");
   const logoUrl = safeLogoUrl(params.logoUrl);
   const replyAddress = safeReplyAddress(params.replyTo) ?? safeReplyAddress(params.company.email);
-  const bankAccount = params.values.currency === "EUR"
-    ? params.company.bank_account_eur?.trim()
-    : params.company.bank_account_czk?.trim();
+  // Účet v měně faktury; nikdy korunový účet u faktury v jiné měně.
+  const bankAccount = paymentAccountFor(params.values.currency, params.company, params.company.bank_accounts ?? []);
   const details = [
     ["Číslo faktury", params.values.invoice_number],
     ...(params.payment
@@ -174,8 +176,8 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   const cta = replyHref ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0;">
       <tr><td>
-        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${escapeHtml(replyHref)}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="12%" stroke="f" fillcolor="#17462f"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Kontaktovat účetní oddělení</center></v:roundrect><![endif]-->
-        <!--[if !mso]><!--><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:13px 20px;background:#17462f;border-radius:6px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;text-decoration:none;">Kontaktovat účetní oddělení</a><!--<![endif]-->
+        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${escapeHtml(replyHref)}" style="height:44px;v-text-anchor:middle;width:180px;" arcsize="12%" stroke="f" fillcolor="#17462f"><w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Kontaktovat nás</center></v:roundrect><![endif]-->
+        <!--[if !mso]><!--><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:13px 20px;background:#17462f;border-radius:6px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:18px;text-decoration:none;">Kontaktovat nás</a><!--<![endif]-->
       </td></tr>
     </table>` : "";
   const qrSrc = safeQrSrc(params.qrSrc);

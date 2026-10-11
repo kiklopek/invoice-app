@@ -21,6 +21,7 @@ type Subscription = {
   scheduled_at?: string | null;
   has_card: boolean;
   managed_by_stripe: boolean;
+  billing_exempt: boolean;
 };
 type BillingResponse = { subscription: Subscription; can_manage: boolean; available: boolean; vat_payer: boolean };
 type Preview = { kind: "upgrade" | "downgrade" | "trial"; dueNowHalere: number; nextChargeHalere: number; effectiveAt: string; prorationDate: number };
@@ -207,10 +208,10 @@ export function SubscriptionClient() {
 
       <section className={styles.section}>
         <div className={styles.status}>
-          {sub.status === "legacy" || (!sub.managed_by_stripe && sub.state === "active") ? (
+          {sub.billing_exempt ? (
             <>
               <div className={styles.statusTop}><strong>Trvalý přístup</strong><span className={styles.badge}>Aktivní</span></div>
-              <p className={styles.muted}>Vaše firma používá Splatno ze dřívější dohody. Nic nemusíte nastavovat.</p>
+              <p className={styles.muted}>Vaše firma má trvalý přístup bez platby. Kartu ani tarif není potřeba nastavovat.</p>
             </>
           ) : (
             <>

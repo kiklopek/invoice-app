@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { emailMatchesDomain, HLAVICA_EMAIL_DOMAIN, isDisposableEmail, isValidEmail, normalizeEmail } from "./auth-policy";
+import { emailMatchesDomain, CUSTOM_ENTRY_EMAIL_DOMAIN, isDisposableEmail, isValidEmail, normalizeEmail } from "./auth-policy";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -17,10 +17,10 @@ describe("auth email policy", () => {
   });
 
   it("checks a company domain exactly, never as a suffix", () => {
-    expect(emailMatchesDomain("ucetni@hlavica.cz", HLAVICA_EMAIL_DOMAIN)).toBe(true);
-    expect(emailMatchesDomain(" UCETNI@HLAVICA.CZ ", HLAVICA_EMAIL_DOMAIN)).toBe(true);
-    expect(emailMatchesDomain("x@evilhlavica.cz", HLAVICA_EMAIL_DOMAIN)).toBe(false);
-    expect(emailMatchesDomain("x@hlavica.cz.evil.example", HLAVICA_EMAIL_DOMAIN)).toBe(false);
+    expect(emailMatchesDomain("ucetni@hlavica.cz", CUSTOM_ENTRY_EMAIL_DOMAIN)).toBe(true);
+    expect(emailMatchesDomain(" UCETNI@HLAVICA.CZ ", CUSTOM_ENTRY_EMAIL_DOMAIN)).toBe(true);
+    expect(emailMatchesDomain("x@evilhlavica.cz", CUSTOM_ENTRY_EMAIL_DOMAIN)).toBe(false);
+    expect(emailMatchesDomain("x@hlavica.cz.evil.example", CUSTOM_ENTRY_EMAIL_DOMAIN)).toBe(false);
     expect(emailMatchesDomain("x@example.com", null)).toBe(true);
   });
 

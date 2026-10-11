@@ -4,7 +4,16 @@
 // Zaludnost: "//evil.example/x" prohlizec chape jako ABSOLUTNI URL (jen
 // prevezme aktualni schema), presto to zacina lomitkem. Samotna kontrola
 // na uvodni "/" tedy nestaci.
+import { CUSTOM_ENTRY } from "@/lib/tenant-entries";
+
 const MAX_LENGTH = 512;
+
+// Přihlašovací stránka firemního vstupu (i s podstránkami a parametry).
+function isEntryPath(value: string) {
+  if (!value.startsWith(CUSTOM_ENTRY.path)) return false;
+  const rest = value.slice(CUSTOM_ENTRY.path.length);
+  return rest === "" || rest.startsWith("/") || rest.startsWith("?");
+}
 
 export function safeReturnPath(raw: string | null | undefined, fallback = "/dashboard") {
   if (!raw) return fallback;
@@ -27,7 +36,7 @@ export function safeReturnPath(raw: string | null | undefined, fallback = "/dash
   // vyznam cesty; do navigace nepatri.
   if (/[\u0000-\u001f\u007f\\]/.test(value)) return fallback;
   // Prihlasovaci stranky by delaly smycku.
-  if (/^\/(login|hlavica|register|forgot-password|reset-password|mfa)(\/|\?|$)/.test(value)) return fallback;
+  if (/^\/(login|register|forgot-password|reset-password|mfa)(\/|\?|$)/.test(value) || isEntryPath(value)) return fallback;
 
   return value;
 }

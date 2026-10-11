@@ -353,6 +353,8 @@ export type Database = {
       }
       bank_statement_imports: {
         Row: {
+          bank_code: string | null
+          format_dialect: string | null
           accepted_count: number
           account_mismatch: boolean
           account_mismatch_acknowledged: boolean
@@ -378,6 +380,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bank_code?: string | null
+          format_dialect?: string | null
           accepted_count?: number
           account_mismatch?: boolean
           account_mismatch_acknowledged?: boolean
@@ -403,6 +407,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bank_code?: string | null
+          format_dialect?: string | null
           accepted_count?: number
           account_mismatch?: boolean
           account_mismatch_acknowledged?: boolean
@@ -1176,8 +1182,51 @@ export type Database = {
           },
         ]
       }
+      organization_bank_accounts: {
+        Row: {
+          account: string
+          canonical: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          label: string | null
+          organization_id: string
+        }
+        Insert: {
+          account: string
+          canonical: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          id?: string
+          label?: string | null
+          organization_id: string
+        }
+        Update: {
+          account?: string
+          canonical?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          label?: string | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_bank_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
+          support_expires_at: string | null
+          support_reason: string | null
           created_at: string
           email: string
           id: string
@@ -1190,6 +1239,8 @@ export type Database = {
           invite_sent_at: string | null
         }
         Insert: {
+          support_expires_at?: string | null
+          support_reason?: string | null
           created_at?: string
           email: string
           id?: string
@@ -1202,6 +1253,8 @@ export type Database = {
           invite_sent_at?: string | null
         }
         Update: {
+          support_expires_at?: string | null
+          support_reason?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1225,6 +1278,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          vat_payer: boolean | null
           bank_account_czk: string | null
           bank_account_eur: string | null
           created_at: string
@@ -1240,12 +1294,14 @@ export type Database = {
           registered_address: string | null
           settings_revision: number
           allowed_email_domain: string | null
+          auto_booking: string
           logo_path: string | null
           created_by: string | null
           onboarding_completed_at: string | null
           verified_at: string | null
         }
         Insert: {
+          vat_payer?: boolean | null
           bank_account_czk?: string | null
           bank_account_eur?: string | null
           created_at?: string
@@ -1261,12 +1317,14 @@ export type Database = {
           registered_address?: string | null
           settings_revision?: number
           allowed_email_domain?: string | null
+          auto_booking?: string
           logo_path?: string | null
           created_by?: string | null
           onboarding_completed_at?: string | null
           verified_at?: string | null
         }
         Update: {
+          vat_payer?: boolean | null
           bank_account_czk?: string | null
           bank_account_eur?: string | null
           created_at?: string
@@ -1282,6 +1340,7 @@ export type Database = {
           registered_address?: string | null
           settings_revision?: number
           allowed_email_domain?: string | null
+          auto_booking?: string
           logo_path?: string | null
           created_by?: string | null
           onboarding_completed_at?: string | null
@@ -1433,6 +1492,42 @@ export type Database = {
         }
         Relationships: []
       }
+      support_sessions: {
+        Row: {
+          ended_at: string | null
+          ended_by: string | null
+          expires_at: string
+          id: string
+          operator_email: string
+          operator_user_id: string | null
+          organization_id: string
+          reason: string
+          started_at: string
+        }
+        Insert: {
+          ended_at?: string | null
+          ended_by?: string | null
+          expires_at: string
+          id?: string
+          operator_email: string
+          operator_user_id?: string | null
+          organization_id: string
+          reason: string
+          started_at?: string
+        }
+        Update: {
+          ended_at?: string | null
+          ended_by?: string | null
+          expires_at?: string
+          id?: string
+          operator_email?: string
+          operator_user_id?: string | null
+          organization_id?: string
+          reason?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           organization_id: string
@@ -1448,6 +1543,7 @@ export type Database = {
           trial_invoice_limit: number
           trial_invoices_used: number
           trial_denied_reason: string | null
+          billing_exempt: boolean
           cancel_at_period_end: boolean
           scheduled_plan: string | null
           scheduled_period: string | null
@@ -1468,6 +1564,7 @@ export type Database = {
           trial_invoice_limit?: number
           trial_invoices_used?: number
           trial_denied_reason?: string | null
+          billing_exempt?: boolean
           cancel_at_period_end?: boolean
           scheduled_plan?: string | null
           scheduled_period?: string | null
@@ -1488,6 +1585,7 @@ export type Database = {
           trial_invoice_limit?: number
           trial_invoices_used?: number
           trial_denied_reason?: string | null
+          billing_exempt?: boolean
           cancel_at_period_end?: boolean
           scheduled_plan?: string | null
           scheduled_period?: string | null
@@ -1817,6 +1915,18 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_expired_support_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      end_support_session: {
+        Args: { operator_user: string; ended_by_user?: string | null }
+        Returns: number
+      }
+      start_support_session: {
+        Args: { target_org: string; operator_user: string; operator_email: string; reason: string; minutes: number }
+        Returns: Json
+      }
       reconcile_bank_statement: {
         Args: { target_org: string; actor_user: string; target_import: string; expected_revision: number; automatic_only?: boolean; acknowledge_account_mismatch?: boolean }
         Returns: Json

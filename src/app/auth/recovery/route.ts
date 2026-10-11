@@ -4,6 +4,7 @@ import { logPasswordRecoveryError } from "@/lib/password-recovery-server";
 import { sessionIdFromAccessToken } from "@/lib/email-mfa-core";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { createUserServerClient } from "@/lib/supabase-server";
+import { CUSTOM_ENTRY_QUERY, entryFromSearch, isCustomEntryBrand } from "@/lib/tenant-entries";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -28,6 +29,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/forgot-password?error=technical", requestUrl.origin));
   }
   await setLoginSessionPreference(false, { userId: data.user.id, sessionId });
-  const vstup = requestUrl.searchParams.get("vstup") === "hlavica" ? "?vstup=hlavica" : "";
+  const vstup = isCustomEntryBrand(entryFromSearch(requestUrl.searchParams)) ? `?${CUSTOM_ENTRY_QUERY}` : "";
   return NextResponse.redirect(new URL(`/reset-password${vstup}`, requestUrl.origin));
 }

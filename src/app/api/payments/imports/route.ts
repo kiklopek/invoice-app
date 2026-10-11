@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-response";
 import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
-import { parseGpc } from "@/lib/gpc-parser";
+import { detectStatementFormat, resolveGpcStatement } from "@/lib/bank-formats/detect";
+import { organizationAccounts } from "@/lib/bank-accounts";
+import { bankName } from "@/lib/bank-formats/registry";
 import { parseCsvStatement } from "@/lib/csv-statement-parser";
 import { parseCamtStatement } from "@/lib/camt-statement-parser";
 import { assistanceFlags } from "@/lib/payment-assistance-flags";
@@ -11,8 +13,9 @@ import {
   resolveBatchConflicts,
   type MatchableInvoice,
 } from "@/lib/payment-matching";
-import { assignStatementPayments } from "@/lib/statement-assignment";
-import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies } from "@/lib/payment-import";
+import { numericInvoiceNumber } from "@/lib/invoice-number";
+import { applyAutoBookingPolicy, assignStatementPayments, type AutoBookingPolicy } from "@/lib/statement-assignment";
+import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies, statementCurrencyFor } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
 import { canUseGpcImport } from "@/lib/gpc-feature";
@@ -85,44 +88,66 @@ export async function POST(request: Request) {
     );
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
-  const fileName = file instanceof File ? file.name.toLowerCase() : "";
-  const sourceFormat: "gpc" | "csv" | "camt053" | null = fileName.endsWith(".gpc")
-    ? "gpc"
-    : fileName.endsWith(".csv")
-      ? "csv"
-      : fileName.endsWith(".xml") && assistanceFlags(identity.membership.organization_id).camt ? "camt053" : null;
-  if (!(file instanceof File) || !sourceFormat) {
+  if (!(file instanceof File)) {
     return NextResponse.json(
-      { error: "Vyberte soubor s příponou .gpc nebo .csv.", request_id: id },
+      { error: "Vyberte soubor výpisu (GPC nebo CSV).", request_id: id },
       { status: 400 },
     );
   }
+
   if (file.size < 1 || file.size > MAX_FILE_BYTES)
     return NextResponse.json(
       { error: "Soubor výpisu musí mít nejvýše 5 MB.", request_id: id },
       { status: 413 },
     );
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  // Formát podle obsahu, ne podle přípony (src/lib/bank-formats/detect.ts).
+  const detectedFormat = detectStatementFormat(bytes, file.name);
+  const sourceFormat = detectedFormat === "camt053" && !assistanceFlags(identity.membership.organization_id).camt ? null : detectedFormat;
+  if (!sourceFormat) {
+    return NextResponse.json(
+      { error: "Soubor nevypadá jako výpis ve formátu GPC ani CSV.", request_id: id },
+      { status: 400 },
+    );
+  }
 
   try {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const parsed = sourceFormat === "gpc" ? parseGpc(bytes) : sourceFormat === "csv" ? parseCsvStatement(bytes) : parseCamtStatement(bytes);
     const org = identity.membership.organization_id;
     const [
       { data: company, error: companyError },
       { data: knownAccounts, error: accountError },
+      { data: extraAccountRows, error: extraAccountError },
     ] = await Promise.all([
       identity.service
         .from("organizations")
-        .select("bank_account_czk, bank_account_eur")
+        .select("bank_account_czk, bank_account_eur, auto_booking")
         .eq("id", org)
         .single(),
       identity.service
         .from("counterparty_payment_accounts")
         .select("account_number, counterparty_ico")
         .eq("organization_id", org),
+      identity.service
+        .from("organization_bank_accounts")
+        .select("account, currency")
+        .eq("organization_id", org),
     ]);
-    if (companyError || accountError)
+    if (companyError || accountError || extraAccountError)
       throw new Error("Databázová konfigurace plateb není dostupná.");
+
+    const extraAccounts = extraAccountRows ?? [];
+    // GPC se čte „klíčem“ banky, ke které výpis patří (registr bank).
+    const gpc = sourceFormat === "gpc" ? resolveGpcStatement(bytes, organizationAccounts(company, extraAccounts)) : null;
+    const parsed = gpc ? gpc.parsed : sourceFormat === "csv" ? parseCsvStatement(bytes) : parseCamtStatement(bytes);
+    // GPC nemá pole měny. Měnu určí účet firmy, ke kterému výpis patří
+    // (eurový účet → EUR). Dřív byl každý GPC výpis v CZK, takže 1 000 EUR
+    // zaplatilo fakturu na 1 000 Kč. Neznámý účet zůstává v CZK, ale import
+    // hlásí neshodu účtu a automatika ho bez člověka nezaúčtuje.
+    if (sourceFormat === "gpc") {
+      const statementCurrency = statementCurrencyFor(parsed.accountNumber, company, extraAccounts);
+      if (statementCurrency && statementCurrency !== "CZK")
+        for (const entry of parsed.entries) if (entry.payment) entry.payment.currency = statementCurrency;
+    }
 
     const invoices: MatchableInvoice[] = [];
     for (let from = 0; from <= 10_000; from += 1000) {
@@ -165,8 +190,10 @@ export async function POST(request: Request) {
       // this second key too is what lets proposePaymentMatch (which already
       // checks both fields) actually see it as a candidate in the first
       // place; see matchesVariableSymbol in payment-matching.ts.
-      const numberKey = `${invoice.currency}:${normalizeVariableSymbol(invoice.invoice_number)}`;
-      if (!normalizeVariableSymbol(invoice.variable_symbol) && /^\d+$/.test(invoice.invoice_number.trim()))
+      // Separators allowed ("2026/001" → VS 2026001), see invoice-number.ts.
+      const numericNumber = numericInvoiceNumber(invoice.invoice_number);
+      const numberKey = `${invoice.currency}:${normalizeVariableSymbol(numericNumber)}`;
+      if (!normalizeVariableSymbol(invoice.variable_symbol) && numericNumber)
         invoicesByVs.set(numberKey, [...(invoicesByVs.get(numberKey) ?? []), invoice]);
       const counterpartyKey =
         invoice.counterparty_ico || invoice.counterparty_name;
@@ -209,7 +236,10 @@ export async function POST(request: Request) {
           paid_amount: Number(invoice.paid_amount),
         });
     }
-    const assignments = assignStatementPayments(
+    // Co smí firma zaúčtovat bez člověka (nová firma jen podle VS); databáze
+    // to při zaúčtování vynucuje znovu.
+    const bookingPolicy = (company.auto_booking ?? "vs") as AutoBookingPolicy;
+    const assignments = applyAutoBookingPolicy(assignStatementPayments(
       parsed.entries.flatMap((entry) =>
         entry.payment && entry.disposition === "accepted"
           ? [{ key: entry.fingerprint, ...entry.payment }]
@@ -218,7 +248,7 @@ export async function POST(request: Request) {
       invoices,
       icoByAccount,
       settledInvoices,
-    );
+    ), bookingPolicy);
     const entries = resolveBatchConflicts(parsed.entries.map((entry) => {
       const historyIcos = entry.payment
         ? (icoByAccount.get(entry.payment.counterparty_account ?? "") ?? [])
@@ -243,7 +273,7 @@ export async function POST(request: Request) {
       for (const ico of historyIcos)
         for (const grouped of invoicesByCounterparty.get(ico) ?? [])
           relevant.set(grouped.id, grouped);
-      const proposal =
+      const candidate =
         assigned ??
         (directProposal?.kind === "exact" || directProposal?.kind === "ambiguous"
           ? directProposal
@@ -254,6 +284,9 @@ export async function POST(request: Request) {
                 historyIcos,
               )
             : null);
+      const proposal = bookingPolicy === "off" && candidate?.confidence === "safe"
+        ? { ...candidate, confidence: "review" as const, reason: `Ke kontrole: ${candidate.reason}` }
+        : candidate;
       return {
         line_number: entry.line,
         record_type: entry.recordType,
@@ -281,8 +314,9 @@ export async function POST(request: Request) {
       statementAccountNumber: parsed.accountNumber,
       paymentCurrencies,
       company,
+      extraAccounts,
     });
-    const expectedAccount = resolveConfiguredAccountForCurrencies(paymentCurrencies, company);
+    const expectedAccount = resolveConfiguredAccountForCurrencies(paymentCurrencies, company, extraAccounts);
     const storagePath = `${org}/${parsed.fileHash}.${sourceFormat}`;
     const { error: storageError } = await identity.service.storage
       .from("bank-statements")
@@ -332,6 +366,11 @@ export async function POST(request: Request) {
       total_entries?: number;
       entries?: typeof entries;
     };
+    // Audit: z jaké banky a jakým klíčem se výpis četl.
+    const { error: dialectError } = await identity.service.from("bank_statement_imports")
+      .update({ bank_code: gpc?.bankCode ?? null, format_dialect: gpc ? gpc.dialect : sourceFormat })
+      .eq("id", result.id).eq("organization_id", org);
+    if (dialectError) logError("Banku výpisu se nepodařilo zapsat", dialectError, { import_id: result.id });
     // Book the safe rows now, rather than leaving them for the cron.
     //
     // The unattended worker runs only from the Vercel cron, so on any other
@@ -367,6 +406,8 @@ export async function POST(request: Request) {
         import: result,
         account_mismatch: accountMismatch,
         statement_account: parsed.accountNumber,
+        // Banka výpisu a zda je její formát ověřený (neověřená = párování jen podle VS).
+        statement_bank: gpc ? { code: gpc.bankCode, name: bankName(gpc.bankCode), verified: gpc.verified } : null,
         expected_account: expectedAccount,
         totals: result.totals ?? parsed.totals,
         entries: previewEntries,

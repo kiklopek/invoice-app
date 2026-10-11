@@ -41,7 +41,7 @@ export async function sendReminderEmail(params: {
   const { data: company, error: companyError } = params.company
     ? { data: params.company, error: null }
     : await service!.from("organizations")
-      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path")
+      .select("name, ico, dic, registered_address, operating_address, phone, email, bank_account_czk, bank_account_eur, logo_path, bank_accounts:organization_bank_accounts(account, currency)")
       .eq("id", params.invoice.organization_id).single();
   if (companyError || !company) throw new Error("Firemní údaje pro e-mail se nepodařilo načíst.");
   if (isBlockedReminderRecipient(params.to, company)) {
@@ -82,7 +82,7 @@ export async function sendReminderEmail(params: {
   ];
   const resend = new Resend(key);
   return resend.emails.send({
-    from,
+    from: senderAs(company.name, from),
     to: params.to,
     cc: params.template?.cc?.length ? params.template.cc : undefined,
     replyTo,
@@ -91,4 +91,15 @@ export async function sendReminderEmail(params: {
     text: rendered.text,
     attachments: attachments.length ? attachments : undefined,
   }, { idempotencyKey: params.idempotencyKey });
+}
+
+/**
+ * Odesílatel upomínky: „Firma X přes Splatno“ <naše adresa>. Dlužník vidí
+ * věřitele (samotné „Splatno“ působilo jako phishing), adresa zůstává naše
+ * kvůli SPF/DKIM. Jméno firmy se zbaví znaků, které by rozbily hlavičku From.
+ */
+export function senderAs(companyName: string | null | undefined, configuredFrom: string) {
+  const address = /<([^<>]+)>\s*$/.exec(configuredFrom)?.[1]?.trim() ?? configuredFrom.trim();
+  const name = (companyName ?? "").replace(/["<>\\\r\n]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
+  return name ? `"${name} přes Splatno" <${address}>` : configuredFrom;
 }

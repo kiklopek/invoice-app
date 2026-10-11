@@ -37,6 +37,14 @@ async function subscriptionRow(service: Service, organizationId: string) {
   return data;
 }
 
+// Trvalý přístup bez platby (R. Hlavica): ke Stripe se firma nedostane.
+// Uložený zákazník by jinak zrcadlením přepsal trvalé předplatné na placené.
+function assertNotExempt(row: { billing_exempt?: boolean | null } | null) {
+  if (row?.billing_exempt) {
+    throw new BillingError("billing_exempt", "Vaše firma má trvalý přístup bez platby. Kartu ani tarif není potřeba nastavovat.", 409);
+  }
+}
+
 export function grossOf(choice: PlanChoice, taxRateId: string | null) {
   const price = quote(choice.plan, choice.period);
   return taxRateId ? price.grossHalere : price.netHalere;
@@ -124,6 +132,7 @@ export async function startCardSetup(deps: BillingDeps, input: {
 }) {
   const row = await subscriptionRow(deps.service, input.organizationId);
   if (!row) throw new BillingError("subscription_not_found", "Firma nemá založené předplatné.", 409);
+  assertNotExempt(row);
   if (row.stripe_subscription_id && !TERMINAL.has(row.status)) {
     throw new BillingError("already_subscribed", "Předplatné už běží. Kartu změníte v Nastavení → Předplatné → Karta a faktury.", 409);
   }
@@ -176,6 +185,7 @@ export async function activateFromSetupSession(deps: BillingDeps, sessionId: str
 
   const row = await subscriptionRow(deps.service, organizationId);
   if (!row) throw new BillingError("subscription_not_found", "Firma nemá založené předplatné.", 409);
+  assertNotExempt(row);
   const customer = idOf(session.customer);
   if (!customer || customer !== row.stripe_customer_id) {
     throw new BillingError("customer_mismatch", "Platební relace patří jinému zákazníkovi. Nic se nestrhlo; kontaktujte podporu.", 409);
@@ -231,6 +241,7 @@ export async function activateFromSetupSession(deps: BillingDeps, sessionId: str
  */
 export async function startPaidSubscription(deps: BillingDeps, organizationId: string) {
   const row = await subscriptionRow(deps.service, organizationId);
+  assertNotExempt(row);
   if (!row?.stripe_customer_id) throw new BillingError("card_missing", "Nejdřív zadejte kartu.", 409);
   if (row.stripe_subscription_id && !TERMINAL.has(row.status)) {
     throw new BillingError("already_subscribed", "Předplatné už běží.", 409);
@@ -259,6 +270,7 @@ export async function startPaidSubscription(deps: BillingDeps, organizationId: s
 
 async function liveSubscription(deps: BillingDeps, organizationId: string) {
   const row = await subscriptionRow(deps.service, organizationId);
+  assertNotExempt(row);
   if (!row?.stripe_subscription_id || TERMINAL.has(row.status)) {
     throw new BillingError("no_subscription", "Firma nemá běžící předplatné.", 409);
   }
@@ -398,6 +410,7 @@ export async function setCancelAtPeriodEnd(deps: BillingDeps, organizationId: st
 /** Stripe portál: karta a faktury. */
 export async function billingPortalUrl(deps: BillingDeps, organizationId: string, returnUrl: string) {
   const row = await subscriptionRow(deps.service, organizationId);
+  assertNotExempt(row);
   if (!row?.stripe_customer_id) throw new BillingError("card_missing", "Firma zatím nemá uloženou kartu.", 409);
   const session = await deps.stripe.billingPortal.sessions.create({ customer: row.stripe_customer_id, return_url: returnUrl, locale: "cs" });
   return session.url;

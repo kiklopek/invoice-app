@@ -6,13 +6,11 @@ import { useState } from "react";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { useI18n } from "@/i18n/client";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
-import { emailMatchesDomain, HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { CUSTOM_ENTRY_EMAIL_DOMAIN, emailMatchesDomain, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { withEntry } from "@/lib/login-entry";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { passwordRule } from "@/lib/password-policy";
 import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
-
-type RegistrationKind = "founder" | "invited";
 
 // Registrace. Dva oddělené vstupy:
 // - "splatno" (/register): kdo nemá pozvánku, zakládá firemní účet a po
@@ -21,14 +19,13 @@ type RegistrationKind = "founder" | "invited";
 // - "hlavica" (/hlavica/registrace): jako dřív, jen e-mail @hlavica.cz,
 //   který administrátor R. Hlavica předem pozval.
 export function RegisterForm({ brand }: { brand: AuthBrand }) {
-  const hlavica = brand === "hlavica";
+  const customEntry = isCustomEntryBrand(brand);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [sent, setSent] = useState(false);
-  const [kind, setKind] = useState<RegistrationKind>("founder");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18n();
@@ -41,11 +38,11 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     const normalizedEmail = normalizeEmail(email);
     if (fullName.trim().length < 3) return setError(copy.errors.fullName);
     if (!isValidEmail(normalizedEmail)) return setError(common.invalidEmail);
-    if (hlavica && !emailMatchesDomain(normalizedEmail, HLAVICA_EMAIL_DOMAIN)) return setError(copy.errors.domainOnly(HLAVICA_EMAIL_DOMAIN));
+    if (customEntry && !emailMatchesDomain(normalizedEmail, CUSTOM_ENTRY_EMAIL_DOMAIN)) return setError(copy.errors.domainOnly(CUSTOM_ENTRY_EMAIL_DOMAIN));
     const rule = passwordRule(password);
     if (rule) return setError(common.passwordRules[rule]);
     if (password !== confirmation) return setError(common.passwordsMismatch);
-    if (!hlavica && !acceptTerms) return setError(copy.errors.terms);
+    if (!customEntry && !acceptTerms) return setError(copy.errors.terms);
     if (!hasSupabaseBrowserConfig()) return setError(copy.errors.notConfigured);
 
     setSubmitting(true);
@@ -63,16 +60,14 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     if (!access.allowed) {
       setError(access.kind === "member"
         ? copy.errors.member
-        : access.kind === "hlavica"
-          ? "hlavica"
+        : access.kind === "custom_entry"
+          ? "custom_entry"
           : access.kind === "disposable"
             ? copy.errors.disposable
             : copy.errors.notInvited);
       setSubmitting(false);
       return;
     }
-    const registrationKind: RegistrationKind = access.kind === "invited" ? "invited" : "founder";
-    setKind(registrationKind);
 
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -80,7 +75,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}${withEntry("/auth/callback?next=/mfa", brand)}`,
-        data: hlavica
+        data: customEntry
           ? { full_name: fullName.trim() }
           : { full_name: fullName.trim(), terms_accepted_at: new Date().toISOString() },
       },
@@ -91,7 +86,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       return;
     }
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-      setError(copy.errors.identityExists);
+      setError(copy.errors.member);
       setSubmitting(false);
       return;
     }
@@ -129,18 +124,18 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       art="laptop"
       brand={brand}
       claim={copy.claim}
-      claimSub={hlavica ? copy.claimSubHlavica : copy.claimSub}
+      claimSub={customEntry ? copy.claimSubCustomEntry : copy.claimSub}
     >
       <span className={styles.eyebrow}>{copy.eyebrow}</span>
-      <h1 className={styles.title}>{hlavica ? copy.titleHlavica : copy.title}</h1>
-      <p className={styles.sub}>{hlavica ? copy.subHlavica : copy.sub}</p>
+      <h1 className={styles.title}>{customEntry ? copy.titleCustomEntry : copy.title}</h1>
+      <p className={styles.sub}>{customEntry ? copy.subCustomEntry : copy.sub}</p>
       {sent ? (
         <div className={styles.sent}>
           <Mail width={22} height={22} />
           <div>
             <strong>{copy.sentTitle}</strong>
             <p>{copy.sentBefore}<b>{email}</b>{copy.sentAfter}</p>
-            {hlavica ? null : <p>{kind === "invited" ? copy.sentInvited : copy.sentFounder}</p>}
+            {customEntry ? null : <p>{copy.sentSignup}</p>}
           </div>
         </div>
       ) : (
@@ -152,7 +147,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
             </label>
             <label className={styles.field}>
               <span>{common.companyEmail}</span>
-              <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={hlavica ? common.emailPlaceholderAt(HLAVICA_EMAIL_DOMAIN) : common.emailPlaceholder} value={email} onChange={(event) => setEmail(event.target.value)} /></span>
+              <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={customEntry ? common.emailPlaceholderAt(CUSTOM_ENTRY_EMAIL_DOMAIN) : common.emailPlaceholder} value={email} onChange={(event) => setEmail(event.target.value)} /></span>
             </label>
           </div>
           <div className={styles.pair}>
@@ -166,14 +161,14 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
             </label>
           </div>
           <small className={styles.note} style={{ marginTop: -6 }}>{common.passwordHint}</small>
-          {hlavica ? null : (
+          {customEntry ? null : (
             <label className={styles.check}>
               <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
               <span>{common.terms.before}<Link href="/podminky" target="_blank">{common.terms.terms}</Link>{common.terms.between}<Link href="/ochrana-osobnich-udaju" target="_blank">{common.terms.privacy}</Link>{common.terms.after}</span>
             </label>
           )}
-          {error === "hlavica" ? (
-            <p className={styles.error}>{copy.hlavicaEntry}<Link href={`${HLAVICA_ENTRY.path}/registrace`}>{`splatno.cz${HLAVICA_ENTRY.path}/registrace`}</Link>.</p>
+          {error === "custom_entry" ? (
+            <p className={styles.error}>{copy.customEntryEntry}<Link href={CUSTOM_ENTRY_REGISTRATION_PATH}>{`splatno.cz${CUSTOM_ENTRY_REGISTRATION_PATH}`}</Link>.</p>
           ) : error ? <p className={styles.error}>{error}</p> : null}
           <button type="submit" className={styles.primary} disabled={submitting}>
             {submitting ? copy.submitting : copy.submit} <ArrowRight />

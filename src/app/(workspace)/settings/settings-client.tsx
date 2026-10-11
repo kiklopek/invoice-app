@@ -18,12 +18,14 @@ import type {
 } from "@/lib/settings-page-data";
 import { apiFetch } from "@/lib/api-client";
 import { validateCompanyFields } from "@/lib/company-validation";
+import { BankAccountsSection } from "./bank-accounts-section";
 
 type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
 type Member = SettingsMember;
 
 function memberStateLabel(member: Member, registrationEntry: boolean) {
+  if (member.support_until) return "Podpora Splatna";
   if (member.active) return "Aktivní";
   if (member.invitation === "pending") return "Pozván";
   if (member.invitation === "expired") return "Vypršelo";
@@ -266,12 +268,18 @@ export function SettingsClient({
   }
   async function removeMember(member: Member) {
     if (
-      !(await confirmAction({
-        title: `Odebrat přístup pro ${member.email}?`,
-        description:
-          "Přihlašovací účet bude smazán. Při opětovném přidání musí uživatel projít novou registrací a ověřit e-mail.",
-        confirmLabel: "Odebrat přístup",
-      }))
+      !(await confirmAction(member.support_until
+        ? {
+            title: "Ukončit přístup podpory Splatna?",
+            description: `Podpora (${member.email}) okamžitě ztratí přístup do vaší firmy.`,
+            confirmLabel: "Ukončit přístup",
+          }
+        : {
+            title: `Odebrat přístup pro ${member.email}?`,
+            description:
+              "Přihlašovací účet bude smazán. Při opětovném přidání musí uživatel projít novou registrací a ověřit e-mail.",
+            confirmLabel: "Odebrat přístup",
+          }))
     )
       return;
     setSaving(true);
@@ -446,11 +454,20 @@ export function SettingsClient({
                   />
                   {fieldErrors.bank_account_eur && <small className="field-error">{fieldErrors.bank_account_eur}</small>}
                 </label>
+                <label className="wide checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={company.vat_payer !== false}
+                    onChange={(e) => { setDirty(true); setCompany((current) => ({ ...current, vat_payer: e.target.checked })); }}
+                  />
+                  <span>Jsme plátci DPH (bez zaškrtnutí faktury bez DPH a s textem „Nejsem plátce DPH“)</span>
+                </label>
               </section>
               </div>
             </fieldset>
             </form>
           )}
+          <BankAccountsSection canEdit={canAdminister} onMessage={(text, variant) => (variant === "success" ? notifyOk(text) : notifyError(text))} />
         </section>
       </div>
       {canAdminister && (
@@ -485,7 +502,9 @@ export function SettingsClient({
                             {member.current ? " · váš účet" : ""}
                           </strong>
                           <small>
-                            {roleNames[member.role]}
+                            {member.support_until
+                              ? `Dočasný přístup podpory do ${formatAuditDate(member.support_until)}`
+                              : roleNames[member.role]}
                             {member.invitation === "pending" && member.invitation_expires_at
                               ? ` · pozvánka platí do ${new Date(member.invitation_expires_at).toLocaleDateString("cs-CZ")}`
                               : ""}
@@ -504,7 +523,7 @@ export function SettingsClient({
                           ) : null}
                         </div>
                         <select
-                          disabled={saving}
+                          disabled={saving || Boolean(member.support_until)}
                           value={member.role}
                           onChange={(event) =>
                             changeRole(member, event.target.value as Role)
@@ -616,6 +635,20 @@ export function SettingsClient({
                     Zatím nebyla zaznamenána žádná změna přístupů.
                   </p>
                 )}
+                {initialData.support_sessions.map((session) => (
+                  <article key={session.id}>
+                    <i className="added" />
+                    <div>
+                      <strong>Podpora Splatna · {session.operator_email}</strong>
+                      <span>{session.reason}</span>
+                    </div>
+                    <small>
+                      {formatAuditDate(session.started_at)}
+                      <br />
+                      {session.ended_at ? `ukončeno ${formatAuditDate(session.ended_at)}` : `do ${formatAuditDate(session.expires_at)}`}
+                    </small>
+                  </article>
+                ))}
               </div>
             </section>
           </details>

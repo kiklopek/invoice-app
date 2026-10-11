@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { entryFromSearch, type EntryBrand } from "@/lib/tenant-entries";
+
+export { withEntry, type EntryBrand } from "@/lib/tenant-entries";
 
 // Přihlášení všech firem je na jedné adrese splatno.cz/login: firmu určuje
 // účet, ne adresa. /hlavica zůstává jen jako starší adresa s logem R. Hlavica
@@ -19,10 +22,6 @@ export function loginEntryPath() {
   return LOGIN_PATH;
 }
 
-export type EntryBrand = "splatno" | "hlavica";
-
-export const HLAVICA_ENTRY_QUERY = "vstup=hlavica";
-
 /**
  * Vzhled navazujících stránek (2FA, zapomenuté a nové heslo) podle vstupu,
  * ze kterého člověk přišel. Rozhoduje jen ?vstup=hlavica v adrese, ne
@@ -33,7 +32,7 @@ export const HLAVICA_ENTRY_QUERY = "vstup=hlavica";
 export function useEntryBrand(): EntryBrand {
   const [brand, setBrand] = useState<EntryBrand>("splatno");
   useEffect(() => {
-    setBrand(new URLSearchParams(window.location.search).get("vstup") === "hlavica" ? "hlavica" : "splatno");
+    setBrand(entryFromSearch(new URLSearchParams(window.location.search)));
   }, []);
   return brand;
 }
@@ -41,10 +40,4 @@ export function useEntryBrand(): EntryBrand {
 /** Přihlašovací stránka pro přesměrování v handlerech (2FA, nové heslo). */
 export function currentEntryLoginPath() {
   return LOGIN_PATH;
-}
-
-/** Odkaz, který si nese vstup R. Hlavica dál (obecný vstup nic nepřidává). */
-export function withEntry(path: string, brand: EntryBrand) {
-  if (brand !== "hlavica") return path;
-  return `${path}${path.includes("?") ? "&" : "?"}${HLAVICA_ENTRY_QUERY}`;
 }

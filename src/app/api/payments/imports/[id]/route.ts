@@ -49,13 +49,14 @@ export async function GET(request: Request, context: Context) {
     );
   let expectedAccount: string | null = null;
   if (statement.account_mismatch) {
-    const [{ data: company }, { data: currencyRows }] = await Promise.all([
+    const [{ data: company }, { data: currencyRows }, { data: extraAccounts }] = await Promise.all([
       identity.service.from("organizations").select("bank_account_czk, bank_account_eur").eq("id", org).single(),
       identity.service.from("bank_statement_entries").select("currency").eq("import_id", id).eq("disposition", "accepted"),
+      identity.service.from("organization_bank_accounts").select("account, currency").eq("organization_id", org),
     ]);
     if (company) {
       const currencies = [...new Set((currencyRows ?? []).map((row) => row.currency).filter((value): value is string => Boolean(value)))];
-      expectedAccount = resolveConfiguredAccountForCurrencies(currencies, company);
+      expectedAccount = resolveConfiguredAccountForCurrencies(currencies, company, extraAccounts ?? []);
     }
   }
   if (url.searchParams.get("download") === "1") {
@@ -171,11 +172,12 @@ export async function GET(request: Request, context: Context) {
   const ownTransfers: Record<string, string> = {};
   const incoming = (entries ?? []).filter((entry) => entry.disposition === "accepted" && !entry.bank_payment_id);
   if (incoming.length > 0) {
-    const [{ data: company, error: companyError }, { data: statementAccounts, error: statementAccountsError }] =
+    const [{ data: company, error: companyError }, { data: statementAccounts, error: statementAccountsError }, { data: extraAccounts }] =
       await Promise.all([
         identity.service.from("organizations").select("name, bank_account_czk, bank_account_eur").eq("id", org).single(),
         identity.service.from("bank_statement_imports").select("statement_account")
           .eq("organization_id", org).neq("status", "discarded").not("statement_account", "is", null).limit(200),
+        identity.service.from("organization_bank_accounts").select("account").eq("organization_id", org),
       ]);
     if (companyError || statementAccountsError) {
       // Losing a suggestion is safe; failing the whole review screen is not.
@@ -186,6 +188,7 @@ export async function GET(request: Request, context: Context) {
         ownAccounts: [
           company?.bank_account_czk,
           company?.bank_account_eur,
+          ...(extraAccounts ?? []).map((row) => row.account),
           statement.statement_account,
           ...(statementAccounts ?? []).map((row) => row.statement_account),
         ],

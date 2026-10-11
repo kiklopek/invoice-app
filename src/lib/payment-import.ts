@@ -1,50 +1,49 @@
+import { matchOrganizationAccount, organizationAccounts, paymentAccountFor } from "./bank-accounts";
+
 export const MAX_PAYMENT_IMPORT_ROWS = 500;
 export const MAX_GPC_IMPORT_ROWS = 10_000;
 
-// Which organization field holds the account number for a given currency.
-// Settings only has dedicated fields for CZK/EUR today -- for any other
-// currency a statement can carry (USD/GBP/PLN/CHF) there is nothing
-// configured to compare against.
-export const ACCOUNT_FIELD_BY_CURRENCY: Record<string, "bank_account_czk" | "bank_account_eur"> = {
-  CZK: "bank_account_czk",
-  EUR: "bank_account_eur",
-};
+type PrimaryAccounts = { bank_account_czk?: string | null; bank_account_eur?: string | null };
+type ExtraAccounts = { account: string; currency: string }[];
 
-function digitsOnlyAccount(value: string | null | undefined) {
-  return (value ?? "")
-    .split("/")[0]
-    .replace(/\D/g, "")
-    .replace(/^0+(?=\d)/, "");
-}
-
-// A statement (GPC today) carries one account number for the whole file but
-// currency per transaction. This picks which of the org's configured
-// accounts to compare that number against -- returning null when there's no
-// single, unambiguous currency to check against a configured account (a
-// mixed-currency statement, one with no accepted entries, or a currency the
-// org hasn't configured an account for yet).
+// A statement carries one account number for the whole file but currency per
+// transaction. This picks which of the org's accounts is the expected one for
+// display -- null when there's no single currency, or no account for it.
 export function resolveConfiguredAccountForCurrencies(
   paymentCurrencies: string[],
-  company: { bank_account_czk?: string | null; bank_account_eur?: string | null },
+  company: PrimaryAccounts,
+  extraAccounts: ExtraAccounts = [],
 ): string | null {
   const distinctCurrencies = new Set(paymentCurrencies);
   const statementCurrency = distinctCurrencies.size === 1 ? [...distinctCurrencies][0] : null;
-  const accountField = statementCurrency ? ACCOUNT_FIELD_BY_CURRENCY[statementCurrency] : undefined;
-  return (accountField ? company[accountField] : null) ?? null;
+  return statementCurrency ? paymentAccountFor(statementCurrency, company, extraAccounts) : null;
 }
 
+/**
+ * Is the statement from an account that is NOT the company's? Every
+ * registered account counts (hlavní CZK/EUR i další účty), compared with the
+ * bank code -- the same number at another bank is somebody else's account.
+ * No account on the statement (CSV) or none configured: nothing to compare.
+ */
 export function detectStatementAccountMismatch(params: {
   statementAccountNumber: string | null;
   paymentCurrencies: string[];
-  company: { bank_account_czk?: string | null; bank_account_eur?: string | null };
+  company: PrimaryAccounts;
+  extraAccounts?: ExtraAccounts;
 }): boolean {
-  const configuredAccount = resolveConfiguredAccountForCurrencies(params.paymentCurrencies, params.company);
-  return Boolean(
-    configuredAccount &&
-    digitsOnlyAccount(params.statementAccountNumber) &&
-    digitsOnlyAccount(configuredAccount) &&
-    digitsOnlyAccount(params.statementAccountNumber) !== digitsOnlyAccount(configuredAccount),
-  );
+  if (!params.statementAccountNumber?.trim()) return false;
+  const accounts = organizationAccounts(params.company, params.extraAccounts ?? []);
+  if (accounts.length === 0) return false;
+  return matchOrganizationAccount(params.statementAccountNumber, accounts) === null;
+}
+
+/** Měna výpisu podle účtu firmy, ke kterému patří (null = neznámý účet). */
+export function statementCurrencyFor(
+  statementAccountNumber: string | null | undefined,
+  company: PrimaryAccounts,
+  extraAccounts: ExtraAccounts = [],
+) {
+  return matchOrganizationAccount(statementAccountNumber, organizationAccounts(company, extraAccounts))?.currency ?? null;
 }
 
 export interface PaymentImportRow {
@@ -115,19 +114,44 @@ export function isRealPaymentDate(value: string) {
   );
 }
 
+/**
+ * Částka z CSV banky. Mezery (i nezlomitelné) jsou oddělovač tisíců. Když
+ * jsou v čísle čárka i tečka, desetinný je ten poslední. Jediný oddělovač
+ * následovaný přesně třemi číslicemi („1.500“, „1,500“) je nejednoznačný --
+ * tisíce, nebo desetiny? -- a vrací NaN: dřív z „1.500“ tiše vzniklo 1,5.
+ */
 function parseAmount(value: string) {
-  const cleaned = value.replace(/\s/g, "").replace(/[^\d,.-]/g, "");
-  const comma = cleaned.lastIndexOf(",");
-  const dot = cleaned.lastIndexOf(".");
-  const decimal =
-    comma >= 0 && dot >= 0
-      ? comma > dot
-        ? cleaned.replaceAll(".", "").replace(",", ".")
-        : cleaned.replaceAll(",", "")
-      : comma >= 0
-        ? cleaned.replace(",", ".")
-        : cleaned;
-  return Number(decimal);
+  const cleaned = value.replace(/[\s\u00a0\u202f]/g, "").replace(/[^\d,.+-]/g, "");
+  if (!/^[+-]?[\d.,]*\d[\d.,]*$/.test(cleaned)) return Number.NaN;
+  const sign = cleaned.startsWith("-") ? -1 : 1;
+  const digits = cleaned.replace(/^[+-]/, "");
+  const comma = digits.lastIndexOf(",");
+  const dot = digits.lastIndexOf(".");
+  let normalized: string;
+  if (comma >= 0 && dot >= 0) {
+    const decimal = comma > dot ? "," : ".";
+    const thousands = decimal === "," ? "." : ",";
+    const cut = digits.lastIndexOf(decimal);
+    const whole = digits.slice(0, cut);
+    const fraction = digits.slice(cut + 1);
+    if (fraction.includes(thousands) || !new RegExp(`^\\d{1,3}(\\${thousands}\\d{3})*$`).test(whole)) return Number.NaN;
+    normalized = `${whole.split(thousands).join("")}.${fraction}`;
+  } else if (comma >= 0 || dot >= 0) {
+    const separator = comma >= 0 ? "," : ".";
+    const parts = digits.split(separator);
+    if (parts.length > 2) {
+      // 1.500.000 -- víc stejných oddělovačů jsou tisíce.
+      if (!parts.slice(1).every((part) => part.length === 3)) return Number.NaN;
+      normalized = parts.join("");
+    } else if (parts[1].length === 3) {
+      return Number.NaN;
+    } else {
+      normalized = `${parts[0]}.${parts[1]}`;
+    }
+  } else {
+    normalized = digits;
+  }
+  return sign * Number(normalized);
 }
 
 export function normalizeVariableSymbol(value: string | null | undefined) {
@@ -201,7 +225,7 @@ export function validatePaymentRows(
   return parsed;
 }
 
-export function parsePaymentCsv(text: string): PaymentImportRow[] {
+function csvLayout(text: string) {
   const clean = text.replace(/^\uFEFF/, "").trim();
   const lines = clean.split(/\r?\n/).filter((line) => line.trim());
   if (lines.length < 2) throw new Error("CSV neobsahuje žádné platby.");
@@ -264,7 +288,11 @@ export function parsePaymentCsv(text: string): PaymentImportRow[] {
       "CSV musí obsahovat ID transakce, datum, částku a měnu. Variabilní symbol je doporučený pro automatické spárování.",
     );
   }
+  return { lines, delimiter, columns };
+}
 
+export function parsePaymentCsv(text: string): PaymentImportRow[] {
+  const { lines, delimiter, columns } = csvLayout(text);
   const rows = lines.slice(1).map((line, index) => {
     const values = splitCsvRow(line, delimiter);
     const bookedOn = parseDate(values[columns.date] ?? "");
@@ -273,7 +301,8 @@ export function parsePaymentCsv(text: string): PaymentImportRow[] {
       external_id: values[columns.id] ?? "",
       booked_on: bookedOn,
       amount,
-      currency: (values[columns.currency] || "CZK").toUpperCase(),
+      // Měna se nedoplňuje: prázdná měna u eurového účtu by se zaúčtovala jako CZK.
+      currency: (values[columns.currency] ?? "").trim().toUpperCase(),
       variable_symbol:
         columns.variable >= 0
           ? normalizeVariableSymbol(values[columns.variable])
@@ -291,4 +320,50 @@ export function parsePaymentCsv(text: string): PaymentImportRow[] {
       "CSV obsahuje neplatný nebo duplicitní řádek. Zkontrolujte ID, datum, kladnou částku, třípísmennou měnu a variabilní symbol.",
     );
   return validated;
+}
+
+export type CsvStatementRow = {
+  line: number;
+  disposition: "accepted" | "ignored" | "error";
+  reason?: string;
+  payment?: PaymentImportRow;
+};
+
+/**
+ * CSV výpis z banky řádek po řádku, jako GPC: odchozí platby se přeskočí,
+ * vadný řádek je chyba jen toho řádku, ne celého souboru. Měna se nikdy
+ * nedoplní (prázdná = chyba řádku), nečíselná reference (RF…) jde do zprávy.
+ */
+export function parseStatementCsv(text: string): CsvStatementRow[] {
+  const { lines, delimiter, columns } = csvLayout(text);
+  const seen = new Set<string>();
+  return lines.slice(1).map((line, index): CsvStatementRow => {
+    const lineNumber = index + 2;
+    const values = splitCsvRow(line, delimiter);
+    const amount = parseAmount(values[columns.amount] ?? "");
+    if (!Number.isFinite(amount))
+      return { line: lineNumber, disposition: "error", reason: "Částku nejde jednoznačně přečíst (např. „1.500“ může být 1 500 i 1,5)." };
+    if (amount < 0) return { line: lineNumber, disposition: "ignored", reason: "Odchozí platba (debet)." };
+    if (amount === 0) return { line: lineNumber, disposition: "ignored", reason: "Nulová částka." };
+    const currency = (values[columns.currency] ?? "").trim().toUpperCase();
+    if (!currency) return { line: lineNumber, disposition: "error", reason: "Chybí měna platby." };
+    const reference = columns.variable >= 0 ? (values[columns.variable] ?? "").replace(/\s/g, "") : "";
+    const numericReference = /^\d*$/.test(reference);
+    const note = columns.note >= 0 ? values[columns.note] : undefined;
+    const row = {
+      external_id: values[columns.id] ?? "",
+      booked_on: parseDate(values[columns.date] ?? ""),
+      amount,
+      currency,
+      variable_symbol: numericReference ? normalizeVariableSymbol(reference) : "",
+      counterparty_name: columns.name >= 0 ? values[columns.name] : undefined,
+      counterparty_account: columns.account >= 0 ? values[columns.account] : undefined,
+      note: numericReference ? note : [reference, note].filter(Boolean).join(" "),
+    };
+    const payment = validatePaymentRows([row], 1)?.[0];
+    if (!payment || seen.has(payment.external_id))
+      return { line: lineNumber, disposition: "error", reason: "Řádek má neplatné nebo duplicitní ID, datum, měnu či symbol." };
+    seen.add(payment.external_id);
+    return { line: lineNumber, disposition: "accepted", payment };
+  });
 }

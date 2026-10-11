@@ -7,9 +7,9 @@ import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { useI18n } from "@/i18n/client";
 import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
-import { HLAVICA_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { CUSTOM_ENTRY_EMAIL_DOMAIN, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { withEntry } from "@/lib/login-entry";
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY, CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { safeReturnPath } from "@/lib/safe-return-path";
 
 // Přihlášení (P8). /login (obecný vzhled Splatna) i /hlavica (vzhled
@@ -133,7 +133,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
 
   return (
     <AuthShell art="wave" brand={brand} claim={<>{copy.claim1}<br />{copy.claim2}</>}>
-      {brand === "hlavica" ? <span className={styles.eyebrow}>{HLAVICA_ENTRY.name}</span> : null}
+      {isCustomEntryBrand(brand) ? <span className={styles.eyebrow}>{CUSTOM_ENTRY.name}</span> : null}
       <h1 className={styles.title}>{copy.title}</h1>
       <p className={styles.sub}>{copy.sub}</p>
       <form onSubmit={signIn} className={styles.form}>
@@ -142,7 +142,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
           <span>{common.companyEmail}</span>
           <span className={styles.control}>
             <Mail />
-            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={brand === "hlavica" ? common.emailPlaceholderAt(HLAVICA_EMAIL_DOMAIN) : common.emailPlaceholder} value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="email" required placeholder={isCustomEntryBrand(brand) ? common.emailPlaceholderAt(CUSTOM_ENTRY_EMAIL_DOMAIN) : common.emailPlaceholder} value={email} onChange={(event) => setEmail(event.target.value)} />
           </span>
         </label>
         <label className={styles.field}>
@@ -162,8 +162,8 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
           {submitting ? copy.submitting : copy.submit} <ArrowRight />
         </button>
       </form>
-      {brand === "hlavica"
-        ? <p className={styles.foot}>{copy.noAccount}<Link href={`${HLAVICA_ENTRY.path}/registrace`}>{copy.createAccount}</Link></p>
+      {isCustomEntryBrand(brand)
+        ? <p className={styles.foot}>{copy.noAccount}<Link href={CUSTOM_ENTRY_REGISTRATION_PATH}>{copy.createAccount}</Link></p>
         : <p className={styles.foot}>{copy.noAccount}<Link href="/register">{copy.createCompanyAccount}</Link></p>}
       <p className={styles.note}>{copy.note}</p>
     </AuthShell>

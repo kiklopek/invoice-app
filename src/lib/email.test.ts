@@ -70,14 +70,23 @@ const send = async (extra: Record<string, unknown> = {}) => {
 describe("sendReminderEmail", () => {
   it("sends to the testing mailbox only when enabled, retaining other issuer blocks", async () => {
     const ownCompany = { ...company, email: "info@hlavica.cz" };
-    delete process.env.ALLOW_ADAM_REMINDER_TEST_EMAIL;
+    delete process.env.REMINDER_TEST_RECIPIENTS;
     await expect(send({ to: "adam@hlavica.cz", company: ownCompany })).rejects.toThrow(/vystavitele/);
-    process.env.ALLOW_ADAM_REMINDER_TEST_EMAIL = "true";
+    process.env.REMINDER_TEST_RECIPIENTS = "adam@hlavica.cz";
     await send({ to: "adam@hlavica.cz", company: ownCompany });
     expect(sent[0].payload.to).toBe("adam@hlavica.cz");
     await expect(send({ to: "info@hlavica.cz", company: ownCompany })).rejects.toThrow(/vystavitele/);
     expect(sent).toHaveLength(1);
   });
+  // Dlužník vidí, kdo mu píše: jméno věřitele, ne jen „Splatno“ (to
+  // vypadalo jako phishing). Adresa zůstává naše (SPF/DKIM), odpovědi jdou
+  // na e-mail firmy.
+  it("sends as 'Company via Splatno' from our address", async () => {
+    await send({ company: { ...company, name: "Dřevo \"Novák\" <s.r.o.>" } });
+    expect(sent[0].payload.from).toBe('"Dřevo Novák s.r.o. přes Splatno" <test@example.cz>');
+    expect(sent[0].payload.replyTo).toBe("info@example.cz");
+  });
+
   it("passes an idempotency key, so a retry cannot deliver twice", async () => {
     await send();
     expect(sent[0].options.idempotencyKey).toBe("reminder-abc");

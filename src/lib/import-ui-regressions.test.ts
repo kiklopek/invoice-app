@@ -33,7 +33,7 @@ describe("MFA and bank statement UI regressions", () => {
     expect(gpcImport).toContain(
       '["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]',
     );
-    expect(gpcImport).toContain("Příchozí CZK platby připravené ke kontrole.");
+    expect(gpcImport).toContain("Příchozí platby připravené ke kontrole.");
     expect(gpcImport).toContain("Odchozí, cizoměnové nebo duplicitní řádky.");
     expect(gpcImport).toContain('["duplicate", "Duplicity"]');
     expect(css).toContain(".import-steps span.current");
@@ -88,7 +88,7 @@ describe("MFA and bank statement UI regressions", () => {
     expect(paymentsArchivePage.indexOf('id="historie-plateb"')).toBeLessThan(
       paymentsArchivePage.indexOf("<StatementArchive"),
     );
-    expect(paymentsArchivePage).toContain('<span className="payments-section-number">01</span>');
+    expect(paymentsArchivePage).toContain('id="historie-plateb" aria-label="Importované platby"');
     // Nahrávací podstránka obsahuje jen import výpisu a přepínač na archiv.
     expect(paymentsUploadPage).toContain('href="/invoices/payments/archive"');
     expect(paymentsUploadPage).not.toContain('id="historie-plateb"');

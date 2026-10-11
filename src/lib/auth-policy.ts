@@ -1,11 +1,11 @@
-import { HLAVICA_ENTRY } from "@/lib/tenant-entries";
+import { CUSTOM_ENTRY } from "@/lib/tenant-entries";
 
 // Splatno je pro všechny firmy: přihlásit a zaregistrovat se jde s jakýmkoli
 // platným e-mailem. Doménu hlídá konkrétní firma (organizations.
 // allowed_email_domain) při pozvání člena; R. Hlavica ji má nastavenou na
 // hlavica.cz. Tahle konstanta slouží už jen vstupu splatno.cz/hlavica
 // (nápověda ve formuláři).
-export const HLAVICA_EMAIL_DOMAIN = HLAVICA_ENTRY.emailDomain;
+export const CUSTOM_ENTRY_EMAIL_DOMAIN = CUSTOM_ENTRY.emailDomain;
 
 export function normalizeEmail(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";

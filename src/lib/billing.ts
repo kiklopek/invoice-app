@@ -9,12 +9,17 @@ export type SubscriptionRow = {
   current_period_end: string | null;
   trial_invoices_used?: number | null;
   trial_invoice_limit?: number | null;
+  /** Trvalý přístup bez platby (R. Hlavica a firmy z doby před předplatným). */
+  billing_exempt?: boolean | null;
 };
 export type SubscriptionState = "needs_payment" | "trial" | "active" | "past_due" | "expired";
 
 export function subscriptionState(row: SubscriptionRow | null, now = new Date()): SubscriptionState {
-  // Bez řádku (stávající data před zavedením předplatného) firmu nezamykáme.
-  if (!row) return "active";
+  // Řádek předplatného má každá firma (onboarding, legacy migrace). Bez něj
+  // se dřív fakturovalo zdarma navždy; teď se platí jako bez karty. Výpadek
+  // čtení řeší volající (loadSubscription), ne tahle funkce.
+  if (!row) return "needs_payment";
+  if (row.billing_exempt) return "active";
   switch (row.status) {
     case "incomplete":
     case "incomplete_expired":
@@ -22,7 +27,7 @@ export function subscriptionState(row: SubscriptionRow | null, now = new Date())
     case "trialing":
       return "trial";
     // Konec období neřešíme podle hodin: prodloužení hlásí Stripe a webhook
-    // může mít zpoždění. Trvalé předplatné (R. Hlavica) konec nemá vůbec.
+    // může mít zpoždění.
     case "active":
       return "active";
     case "past_due":
@@ -88,7 +93,7 @@ export function billingNotice(row: SubscriptionRow | null, now = new Date()): Bi
 /**
  * Firmy, za které smí automat upomínek odesílat. Firma s ukončeným
  * předplatným nebo bez zadané karty má odesílání pozastavené; upomínky jí
- * zůstanou ve frontě. Firma bez řádku předplatného se nezastavuje.
+ * zůstanou ve frontě. Firma bez řádku předplatného také.
  */
 export function organizationsAllowedToSend(
   organizationIds: string[],

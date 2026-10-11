@@ -8,13 +8,15 @@ import { getStripe, stripeConfiguration } from "@/lib/stripe";
 import { canManageMembers } from "@/lib/role-access";
 import { logError } from "@/lib/structured-log";
 
-const SUBSCRIPTION_COLUMNS = "status, plan, period, trial_ends_at, trial_started_at, current_period_end, trial_invoices_used, trial_invoice_limit, trial_denied_reason, cancel_at_period_end, scheduled_plan, scheduled_period, scheduled_at, stripe_customer_id, stripe_subscription_id";
+const SUBSCRIPTION_COLUMNS = "status, plan, period, trial_ends_at, trial_started_at, current_period_end, trial_invoices_used, trial_invoice_limit, trial_denied_reason, cancel_at_period_end, scheduled_plan, scheduled_period, scheduled_at, stripe_customer_id, stripe_subscription_id, billing_exempt";
 
 export async function loadSubscription(service: Service, organizationId: string) {
   const { data, error } = await service.from("subscriptions").select(SUBSCRIPTION_COLUMNS).eq("organization_id", organizationId).maybeSingle();
   if (error) logError("Předplatné firmy se nepodařilo načíst", error);
   const row = (data ?? null) as (SubscriptionRow & Record<string, unknown>) | null;
-  return { row, state: subscriptionState(row), failed: Boolean(error) };
+  // Výpadek čtení nesmí firmu zamknout (dřív to zajišťovalo „bez řádku =
+  // active“); databázový trigger limity hlídá znovu.
+  return { row, state: error ? "active" as const : subscriptionState(row), failed: Boolean(error) };
 }
 
 /** Stripe pro API routy, nebo null, když není nastavený. */

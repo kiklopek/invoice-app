@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
   const { data: organization } = await identity.service
     .from("organizations")
-    .select("name, logo_path")
+    .select("name, logo_path, vat_payer")
     .eq("id", identity.membership.organization_id)
     .single();
   return NextResponse.json({
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     email: session.email,
     companyName: organization?.name?.trim() || "Firma",
     companyLogo: organization?.logo_path ?? null,
+    vatPayer: organization?.vat_payer ?? null,
     mfa_bypassed: mfaBypassed,
   });
 }

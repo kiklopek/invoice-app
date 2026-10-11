@@ -57,8 +57,53 @@ describe("parseCsvStatement", () => {
     expect(result.entries[0].payment?.counterparty_name).toBe("Žluťoučký kůň");
   });
 
-  it("propagates the underlying CSV validation error for malformed rows", () => {
+  // Vadný řádek je chyba jen toho řádku (jako u GPC), ne celého souboru.
+  it("reports a malformed row as an error entry", () => {
     const invalid = ["ID transakce,Datum,Částka,Měna", "BANK-1,not-a-date,1000,CZK"].join("\n");
-    expect(() => parseCsvStatement(bytes(invalid))).toThrow();
+    const result = parseCsvStatement(bytes(invalid));
+    expect(result.totals).toEqual({ accepted: 0, ignored: 0, errors: 1 });
+  });
+
+  it("still rejects a file without the required columns", () => {
+    expect(() => parseCsvStatement(bytes("Datum,Částka\n2026-09-10,1000"))).toThrow();
+  });
+});
+
+// Skutečné CSV exporty bank: odchozí platby se zápornou částkou, částky
+// s oddělovačem tisíců, reference RF… místo VS a někdy prázdná měna.
+describe("parseCsvStatement s exportem banky", () => {
+  const header = "ID transakce;Datum;Částka;Měna;Variabilní symbol;Protistrana";
+
+  it("skips outgoing payments instead of rejecting the whole statement", () => {
+    const result = parseCsvStatement(bytes([header, "1;10.09.2026;1 500,00;CZK;2026001;Odběratel", "2;10.09.2026;-350,00;CZK;;Dodavatel"].join("\n")));
+    expect(result.totals).toEqual({ accepted: 1, ignored: 1, errors: 0 });
+    expect(result.payments.map((payment) => payment.amount)).toEqual([1500]);
+    expect(result.entries.find((entry) => entry.disposition === "ignored")?.reason).toMatch(/odchozí/i);
+  });
+
+  it("reads Czech amounts and never turns an ambiguous '1.500' into 1.5", () => {
+    const result = parseCsvStatement(bytes([header,
+      "1;10.09.2026;1 500,00;CZK;1;A",
+      "2;10.09.2026;1.500.000,50;CZK;2;B",
+      "3;10.09.2026;1500.25;CZK;3;C",
+      "4;10.09.2026;1.500;CZK;4;D",
+      "5;10.09.2026;1,500;CZK;5;E",
+    ].join("\n")));
+    expect(result.payments.map((payment) => payment.amount)).toEqual([1500, 1500000.5, 1500.25]);
+    const errors = result.entries.filter((entry) => entry.disposition === "error");
+    expect(errors).toHaveLength(2);
+    expect(errors[0].reason).toMatch(/částk/i);
+  });
+
+  it("keeps a non-numeric payment reference as a message instead of failing", () => {
+    const result = parseCsvStatement(bytes([header, "1;10.09.2026;100,00;EUR;RF18539007547034;Payer"].join("\n")));
+    expect(result.payments[0]).toMatchObject({ variable_symbol: "", note: "RF18539007547034", currency: "EUR" });
+  });
+
+  it("never fills a missing currency in as CZK", () => {
+    const result = parseCsvStatement(bytes([header, "1;10.09.2026;100,00;;1;Payer"].join("\n")));
+    expect(result.payments).toHaveLength(0);
+    expect(result.entries[0]).toMatchObject({ disposition: "error" });
+    expect(result.entries[0].reason).toMatch(/měn/i);
   });
 });

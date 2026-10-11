@@ -3,6 +3,7 @@ import { getAuthenticatedSession, resolveMembership } from "@/lib/auth";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { NextResponse } from "next/server";
+import { entryFromSearch, withEntry } from "@/lib/tenant-entries";
 
 // Odkaz z potvrzovacího e-mailu registrace (a obnovy hesla). Pozvaný člověk
 // se tu rovnou připojí ke své firmě; zakladatel firmu ještě nemá a po 2FA
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
         sessionId: session.sessionId,
       });
       // Vstup R. Hlavica si nese svůj vzhled i na 2FA (jen vzhled).
-      const mfa = url.searchParams.get("vstup") === "hlavica" ? "/mfa?vstup=hlavica" : "/mfa";
+      const mfa = withEntry("/mfa", entryFromSearch(url.searchParams));
       return NextResponse.redirect(
         new URL(verified ? "/dashboard" : mfa, url.origin)
       );

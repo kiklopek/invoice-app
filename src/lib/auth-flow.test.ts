@@ -18,7 +18,13 @@ describe("authentication flow", () => {
     // Texty jsou ve slovníku (CZ/EN), formulář je bere podle klíče.
     expect(register).toContain("copy.title");
     expect(cs.auth.register.title).toBe("Založit firemní účet");
-    expect(accessRoute).toContain('kind: row ? "invited" : "founder"');
+    expect(accessRoute).toContain("registrationAccessDecision(");
+    expect(source("src/lib/tenant-entries.ts")).toContain('kind: "signup"');
+    expect(register).toContain("copy.sentSignup");
+    expect(register).not.toContain("setKind(");
+    expect(register).toContain('access.kind === "custom_entry"');
+    expect(register).toContain('error === "custom_entry"');
+    expect(register).toContain("CUSTOM_ENTRY_REGISTRATION_PATH");
     expect(accessRoute).toContain('.from("organization_members")');
     expect(accessRoute).toContain('.eq("email", email)');
     expect(accessRoute).toContain("isSameOriginMutation(request)");
