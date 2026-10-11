@@ -15,68 +15,27 @@ type Message =
   | { from: "user"; text: string }
   | { from: "esko"; answer: EskoAnswer };
 
-const TEASER_KEY = "splatno:esko-teaser-dismissed";
-const MINIMIZED_KEY = "splatno:esko-minimized";
 type Pending = { kind: "question"; id: EskoQuestionId } | { kind: "invoice_search" | "customer_debt"; query: string };
 type SearchResult = { invoices: Invoice[]; total: number; open_totals: Record<string, number> };
 
-// Plovoucí asistent vpravo dole na všech stránkách aplikace. Data si načte
-// až po otevření, aby neprodlužoval běžné načítání stránek.
+// Asistent na všech stránkách aplikace. Normálně je to jen jazýček s hlavou
+// maskota u pravého okraje, který nic nepřekrývá; kliknutím se rovnou otevře
+// panel s chatem. Data si načte až po otevření, aby neprodlužoval běžné
+// načítání stránek.
 export function EskoAssistant() {
   const profile = useAccessProfile();
   const [open, setOpen] = useState(false);
-  const [teaser, setTeaser] = useState(false);
-  // null = ještě nevíme (čte se z úložiště); do té doby se Esko nevykreslí,
-  // aby schovaný Esko po načtení stránky neproblikl.
-  const [minimized, setMinimized] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const tabRef = useRef<HTMLButtonElement>(null);
-  const focusAfterToggle = useRef(false);
   const { data, error } = useSWR<DashboardData>(open ? "/api/dashboard" : null);
 
-  useEffect(() => {
-    try {
-      setTeaser(!window.localStorage.getItem(TEASER_KEY));
-      setMinimized(window.localStorage.getItem(MINIMIZED_KEY) === "1");
-    } catch {
-      setTeaser(false);
-      setMinimized(false);
-    }
-  }, []);
-
-  // Po schování/vrácení jde fokus na to, co je teď vidět, ať se klávesnice neztratí.
-  useEffect(() => {
-    if (!focusAfterToggle.current) return;
-    focusAfterToggle.current = false;
-    (minimized ? tabRef.current : buttonRef.current)?.focus();
-  }, [minimized]);
-
-  function setMinimizedPersisted(value: boolean) {
-    focusAfterToggle.current = true;
-    setMinimized(value);
-    if (value) {
-      setOpen(false);
-      hideTeaser();
-    }
-    try {
-      if (value) window.localStorage.setItem(MINIMIZED_KEY, "1");
-      else window.localStorage.removeItem(MINIMIZED_KEY);
-    } catch {
-      // Bez úložiště se Esko po obnovení stránky prostě vrátí.
-    }
-  }
-
-  function hideTeaser() {
-    setTeaser(false);
-    try {
-      window.localStorage.setItem(TEASER_KEY, "1");
-    } catch {
-      // Bez úložiště se bublina prostě ukáže i příště.
-    }
+  // Po zavření se fokus vrátí na jazýček, ať se klávesnice neztratí.
+  function close() {
+    setOpen(false);
+    tabRef.current?.focus();
   }
 
   // Otázka položená před načtením dat se zodpoví, jakmile data dorazí.
@@ -123,7 +82,7 @@ export function EskoAssistant() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
-        buttonRef.current?.focus();
+        tabRef.current?.focus();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -152,59 +111,19 @@ export function EskoAssistant() {
     }
   }
 
-  if (minimized === null) return null;
-
-  // Schovaný Esko: jen jazýček u pravého okraje, který nic nepřekrývá.
-  if (minimized) {
-    return (
+  return (
+    <>
       <button
         ref={tabRef}
         type="button"
         className={styles.edgeTab}
-        aria-label="Zobrazit asistenta Esko"
-        title="Zobrazit asistenta Esko"
-        onClick={() => setMinimizedPersisted(false)}
-      >
-        <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="32px" className={styles.edgeTabImage} />
-      </button>
-    );
-  }
-
-  return (
-    <>
-      {!open ? (
-        <button
-          type="button"
-          className={styles.minimize}
-          aria-label="Schovat asistenta Esko"
-          title="Schovat asistenta Esko"
-          onClick={() => setMinimizedPersisted(true)}
-        >
-          <span aria-hidden="true">×</span>
-        </button>
-      ) : null}
-
-      {teaser && !open ? (
-        <div className={styles.teaser} role="note">
-          <b>Ahoj, jsem Esko.</b> Zeptejte se mě, co je potřeba dnes vyřešit.
-          <button type="button" aria-label="Skrýt" onClick={hideTeaser}>×</button>
-        </div>
-      ) : null}
-
-      <button
-        ref={buttonRef}
-        type="button"
-        className={styles.fab}
         aria-label={open ? "Zavřít asistenta Esko" : "Otevřít asistenta Esko"}
+        title={open ? "Zavřít asistenta Esko" : "Otevřít asistenta Esko"}
         aria-expanded={open}
         aria-controls="esko-panel"
-        onClick={() => {
-          setOpen((value) => !value);
-          hideTeaser();
-        }}
+        onClick={() => setOpen((value) => !value)}
       >
-        <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="64px" className={styles.fabImage} />
-        <span className={styles.online} aria-hidden="true" />
+        <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="40px" className={styles.edgeTabImage} />
       </button>
 
       {open ? (
@@ -215,7 +134,7 @@ export function EskoAssistant() {
               <b>Esko · asistent</b>
               <small>Hlídá vaše faktury</small>
             </span>
-            <button type="button" className={styles.close} aria-label="Zavřít" onClick={() => setOpen(false)}>×</button>
+            <button type="button" className={styles.close} aria-label="Zavřít" onClick={close}>×</button>
           </header>
 
           <div className={styles.messages} ref={listRef} aria-live="polite">
