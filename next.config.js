@@ -40,6 +40,12 @@ const nextConfig = {
   // development portal from covering mobile controls. Compile/runtime errors
   // are still shown by Next.js when this indicator is disabled.
   devIndicators: false,
+  // Navštívené stránky si prohlížeč 30 s pamatuje, takže přepnutí zpět je
+  // okamžité (výchozí 0 s = každé kliknutí čeká na server). Po každé změně
+  // dat se paměť zahodí -- viz src/components/router-cache-invalidator.tsx.
+  experimental: {
+    staleTimes: { dynamic: 30 },
+  },
   allowedDevOrigins: ["127.0.0.1"],
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@napi-rs/canvas", "sharp", "tesseract.js", "pdfjs-dist"],

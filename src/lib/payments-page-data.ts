@@ -84,23 +84,18 @@ export async function loadPaymentsPageData(
   if (error || invoiceError) throw new PageDataError("Bankovní platby se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500);
 
   const paymentIds = (data ?? []).map((payment) => payment.id);
+  // Faktura se přibalí k alokaci rovnou (dřív samostatný dotaz čekající na
+  // výsledek tohohle -- o kolo k databázi víc na každé otevření Plateb).
   const { data: allocations } = paymentIds.length
     ? await identity.service
         .from("bank_payment_allocations")
-        .select("bank_payment_id, invoice_id, amount")
+        .select("bank_payment_id, invoice_id, amount, invoice:invoices!bank_payment_allocations_invoice_same_org(invoice_number, counterparty_name)")
         .eq("organization_id", organizationId)
         .eq("is_committed", true)
         .in("bank_payment_id", paymentIds)
+        .overrideTypes<Array<{ bank_payment_id: string | null; invoice_id: string; amount: number; invoice: { invoice_number: string; counterparty_name: string } | null }>, { merge: false }>()
     : { data: [] };
-  const allocationInvoiceIds = [...new Set((allocations ?? []).map((allocation) => allocation.invoice_id))];
-  const { data: allocationInvoices } = allocationInvoiceIds.length
-    ? await identity.service
-        .from("invoices")
-        .select("id, invoice_number, counterparty_name")
-        .eq("organization_id", organizationId)
-        .in("id", allocationInvoiceIds)
-    : { data: [] };
-  const invoiceById = new Map((allocationInvoices ?? []).map((invoice) => [invoice.id, invoice]));
+  const invoiceById = new Map((allocations ?? []).flatMap((allocation) => allocation.invoice ? [[allocation.invoice_id, allocation.invoice] as const] : []));
   const allocationsByPayment = new Map<string, PaymentsPagePayment["allocations"]>();
   for (const allocation of allocations ?? [])
     allocationsByPayment.set(allocation.bank_payment_id!, [

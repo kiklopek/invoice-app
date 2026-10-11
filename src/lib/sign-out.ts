@@ -1,5 +1,3 @@
-import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
-
 const LOGOUT_ERROR = "Odhlášení se nepodařilo. Zkontrolujte připojení a zkuste to znovu.";
 
 export async function signOutCurrentSession() {
@@ -13,6 +11,9 @@ export async function signOutCurrentSession() {
     // Při nedostupnosti serverové routy ještě zkusíme vyčistit session v prohlížeči.
   }
 
+  // Supabase klient pro prohlížeč je velký a potřeba je jen tady, při
+  // výpadku serverové routy. Načte se až teď, ne na každé stránce.
+  const { createClient, hasSupabaseBrowserConfig } = await import("@/lib/supabase-browser");
   if (hasSupabaseBrowserConfig()) {
     const supabase = createClient();
     const { error } = await supabase.auth.signOut({ scope: "local" });
