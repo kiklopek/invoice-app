@@ -25,6 +25,12 @@ export type CompanySettings = {
   vat_payer: boolean | null;
   revision: number;
 };
+export type SettingsBankAccount = {
+  id: string;
+  account: string;
+  currency: string;
+  label: string | null;
+};
 export type SettingsMember = {
   id: string;
   email: string;
@@ -56,6 +62,8 @@ export type SettingsAccessEvent = {
 };
 export type SettingsPageData = {
   company: CompanySettings;
+  bank_accounts: SettingsBankAccount[];
+  draft_scope: string;
   members: SettingsMember[];
   access_events: SettingsAccessEvent[];
   current_role: AccessRole;
@@ -89,7 +97,7 @@ export async function loadSettingsPageData(
   const companyPromise = identity.service
     .from("organizations")
     .select(
-      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, vat_payer, settings_revision, allowed_email_domain",
+      "name, ico, dic, registered_address, operating_address, data_box_id, phone, email, bank_account_czk, bank_account_eur, vat_payer, settings_revision, allowed_email_domain, bank_accounts:organization_bank_accounts(id, account, currency, label, created_at)",
     )
     .eq("id", org)
     .single();
@@ -131,12 +139,16 @@ export async function loadSettingsPageData(
       500,
     );
   return {
+    draft_scope: `${org}:${identity.user.id}`,
     company: companyResult.data
-      ? (({ allowed_email_domain: _domain, ...company }) => ({
+      ? (({ allowed_email_domain: _domain, bank_accounts: _accounts, ...company }) => ({
           ...company,
           revision: company.settings_revision,
         }) as CompanySettings)(companyResult.data)
       : emptyCompanySettings,
+    bank_accounts: [...(companyResult.data?.bank_accounts ?? [])]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map(({ created_at: _createdAt, ...account }) => account),
     members: (membersResult.error ? [] : membersResult.data ?? []).map((member) => ({
       id: member.id,
       email: member.email,

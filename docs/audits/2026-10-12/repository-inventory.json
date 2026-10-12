@@ -1,0 +1,999 @@
+{
+  "versions": {
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@supabase/supabase-js": "2.112.1",
+    "@supabase/ssr": "0.12.4"
+  },
+  "architecture": "App Router",
+  "api_route_count": 62,
+  "server_action_count": 0,
+  "routes": [
+    {
+      "path": "src/app/api/billing/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageMembers"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/customers/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/dashboard/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/health/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "dashboard_summary",
+        "invoice_report_summary",
+        "list_invoices_page"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "list_invoices_page_filtered"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "assign_bank_payment",
+        "unassign_bank_payment_allocations"
+      ]
+    },
+    {
+      "path": "src/app/api/reminders/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canAccessOperations",
+        "canManageInvoices"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/reports/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canViewFinancialInsights"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "invoice_report_rows_page",
+        "invoice_report_summary"
+      ]
+    },
+    {
+      "path": "src/app/api/webhooks/resend/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "process_resend_delivery_event"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/bank-accounts/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canEditCompanySettings",
+        "canViewCompanySettings"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/settings/company/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canEditCompanySettings",
+        "canViewCompanySettings"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/settings/email-suppressions/route.ts",
+      "methods": [
+        "GET",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/settings/logo/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageMembers"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/settings/members/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageMembers"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "add_organization_member",
+        "delete_organization_member",
+        "end_support_session",
+        "restore_organization_member_after_auth_delete_failure",
+        "update_organization_member_role"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/page-data/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/settings/reminder-policies/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canAccessOperations",
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "set_default_reminder_policy"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/reminders/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canAccessOperations",
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "save_default_reminder_settings_versioned"
+      ]
+    },
+    {
+      "path": "src/app/api/settings/reminders/test/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/settings/members/invitation/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageMembers"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/reminders/page-data/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/payments/assistance/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "decide_payment_assistance",
+        "payment_assistance_overview",
+        "request_payment_assistance",
+        "save_payment_payer_memory",
+        "set_payment_assistance_waiting"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/audit/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "audit_invoice_money"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices",
+        "canUseGpcImport"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "reconcile_bank_statement"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/invoice-candidates/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices",
+        "canUseGpcImport"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "list_open_invoice_candidates"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/overlap/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "acknowledge_statement_overlap"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices",
+        "canUseGpcImport"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "save_bank_statement_allocations"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/commit/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices",
+        "canUseGpcImport"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "reconcile_bank_statement"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/discard/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices",
+        "canUseGpcImport"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "discard_bank_statement_import"
+      ]
+    },
+    {
+      "path": "src/app/api/payments/imports/[id]/release/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices",
+        "canUseGpcImport"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "release_statement_entry"
+      ]
+    },
+    {
+      "path": "src/app/api/operator/support/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getOperatorSession"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "end_support_session",
+        "start_support_session"
+      ]
+    },
+    {
+      "path": "src/app/api/onboarding/ares/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getAuthenticatedSession"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/onboarding/organization/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getAuthenticatedSession",
+        "resolveMembership"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "create_organization_for_user"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/extract/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": true,
+      "rpc_names": [
+        "claim_invoice_ocr"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/import/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/reminder-policy-preference/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/upload/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "confirm_manual_payment",
+        "delete_invoice_safely",
+        "reopen_paid_invoice"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/[id]/activity/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/assignable-payments/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/document/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canViewFinancialInsights"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/page-data/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": true,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/pdf/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canViewFinancialInsights"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/reminders/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/send/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "complete_reminder_send"
+      ]
+    },
+    {
+      "path": "src/app/api/invoices/upload/verify/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/invitations/[token]/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "accept_organization_invitation"
+      ]
+    },
+    {
+      "path": "src/app/api/customers/search/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canViewFinancialInsights"
+      ],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/customers/[id]/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "update_customer_contact"
+      ]
+    },
+    {
+      "path": "src/app/api/cron/check-due/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [
+        "canManageInvoices"
+      ],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "claim_reminder_jobs",
+        "cleanup_expired_support_sessions",
+        "complete_claimed_reminder_send",
+        "fail_claimed_reminder_job",
+        "release_claimed_reminder_jobs",
+        "schedule_reminder_jobs",
+        "skip_claimed_reminder_job"
+      ]
+    },
+    {
+      "path": "src/app/api/cron/reconcile-payments/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "auth_helpers": [],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "run_bank_reconciliation_jobs"
+      ]
+    },
+    {
+      "path": "src/app/api/billing/activate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/billing/setup/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/billing/stripe/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [],
+      "permission_helpers": [],
+      "same_origin_guard": false,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "record_stripe_event"
+      ]
+    },
+    {
+      "path": "src/app/api/billing/subscription/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/auth/access/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getAuthenticatedSession",
+        "resolveMembership"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/auth/logout/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getAuthenticatedSession"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "end_support_session"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/password-recovery/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/auth/registration-access/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/auth/session-preference/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getRequestIdentity"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": []
+    },
+    {
+      "path": "src/app/api/auth/email-mfa/send/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getAuthenticatedSession"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "create_email_mfa_challenge"
+      ]
+    },
+    {
+      "path": "src/app/api/auth/email-mfa/verify/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "auth_helpers": [
+        "getAuthenticatedSession"
+      ],
+      "permission_helpers": [],
+      "same_origin_guard": true,
+      "explicit_cache_control": false,
+      "rpc_names": [
+        "verify_email_mfa_challenge"
+      ]
+    }
+  ],
+  "note": "Static source inventory; flags describe local guards, not proof of complete transitive authorization or live infrastructure."
+}

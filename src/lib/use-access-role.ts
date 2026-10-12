@@ -16,11 +16,21 @@ export type AccessProfile = {
 let cachedProfile: AccessProfile | null = null;
 let pendingProfile: Promise<AccessProfile | null> | null = null;
 let profileExpiresAt = 0;
+let profileGeneration = 0;
 const PROFILE_TTL_MS = 30_000;
 const AccessProfileContext = createContext<AccessProfile | null | undefined>(undefined);
 
+/** In-flight responses from a logged-out identity must not repopulate the cache. */
+export function resetAccessProfileCache() {
+  profileGeneration += 1;
+  cachedProfile = null;
+  pendingProfile = null;
+  profileExpiresAt = 0;
+}
+
 export function AccessProfileProvider({ profile, children }: { profile: AccessProfile | null; children: ReactNode }) {
   useEffect(() => {
+    resetAccessProfileCache();
     cachedProfile = profile;
     profileExpiresAt = profile ? Date.now() + PROFILE_TTL_MS : 0;
     pendingProfile = null;
@@ -34,6 +44,7 @@ export function loadProfile() {
     return Promise.resolve(cachedProfile);
   }
   if (!pendingProfile) {
+    const generation = profileGeneration;
     pendingProfile = fetch("/api/auth/access", { method: "POST", signal: AbortSignal.timeout(15_000) })
       .then(async response => {
         if (!response.ok) return null;
@@ -50,6 +61,7 @@ export function loadProfile() {
       })
       .catch(() => null)
       .then(profile => {
+        if (generation !== profileGeneration) return null;
         cachedProfile = profile;
         profileExpiresAt = profile ? Date.now() + PROFILE_TTL_MS : 0;
         pendingProfile = null;

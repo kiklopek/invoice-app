@@ -6,8 +6,13 @@ import { createUserServerClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
 import { getAuthenticatedSession } from "@/lib/auth";
 import { isOperatorEmail } from "@/lib/operator";
+import { withServerTiming } from "@/lib/server-timing";
 
 export async function POST(request: Request) {
+  return withServerTiming(() => logout(request));
+}
+
+async function logout(request: Request) {
   if (!isSameOriginMutation(request)) return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   const body = await request.json().catch(() => null) as { scope?: unknown } | null;
   const scope = body?.scope === "global" ? "global" : "local";

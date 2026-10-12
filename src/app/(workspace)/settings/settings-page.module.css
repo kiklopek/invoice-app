@@ -1,49 +1,509 @@
-.page { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-.page > :global(.section-header) { margin-bottom: 0; flex-wrap: wrap; gap: 16px; }
-.page > :global(.section-header) > div { min-width: 0; }
-.page > :global(.section-header) > button { flex: 0 1 auto; min-height: 44px; white-space: normal; }
-.page :global(.page-panel) { border-radius: 16px; min-width: 0; }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+}
+.page > :global(.section-header) {
+  margin-bottom: 0;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.page > :global(.section-header) > div {
+  min-width: 0;
+}
+.page > :global(.section-header) > button {
+  flex: 0 1 auto;
+  min-height: 44px;
+  white-space: normal;
+}
+.page :global(.page-panel) {
+  border-radius: 16px;
+  min-width: 0;
+}
 .page :global(.company-settings) > header,
-.page :global(.members-settings) > header { padding: clamp(18px, 2.5vw, 28px); }
-.page :global(.company-settings) > header h2 { font-size: 20px; }
+.page :global(.members-settings) > header {
+  padding: clamp(18px, 2.5vw, 28px);
+}
+.page :global(.company-settings) > header h2 {
+  font-size: 20px;
+}
 .page :global(.company-settings) > header p,
-.page :global(.members-settings) > header p { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
-.page fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
-.formLayout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; padding: clamp(18px, 2.5vw, 28px); }
-.formLayout > :global(.settings-form) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px 16px; padding: 0; min-width: 0; }
-.formLayout > .identity { grid-row: span 2; border-right: 1px solid #e2e9e4; padding-right: 24px; }
-.formLayout h3 { grid-column: 1 / -1; margin: 0; font-size: 14px; line-height: 1.4; color: #284835; }
-.formLayout label { display: grid; align-content: start; gap: 7px; min-width: 0; }
-.formLayout label:global(.wide) { grid-column: 1 / -1; }
-.formLayout label > span { margin: 0; font-size: 12px; line-height: 1.5; }
-.formLayout input { width: 100%; min-width: 0; min-height: 44px; border-radius: 8px; background: #fff; font-size: 14px; }
-.page :global(.access-settings-grid) { grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); margin-top: 0; gap: 20px; }
-.page :global(.access-history-disclosure) { margin-top: 0; }
-.page :global(.members-list) article { grid-template-columns: auto minmax(0, 1fr) minmax(120px, 150px) auto; gap: 12px; padding: 18px 24px; }
-.page :global(.members-list) article > div { min-width: 0; }
-.page :global(.members-list) strong { overflow-wrap: anywhere; font-size: 12px; }
-.page :global(.members-list) small { font-size: 11px; line-height: 1.5; }
-.page :global(.members-list) select { min-width: 0; width: 100%; min-height: 44px; }
-.page :global(.members-list) button { min-height: 44px; white-space: normal; }
-.page :global(.member-add) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 150px); gap: 16px; padding: 24px; }
-.page :global(.member-add) > button { grid-column: 1 / -1; justify-self: start; min-height: 44px; white-space: normal; }
-.page :global(.member-add) label { min-width: 0; }
-.page :global(.member-add) input, .page :global(.member-add) select { width: 100%; min-width: 0; min-height: 44px; }
+.page :global(.members-settings) > header p {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.page fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.page .companyPanel {
+  --company-padding: clamp(20px, 3vw, 32px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.page .companyHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 24px var(--company-padding);
+}
+.companyHeader > div {
+  min-width: 0;
+}
+.headerIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.headerIcon svg {
+  width: 23px;
+  height: 23px;
+}
+.headerNote {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.companyFields {
+  width: 100%;
+}
+.formSection {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 2fr);
+  gap: 32px;
+  padding: 28px var(--company-padding);
+  min-width: 0;
+}
+.formSection + .formSection {
+  border-top: 1px solid var(--line);
+}
+.sectionIntro {
+  min-width: 0;
+  padding-top: 2px;
+}
+.sectionIntro h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.sectionIntro p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.fieldsGrid,
+.additionalFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px 16px;
+  min-width: 0;
+}
+.field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+.field > span {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.required {
+  color: var(--green);
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.companyPanel .field input,
+.companyPanel .field select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.companyPanel .field input:hover,
+.companyPanel .field select:hover {
+  border-color: var(--muted);
+}
+.companyPanel .field input:focus,
+.companyPanel .field select:focus {
+  border-color: var(--green);
+  outline: 2px solid var(--green-soft);
+  outline-offset: 1px;
+}
+.companyPanel .field input[aria-invalid="true"] {
+  border-color: var(--red);
+}
+.companyPanel .field input:disabled,
+.companyPanel .field select:disabled {
+  background: var(--cream);
+  color: var(--muted);
+}
+.field :global(.field-error) {
+  margin: 0;
+  color: var(--red);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.vatOption {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--cream);
+  cursor: pointer;
+}
+.companyPanel .vatOption input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+.vatOption > span {
+  min-width: 0;
+}
+.vatOption strong,
+.vatOption small {
+  display: block;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.vatOption strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.vatOption small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.additionalDetails,
+.bankDetails {
+  margin-inline: var(--company-padding);
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.additionalDetails > summary,
+.bankDetails > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  padding-block: 18px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.additionalDetails > summary::-webkit-details-marker,
+.bankDetails > summary::-webkit-details-marker {
+  display: none;
+}
+.additionalDetails > summary > span,
+.bankDetails > summary > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.additionalDetails > summary small,
+.bankDetails > summary small {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.additionalDetails > summary svg,
+.bankDetails > summary svg {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.additionalDetails[open] > summary svg,
+.bankDetails[open] > summary svg {
+  transform: rotate(180deg);
+}
+.additionalDetails > summary:focus-visible,
+.bankDetails > summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.additionalFields {
+  padding-bottom: 24px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+.bankContent {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 24px;
+  min-width: 0;
+}
+.bankDescription,
+.bankEmpty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.bankEmpty {
+  padding: 14px 16px;
+  background: var(--cream);
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+}
+.bankAccounts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.bankAccounts li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.bankAccounts li > div {
+  flex: 1;
+  min-width: 0;
+}
+.bankAccounts strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.bankAccounts small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.bankAccounts button {
+  flex: none;
+}
+.bankForm {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(80px, 0.7fr) minmax(0, 1.4fr);
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+}
+.bankForm > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.page .companyFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px var(--company-padding);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 16px 16px;
+  background: var(--cream);
+}
+.companyFooter p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.companyPanel :global(.btn) {
+  min-height: 44px;
+  height: auto;
+  padding-block: 10px;
+  white-space: normal;
+}
+@media (max-width: 900px) {
+  .formSection {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .sectionIntro p {
+    margin-top: 3px;
+  }
+}
+.page :global(.access-settings-grid) {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  margin-top: 0;
+  gap: 20px;
+}
+.page :global(.access-history-disclosure) {
+  margin-top: 0;
+}
+.page :global(.members-list) article {
+  grid-template-columns: auto minmax(0, 1fr) minmax(120px, 150px) auto;
+  gap: 12px;
+  padding: 18px 24px;
+}
+.page :global(.members-list) article > div {
+  min-width: 0;
+}
+.page :global(.members-list) strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.page :global(.members-list) small {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.page :global(.members-list) select {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+}
+.page :global(.members-list) button {
+  min-height: 44px;
+  white-space: normal;
+}
+.page :global(.member-add) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 150px);
+  gap: 16px;
+  padding: 24px;
+}
+.page :global(.member-add) > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 44px;
+  white-space: normal;
+}
+.page :global(.member-add) label {
+  min-width: 0;
+}
+.page :global(.member-add) input,
+.page :global(.member-add) select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
 @media (max-width: 1100px) {
-  .page :global(.access-settings-grid) { grid-template-columns: minmax(0, 1fr); }
-  .formLayout { grid-template-columns: minmax(0, 1fr); }
-  .formLayout > .identity { grid-row: auto; border-right: 0; padding-right: 0; }
-  .formLayout > :global(.settings-form) + :global(.settings-form) { border-top: 1px solid #e2e9e4; padding-top: 24px; }
+  .page :global(.access-settings-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 @media (max-width: 600px) {
-  .page { gap: 18px; }
-  .page > :global(.section-header) > button { width: 100%; }
-  .formLayout > :global(.settings-form) { grid-template-columns: minmax(0, 1fr); }
-  .formLayout input, .page :global(.member-add) input, .page :global(.member-add) select { font-size: 16px; }
-  .page :global(.members-list) article { grid-template-columns: minmax(0, 1fr) auto; padding: 18px; }
-  .page :global(.members-list) article > div { grid-column: 1 / -1; grid-row: 2; }
-  .page :global(.members-list) article > select { grid-column: 1; }
-  .page :global(.members-list) article > button { grid-column: 2; }
-  .page :global(.member-add) { grid-template-columns: minmax(0, 1fr); padding: 18px; }
-  .page :global(.member-add) > button { width: 100%; }
+  .page {
+    gap: 18px;
+  }
+  .page > :global(.section-header) > button {
+    width: 100%;
+  }
+  .page .companyPanel {
+    --company-padding: 20px;
+  }
+  .page .companyHeader {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-block: 20px;
+  }
+  .headerNote {
+    width: 100%;
+    margin-left: 0;
+  }
+  .formSection {
+    padding-block: 24px;
+  }
+  .fieldsGrid,
+  .additionalFields,
+  .bankForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .companyPanel .field input,
+  .companyPanel .field select,
+  .page :global(.member-add) input,
+  .page :global(.member-add) select {
+    font-size: 16px;
+  }
+  .additionalDetails > summary small,
+  .bankDetails > summary small {
+    display: block;
+    margin: 3px 0 0;
+  }
+  .page .companyFooter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .companyFooter p {
+    text-align: center;
+  }
+  .bankForm > button {
+    width: 100%;
+  }
+  .bankAccounts li {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .bankAccounts li > div {
+    flex-basis: 100%;
+  }
+  .page :global(.members-list) article {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 18px;
+  }
+  .page :global(.members-list) article > div {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .page :global(.members-list) article > select {
+    grid-column: 1;
+  }
+  .page :global(.members-list) article > button {
+    grid-column: 2;
+  }
+  .page :global(.member-add) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+  .page :global(.member-add) > button {
+    width: 100%;
+  }
 }

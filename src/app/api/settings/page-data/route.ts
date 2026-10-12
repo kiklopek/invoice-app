@@ -4,8 +4,13 @@ import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { PageDataError } from "@/lib/dashboard-page-data";
 import { loadSettingsPageData } from "@/lib/settings-page-data";
+import { withServerTiming } from "@/lib/server-timing";
 
 export async function GET(request: Request) {
+  return withServerTiming(() => readSettings(request));
+}
+
+async function readSettings(request: Request) {
   const startedAt = performance.now();
   try {
     const identity = await getRequestIdentity();

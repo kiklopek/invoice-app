@@ -5,6 +5,7 @@ import { displayName } from "@/lib/user-display";
 import { apiError } from "@/lib/api-response";
 import { isEmailMfaBypassed } from "@/lib/email-mfa-core";
 import { trustDeviceSession } from "@/lib/email-mfa-server";
+import { withServerTiming } from "@/lib/server-timing";
 
 // Stav po přihlášení heslem. Člen firmy dostane svou firmu a roli;
 // ověřený účet bez firmy je zakladatel před onboardingem (needsOnboarding).
@@ -12,6 +13,10 @@ import { trustDeviceSession } from "@/lib/email-mfa-server";
 // Na důvěryhodném zařízení (kód tu byl zadán v posledních 30 dnech) se nová
 // session rovnou ověří a login form kód přeskočí (mfa_bypassed).
 export async function POST(request: Request) {
+  return withServerTiming(() => applicationAccess(request));
+}
+
+async function applicationAccess(request: Request) {
   if (!isSameOriginMutation(request)) {
     return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   }

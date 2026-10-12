@@ -182,7 +182,7 @@ describe("klávesnice a sliby v textu", () => {
   it("saves company settings with Enter from any field", () => {
     const source = settings();
     expect(source).toContain('id="company-settings-form"');
-    expect(source).toContain("onSubmit={(event) => { event.preventDefault(); void save(); }}");
+    expect(source.replace(/\s+/g, " ")).toMatch(/onSubmit=\{\(event\) => \{ event\.preventDefault\(\); if \(canAdminister && !saving\) void save\(\); \}\}/);
     // Tlačítko leží v hlavičce mimo sekci -- musí být propojené atributem form.
     expect(source).toContain('form="company-settings-form"');
     expect(source).toContain('type="submit"');

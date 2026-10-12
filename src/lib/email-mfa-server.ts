@@ -1,6 +1,5 @@
 import "server-only";
 
-import { Resend } from "resend";
 import { cookies } from "next/headers";
 import {
   createEmailMfaToken,
@@ -141,6 +140,7 @@ export async function sendEmailMfaCode(params: { email: string; code: string; ch
   const configuration = getEmailMfaConfiguration();
   if (!configuration) throw new Error("EMAIL_MFA_NOT_CONFIGURED");
 
+  const { Resend } = await import("resend");
   const resend = new Resend(configuration.apiKey);
   let result: Awaited<ReturnType<typeof resend.emails.send>>;
   try {

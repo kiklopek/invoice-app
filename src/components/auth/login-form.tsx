@@ -3,7 +3,7 @@
 import { PasswordInput } from "@/components/auth/password-input";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
+import { hasSupabaseBrowserConfig, preloadSupabaseBrowserClient } from "@/lib/supabase-config";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { useI18n } from "@/i18n/client";
 import { ArrowRight, Lock, Mail } from "@/components/landing/landing-icons";
@@ -57,6 +57,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
       return { ok: true as const, mfaBypassed: result?.mfa_bypassed === true, needsOnboarding: result?.needsOnboarding === true };
     }
     const result = await response.json().catch(() => null) as { error?: unknown; code?: unknown } | null;
+    const { createClient } = await import("@/lib/supabase-browser");
     const supabase = createClient();
     await supabase.auth.signOut();
     return {
@@ -91,6 +92,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
       return;
     }
     setSubmitting(true);
+    const { createClient } = await import("@/lib/supabase-browser");
     const supabase = createClient();
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     if (signInError) {
@@ -142,7 +144,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
       {isCustomEntryBrand(brand) ? <span className={styles.eyebrow}>{CUSTOM_ENTRY.name}</span> : null}
       <h1 className={styles.title}>{copy.title}</h1>
       <p className={styles.sub}>{copy.sub}</p>
-      <form onSubmit={signIn} className={styles.form}>
+      <form onSubmit={signIn} onFocus={preloadSupabaseBrowserClient} className={styles.form}>
         {passwordUpdated && <p className={styles.success}>{copy.passwordUpdated}</p>}
         <label className={styles.field}>
           <span>{common.companyEmail}</span>

@@ -2,7 +2,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ToastProvider } from "@/components/toast";
 import { WorkspaceDataProvider } from "@/components/workspace-data-provider";
 import { redirect } from "next/navigation";
-import { getAuthenticatedSession, getCachedRequestIdentity } from "@/lib/auth";
+import { getCachedAuthenticatedSession, getCachedRequestIdentity } from "@/lib/auth";
 import { routeFor } from "@/lib/access-state";
 import { billingNotice } from "@/lib/billing";
 import { loadSubscription } from "@/lib/billing-server";
@@ -21,7 +21,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   const identity = await getCachedRequestIdentity();
   // Ověřený účet bez firmy je zakladatel před onboardingem (P12): aplikace
   // bez firmy nemá co ukázat, pokračuje se nastavením firmy.
-  const sessionWithoutCompany = identity ? null : await getAuthenticatedSession();
+  const sessionWithoutCompany = identity ? null : await getCachedAuthenticatedSession();
   // Provozovatel bez aktivního supportu patří na /provoz, ne do zakládání firmy.
   if (sessionWithoutCompany && isOperatorEmail(sessionWithoutCompany.email)) redirect("/provoz");
   if (sessionWithoutCompany) {
@@ -36,7 +36,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       identity.service.from("organizations").select("name, logo_path, vat_payer").eq("id", identity.membership.organization_id).single(),
       loadSubscription(identity.service, identity.membership.organization_id),
     ]);
-    cacheKey = `${identity.membership.organization_id}:${identity.user.id}`;
+    cacheKey = `${identity.membership.organization_id}:${identity.user.id}:${identity.membership.role}`;
     // Firma bez zadané karty (P12: needs_payment) dokončí platbu v onboardingu.
     if (subscription.state === "needs_payment") {
       const decision = routeFor("needs_payment", "/dashboard");

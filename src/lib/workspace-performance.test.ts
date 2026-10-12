@@ -48,7 +48,10 @@ describe("workspace navigation performance", () => {
       expect(route.match(/getRequestIdentity\(\)/g), path).toHaveLength(1);
       expect(route, path).toContain('"server-timing"');
     }
-    expect(source("src/lib/auth.ts")).toContain("cache(() => getRequestIdentity())");
+    const auth = source("src/lib/auth.ts");
+    expect(auth).toContain("getCachedAuthenticatedSession = cache(() => getAuthenticatedSession())");
+    expect(auth).toContain("const session = await getCachedAuthenticatedSession();");
+    expect(source("src/app/(workspace)/layout.tsx")).toContain("await getCachedAuthenticatedSession()");
   });
 
   it("provides interruptible loading UI and intent-based invoice prefetching", () => {

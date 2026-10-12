@@ -10,7 +10,7 @@ import { CUSTOM_ENTRY_EMAIL_DOMAIN, emailMatchesDomain, isValidEmail, normalizeE
 import { withEntry } from "@/lib/login-entry";
 import { CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { passwordRule } from "@/lib/password-policy";
-import { createClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
+import { hasSupabaseBrowserConfig, preloadSupabaseBrowserClient } from "@/lib/supabase-config";
 
 // Registrace. Dva oddělené vstupy:
 // - "splatno" (/register): kdo nemá pozvánku, zakládá firemní účet a po
@@ -69,6 +69,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       return;
     }
 
+    const { createClient } = await import("@/lib/supabase-browser");
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -139,7 +140,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
           </div>
         </div>
       ) : (
-        <form onSubmit={register} className={styles.form}>
+        <form onSubmit={register} onFocus={preloadSupabaseBrowserClient} className={styles.form}>
           <div className={styles.pair}>
             <label className={styles.field}>
               <span>{common.fullName}</span>

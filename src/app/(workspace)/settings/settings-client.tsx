@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { InputHTMLAttributes } from "react";
 import styles from "./settings-page.module.css";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
@@ -19,10 +20,55 @@ import type {
 import { apiFetch } from "@/lib/api-client";
 import { validateCompanyFields } from "@/lib/company-validation";
 import { BankAccountsSection } from "./bank-accounts-section";
+import { Icon } from "@/components/icons";
+import { companySettingsDraftKey } from "@/lib/company-settings-draft";
 
 type Company = CompanySettings;
 type Role = "viewer" | "accounting" | "admin";
 type Member = SettingsMember;
+
+function CompanyField({
+  label,
+  field,
+  error,
+  wide = false,
+  ...inputProps
+}: InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  field: keyof Company;
+  error?: string;
+  wide?: boolean;
+}) {
+  const id = `company-${field}`;
+  return (
+    <label
+      className={`${styles.field}${wide ? ` ${styles.wide}` : ""}`}
+      htmlFor={id}
+    >
+      <span>
+        {label}
+        {inputProps.required && (
+          <span className={styles.required} aria-hidden="true">
+            {" "}
+            *
+          </span>
+        )}
+      </span>
+      <input
+        {...inputProps}
+        id={id}
+        name={field}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+      />
+      {error && (
+        <small id={`${id}-error`} className="field-error">
+          {error}
+        </small>
+      )}
+    </label>
+  );
+}
 
 function memberStateLabel(member: Member, registrationEntry: boolean) {
   if (member.support_until) return "Podpora Splatna";
@@ -75,9 +121,11 @@ export function SettingsClient({
   const profile = useAccessProfile();
   const currentRole = profile?.role ?? null;
   const canAdminister = canEditCompanySettings(currentRole);
+  const draftKey = companySettingsDraftKey(initialData.draft_scope);
   useUnsavedChanges(dirty && !saving);
   useEffect(() => {
-    const raw = sessionStorage.getItem("splatno:company-settings-draft");
+    if (!draftKey) return;
+    const raw = sessionStorage.getItem(draftKey);
     if (!raw) return;
     try {
       const draft = JSON.parse(raw) as Company;
@@ -90,18 +138,18 @@ export function SettingsClient({
         setCompany(draft);
         setDirty(true);
         notifyOk("Neuložený koncept byl obnoven.");
-      } else sessionStorage.removeItem("splatno:company-settings-draft");
+      } else sessionStorage.removeItem(draftKey);
     } catch {
-      sessionStorage.removeItem("splatno:company-settings-draft");
+      sessionStorage.removeItem(draftKey);
     }
-  }, [initialData.company.revision]);
+  }, [draftKey, initialData.company.revision]);
   useEffect(() => {
-    if (dirty)
+    if (dirty && draftKey)
       sessionStorage.setItem(
-        "splatno:company-settings-draft",
+        draftKey,
         JSON.stringify(company),
       );
-  }, [company, dirty]);
+  }, [company, dirty, draftKey]);
 
   async function refreshMembers() {
     const data = await refreshSettings();
@@ -160,9 +208,13 @@ export function SettingsClient({
           body: JSON.stringify(company),
         },
       );
+      await refreshSettings(
+        (current) => ({ ...(current ?? initialData), company: data.company }),
+        { revalidate: false },
+      );
       setCompany(data.company);
       setDirty(false);
-      sessionStorage.removeItem("splatno:company-settings-draft");
+      if (draftKey) sessionStorage.removeItem(draftKey);
       notifyOk("Firemní údaje jsou uložené.");
     } catch (cause) {
       notifyError(
@@ -312,164 +364,251 @@ export function SettingsClient({
   return (
     <AppFrame>
       <div className={styles.page}>
-      <header className="section-header">
-        <div>
-          <p>SPRÁVA APLIKACE</p>
-          <h1>Nastavení</h1>
-          <span>
-            {canAdminister
-              ? "Firemní údaje a přístupy uživatelů."
-              : "Firemní údaje pouze pro čtení."}
-          </span>
-        </div>
-        {canAdminister && (
-          <button
-            type="submit"
-            form="company-settings-form"
-            className="btn primary"
-            disabled={saving || loading}
+        <header className="section-header">
+          <div>
+            <p>SPRÁVA APLIKACE</p>
+            <h1>Nastavení</h1>
+            <span>
+              {canAdminister
+                ? "Firemní údaje a přístupy uživatelů."
+                : "Firemní údaje pouze pro čtení."}
+            </span>
+          </div>
+          {canAdminister && (
+            <button
+              type="submit"
+              form="company-settings-form"
+              className="btn primary"
+              disabled={saving || loading}
+            >
+              {saving ? "Ukládám…" : "Uložit firemní údaje"}
+            </button>
+          )}
+        </header>
+        {message && (
+          <p
+            aria-live="polite"
+            className={
+              message.variant === "success" ? "success-message" : "form-error"
+            }
           >
-            {saving ? "Ukládám…" : "Uložit firemní údaje"}
-          </button>
+            {message.text}
+          </p>
         )}
-      </header>
-      {message && (
-        <p
-          aria-live="polite"
-          className={message.variant === "success" ? "success-message" : "form-error"}
+        <section
+          className={`page-panel company-settings ${styles.companyPanel}`}
+          aria-labelledby="company-settings-title"
         >
-          {message.text}
-        </p>
-      )}
-      <div className="settings-grid company-settings-grid">
-        <section className="page-panel company-settings">
-          <header>
+          <header className={styles.companyHeader}>
+            <span className={styles.headerIcon}>
+              <Icon name="bank" />
+            </span>
             <div>
-              <h2>Firemní údaje</h2>
-              <p>Údaje použité v e-mailových šablonách a exportech.</p>
+              <h2 id="company-settings-title">Firemní údaje</h2>
+              <p>Vaše údaje pro faktury, e-maily a exporty.</p>
             </div>
+            <span className={styles.headerNote}>
+              {canAdminister ? "* Povinné údaje" : "Pouze pro čtení"}
+            </span>
           </header>
           {loading ? (
             <p className="page-state">Načítám…</p>
           ) : (
-            /* Skutečný <form>, ne jen <div>: bez něj Enter v poli neudělal nic
-               a účetní musela pokaždé trefit tlačítko myší. Tlačítko leží
-               v hlavičce mimo tuhle sekci, takže je propojené atributem form. */
             <form
               id="company-settings-form"
-              onSubmit={(event) => { event.preventDefault(); void save(); }}
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (canAdminister && !saving) void save();
+              }}
             >
-            <fieldset disabled={!canAdminister}>
-              <div className={styles.formLayout}>
-              <section className={`settings-form ${styles.identity}`} aria-labelledby="company-identity-title">
-                <h3 id="company-identity-title" className="wide">Identifikace a adresy</h3>
-                <label className="wide">
-                  <span>Obchodní název</span>
-                  <input
-                    value={company.name}
-                    aria-invalid={fieldErrors.name ? true : undefined}
-                    onChange={(e) => field("name", e.target.value)}
-                  />
-                  {fieldErrors.name && <small className="field-error">{fieldErrors.name}</small>}
-                </label>
-                <label>
-                  <span>IČO</span>
-                  <input
-                    value={company.ico}
-                    aria-invalid={fieldErrors.ico ? true : undefined}
-                    onChange={(e) => field("ico", e.target.value)}
-                  />
-                  {fieldErrors.ico && <small className="field-error">{fieldErrors.ico}</small>}
-                </label>
-                <label>
-                  <span>DIČ</span>
-                  <input
-                    value={company.dic}
-                    aria-invalid={fieldErrors.dic ? true : undefined}
-                    onChange={(e) => field("dic", e.target.value)}
-                  />
-                  {fieldErrors.dic && <small className="field-error">{fieldErrors.dic}</small>}
-                </label>
-                <label className="wide">
-                  <span>Sídlo a fakturační adresa</span>
-                  <input
-                    value={company.registered_address}
-                    onChange={(e) =>
-                      field("registered_address", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="wide">
-                  <span>Provozovna a doručovací adresa</span>
-                  <input
-                    value={company.operating_address}
-                    onChange={(e) => field("operating_address", e.target.value)}
-                  />
-                </label>
-              </section>
-              <section className="settings-form" aria-labelledby="company-contact-title">
-                <h3 id="company-contact-title" className="wide">Kontaktní údaje</h3>
-                <label>
-                  <span>Datová schránka</span>
-                  <input
-                    value={company.data_box_id}
-                    onChange={(e) => field("data_box_id", e.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>Telefon</span>
-                  <input
-                    value={company.phone}
-                    onChange={(e) => field("phone", e.target.value)}
-                  />
-                </label>
-                <label className="wide">
-                  <span>Výchozí e-mail účetního oddělení</span>
-                  <input
-                    type="email"
-                    value={company.email}
-                    aria-invalid={fieldErrors.email ? true : undefined}
-                    onChange={(e) => field("email", e.target.value)}
-                  />
-                  {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
-                </label>
-              </section>
-              <section className="settings-form" aria-labelledby="company-payment-title">
-                <h3 id="company-payment-title" className="wide">Platební údaje</h3>
-                <label>
-                  <span>Bankovní účet CZK</span>
-                  <input
-                    value={company.bank_account_czk}
-                    aria-invalid={fieldErrors.bank_account_czk ? true : undefined}
-                    onChange={(e) => field("bank_account_czk", e.target.value)}
-                  />
-                  {fieldErrors.bank_account_czk && <small className="field-error">{fieldErrors.bank_account_czk}</small>}
-                </label>
-                <label>
-                  <span>Bankovní účet EUR</span>
-                  <input
-                    value={company.bank_account_eur}
-                    aria-invalid={fieldErrors.bank_account_eur ? true : undefined}
-                    onChange={(e) => field("bank_account_eur", e.target.value)}
-                  />
-                  {fieldErrors.bank_account_eur && <small className="field-error">{fieldErrors.bank_account_eur}</small>}
-                </label>
-                <label className="wide checkbox-field">
-                  <input
-                    type="checkbox"
-                    checked={company.vat_payer !== false}
-                    onChange={(e) => { setDirty(true); setCompany((current) => ({ ...current, vat_payer: e.target.checked })); }}
-                  />
-                  <span>Jsme plátci DPH (bez zaškrtnutí faktury bez DPH a s textem „Nejsem plátce DPH“)</span>
-                </label>
-              </section>
-              </div>
-            </fieldset>
+              <fieldset
+                disabled={!canAdminister || saving}
+                className={styles.companyFields}
+              >
+                <section
+                  className={styles.formSection}
+                  aria-labelledby="company-identity-title"
+                >
+                  <div className={styles.sectionIntro}>
+                    <h3 id="company-identity-title">Údaje firmy</h3>
+                    <p>Identifikace a fakturační adresa.</p>
+                  </div>
+                  <div className={styles.fieldsGrid}>
+                    <CompanyField
+                      label="Obchodní název"
+                      field="name"
+                      wide
+                      required
+                      autoComplete="organization"
+                      value={company.name}
+                      error={fieldErrors.name}
+                      onChange={(e) => field("name", e.target.value)}
+                    />
+                    <CompanyField
+                      label="IČO"
+                      field="ico"
+                      required
+                      inputMode="numeric"
+                      value={company.ico}
+                      error={fieldErrors.ico}
+                      onChange={(e) => field("ico", e.target.value)}
+                    />
+                    <CompanyField
+                      label="DIČ"
+                      field="dic"
+                      value={company.dic}
+                      error={fieldErrors.dic}
+                      onChange={(e) => field("dic", e.target.value)}
+                    />
+                    <CompanyField
+                      label="Sídlo a fakturační adresa"
+                      field="registered_address"
+                      wide
+                      autoComplete="street-address"
+                      value={company.registered_address}
+                      onChange={(e) =>
+                        field("registered_address", e.target.value)
+                      }
+                    />
+                  </div>
+                </section>
+                <section
+                  className={styles.formSection}
+                  aria-labelledby="company-contact-title"
+                >
+                  <div className={styles.sectionIntro}>
+                    <h3 id="company-contact-title">Kontaktní údaje</h3>
+                    <p>Kontakt na účetní oddělení.</p>
+                  </div>
+                  <div className={styles.fieldsGrid}>
+                    <CompanyField
+                      label="Kontaktní e-mail"
+                      field="email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={company.email}
+                      error={fieldErrors.email}
+                      onChange={(e) => field("email", e.target.value)}
+                    />
+                    <CompanyField
+                      label="Telefon"
+                      field="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      value={company.phone}
+                      onChange={(e) => field("phone", e.target.value)}
+                    />
+                  </div>
+                </section>
+                <section
+                  className={styles.formSection}
+                  aria-labelledby="company-payment-title"
+                >
+                  <div className={styles.sectionIntro}>
+                    <h3 id="company-payment-title">Platební údaje</h3>
+                    <p>Hlavní účty a nastavení DPH.</p>
+                  </div>
+                  <div className={styles.fieldsGrid}>
+                    <CompanyField
+                      label="Bankovní účet CZK"
+                      field="bank_account_czk"
+                      value={company.bank_account_czk}
+                      error={fieldErrors.bank_account_czk}
+                      onChange={(e) =>
+                        field("bank_account_czk", e.target.value)
+                      }
+                    />
+                    <CompanyField
+                      label="Bankovní účet EUR"
+                      field="bank_account_eur"
+                      value={company.bank_account_eur}
+                      error={fieldErrors.bank_account_eur}
+                      onChange={(e) =>
+                        field("bank_account_eur", e.target.value)
+                      }
+                    />
+                    <label className={styles.vatOption}>
+                      <input
+                        type="checkbox"
+                        name="vat_payer"
+                        checked={company.vat_payer !== false}
+                        aria-describedby="company-vat-hint"
+                        onChange={(e) => {
+                          setDirty(true);
+                          setCompany((current) => ({
+                            ...current,
+                            vat_payer: e.target.checked,
+                          }));
+                        }}
+                      />
+                      <span>
+                        <strong>Firma je plátcem DPH</strong>
+                        <small id="company-vat-hint">
+                          {company.vat_payer !== false
+                            ? "Nové faktury budou vystaveny s DPH."
+                            : "Nové faktury budou bez DPH s označením „Nejsem plátce DPH“."}
+                        </small>
+                      </span>
+                    </label>
+                  </div>
+                </section>
+                <details className={styles.additionalDetails}>
+                  <summary>
+                    <span>
+                      Doplňující údaje{" "}
+                      <small>Provozovna a datová schránka</small>
+                    </span>
+                    <ChevronDown />
+                  </summary>
+                  <div className={styles.additionalFields}>
+                    <CompanyField
+                      label="Provozovna a doručovací adresa"
+                      field="operating_address"
+                      value={company.operating_address}
+                      onChange={(e) =>
+                        field("operating_address", e.target.value)
+                      }
+                    />
+                    <CompanyField
+                      label="Datová schránka"
+                      field="data_box_id"
+                      value={company.data_box_id}
+                      onChange={(e) => field("data_box_id", e.target.value)}
+                    />
+                  </div>
+                </details>
+              </fieldset>
             </form>
           )}
-          <BankAccountsSection canEdit={canAdminister} onMessage={(text, variant) => (variant === "success" ? notifyOk(text) : notifyError(text))} />
+          <BankAccountsSection
+            initialAccounts={(refreshedData ?? initialData).bank_accounts}
+            canEdit={canAdminister}
+            onMessage={(text, variant) =>
+              variant === "success" ? notifyOk(text) : notifyError(text)
+            }
+          />
+          {canAdminister && !loading && (
+            <footer className={styles.companyFooter}>
+              <p role="status">
+                {saving
+                  ? "Ukládám firemní údaje…"
+                  : dirty
+                    ? "Máte neuložené změny."
+                    : "Všechny změny jsou uložené."}
+              </p>
+              <button
+                type="submit"
+                form="company-settings-form"
+                className="btn primary"
+                disabled={saving}
+              >
+                {saving ? "Ukládám…" : "Uložit firemní údaje"}
+              </button>
+            </footer>
+          )}
         </section>
-      </div>
       {canAdminister && (
         <>
           <div className="access-settings-grid">

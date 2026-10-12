@@ -2,9 +2,11 @@ import type { Instrumentation } from "next";
 
 function safeError(error: unknown) {
   if (error instanceof Error) {
-    return { name: error.name, message: error.message };
+    const digest = "digest" in error && typeof error.digest === "string" && /^[a-f0-9]{1,64}$/i.test(error.digest) ? error.digest : undefined;
+    const safeNames = ["Error", "TypeError", "RangeError", "SyntaxError", "ReferenceError", "AuthApiError"];
+    return { name: safeNames.includes(error.name) ? error.name : "Error", digest };
   }
-  return { name: "UnknownError", message: String(error) };
+  return { name: "UnknownError" };
 }
 
 export function register() {
@@ -14,14 +16,16 @@ export function register() {
 }
 
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
-  const requestId = request.headers["x-vercel-id"] ?? request.headers["x-request-id"];
+  const rawId = request.headers["x-vercel-id"] ?? request.headers["x-request-id"];
+  const requestId = typeof rawId === "string" && /^(?:[a-z0-9]{3,5}::[a-z0-9-]{1,100}|[0-9a-f-]{36})$/i.test(rawId) ? rawId : undefined;
   console.error(JSON.stringify({
     level: "error",
     message: "Unhandled request error",
     timestamp: new Date().toISOString(),
     request_id: requestId,
     method: request.method,
-    path: request.path,
+    // Raw paths can contain recovery tokens, invitation tokens and searches.
+    path: context.routePath,
     route: context.routePath,
     route_type: context.routeType,
     router_kind: context.routerKind,

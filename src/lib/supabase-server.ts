@@ -4,6 +4,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
+import { measuredSupabaseFetch } from "@/lib/server-timing";
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -15,7 +16,7 @@ export function createServiceClient() {
   return createSupabaseClient<Database>(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false } }
+    { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: measuredSupabaseFetch } }
   );
 }
 
@@ -26,6 +27,7 @@ export async function createUserServerClient() {
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
+      global: { fetch: measuredSupabaseFetch },
       cookies: {
         getAll() {
           return cookieStore.getAll();

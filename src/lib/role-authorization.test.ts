@@ -64,7 +64,7 @@ describe("role authorization", () => {
     const companyRoute = source("src/app/api/settings/company/route.ts");
     const membersRoute = source("src/app/api/settings/members/route.ts");
     expect(settingsLoader).toContain("canManageMembers(identity.membership.role)");
-    expect(settings).toContain("<fieldset disabled={!canAdminister}>");
+    expect(settings).toContain("disabled={!canAdminister || saving}");
     // Prettier prelamuje JSX podle delky radku, takze doslovny retezec tady
     // padal po kazdem zformatovani, aniz by se chovani zmenilo. Invariant je,
     // ze sprava pristupu visi za podminkou canAdminister -- kontroluje se nad

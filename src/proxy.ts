@@ -29,10 +29,21 @@ const rememberedCookieOptions = {
 function redirectWithCookies(url: URL, source: NextResponse) {
   const redirect = NextResponse.redirect(url);
   source.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  for (const header of ["cache-control", "expires", "pragma"]) {
+    const value = source.headers.get(header);
+    if (value) redirect.headers.set(header, value);
+  }
   return redirect;
 }
 
+function finishProxy(response: NextResponse, startedAt: number) {
+  response.headers.set("cache-control", "private, no-store");
+  response.headers.append("server-timing", `proxy;dur=${(performance.now() - startedAt).toFixed(1)}`);
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
+  const startedAt = performance.now();
   const pathname = request.nextUrl.pathname;
 
   let response = NextResponse.next({
@@ -45,9 +56,9 @@ export async function proxy(request: NextRequest) {
   // nevytváříme lokální uživatelskou relaci.
   if (!supabaseUrl || !supabaseKey) {
     const decision = routeFor("anonymous", pathname, request.nextUrl.search);
-    return decision.type === "show"
+    return finishProxy(decision.type === "show"
       ? response
-      : NextResponse.redirect(new URL("/login", request.url));
+      : NextResponse.redirect(new URL("/login", request.url)), startedAt);
   }
 
   const supabase = createServerClient<Database>(supabaseUrl, supabaseKey, {
@@ -170,7 +181,7 @@ export async function proxy(request: NextRequest) {
 
   const decision = routeFor(state, pathname, request.nextUrl.search);
   if (decision.signOut) await signOutEverywhere(supabase, response);
-  return respond(decision, request, response);
+  return finishProxy(respond(decision, request, response), startedAt);
 }
 
 async function signOutEverywhere(

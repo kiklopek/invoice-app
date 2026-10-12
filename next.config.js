@@ -58,6 +58,9 @@ const nextConfig = {
   },
   async headers() {
     return [{
+      source: "/api/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }],
+    }, {
       source: "/(.*)",
       headers: [
         { key: "Content-Security-Policy", value: csp.replace(/\s{2,}/g, " ").trim() },

@@ -8,6 +8,7 @@ import { hasServerLoginSession } from "@/lib/login-session-server";
 import { createServiceClient, createUserServerClient } from "@/lib/supabase-server";
 import { isAccessRole } from "@/lib/role-access";
 import { canClaimInvitation } from "@/lib/invitation-claim";
+import { measureServerOperation } from "@/lib/server-timing";
 export { canManageInvoices } from "@/lib/role-access";
 
 type IdentityOptions = {
@@ -34,13 +35,13 @@ export async function getAuthenticatedSession(options: IdentityOptions = {}) {
   // token explicitly. Both calls below validate it against Supabase; no claim
   // from the browser is trusted without verification.
   const auth = accessToken ? service : cookieAuth;
-  const { data: claimsData, error: claimsError } = accessToken
+  const { data: claimsData, error: claimsError } = await measureServerOperation("claims", async () => accessToken
     ? await auth.auth.getClaims(accessToken)
-    : await auth.auth.getClaims();
+    : await auth.auth.getClaims());
   if (claimsError || !claimsData?.claims?.sub) return null;
-  const { data, error } = accessToken
+  const { data, error } = await measureServerOperation("auth_user", async () => accessToken
     ? await auth.auth.getUser(accessToken)
-    : await auth.auth.getUser();
+    : await auth.auth.getUser());
   if (error || !data.user || claimsData.claims.sub !== data.user.id) return null;
 
   const email = normalizeEmail(data.user.email);
@@ -66,14 +67,14 @@ export async function getAuthenticatedSession(options: IdentityOptions = {}) {
   const [hasLoginSession, hasMfa, boundMembershipResult] = await Promise.all([
     requireLoginSession ? hasServerLoginSession({ userId: data.user.id, sessionId }) : Promise.resolve(true),
     requireMfa ? hasVerifiedEmailMfa({ email, userId: data.user.id, sessionId }) : Promise.resolve(true),
-    membershipClient
+    measureServerOperation("membership", () => membershipClient
       .from("organization_members")
       .select("id, organization_id, role, email, support_expires_at, support_reason")
       .eq("user_id", data.user.id)
       .eq("email", email)
       .order("created_at", { ascending: true })
       .limit(1)
-      .maybeSingle(),
+      .maybeSingle()),
   ]);
   if (!hasLoginSession) return null;
   if (!hasMfa) return null;
@@ -148,6 +149,10 @@ export async function resolveMembership(session: AuthenticatedSession) {
  * React clears this memo between requests, so credentials are never shared
  * between users while nested loaders avoid repeating the same auth work.
  */
-export const getCachedRequestIdentity = cache(() => getRequestIdentity());
+export const getCachedAuthenticatedSession = cache(() => getAuthenticatedSession());
+export const getCachedRequestIdentity = cache(async () => {
+  const session = await getCachedAuthenticatedSession();
+  return session ? resolveMembership(session) : null;
+});
 
 export type RequestIdentity = NonNullable<Awaited<ReturnType<typeof getRequestIdentity>>>;
