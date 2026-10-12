@@ -34,6 +34,8 @@ export interface Invoice {
   amount: number;
   paid_amount: number;
   currency: string;
+  /** Účet firmy nalezený na PDF faktury (OCR); null = výchozí účet pro měnu. */
+  payment_account?: string | null;
   issue_date: string;
   due_date: string;
   status: InvoiceStatus;
@@ -75,6 +77,8 @@ export interface InvoiceInput {
   vat_rate: number;
   amount: number;
   currency: string;
+  /** Účet firmy nalezený na PDF faktury (OCR). Server ho uloží, jen když patří firmě. */
+  payment_account?: string | null;
   issue_date: string;
   due_date: string;
   notes?: string;

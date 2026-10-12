@@ -190,3 +190,20 @@ describe("reminderLogoUrl", () => {
     expect(reminderLogoUrl("/brand/x.png", "")).toBeNull();
   });
 });
+
+describe("účet uložený na faktuře v upomínce", () => {
+  it("shows the account the invoice is paid to, not the first account in the currency", () => {
+    const result = renderReminderEmail({
+      company: { ...company, bank_accounts: [{ account: "6786420257/0100", currency: "CZK" }] },
+      stage: "overdue", subject: "Upomínka", message: "Dobrý den.", values,
+      paymentAccount: "6786420257/0100",
+    });
+    expect(result.html).toContain("6786420257/0100");
+    expect(result.html).not.toContain(company.bank_account_czk);
+  });
+
+  it("without a stored account keeps the main account", () => {
+    const result = renderReminderEmail({ company, stage: "overdue", subject: "Upomínka", message: "Dobrý den.", values });
+    expect(result.html).toContain(company.bank_account_czk);
+  });
+});

@@ -1,5 +1,6 @@
 import type { InvoiceOcrOrganization, OcrDocumentKind } from "./invoice-ocr";
 import type { ExactSourceReading } from "./invoice-ocr-sources";
+import { canonicalAccount } from "@/lib/bank-accounts";
 
 // ISDOC (český standard elektronické faktury, verze 6) vložený jako příloha
 // PDF. Je to strojově čitelná kopie celé faktury, takže je to nejpřesnější
@@ -109,6 +110,8 @@ export type IsdocInvoice = {
   taxInclusiveAmount: number | null;
   payableAmount: number | null;
   vatRates: number[];
+  /** Účty pro platbu z PaymentMeans (číslo/kód banky, IBAN); jen platné (mod-11 / mod-97). */
+  paymentAccounts: string[];
   supplier: IsdocParty;
   customer: IsdocParty;
 };
@@ -136,6 +139,15 @@ export function parseIsdoc(xml: string): IsdocInvoice | null {
   const money = (name: string) => (foreign ? amountAt(monetary, `${name}Curr`) : amountAt(monetary, name));
   const details = child(invoice, "PaymentMeans", "Payment", "Details");
   const vs = textAt(details, "VariableSymbol");
+  // Účet pro platbu: v ISDOC je číslo účtu (ID) s kódem banky a/nebo IBAN.
+  // Neověřitelné číslo (mod-11, mod-97) se nepředá -- špatně zapsaný účet
+  // nesmí nic rozhodnout.
+  const localId = textAt(details, "ID")?.replace(/\s/g, "");
+  const bankCode = textAt(details, "BankCode")?.replace(/\s/g, "");
+  const paymentAccounts = [
+    localId && bankCode ? `${localId}/${bankCode}` : null,
+    textAt(details, "IBAN")?.replace(/\s/g, "").toUpperCase() ?? null,
+  ].filter((account): account is string => Boolean(account && canonicalAccount(account)));
   const rates = (child(invoice, "TaxTotal")?.children ?? [])
     .filter(node => node.name === "TaxSubTotal" && (amountAt(node, "TaxableAmount") ?? 0) !== 0)
     .map(node => amountAt(node, "TaxCategory", "Percent"))
@@ -152,6 +164,7 @@ export function parseIsdoc(xml: string): IsdocInvoice | null {
     taxInclusiveAmount: money("TaxInclusiveAmount"),
     payableAmount: money("PayableAmount"),
     vatRates: [...new Set(rates)],
+    paymentAccounts,
     supplier: party(child(invoice, "AccountingSupplierParty")),
     customer: party(child(invoice, "AccountingCustomerParty")),
   };

@@ -208,3 +208,26 @@ describe("invoicePdfFilename", () => {
     expect(invoicePdfFilename({ ...fixtureInvoice, invoice_number: "2026/0042 #x" })).toBe("Faktura-20260042x.pdf");
   });
 });
+
+describe("účet uložený na faktuře (z PDF dokladu)", () => {
+  // Firma s více korunovými účty: faktura, na jejímž dokladu OCR našlo druhý
+  // účet, ho musí mít i v PDF (a v QR), ne první účet v měně.
+  const company: InvoicePdfCompany = {
+    ...fixtureCompany,
+    bank_account_czk: "6786420257/0100",
+    bank_accounts: [{ account: "6844160247/0100", currency: "CZK" }],
+  };
+
+  it("prints the stored account instead of the main account", async () => {
+    const bytes = await generateInvoicePdf({ ...fixtureInvoice, payment_account: "6844160247/0100" }, company);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    expect(text).toContain("6844160247/0100");
+    expect(text).not.toContain("6786420257/0100");
+  });
+
+  it("prints the main account when the invoice has no stored account", async () => {
+    const bytes = await generateInvoicePdf({ ...fixtureInvoice, payment_account: null }, company);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    expect(text).toContain("6786420257/0100");
+  });
+});

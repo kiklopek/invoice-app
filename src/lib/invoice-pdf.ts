@@ -1,6 +1,6 @@
 import "server-only";
 
-import { paymentAccountFor } from "@/lib/bank-accounts";
+import { invoicePaymentAccount } from "@/lib/bank-accounts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import fontkit from "@pdf-lib/fontkit";
@@ -151,7 +151,8 @@ export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCo
   if (company.operating_address && company.operating_address !== company.registered_address) {
     drawText(cursor, company.operating_address, leftX, { font, size: 10, lineGap: 4 });
   }
-  const bankAccount = paymentAccountFor(invoice.currency, company, company.bank_accounts ?? []);
+  // Účet uložený na faktuře (nalezený na jejím dokladu), jinak výchozí pro měnu.
+  const bankAccount = invoicePaymentAccount(invoice, company, company.bank_accounts ?? []);
   if (bankAccount) drawText(cursor, `Bankovní účet: ${bankAccount}`, leftX, { font, size: 10, lineGap: 4 });
   if (company.phone) drawText(cursor, `Tel.: ${company.phone}`, leftX, { font, size: 10, lineGap: 4 });
   if (company.email) drawText(cursor, `E-mail: ${company.email}`, leftX, { font, size: 10, lineGap: 4 });

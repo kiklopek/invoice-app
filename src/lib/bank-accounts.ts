@@ -52,3 +52,40 @@ export function paymentAccountFor(currency: string, primary: PrimaryAccounts, ex
   if (main?.trim()) return main.trim();
   return extra.find((item) => item.currency === currency && isValidPaymentAccount(item.account))?.account.trim() ?? null;
 }
+
+/**
+ * Účet pro platbu konkrétní faktury (PDF, QR, upomínka). Faktura si pamatuje
+ * účet, který čtení z PDF našlo na jejím dokladu (payment_account); ten se
+ * použije, pokud je pořád účtem firmy a je vedený v měně faktury. Jinak --
+ * účet byl z Nastavení odebrán, nebo faktura žádný uložený nemá -- platí
+ * výchozí účet pro měnu jako dřív (paymentAccountFor). Nikdy se nepoužije
+ * účet, který firmě nepatří.
+ */
+export function invoicePaymentAccount(
+  invoice: { currency: string; payment_account?: string | null },
+  primary: PrimaryAccounts,
+  extra: ExtraAccount[] = [],
+): string | null {
+  const stored = invoice.payment_account?.trim();
+  if (stored) {
+    const own = matchOrganizationAccount(stored, organizationAccounts(primary, extra));
+    if (own && own.currency === invoice.currency) return own.account;
+  }
+  return paymentAccountFor(invoice.currency, primary, extra);
+}
+
+/**
+ * Účet, který se smí uložit k nové faktuře (payment_account): jen účet firmy
+ * vedený v měně faktury, a to v zápisu z Nastavení. Cokoli jiného -- cizí účet,
+ * jiná měna, neověřitelné číslo -- je null a faktura platí na výchozí účet.
+ */
+export function ownInvoiceAccount(
+  requested: unknown,
+  currency: string,
+  primary: PrimaryAccounts,
+  extra: ExtraAccount[] = [],
+): string | null {
+  if (typeof requested !== "string" || !requested.trim()) return null;
+  const own = matchOrganizationAccount(requested, organizationAccounts(primary, extra));
+  return own && own.currency === currency ? own.account : null;
+}

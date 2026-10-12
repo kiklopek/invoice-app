@@ -11,6 +11,9 @@ import { enrichCounterpartyFromCustomer, rejectOrganizationIdentity, validateCou
 import { applyOcrConsistencyChecks, mergeOcrSources, type ExactSourceReading } from "@/lib/invoice-ocr-sources";
 import { isdocToExactReading, parseIsdoc } from "@/lib/invoice-isdoc";
 import { spaydToExactReading } from "@/lib/invoice-qr";
+import { parseSpayd } from "@/lib/czech-payment";
+import { organizationAccounts } from "@/lib/bank-accounts";
+import { accountsInText, checkDocumentPaymentAccount, type DocumentAccounts } from "@/lib/invoice-payment-account";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { normalizeCounterpartyIco, resolveReminderPolicyPreference } from "@/lib/counterparty-reminder-preferences";
 
@@ -43,7 +46,8 @@ export async function POST(request: Request) {
   }
 
   const { data: organization, error: organizationError } = await identity.service.from("organizations")
-    .select("name, ico, dic, email, ocr_hourly_limit").eq("id", organizationId).single();
+    .select("name, ico, dic, email, ocr_hourly_limit, bank_account_czk, bank_account_eur, bank_accounts:organization_bank_accounts(account, currency)")
+    .eq("id", organizationId).single();
   if (organizationError || !organization) {
     logError("Firemní údaje pro OCR se nepodařilo načíst", organizationError);
     return apiError(request, "Firemní údaje se nepodařilo načíst.", 500, "ocr_company_read_failed");
@@ -106,6 +110,9 @@ export async function POST(request: Request) {
   // because every call sends the document to a third party and costs money.
   const aiPrimary = process.env.OCR_AI_PRIMARY === "true";
   let exactReadings: ExactSourceReading[] = [];
+  // Bankovní účty na dokladu (QR platba, ISDOC, text). Porovnají se se všemi
+  // účty firmy až na konci (checkDocumentPaymentAccount).
+  let documentAccounts: DocumentAccounts = { qr: [], isdoc: [], text: [] };
 
   const runLocal = async () => {
     // pdfjs/unpdf detaches the buffer it's given (see the comment on
@@ -123,6 +130,11 @@ export async function POST(request: Request) {
       ...(parsedIsdoc && documentText.isdoc ? [isdocToExactReading(parsedIsdoc, organization, documentText.isdoc.fileName)] : []),
       ...(qrReading ? [qrReading] : []),
     ];
+    documentAccounts = {
+      qr: (documentText.qrCodes ?? []).map(code => parseSpayd(code)?.iban).filter((iban): iban is string => Boolean(iban)),
+      isdoc: parsedIsdoc?.paymentAccounts ?? [],
+      text: accountsInText(documentText.text),
+    };
     if (documentText.isdoc && !parsedIsdoc) documentText.warnings.push("PDF obsahuje přílohu ISDOC, kterou se nepodařilo přečíst. Údaje byly vytěženy z obsahu dokumentu.");
     return parseInvoiceText({
       text: documentText.text,
@@ -232,10 +244,23 @@ export async function POST(request: Request) {
   if (!reminderPolicyAssignment) {
     return fail("Nejdříve nastavte alespoň jednu kategorii upomínek.", 409, "reminder_policy_missing");
   }
+  // Účet na dokladu vs. VŠECHNY účty firmy: shoda v měně faktury = faktura si
+  // ho uloží (payment_account) a PDF, QR i upomínky platí na něj. Cizí účet,
+  // jiná měna nebo víc účtů firmy = viditelné varování, nic potichu.
+  const accountCheck = checkDocumentPaymentAccount(
+    documentAccounts,
+    organizationAccounts(organization, organization.bank_accounts ?? []),
+    extraction.invoice.currency,
+  );
   extraction = {
     ...extraction,
-    invoice: { ...extraction.invoice, reminder_policy_id: reminderPolicyAssignment.policy_id },
+    invoice: {
+      ...extraction.invoice,
+      reminder_policy_id: reminderPolicyAssignment.policy_id,
+      payment_account: accountCheck.paymentAccount,
+    },
     reminder_policy_assignment: reminderPolicyAssignment,
+    warnings: [...extraction.warnings, ...accountCheck.warnings],
   };
 
   const { error: completionError } = await identity.service.from("invoice_uploads").update({

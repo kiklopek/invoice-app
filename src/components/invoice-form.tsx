@@ -99,7 +99,13 @@ export function InvoiceForm({
       ?? unambiguousCurrency(ocrFieldSources?.amount?.text ?? "");
     // An OCR import that left the currency empty did so on purpose (several
     // currencies, or a bare "$"): keep it empty for the person to choose.
-    return { ...backfillOcrDraft(draft, initial, ocrFieldDecisions), currency: normalizeInvoiceCurrency(draft.currency) || initial?.currency || sourceCurrency || (initial ? "" : "CZK") };
+    return {
+      ...backfillOcrDraft(draft, initial, ocrFieldDecisions),
+      currency: normalizeInvoiceCurrency(draft.currency) || initial?.currency || sourceCurrency || (initial ? "" : "CZK"),
+      // Účet nalezený na dokladu se ve formuláři neupravuje -- vezme se vždy
+      // z aktuálního čtení, ne ze staršího konceptu.
+      payment_account: initial?.payment_account ?? null,
+    };
   });
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -429,6 +435,10 @@ export function InvoiceForm({
         </>}
       </div>}
       <label {...fieldHooks("currency")}><span>Měna</span><select value={form.currency} onChange={e => field("currency", e.target.value)}><option value="" disabled>Vyberte měnu</option>{INVOICE_CURRENCIES.map(currency => <option key={currency} value={currency}>{currency}</option>)}</select>{ocrMeta("currency")}</label>
+      {/* Účet firmy nalezený na dokladu: faktura ho uloží a PDF, QR i upomínky
+          platí na něj. Neupravuje se (účet se volí automaticky); server ho
+          uloží jen v měně faktury. */}
+      {form.payment_account ? <p className="invoice-payment-account" role="note">Platba na účet: <strong>{form.payment_account}</strong> <small>(nalezený na faktuře)</small></p> : null}
       <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} enterKeyHint="done" placeholder="Volitelná poznámka pro účetní oddělení"/></label>
     </div></section>
     {submitAttempted && submitBlockers.length > 0 && <div className="form-error form-submit-blockers"><strong>Než fakturu uložíte, opravte prosím:</strong><ul>{submitBlockers.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>}

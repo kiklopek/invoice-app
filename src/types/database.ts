@@ -1015,6 +1015,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           paid_amount: number
+          payment_account: string | null
           paid_at: string | null
           reminder_days_snapshot: number[]
           reminder_plan_effective_from: string | null
@@ -1052,6 +1053,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           paid_amount?: number
+          payment_account?: string | null
           paid_at?: string | null
           reminder_days_snapshot?: number[]
           reminder_plan_effective_from?: string | null
@@ -1089,6 +1091,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           paid_amount?: number
+          payment_account?: string | null
           paid_at?: string | null
           reminder_days_snapshot?: number[]
           reminder_plan_effective_from?: string | null

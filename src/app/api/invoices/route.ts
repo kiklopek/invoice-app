@@ -6,6 +6,7 @@ import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import type { Invoice } from "@/types/invoice";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
+import { ownInvoiceAccount } from "@/lib/bank-accounts";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { parseInvoiceListQuery } from "@/lib/invoice-list-query";
 import {
@@ -199,7 +200,8 @@ export async function POST(request: Request) {
       { error: "Požadavek pochází z nepovoleného webu." },
       { status: 403 },
     );
-  const input = parseInvoiceInput(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const input = parseInvoiceInput(body);
   if (!input) {
     return NextResponse.json(
       { error: "Zkontrolujte povinná pole, e-mail, částku a data faktury." },
@@ -225,7 +227,8 @@ export async function POST(request: Request) {
 
   const organizationId = identity.membership.organization_id;
   const { data: issuer, error: issuerError } = await identity.service.from("organizations")
-    .select("name, email").eq("id", organizationId).single();
+    .select("name, email, bank_account_czk, bank_account_eur, bank_accounts:organization_bank_accounts(account, currency)")
+    .eq("id", organizationId).single();
   if (issuerError || !issuer) {
     logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError);
     return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_issuer_read_failed");
@@ -282,11 +285,16 @@ export async function POST(request: Request) {
     );
   const reminderDays = selectedPolicy.days_from_due ?? [-3, 0, 7, 14];
 
+  const paymentAccount = ownInvoiceAccount(body?.payment_account, input.currency, issuer, issuer.bank_accounts ?? []);
   const { data, error } = await identity.service
     .from("invoices")
     .insert({
       ...input,
       file_url: input.file_url ?? null,
+      // Účet nalezený na PDF faktury (OCR) -- jen když patří firmě a je v měně
+      // faktury. PDF, QR a upomínky pak platí na něj (invoicePaymentAccount).
+      // Sloupec se posílá jen s hodnotou: bez nalezeného účtu se insert nemění.
+      ...(paymentAccount ? { payment_account: paymentAccount } : {}),
       organization_id: organizationId,
       reminder_policy_id: selectedPolicy.id,
       reminder_days_snapshot: reminderDays,

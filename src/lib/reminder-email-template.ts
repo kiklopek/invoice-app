@@ -1,5 +1,5 @@
 import type { ReminderStage } from "@/types/invoice";
-import { paymentAccountFor } from "@/lib/bank-accounts";
+import { invoicePaymentAccount } from "@/lib/bank-accounts";
 import type { ReminderTemplateValues } from "@/lib/reminder-template";
 
 export type ReminderEmailCompany = {
@@ -42,6 +42,9 @@ type RenderReminderEmailParams = {
   // Jen u částečně uhrazené faktury. QR zní na zbývající částku, takže ji
   // text musí ukázat taky -- vedle celé částky, nic se tiše nenahrazuje.
   payment?: { total: string; paid: string; remaining: string } | null;
+  // Účet uložený na faktuře (nalezený na jejím PDF). Bez něj výchozí účet
+  // pro měnu -- stejně jako QR (invoicePaymentAccount).
+  paymentAccount?: string | null;
 };
 
 const stagePresentation: Record<ReminderStage, { eyebrow: string; title: string; preheader: string; accent: string; soft: string }> = {
@@ -148,8 +151,13 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   if (!companyName) throw new Error("Chybí název firmy pro upomínkový e-mail.");
   const logoUrl = safeLogoUrl(params.logoUrl);
   const replyAddress = safeReplyAddress(params.replyTo) ?? safeReplyAddress(params.company.email);
-  // Účet v měně faktury; nikdy korunový účet u faktury v jiné měně.
-  const bankAccount = paymentAccountFor(params.values.currency, params.company, params.company.bank_accounts ?? []);
+  // Účet v měně faktury; nikdy korunový účet u faktury v jiné měně. Uložený
+  // účet faktury má přednost, pokud je pořád účtem firmy.
+  const bankAccount = invoicePaymentAccount(
+    { currency: params.values.currency, payment_account: params.paymentAccount },
+    params.company,
+    params.company.bank_accounts ?? [],
+  );
   const details = [
     ["Číslo faktury", params.values.invoice_number],
     ...(params.payment

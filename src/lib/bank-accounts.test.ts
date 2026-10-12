@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   canonicalAccount,
+  invoicePaymentAccount,
   isValidPaymentAccount,
   matchOrganizationAccount,
   organizationAccounts,
+  ownInvoiceAccount,
   paymentAccountFor,
 } from "./bank-accounts";
 import { buildSpayd, czechAccountToIban, invoiceSpayd } from "./czech-payment";
@@ -108,5 +110,55 @@ describe("invoiceSpayd a upomínka používají účet v měně faktury", () => 
       values: { invoice_number: "FV-1", amount: "100,00", currency: "USD", due_date: "20. 10. 2026", counterparty_name: "Odběratel", variable_symbol: "1" },
     });
     expect(email.html).not.toContain("6786420257/0100");
+  });
+});
+
+// Faktura si pamatuje účet, který OCR našlo na jejím PDF (payment_account).
+// PDF, QR i upomínka pak platí na ten účet, ne na první účet v měně.
+describe("invoicePaymentAccount (účet uložený na faktuře)", () => {
+  it("uses the stored account when it is still one of the company's accounts", () => {
+    expect(invoicePaymentAccount({ currency: "CZK", payment_account: "6844160247/0100" }, hlavica, extra)).toBe("6844160247/0100");
+  });
+
+  it("recognizes the stored account in another notation (IBAN of the same account)", () => {
+    expect(invoicePaymentAccount({ currency: "CZK", payment_account: czechAccountToIban("6844160247/0100") }, hlavica, extra)).toBe("6844160247/0100");
+  });
+
+  it("falls back to the default account when the stored one was removed from settings", () => {
+    expect(invoicePaymentAccount({ currency: "CZK", payment_account: "19-2000145399/0800" }, hlavica, extra)).toBe("6786420257/0100");
+  });
+
+  it("never uses a stored account in another currency than the invoice", () => {
+    expect(invoicePaymentAccount({ currency: "CZK", payment_account: "SK3112000000198742637541" }, hlavica, extra)).toBe("6786420257/0100");
+  });
+
+  it("without a stored account behaves exactly like paymentAccountFor", () => {
+    for (const currency of ["CZK", "EUR", "PLN", "USD"]) {
+      expect(invoicePaymentAccount({ currency, payment_account: null }, hlavica, extra)).toBe(paymentAccountFor(currency, hlavica, extra));
+      expect(invoicePaymentAccount({ currency }, hlavica, extra)).toBe(paymentAccountFor(currency, hlavica, extra));
+    }
+  });
+
+  it("QR code and reminder use the stored account", () => {
+    const invoice = { invoice_number: "FV-1", currency: "CZK", amount: 1000, paid_amount: 0, variable_symbol: "1", due_date: "2026-10-20", payment_account: "6844160247/0100" };
+    expect(invoiceSpayd(invoice, { ...hlavica, bank_accounts: extra })).toContain(`ACC:${czechAccountToIban("6844160247/0100")}`);
+  });
+});
+
+// Při vytvoření faktury: účet z OCR se uloží, jen když patří firmě a je v měně
+// faktury. Cokoli jiného (cizí účet, jiná měna, nesmysl) se neuloží vůbec.
+describe("ownInvoiceAccount (uložení účtu k nové faktuře)", () => {
+  it("stores the company's own account in the invoice currency, in the settings notation", () => {
+    expect(ownInvoiceAccount("6844160247/0100", "CZK", hlavica, extra)).toBe("6844160247/0100");
+    expect(ownInvoiceAccount(czechAccountToIban("6844160247/0100"), "CZK", hlavica, extra)).toBe("6844160247/0100");
+    expect(ownInvoiceAccount("SK31 1200 0000 1987 4263 7541", "EUR", hlavica, extra)).toBe("SK3112000000198742637541");
+  });
+
+  it("refuses a foreign account, another currency and garbage", () => {
+    expect(ownInvoiceAccount("19-2000145399/0800", "CZK", hlavica, extra)).toBeNull();
+    expect(ownInvoiceAccount("6844160247/0100", "EUR", hlavica, extra)).toBeNull();
+    expect(ownInvoiceAccount("nesmysl", "CZK", hlavica, extra)).toBeNull();
+    expect(ownInvoiceAccount(null, "CZK", hlavica, extra)).toBeNull();
+    expect(ownInvoiceAccount(42, "CZK", hlavica, extra)).toBeNull();
   });
 });

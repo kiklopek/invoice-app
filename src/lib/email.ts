@@ -77,6 +77,7 @@ export async function sendReminderEmail(params: {
     replyTo,
     qrSrc: qrPng ? `cid:${QR_CONTENT_ID}` : null,
     payment,
+    paymentAccount: params.invoice.payment_account ?? null,
   });
 
   const attachments = [

@@ -82,6 +82,15 @@ describe("ISDOC -- strojově čitelná faktura vložená v PDF", () => {
     });
   });
 
+  it("přečte účet pro platbu (číslo + kód banky i IBAN), jen platné", () => {
+    expect(parseIsdoc(isdoc())?.paymentAccounts).toEqual(["6786420257/0100"]);
+    const withIban = isdoc().replace("<BankCode>0100</BankCode>", "<BankCode>0100</BankCode><IBAN>SK31 1200 0000 1987 4263 7541</IBAN>");
+    expect(parseIsdoc(withIban)?.paymentAccounts).toEqual(["6786420257/0100", "SK3112000000198742637541"]);
+    // Neplatné číslo (mod-11) se nepředá dál.
+    const broken = isdoc().replace("<ID>6786420257</ID>", "<ID>6786420258</ID>");
+    expect(parseIsdoc(broken)?.paymentAccounts).toEqual([]);
+  });
+
   it("převede ISDOC na přesný zdroj pro formulář", () => {
     const reading = isdocToExactReading(parseIsdoc(isdoc())!, organization, "faktura.isdoc");
     expect(reading.method).toBe("isdoc");
