@@ -27,7 +27,10 @@ describe("invoice detail amount summary", () => {
     expect(layoutCss).toContain(".invoice-actions-menu-popover");
     expect(layoutCss).toContain(".invoice-actions-menu > summary:focus-visible");
     expect(layoutCss).toContain("top: calc(100% + 8px);\n  right: 0;");
-    expect(layoutCss).toContain(".invoice-actions-menu-popover { right: auto; left: 0; }");
+    // Na mobilu je tlačítko u pravého okraje: menu se otvírá od něj doleva
+    // (dřív left: 0 -> vyjelo mimo obrazovku) a PopupFitter ho drží uvnitř.
+    expect(layoutCss).not.toContain(".invoice-actions-menu-popover { right: auto; left: 0; }");
+    expect(page).toContain('className="invoice-actions-menu-popover" data-popup');
   });
 });
 

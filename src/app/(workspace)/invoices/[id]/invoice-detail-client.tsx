@@ -456,7 +456,7 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                 <circle cx="19" cy="12" r="1.8" />
               </svg>
             </summary>
-            <div className="invoice-actions-menu-popover">
+            <div className="invoice-actions-menu-popover" data-popup>
               <a
                 href={`/api/invoices/${id}/pdf`}
                 target="_blank"

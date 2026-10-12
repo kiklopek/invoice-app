@@ -345,9 +345,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   box-shadow: 0 16px 38px rgba(23,34,28,.16);
 }
 
-@media screen and (max-width: 780px) {
-  .invoice-actions-menu-popover { right: auto; left: 0; }
-}
+/* Na mobilu se menu dřív otvíralo doprava od tlačítka (left: 0), ale
+   tlačítko je tam u pravého okraje -> menu vyjelo mimo obrazovku. Teď se
+   všude otvírá od tlačítka doleva a PopupFitter ho případně posune dovnitř. */
 .invoice-actions-menu-popover a,
 .invoice-actions-menu-popover button {
   display: flex;
@@ -3560,6 +3560,16 @@ th,
 /* Pruh s koncem zkušební doby (SubscriptionBanner). */
 .subscription-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: #f6efe1; color: #6b4a13; font-weight: 500; }
 .subscription-banner[data-kind="expired"] { background: #fbeae8; color: #8f2f28; }
+
+/* ---------- Otevírací okna uvnitř obrazovky (src/components/popup-fitter.tsx) ----------
+   Okno označené data-popup posune PopupFitter vodorovně dovnitř
+   (--popup-shift-x) a u spodního okraje ho otevře nahoru (data-placement).
+   `translate` se skládá s případným `transform` animace. Menu v <details> se
+   ukáže až po změření, aby neproblikla poloha mimo obrazovku. */
+[data-popup] { translate: var(--popup-shift-x, 0px) 0; }
+[data-popup][data-placement="above"] { top: auto !important; bottom: calc(100% + 8px) !important; }
+[data-popup][data-placement="below"] { bottom: auto !important; top: calc(100% + 8px) !important; }
+details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
 
 @media print {
   html,

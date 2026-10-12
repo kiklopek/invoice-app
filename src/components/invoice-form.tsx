@@ -47,10 +47,10 @@ function OcrSourceNote({ source, decision, ico }: { source?: OcrFieldSource; dec
     source ? `Zdroj: ${documentSource ? `strana ${source.page}${source.line ? `, řádek ${source.line}` : ""}, ` : ""}${method}. ${source.text}` : "",
     ...(decision?.reasons ?? []),
   ].filter(Boolean).join(" ");
-  return <span className={`ocr-field-meta ${status}`} tabIndex={0} role="note" aria-label={`${label}. ${accessibleDetails}`}>
+  return <span className={`ocr-field-meta ${status}`} data-popup-anchor tabIndex={0} role="note" aria-label={`${label}. ${accessibleDetails}`}>
     <span className="ocr-field-status">{label}</span>
     {source && <span className="ocr-field-origin">{source.method === "pdf_text" || source.method === "ocr" ? "Faktura" : method}</span>}
-    <span className="ocr-field-tooltip" role="tooltip">
+    <span className="ocr-field-tooltip" role="tooltip" data-popup>
       {source ? <span className="ocr-tooltip-section"><strong>Zdroj</strong><span>{documentSource ? `Strana ${source.page}${source.line ? `, řádek ${source.line}` : ""} · ` : ""}{method}</span><q>{source.text}</q>{aresUrl && <a href={aresUrl} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>Otevřít záznam v ARES ↗</a>}</span> : null}
       {decision?.reasons.length ? <span className="ocr-tooltip-section"><strong>Proč zkontrolovat</strong><span>{decision.reasons.join(" ")}</span></span> : null}
       {candidates.length > 1 || (!source && candidates.length > 0) ? <span className="ocr-tooltip-section"><strong>Nalezené možnosti</strong>{candidates.map((candidate, index) => <span className="ocr-field-candidate" key={`${candidate.method}-${candidate.page}-${candidate.value}-${index}`}><b>{candidate.value}</b><small>Strana {candidate.page} · {ocrSourceLabel(candidate.method)}</small><q>{candidate.text}</q></span>)}</span> : null}
@@ -400,7 +400,7 @@ export function InvoiceForm({
           enterKeyHint="next"
         />
         {customerDropdownOpen && customerMatches.length > 0 && (
-          <ul className="customer-search-results" role="listbox">
+          <ul className="customer-search-results" role="listbox" data-popup>
             {customerMatches.map(customer => (
               <li key={customer.id}>
                 <button type="button" onMouseDown={() => selectCustomer(customer)}>

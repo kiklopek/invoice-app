@@ -13,6 +13,7 @@ import {
 import { Icon, type IconName } from "@/components/icons";
 import { CompanyLogo } from "@/components/company-logo";
 import { EskoAssistant } from "@/components/esko/esko-assistant";
+import { PopupFitter } from "@/components/popup-fitter";
 import { confirmAction } from "@/lib/confirm-action";
 import { signOutCurrentSession } from "@/lib/sign-out";
 import {
@@ -493,6 +494,8 @@ export function AppShell({
           />
           {children}
           <EskoAssistant />
+          {/* Otevírací okna (data-popup) se drží uvnitř obrazovky. */}
+          <PopupFitter />
         </div>
       </InvoiceCountContext.Provider>
     </AccessProfileProvider>
