@@ -30,9 +30,13 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   }
   if (identity) {
     const email = identity.user.email?.trim().toLowerCase() || identity.membership.email;
-    const { data: organization } = await identity.service.from("organizations").select("name, logo_path, vat_payer").eq("id", identity.membership.organization_id).single();
+    // Firma a předplatné na sobě nezávisí: souběžně je to o jedno kolo do
+    // databáze méně před každým vykreslením aplikace.
+    const [{ data: organization }, subscription] = await Promise.all([
+      identity.service.from("organizations").select("name, logo_path, vat_payer").eq("id", identity.membership.organization_id).single(),
+      loadSubscription(identity.service, identity.membership.organization_id),
+    ]);
     cacheKey = `${identity.membership.organization_id}:${identity.user.id}`;
-    const subscription = await loadSubscription(identity.service, identity.membership.organization_id);
     // Firma bez zadané karty (P12: needs_payment) dokončí platbu v onboardingu.
     if (subscription.state === "needs_payment") {
       const decision = routeFor("needs_payment", "/dashboard");

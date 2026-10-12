@@ -10,7 +10,10 @@ import { InvoicesClient } from "./invoices-client";
 const mocks = vi.hoisted(() => ({ assign: vi.fn(), invalidate: vi.fn(), showToast: vi.fn() }));
 vi.mock("next/link", () => ({ default: ({ children, ...props }: { children: ReactNode }) => createElement("a", props, children) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), prefetch: vi.fn() }) }));
-vi.mock("swr", () => ({ default: (_key: string, options: { fallbackData: unknown }) => ({ data: options.fallbackData, isLoading: false }) }));
+vi.mock("swr", () => ({
+  default: (_key: string, options: { fallbackData: unknown }) => ({ data: options.fallbackData, isLoading: false }),
+  useSWRConfig: () => ({ cache: new Map() }),
+}));
 vi.mock("@/components/layout/app-shell", () => ({ AppFrame: ({ children, invoiceCount }: { children: ReactNode; invoiceCount: number }) => createElement("div", null, createElement("output", { "data-active-count": true }, invoiceCount), children) }));
 vi.mock("@/components/icons", () => ({ Icon: () => null }));
 vi.mock("@/components/modal", () => ({ Modal: ({ open, children }: { open: boolean; children: ReactNode }) => open ? createElement("div", { role: "dialog" }, children) : null }));

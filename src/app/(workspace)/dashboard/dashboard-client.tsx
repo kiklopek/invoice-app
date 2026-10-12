@@ -4,6 +4,7 @@ import Link from "next/link";
 import styles from "./dashboard-summary.module.css";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
@@ -56,7 +57,10 @@ export function DashboardClient({ initialData }: { initialData: DashboardPageDat
   // Název firmy z profilu, ne natvrdo -- aplikace se má dát nasadit
   // i pro jinou firmu, aniž by se přepisovaly komponenty.
   const canManage = canManageInvoices(role);
-  const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: true });
+  // Znovu načíst jen při návratu na stránku (v cache jsou starší data);
+  // při první návštěvě stačí data, která právě poslal server.
+  const revalidateOnRevisit = useRevalidateOnRevisit("/api/dashboard");
+  const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: revalidateOnRevisit });
   const error = loadError instanceof Error ? loadError.message : "";
 
   const activeCount = summary.active_count;

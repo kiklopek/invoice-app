@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
-import { InvoiceForm } from "@/components/invoice-form";
 import { Modal } from "@/components/modal";
 import { OptionalPaymentAssignment } from "@/components/optional-payment-assignment";
 import { assignBankPaymentToInvoice } from "@/lib/assignable-bank-payment";
@@ -21,6 +21,12 @@ import type {
 } from "@/types/invoice";
 import type { ActivityRecord, BankPayment, EmailSuppression, InvoiceDetailPageData, ReminderRecord } from "@/lib/invoice-detail-page-data";
 import { useToast } from "@/components/toast";
+
+// Formulář (včetně čtení faktur z PDF) se zobrazí jen při úpravě; stáhne se
+// až tehdy, ne s každým otevřením detailu faktury.
+const InvoiceForm = dynamic(() => import("@/components/invoice-form").then((mod) => mod.InvoiceForm), {
+  loading: () => <p className="muted">Načítám formulář…</p>,
+});
 
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("cs-CZ", { style: "currency", currency }).format(value);

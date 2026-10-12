@@ -1,4 +1,11 @@
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
+
+// exceljs je velký a potřebuje ho jen export do Excelu. Načte se až při
+// exportu, ne s každou API routou, která tenhle modul importuje kvůli
+// pomocným funkcím (JSON odpovědi /api/invoices, /api/customers, /api/reports).
+async function loadExcelJS() {
+  return (await import("exceljs")).default;
+}
 
 export type ExcelColumn = {
   header: string;
@@ -51,7 +58,7 @@ function addSheet(workbook: ExcelJS.Workbook, sheetName: string, columns: ExcelC
 }
 
 export async function createExcelWorkbook(sheetName: string, columns: ExcelColumn[], rows: Record<string, ExcelValue>[]) {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new (await loadExcelJS()).Workbook();
   workbook.creator = "Splatno";
   workbook.created = new Date();
   addSheet(workbook, sheetName, columns, rows);
@@ -59,7 +66,7 @@ export async function createExcelWorkbook(sheetName: string, columns: ExcelColum
 }
 
 export async function createMultiSheetExcelWorkbook(sheets: ExcelSheet[]) {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new (await loadExcelJS()).Workbook();
   workbook.creator = "Splatno";
   workbook.created = new Date();
   for (const sheet of sheets) addSheet(workbook, sheet.name, sheet.columns, sheet.rows);

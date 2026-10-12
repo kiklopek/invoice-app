@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
+import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
@@ -138,16 +139,19 @@ export function InvoicesClient({
     if (window.location.pathname === "/invoices" && currentUrl !== nextUrl)
       window.history.replaceState(null, "", nextUrl);
   }, [listKey]);
+  // Sdílená cache přežívá navigaci a ignoruje čerstvý fallbackData ze
+  // serveru, takže při NÁVRATU na seznam se musí znovu načíst. Při první
+  // návštěvě v cache nic není a initialData ze serveru je čerstvé -- druhý
+  // dotaz by byl zbytečný. Server initialData drží první vykreslení bez
+  // načítacího záblesku; změna filtru načítá novým klíčem jako dřív.
+  const revalidateOnRevisit = useRevalidateOnRevisit(listKey);
   const {
     data: loadedData,
     error: loadError,
     isLoading,
   } = useSWR<InvoiceListPageData>(listKey, {
     fallbackData: listKey === initialKey ? initialData : undefined,
-    // Sdílená cache přežívá navigaci a ignoruje čerstvý fallbackData ze
-    // serveru, takže se seznam musí při připojení vždy znovu načíst. Server
-    // initialData drží první vykreslení bez načítacího záblesku.
-    revalidateOnMount: true,
+    revalidateOnMount: revalidateOnRevisit,
   });
   const loading = isLoading && !loadedData;
 

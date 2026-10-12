@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { apiFetch } from "@/lib/api-client";
@@ -27,9 +28,14 @@ const SORT_LABELS: Record<SortKey, string> = {
 };
 
 export function CustomersClient({ initialData }: { initialData: CustomersPageData }) {
+  // Znovu načíst jen při návratu na stránku (v cache jsou starší data);
+  // při první návštěvě stačí data ze serveru. Dřív se načítalo vždy znovu
+  // (výchozí revalidateIfStale) -- celý seznam zákazníků s fakturami dvakrát.
+  const revalidateOnRevisit = useRevalidateOnRevisit("/api/customers");
   const { data, mutate } = useSWR<CustomersPageData>("/api/customers", fetchCustomers, {
     fallbackData: initialData,
     revalidateOnFocus: false,
+    revalidateOnMount: revalidateOnRevisit,
   });
   const customers = data?.customers ?? initialData.customers;
   const canManage = data?.can_manage ?? initialData.can_manage;

@@ -20,6 +20,9 @@ export function WorkspaceDataProvider({ children }: { children: ReactNode }) {
         dedupingInterval: 10_000,
         keepPreviousData: true,
         revalidateOnFocus: true,
+        // Návrat na záložku prohlížeče načte data nejvýš jednou za minutu
+        // (dřív při každém přepnutí okna znovu celá stránka s ověřením).
+        focusThrottleInterval: 60_000,
         revalidateOnReconnect: true,
         shouldRetryOnError: false,
       }}

@@ -70,9 +70,20 @@ describe("čerstvá data po vytvoření faktury", () => {
     expect(newPage).toContain("router.refresh()");
   });
 
-  it("dashboard a seznam faktur se při připojení znovu načtou", () => {
-    expect(read("app", "(workspace)", "dashboard", "dashboard-client.tsx")).not.toContain("revalidateOnMount: false");
-    expect(read("app", "(workspace)", "invoices", "invoices-client.tsx")).not.toContain("revalidateOnMount: listKey !== initialKey");
+  it("dashboard, faktury a zákazníci se při návratu znovu načtou, při první návštěvě ne", () => {
+    // Sdílená cache přežívá navigaci a má přednost před čerstvým fallbackData,
+    // takže při NÁVRATU se musí znovu načíst. Při první návštěvě v cache nic
+    // není a data ze serveru jsou čerstvá -- druhý dotaz by byl zbytečný.
+    for (const page of [
+      read("app", "(workspace)", "dashboard", "dashboard-client.tsx"),
+      read("app", "(workspace)", "invoices", "invoices-client.tsx"),
+      read("app", "(workspace)", "customers", "customers-client.tsx"),
+    ]) {
+      expect(page).toContain("useRevalidateOnRevisit(");
+      expect(page).toContain("revalidateOnMount: revalidateOnRevisit");
+      expect(page).not.toContain("revalidateOnMount: false");
+      expect(page).not.toContain("revalidateOnMount: true");
+    }
   });
 
   it("odkazy v postranním menu nevynucují prefetch={true}", () => {
