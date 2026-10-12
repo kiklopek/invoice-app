@@ -55,7 +55,7 @@ async function signInWithAdminToken(page: import("@playwright/test").Page, email
 async function signInWithPassword(page: import("@playwright/test").Page, email: string, password: string) {
   await page.goto("/login");
   await page.getByLabel("Firemní e-mail").fill(email);
-  await page.getByLabel("Heslo").fill(password);
+  await page.getByLabel("Heslo").and(page.locator("input")).fill(password);
   await page.getByRole("button", { name: "Přihlásit se" }).click();
   await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
   return true;

@@ -44,10 +44,10 @@
   outline-offset: 2px;
 }
 
-/* na dotykových zařízeních větší cíl */
-@media (pointer: coarse) {
+/* Větší cíl na dotykových zařízeních i v úzkém okně. */
+@media (pointer: coarse), (max-width: 480px) {
   .switcher button {
-    min-height: 36px;
-    min-width: 40px;
+    min-height: 44px;
+    min-width: 44px;
   }
 }

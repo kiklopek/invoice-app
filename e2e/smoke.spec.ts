@@ -48,7 +48,17 @@ test.describe("odhlášený uživatel", () => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Přihlášení");
     await expect(page.getByLabel("Firemní e-mail")).toBeVisible();
-    await expect(page.getByLabel("Heslo")).toBeVisible();
+    // „Heslo“ odpovídá i tlačítku „Zobrazit heslo“; kontrolujeme vstup.
+    const password = page.getByLabel("Heslo").and(page.locator("input"));
+    await expect(password).toBeVisible();
+    await password.fill("test-password");
+    await expect(password).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: "Zobrazit heslo", exact: true }).click();
+    await expect(password).toHaveAttribute("type", "text");
+    await expect(password).toHaveValue("test-password");
+    await page.getByRole("button", { name: "Skrýt heslo", exact: true }).click();
+    await expect(password).toHaveAttribute("type", "password");
+    await expect(password).toHaveValue("test-password");
   });
   test("an unauthenticated workspace visit lands on login and remembers where it was heading", async ({ page }) => {
     // /customers driv v proxy matcheru chybelo, takze nepřihlaseny uzivatel
