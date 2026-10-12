@@ -6,6 +6,7 @@ import { invoiceSpayd } from "@/lib/czech-payment";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 import { interpolateReminderTemplate, reminderTemplateValues } from "@/lib/reminder-template";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
+import { reminderEmailSubject } from "@/lib/reminder-subject";
 import { reminderLogoUrl, renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { createServiceClient } from "@/lib/supabase-server";
 import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
@@ -49,7 +50,9 @@ export async function sendReminderEmail(params: {
   }
 
   const template = params.template ?? defaultReminderTemplates[params.stage];
-  const subject = interpolateReminderTemplate(template.subject, params.invoice);
+  // Předmět je pro všechny firmy a fáze stejný: „Firma – Faktura číslo“
+  // (předmět ze šablony se už nepoužívá).
+  const subject = reminderEmailSubject(company.name, params.invoice.invoice_number);
   const message = interpolateReminderTemplate(template.body, params.invoice);
   const replyTo = params.template?.reply_to ?? company.email ?? undefined;
   // QR platba přímo v těle: dlužník ji načte v bance a VS se vyplní sám.

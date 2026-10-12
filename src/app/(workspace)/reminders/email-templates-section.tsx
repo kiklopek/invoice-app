@@ -6,6 +6,7 @@ import { ChevronDown } from "@/components/chevron-down";
 import { Icon } from "@/components/icons";
 import { invoiceSpayd } from "@/lib/czech-payment";
 import { interpolateReminderTemplateValues } from "@/lib/reminder-template";
+import { reminderEmailSubject } from "@/lib/reminder-subject";
 import { renderReminderEmail, type ReminderEmailCompany } from "@/lib/reminder-email-template";
 import { parseReminderCcInput } from "@/lib/reminder-recipients";
 import type { ReminderTemplateSettings } from "@/lib/reminder-page-data";
@@ -13,7 +14,6 @@ import type { ReminderStage } from "@/types/invoice";
 import styles from "./email-templates-section.module.css";
 
 type Template = ReminderTemplateSettings;
-type Field = "subject" | "body";
 
 const stages: { id: ReminderStage; label: string; help: string }[] = [
   { id: "before_due", label: "Před splatností", help: "Přátelské upozornění, že se blíží termín platby." },
@@ -83,9 +83,7 @@ export function EmailTemplatesSection({
   onSendTest: () => void;
   onSave: () => void;
 }) {
-  const subjectRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const [insertTarget, setInsertTarget] = useState<Field>("body");
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
   const template = templates[activeStage];
   const stage = stages.find((item) => item.id === activeStage) ?? stages[0];
@@ -119,7 +117,7 @@ export function EmailTemplatesSection({
     ? renderReminderEmail({
         company,
         stage: activeStage,
-        subject: interpolateReminderTemplateValues(template.subject, previewValues),
+        subject: reminderEmailSubject(company.name, previewValues.invoice_number),
         message: interpolateReminderTemplateValues(template.body, previewValues),
         values: previewValues,
         logoUrl: company.logo_path ?? null,
@@ -129,11 +127,11 @@ export function EmailTemplatesSection({
     : null;
 
   function insertField(token: string) {
-    const element = insertTarget === "subject" ? subjectRef.current : bodyRef.current;
-    const current = template[insertTarget];
+    const element = bodyRef.current;
+    const current = template.body;
     const start = element?.selectionStart ?? current.length;
     const end = element?.selectionEnd ?? current.length;
-    onTemplateChange({ [insertTarget]: current.slice(0, start) + token + current.slice(end) });
+    onTemplateChange({ body: current.slice(0, start) + token + current.slice(end) });
     requestAnimationFrame(() => {
       element?.focus();
       element?.setSelectionRange(start + token.length, start + token.length);
@@ -169,16 +167,15 @@ export function EmailTemplatesSection({
 
       <div className={styles.layout} data-view={mobileView}>
         <div className={styles.editor}>
-          <label className={styles.field}>
+          {/* Předmět se neupravuje: je pro všechny upomínky stejný,
+              „Firma – Faktura číslo“ (src/lib/reminder-subject.ts). */}
+          <div className={styles.field}>
             <span className={styles.label}>Předmět</span>
-            <input
-              ref={subjectRef}
-              value={template.subject}
-              disabled={!canEdit}
-              onFocus={() => setInsertTarget("subject")}
-              onChange={(event) => onTemplateChange({ subject: event.target.value })}
-            />
-          </label>
+            <p className={styles.subjectFixed}>
+              {reminderEmailSubject(company?.name, previewValues.invoice_number)}
+            </p>
+            <small className={styles.subjectNote}>Stejný pro všechny upomínky: název vaší firmy a číslo faktury.</small>
+          </div>
 
           <div className={styles.field}>
             <div className={styles.labelRow}>
@@ -192,14 +189,13 @@ export function EmailTemplatesSection({
               ref={bodyRef}
               value={template.body}
               disabled={!canEdit}
-              onFocus={() => setInsertTarget("body")}
               onChange={(event) => onTemplateChange({ body: event.target.value })}
             />
           </div>
 
           <div className={styles.insert}>
             <span className={styles.insertLabel}>
-              Vložit údaj z faktury do {insertTarget === "subject" ? "předmětu" : "textu"}:
+              Vložit údaj z faktury do textu:
             </span>
             <div className={styles.chips}>
               {invoiceFields.map((field) => (

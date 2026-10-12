@@ -98,6 +98,24 @@
   font-weight: 700;
 }
 
+/* Předmět je pevný (název firmy a číslo faktury), jen se zobrazí. */
+.subjectFixed {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #dfe6e1;
+  border-radius: 10px;
+  background: #f5f7f5;
+  color: #1c2b23;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.subjectNote {
+  color: #6b776f;
+  font-size: 12px;
+}
+
 .labelRow {
   display: flex;
   flex-wrap: wrap;
