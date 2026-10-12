@@ -4,10 +4,13 @@ import { getBearerAccessToken, isSameOriginMutation } from "@/lib/request-securi
 import { displayName } from "@/lib/user-display";
 import { apiError } from "@/lib/api-response";
 import { isEmailMfaBypassed } from "@/lib/email-mfa-core";
+import { trustDeviceSession } from "@/lib/email-mfa-server";
 
 // Stav po přihlášení heslem. Člen firmy dostane svou firmu a roli;
 // ověřený účet bez firmy je zakladatel před onboardingem (needsOnboarding).
 // 2FA se tu ještě nevyžaduje -- tahle odpověď rozhoduje, kam po hesle dál.
+// Na důvěryhodném zařízení (kód tu byl zadán v posledních 30 dnech) se nová
+// session rovnou ověří a login form kód přeskočí (mfa_bypassed).
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) {
     return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
@@ -21,7 +24,8 @@ export async function POST(request: Request) {
     return apiError(request, "Tento účet nemá aktivní přístup do aplikace.", 403, "access_denied");
   }
   const name = displayName(session.user.user_metadata.full_name, session.email);
-  const mfaBypassed = isEmailMfaBypassed(session.email);
+  const mfaBypassed = isEmailMfaBypassed(session.email)
+    || await trustDeviceSession({ userId: session.user.id, sessionId: session.sessionId });
 
   const identity = await resolveMembership(session);
   if (!identity) {

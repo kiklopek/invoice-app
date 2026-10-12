@@ -94,6 +94,59 @@ export function verifyEmailMfaToken(params: {
   }
 }
 
+// Důvěryhodné zařízení: po zadání kódu z e-mailu si prohlížeč 30 dní pamatuje,
+// že tenhle uživatel tu kód už zadal. Další přihlášení heslem pak kód nechce;
+// znovu ho chce po 30 dnech (platnost se neprodlužuje), na jiném zařízení a pro
+// jiného uživatele. Token je vázaný na uživatele, ne na session (každé
+// přihlášení heslem vytvoří novou session). Podpis má oddělenou doménu
+// („device.“), takže MFA token nejde podstrčit jako token zařízení a naopak.
+export const TRUSTED_DEVICE_COOKIE = "splatno-trusted-device";
+export const TRUSTED_DEVICE_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+type TrustedDeviceTokenPayload = {
+  v: 1;
+  typ: "device";
+  sub: string;
+  exp: number;
+};
+
+function deviceSignature(encoded: string, secret: string) {
+  return signature(`device.${encoded}`, secret);
+}
+
+export function createTrustedDeviceToken(params: { userId: string; secret: string; now?: number }) {
+  const now = params.now ?? Date.now();
+  const payload: TrustedDeviceTokenPayload = {
+    v: 1,
+    typ: "device",
+    sub: params.userId,
+    exp: Math.floor(now / 1000) + TRUSTED_DEVICE_TTL_SECONDS,
+  };
+  const encoded = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${encoded}.${deviceSignature(encoded, params.secret)}`;
+}
+
+export function verifyTrustedDeviceToken(params: {
+  token?: string | null;
+  userId: string;
+  secret?: string;
+  now?: number;
+}) {
+  if (!params.token || !params.secret || params.secret.length < 32) return false;
+  const [encoded, providedSignature, extra] = params.token.split(".");
+  if (!encoded || !providedSignature || extra) return false;
+  const provided = Buffer.from(providedSignature);
+  const expected = Buffer.from(deviceSignature(encoded, params.secret));
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as TrustedDeviceTokenPayload;
+    const now = Math.floor((params.now ?? Date.now()) / 1000);
+    return payload.v === 1 && payload.typ === "device" && payload.sub === params.userId && payload.exp > now;
+  } catch {
+    return false;
+  }
+}
+
 export function maskEmail(email: string) {
   const [local, domain] = email.split("@");
   if (!local || !domain) return email;

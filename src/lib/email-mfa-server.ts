@@ -4,10 +4,14 @@ import { Resend } from "resend";
 import { cookies } from "next/headers";
 import {
   createEmailMfaToken,
+  createTrustedDeviceToken,
   EMAIL_MFA_COOKIE,
   EMAIL_MFA_SESSION_TTL_SECONDS,
   isEmailMfaBypassed,
+  TRUSTED_DEVICE_COOKIE,
+  TRUSTED_DEVICE_TTL_SECONDS,
   verifyEmailMfaToken,
+  verifyTrustedDeviceToken,
 } from "@/lib/email-mfa-core";
 import { REMEMBER_LOGIN_TTL_SECONDS } from "@/lib/login-session";
 import { hasRememberedLogin } from "@/lib/login-session-server";
@@ -88,6 +92,38 @@ export async function setVerifiedEmailMfaCookie(userId: string, sessionId: strin
     maxAge: ttlSeconds,
     priority: "high",
   });
+}
+
+// Po zadání správného kódu: tohle zařízení (prohlížeč) je 30 dní důvěryhodné
+// pro tohoto uživatele. Platnost se neprodlužuje, po 30 dnech kód znovu.
+// Odhlášení cookie záměrně nemaže -- další přihlášení na stejném zařízení
+// pak kód nechce; jiné zařízení nebo jiný uživatel ho chtějí vždy.
+export async function setTrustedDeviceCookie(userId: string) {
+  const token = createTrustedDeviceToken({ userId, secret: requireEmailMfaSecret() });
+  (await cookies()).set(TRUSTED_DEVICE_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: TRUSTED_DEVICE_TTL_SECONDS,
+  });
+}
+
+/**
+ * Nová session na důvěryhodném zařízení: ověří ji stejně, jako kdyby uživatel
+ * zadal kód (nastaví MFA cookie pro tuto session), a vrátí true. Bez platné
+ * cookie zařízení pro tohoto uživatele nic nenastaví a vrátí false.
+ */
+export async function trustDeviceSession(params: { userId: string; sessionId: string }) {
+  const token = (await cookies()).get(TRUSTED_DEVICE_COOKIE)?.value;
+  const trusted = verifyTrustedDeviceToken({
+    token,
+    userId: params.userId,
+    secret: process.env.EMAIL_MFA_SECRET?.trim(),
+  });
+  if (!trusted) return false;
+  await setVerifiedEmailMfaCookie(params.userId, params.sessionId);
+  return true;
 }
 
 export async function clearEmailMfaCookie() {

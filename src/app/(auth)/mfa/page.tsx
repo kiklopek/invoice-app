@@ -140,18 +140,20 @@ export default function MfaPage() {
             : copy.notSent}
       </p>
 
-      {!loading && codeAvailable && (
+      {/* Políčka na kód hned, i když e-mail s kódem ještě odchází: uživatel
+          mezitím otevírá schránku. Odeslat jde až po odeslání kódu. */}
+      {(loading || codeAvailable) && (
         <form onSubmit={verify} className={styles.form}>
           <OtpInput value={code} onChange={setCode} disabled={submitting} autoFocus />
           <small className={styles.note} style={{ marginTop: -4 }}>{copy.validity}</small>
-          {error && <p className={styles.error}>{error}</p>}
-          <button type="submit" className={styles.primary} disabled={submitting || code.length !== 6}>
+          {codeAvailable && error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.primary} disabled={loading || submitting || code.length !== 6}>
             {submitting ? copy.submitting : copy.submit} <ArrowRight />
           </button>
         </form>
       )}
 
-      {(loading || !codeAvailable) && error && <p className={styles.error} style={{ marginTop: 24 }}>{error}</p>}
+      {!codeAvailable && error && <p className={styles.error} style={{ marginTop: 24 }}>{error}</p>}
 
       {!loading && (
         <p className={styles.resend} style={{ marginTop: 22 }}>

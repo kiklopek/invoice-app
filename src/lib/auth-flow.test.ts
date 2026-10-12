@@ -123,6 +123,13 @@ describe("authentication flow", () => {
     expect(source("src/app/api/auth/email-mfa/verify/route.ts")).toContain('logError("Email MFA challenge verification failed"');
   });
 
+  it("checks access and stores the session preference in parallel after the password", () => {
+    // Oba kroky potřebují jen token a nezávisí na sobě; za sebou stály jeden
+    // celý požadavek prohlížeč -> server navíc.
+    const login = source("src/components/auth/login-form.tsx").replace(/\s+/g, " ");
+    expect(login).toContain("await Promise.all([ verifyApplicationAccess(accessToken), saveSessionPreference(accessToken), ])");
+  });
+
   it("requires an explicit current or remembered login session", () => {
     const proxy = source("src/proxy.ts");
     const identity = source("src/lib/auth.ts");

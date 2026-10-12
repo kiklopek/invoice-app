@@ -105,13 +105,19 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
       setSubmitting(false);
       return;
     }
-    const access = await verifyApplicationAccess(accessToken);
+    // Ověření přístupu a uložení volby „Zapamatovat si mě“ potřebují jen token
+    // a nezávisí na sobě: souběžně je to o jeden požadavek za sebou méně.
+    // (Délku MFA cookie u zapamatovaného přihlášení dorovná proxy.)
+    const [access, sessionSaved] = await Promise.all([
+      verifyApplicationAccess(accessToken),
+      saveSessionPreference(accessToken),
+    ]);
     if (!access.ok) {
       setError(access.message);
       setSubmitting(false);
       return;
     }
-    if (!await saveSessionPreference(accessToken)) {
+    if (!sessionSaved) {
       await supabase.auth.signOut({ scope: "local" });
       setError(copy.errors.sessionSave);
       setSubmitting(false);

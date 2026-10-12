@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSession } from "@/lib/auth";
 import { hashEmailMfaCode, isEmailMfaBypassed } from "@/lib/email-mfa-core";
-import { requireEmailMfaSecret, setVerifiedEmailMfaCookie } from "@/lib/email-mfa-server";
+import { requireEmailMfaSecret, setTrustedDeviceCookie, setVerifiedEmailMfaCookie } from "@/lib/email-mfa-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { apiError } from "@/lib/api-response";
 import { logError, requestId } from "@/lib/structured-log";
@@ -80,6 +80,13 @@ export async function POST(request: Request) {
   } catch (error) {
     logError("Email MFA session cookie creation failed", error, { request_id: requestId(request) });
     return apiError(request, "Ověření se nepodařilo bezpečně uložit. Přihlaste se znovu.", 503, "mfa_session_failed");
+  }
+  // Zařízení je teď 30 dní důvěryhodné: další přihlášení na něm kód nechce.
+  // Selhání tu přihlášení neblokuje -- příště se jen znovu pošle kód.
+  try {
+    await setTrustedDeviceCookie(identity.user.id);
+  } catch (error) {
+    logError("Trusted device cookie creation failed", error, { request_id: requestId(request) });
   }
   return NextResponse.json({ verified: true });
 }

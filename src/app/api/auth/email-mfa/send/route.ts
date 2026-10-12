@@ -11,6 +11,7 @@ import {
   getEmailMfaConfiguration,
   requireEmailMfaSecret,
   sendEmailMfaCode,
+  trustDeviceSession,
 } from "@/lib/email-mfa-server";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { apiError } from "@/lib/api-response";
@@ -39,6 +40,12 @@ export async function POST(request: Request) {
   const email = identity.email;
   if (isEmailMfaBypassed(email)) {
     return NextResponse.json({ verified: true, bypassed: true });
+  }
+  // Důvěryhodné zařízení (kód tu byl zadán v posledních 30 dnech): session se
+  // ověří bez nového kódu. Pokrývá i příchod na /mfa jinudy než přes login
+  // form (např. po potvrzení e-mailu).
+  if (await trustDeviceSession({ userId: identity.user.id, sessionId: identity.sessionId })) {
+    return NextResponse.json({ verified: true, trusted: true });
   }
 
   let secret: string;
