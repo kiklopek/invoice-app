@@ -56,6 +56,20 @@ describe("rozpoznání vlastního převodu", () => {
     ).toBeNull();
   });
 
+  // Firma může mít i zahraniční účet (SK, Wise). Dřív se poznal jen český.
+  it("pozná vlastní zahraniční účet (IBAN) v libovolném zápisu", () => {
+    expect(
+      detectOwnTransfer(credit({ counterparty_name: null, counterparty_account: "SK31 1200 0000 1987 4263 7541" }), {
+        ownAccounts: ["SK3112000000198742637541"],
+      })?.kind,
+    ).toBe("account");
+    expect(
+      detectOwnTransfer(credit({ counterparty_name: null, counterparty_account: "SK3112000000198742637541" }), {
+        ownAccounts: ["PL61109010140000071219812874"],
+      }),
+    ).toBeNull();
+  });
+
   it("stejné číslo v jiné bance není vlastní účet", () => {
     expect(
       detectOwnTransfer(credit({ counterparty_name: null }), {
@@ -391,5 +405,26 @@ describe("nová migrace", () => {
       expect(sql).toContain(`revoke all on function public.${signature} from public,anon,authenticated;`);
       expect(sql).toContain(`grant execute on function public.${signature} to service_role;`);
     }
+  });
+});
+
+describe("automatické přiřazení plateb vynechá převody mezi vlastními účty", () => {
+  // Převod z vlastního účtu se VS shodným s fakturou by automatika jinak
+  // zaúčtovala jako platbu zákazníka. Rozhoduje jen protiúčet (ne jméno --
+  // stejně pojmenovaný zákazník by se jinak nespároval).
+  it("import výpisu filtruje řádky z vlastních účtů před automatickým přiřazením", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const route = readFileSync(join(process.cwd(), "src/app/api/payments/imports/route.ts"), "utf8").replace(/\s+/g, " ");
+    expect(route).toContain("isOwnAccountTransfer(entry.payment)");
+    expect(route).toMatch(/entry\.payment && entry\.disposition === "accepted" && !isOwnAccountTransfer\(entry\.payment\)/);
+  });
+
+  it("vlastní účet pozná podle protiúčtu, ne podle jména", () => {
+    const own = ["6786420257/0100", "SK3112000000198742637541"];
+    const byAccount = detectOwnTransfer(credit({ counterparty_name: "Zákazník s.r.o.", counterparty_account: "6786420257/0100" }), { ownAccounts: own });
+    expect(byAccount?.kind).toBe("account");
+    const byNameOnly = detectOwnTransfer(credit({ counterparty_account: "19-2000145399/0800" }), { ownAccounts: own, organizationName: "R. Hlavica s.r.o." });
+    expect(byNameOnly?.kind).toBe("name");
   });
 });

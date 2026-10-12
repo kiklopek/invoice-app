@@ -1,5 +1,5 @@
 import { parseGpc, readHeaderAccount, type GpcDialect, type GpcParseResult } from "@/lib/gpc-parser";
-import { parseCzechAccount } from "@/lib/czech-payment";
+import { czechIbanToAccount, parseCzechAccount } from "@/lib/czech-payment";
 import type { OrganizationAccount } from "@/lib/bank-accounts";
 import { gpcProfileFor } from "./registry";
 
@@ -25,11 +25,15 @@ export type ResolvedGpc = {
   verified: boolean;
 };
 
-/** Účty firmy rozložené na „předčíslí-číslo“ a kód banky. */
+/**
+ * Účty firmy rozložené na „předčíslí-číslo“ a kód banky. Účet uložený v
+ * Nastavení jako český IBAN se nejdřív převede na „předčíslí-číslo/kód“ --
+ * jinak se hlavička výpisu s ním nespárovala (falešná neshoda účtu).
+ */
 function accountsByLocalNumber(accounts: OrganizationAccount[]) {
   const map = new Map<string, string>();
   for (const item of accounts) {
-    const parsed = parseCzechAccount(item.account);
+    const parsed = parseCzechAccount(item.account) ?? parseCzechAccount(czechIbanToAccount(item.account));
     if (!parsed) continue;
     const local = `${parsed.prefix.replace(/^0+/, "") ? `${parsed.prefix.replace(/^0+/, "")}-` : ""}${parsed.number.replace(/^0+/, "")}`;
     map.set(local, parsed.bank);

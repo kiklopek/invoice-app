@@ -1,3 +1,5 @@
+import { canonicalAccount as sharedCanonicalAccount } from "./bank-accounts";
+
 // Řádky výpisu, které nesouvisí s fakturami.
 //
 // Příchozí platba bez faktury se při potvrzení importu zapíše do knihy plateb
@@ -93,6 +95,16 @@ export function detectOwnTransfer(entry: EntryForDetection, context: OwnTransfer
 
   // Neověřené číslo účtu (neprošlo mod-11) není důkaz ničeho.
   const counterparty = entry.counterparty_account_verified === false ? null : canonicalAccount(entry.counterparty_account);
+  // Úplný účet (český s kódem banky nebo zahraniční IBAN) přesně, sdíleným
+  // převodem na IBAN -- tak se pozná i vlastní účet u zahraniční banky (SK,
+  // Wise), který český zápis níže nepokrývá.
+  const counterpartyIban = entry.counterparty_account_verified === false ? null : sharedCanonicalAccount(entry.counterparty_account);
+  if (counterpartyIban && context.ownAccounts.some((own) => sharedCanonicalAccount(own) === counterpartyIban)) {
+    return {
+      kind: "account",
+      reason: `Protiúčet ${entry.counterparty_account} je vlastní účet organizace.`,
+    };
+  }
   if (counterparty) {
     for (const own of context.ownAccounts) {
       const candidate = canonicalAccount(own);

@@ -11,14 +11,15 @@ const company = {
   bank_account_czk: "19-2000145399/0800", bank_account_eur: "", revision: 3,
 };
 
-function serviceReturning(result: { data: unknown; error: unknown }) {
+function serviceReturning(result: { data: unknown; error: unknown }, extraAccounts: { account: string; currency: string }[] = []) {
   const chain = {
     eq: () => chain,
     select: () => chain,
     maybeSingle: () => Promise.resolve(result),
   };
   mocks.update.mockReturnValue(chain);
-  mocks.from.mockReturnValue({ update: mocks.update });
+  const extraQuery = { select: () => extraQuery, eq: () => Promise.resolve({ data: extraAccounts, error: null }) };
+  mocks.from.mockImplementation((table: string) => (table === "organization_bank_accounts" ? extraQuery : { update: mocks.update }));
   return { from: mocks.from };
 }
 
@@ -44,6 +45,18 @@ describe("Nastavení → Firma", () => {
     }));
     const response = await save(company);
     expect(response.status).toBe(409);
+  });
+
+  // Opačný směr hlídá POST /api/settings/bank-accounts. Stejný účet jako
+  // hlavní i další by se ve výpisech a na fakturách počítal dvakrát.
+  it("refuses a main account that is already one of the company's extra accounts", async () => {
+    mocks.identity.mockResolvedValue(fakeIdentity({
+      service: serviceReturning({ data: { ...company, settings_revision: 4 }, error: null }, [{ account: "CZ6508000000192000145399", currency: "CZK" }]),
+    }));
+    const response = await save(company);
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe("account_duplicate");
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
   // Doménu e-mailů (a tím i vstup R. Hlavica) nastavuje jen migrace/provoz.

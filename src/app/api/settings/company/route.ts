@@ -4,6 +4,7 @@ import { logError } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { validateCompanyFields } from "@/lib/company-validation";
+import { matchOrganizationAccount, organizationAccounts } from "@/lib/bank-accounts";
 import {
   canEditCompanySettings,
   canViewCompanySettings,
@@ -94,6 +95,24 @@ export async function PUT(request: Request) {
       { error: "Firemní údaje může měnit pouze administrátor." },
       { status: 403 },
     );
+  // Hlavní účet nesmí být zároveň mezi dalšími účty firmy (opačný směr hlídá
+  // POST /api/settings/bank-accounts) -- stejný účet by se ve výpisech i na
+  // fakturách počítal dvakrát. Když se další účty nepodaří načíst, uložení
+  // to neblokuje: duplicita nic nezaúčtuje, jen je zbytečná.
+  const { data: extraAccounts, error: extraAccountsError } = await identity.service
+    .from("organization_bank_accounts")
+    .select("account, currency")
+    .eq("organization_id", identity.membership.organization_id);
+  if (!extraAccountsError) {
+    const extras = organizationAccounts({}, extraAccounts ?? []);
+    for (const field of ["bank_account_czk", "bank_account_eur"] as const) {
+      if (company[field] && matchOrganizationAccount(company[field], extras))
+        return NextResponse.json(
+          { error: `Účet ${company[field]} už je mezi dalšími účty firmy. Odeberte ho tam, nebo zadejte jiný.`, code: "account_duplicate" },
+          { status: 409 },
+        );
+    }
+  }
   const { data, error } = await identity.service
     .from("organizations")
     .update({

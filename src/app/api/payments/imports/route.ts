@@ -4,6 +4,7 @@ import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { detectStatementFormat, resolveGpcStatement } from "@/lib/bank-formats/detect";
 import { organizationAccounts } from "@/lib/bank-accounts";
+import { detectOwnTransfer } from "@/lib/payment-unrelated-rows";
 import { bankName } from "@/lib/bank-formats/registry";
 import { parseCsvStatement } from "@/lib/csv-statement-parser";
 import { parseCamtStatement } from "@/lib/camt-statement-parser";
@@ -236,12 +237,30 @@ export async function POST(request: Request) {
           paid_amount: Number(invoice.paid_amount),
         });
     }
+    // Převod mezi vlastními účty (protiúčet je účet firmy nebo účet tohoto
+    // výpisu) automatika nepřiřazuje: se shodným VS by ho jinak zaúčtovala
+    // jako platbu zákazníka. Rozhoduje jen protiúčet, ne jméno. Řádek zůstane
+    // ke kontrole a v náhledu se nabídne jako „Nesouvisí s fakturami“.
+    const ownAccounts = [
+      ...organizationAccounts(company, extraAccounts).map((item) => item.account),
+      ...(parsed.accountNumber ? [parsed.accountNumber] : []),
+    ];
+    const isOwnAccountTransfer = (payment: { amount: number; counterparty_account?: string | null }) =>
+      detectOwnTransfer({
+        disposition: "accepted",
+        amount: payment.amount,
+        counterparty_name: null,
+        counterparty_account: payment.counterparty_account ?? null,
+        // Vyřazení jen posílá řádek k ruční kontrole, takže tady stačí i
+        // neověřené číslo, které vypadá jako vlastní účet (opatrnější směr).
+        counterparty_account_verified: true,
+      }, { ownAccounts })?.kind === "account";
     // Co smí firma zaúčtovat bez člověka (nová firma jen podle VS); databáze
     // to při zaúčtování vynucuje znovu.
     const bookingPolicy = (company.auto_booking ?? "vs") as AutoBookingPolicy;
     const assignments = applyAutoBookingPolicy(assignStatementPayments(
       parsed.entries.flatMap((entry) =>
-        entry.payment && entry.disposition === "accepted"
+        entry.payment && entry.disposition === "accepted" && !isOwnAccountTransfer(entry.payment)
           ? [{ key: entry.fingerprint, ...entry.payment }]
           : [],
       ),

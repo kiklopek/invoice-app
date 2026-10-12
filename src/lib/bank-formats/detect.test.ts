@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { detectStatementFormat, resolveGpcStatement } from "./detect";
 import { bankName, gpcProfileFor } from "./registry";
+import { czechAccountToIban } from "@/lib/czech-payment";
 
 // Hlavička GPC: 074 + účet (16) + 20 mezer + zbytek do 128 znaků; volitelně
 // značky KB (IBAN prefix na 115–122, kanál MB na 123–124).
@@ -63,6 +64,18 @@ describe("resolveGpcStatement", () => {
     expect(result.parsed.accountNumber).toBe("19-2000145399/0800");
     // Neověřená banka: párování jen podle VS, nikdy podle čísla účtu.
     expect(result.parsed.payments[0]).toMatchObject({ counterparty_account: "117840513/0300", counterparty_account_verified: false });
+  });
+
+  // Účet firmy uložený v Nastavení jako český IBAN (CZ…) se dřív nespároval
+  // s hlavičkou výpisu: falešná „neshoda účtu“ a EUR výpis čtený jako CZK.
+  it("recognises the company's account stored as a Czech IBAN exactly like the x-y/bank form", () => {
+    const asIban = [{ account: czechAccountToIban("6786420257/0100")!, currency: "CZK", primary: false }];
+    const result = resolveGpcStatement(gpc(header(KB_HEADER), line(KB_COUNTERPARTY, "0300")), asIban);
+    expect(result).toMatchObject({ bankCode: "0100", dialect: "km", verified: true });
+    expect(result.parsed.payments[0].counterparty_account).toBe("117840513/0300");
+    const plain = [{ account: czechAccountToIban("19-2000145399/0800")!, currency: "CZK", primary: false }];
+    expect(resolveGpcStatement(gpc(header("0000192000145399"), line("0000000117840513", "0300")), plain))
+      .toMatchObject({ bankCode: "0800", dialect: "edition" });
   });
 
   it("leaves the bank unknown when the statement belongs to none of the company's accounts", () => {
