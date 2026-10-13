@@ -20,3 +20,6 @@ playwright-report/
 
 # graphify knowledge graph output (lokální, negenerovat do repa)
 graphify-out/
+
+# Ruční zálohy produkce (scripts/backup-production.mjs) obsahují osobní a finanční data
+backups/
