@@ -9,6 +9,12 @@ export const bootstrap = `
   create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
   create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner uuid);
   create function storage.foldername(text) returns text[] language sql as $$ select string_to_array($1,'/') $$;
+  -- Same default privileges as a hosted Supabase project: every new object in
+  -- public is granted to anon/authenticated unless a migration revokes it.
+  -- Without this the harness hides grant regressions production would have.
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 `;
 export async function replayMigrations(exec, withoutPgcrypto = false) {
   await exec(bootstrap);
@@ -20,7 +26,7 @@ export async function replayMigrations(exec, withoutPgcrypto = false) {
   }
 }
 export async function runSqlRegressions(exec) {
-  for (const name of ['robust_reconciliation.sql','reconciliation_integrity_guards.sql','payment_assistance.sql','camt_statement_evidence.sql','release_security_permissions.sql','customer_email_edit.sql','organization_onboarding.sql','stripe_billing.sql','multi_tenant_guards.sql','billing_exempt.sql','auto_booking_policy.sql','support_sessions.sql','reminder_queue_fairness.sql']) {
+  for (const name of ['robust_reconciliation.sql','reconciliation_integrity_guards.sql','payment_assistance.sql','camt_statement_evidence.sql','release_security_permissions.sql','customer_email_edit.sql','organization_onboarding.sql','stripe_billing.sql','multi_tenant_guards.sql','billing_exempt.sql','auto_booking_policy.sql','support_sessions.sql','reminder_queue_fairness.sql','phase0_hardening.sql']) {
     const sql = (await readFile(`supabase/tests/${name}`, 'utf8')).replace(/^\\.*$/gm, '');
     await exec(sql);
     console.log(`Passed ${name}`);
