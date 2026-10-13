@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { InvoiceNetworkNote } from "@/components/network/invoice-network-note";
 import { InvoiceForm } from "@/components/invoice-form";
 import { Modal } from "@/components/modal";
 import { OptionalPaymentAssignment } from "@/components/optional-payment-assignment";
@@ -763,6 +764,7 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                     Toto IČO nemá platný záznam v adresáři Zákazníků (musí mít přesně 8 číslic).
                   </p>
                 ) : null}
+                {invoice.counterparty_ico ? <InvoiceNetworkNote invoiceId={invoice.id} /> : null}
               </section>
               {payments.length > 0 && (
                 <section className="page-panel info-section">

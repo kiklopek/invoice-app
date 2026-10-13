@@ -35,7 +35,7 @@ export type RouteDecision =
   | { type: "redirect"; to: string; signOut?: true };
 
 export const LOGIN_PAGES = ["/login", "/hlavica"] as const;
-export const APP_SECTIONS = ["/dashboard", "/customers", "/invoices", "/predplatne", "/reminders", "/reports", "/settings"] as const;
+export const APP_SECTIONS = ["/dashboard", "/customers", "/invoices", "/partneri", "/predplatne", "/reminders", "/reports", "/settings"] as const;
 
 function within(pathname: string, base: string) {
   return pathname === base || pathname.startsWith(`${base}/`);
@@ -48,6 +48,8 @@ export function pageKind(pathname: string): PageKind {
   if (pathname === "/reset-password") return "recovery";
   if (within(pathname, "/auth") && pathname !== "/auth") return "callback";
   if (/^\/pozvanka\/[^/]+$/.test(pathname)) return "invitation";
+  // Pozvánka do Splatno Sítě: veřejná jako pozvánka do týmu.
+  if (/^\/pripojeni\/[^/]+$/.test(pathname)) return "invitation";
   if (pathname === "/mfa") return "mfa";
   if (pathname === "/onboarding") return "onboarding";
   // Provoz Splatna: jen pro přihlášené s 2FA; kdo je provozovatel, rozhodne stránka.

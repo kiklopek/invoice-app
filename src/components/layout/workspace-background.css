@@ -58,6 +58,7 @@
 .workspace-background[data-variant="payments"] { --dots-x: 83%; --dots-y: 16%; }
 .workspace-background[data-variant="payment-archive"] { --ring-x: 100%; --ring-y: 94%; --second-x: 3%; --second-y: 8%; --dots-x: 88%; --dots-y: 17%; --glow-y: 80%; }
 .workspace-background[data-variant="customers"] { --ring-x: 96%; --ring-y: 20%; --second-x: 8%; --second-y: 100%; --dots-x: 13%; --dots-y: 14%; --glow-x: 85%; --glow-y: 35%; }
+.workspace-background[data-variant="partneri"] { --ring-x: 4%; --ring-y: 6%; --second-x: 97%; --second-y: 92%; --dots-x: 88%; --dots-y: 14%; --glow-x: 82%; --glow-y: 28%; }
 .workspace-background[data-variant="reports"] { --ring-x: 2%; --ring-y: 9%; --second-x: 97%; --second-y: 97%; --dots-x: 86%; --dots-y: 12%; --glow-x: 78%; --glow-y: 80%; }
 .workspace-background[data-variant="reminders"] { --ring-x: 101%; --ring-y: 48%; --second-x: 3%; --second-y: 98%; --dots-x: 12%; --dots-y: 15%; --glow-x: 90%; --glow-y: 45%; }
 .workspace-background[data-variant="settings"] { --ring-x: 95%; --ring-y: 3%; --second-x: 5%; --second-y: 88%; --dots-x: 87%; --dots-y: 83%; --glow-x: 70%; --glow-y: 12%; }

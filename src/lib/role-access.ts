@@ -30,6 +30,17 @@ export function canManageMembers(role: AccessRole | null) {
   return role === "admin";
 }
 
+// Splatno Síť: bilance s partnery a připomínky k jejich fakturám vidí účetní
+// i admin; propojovat, rušit propojení a zvát firmy smí jen admin. Čtenář
+// síť nevidí (VIEWER_ALLOWED_PATHS ji neobsahuje).
+export function canViewNetwork(role: AccessRole | null) {
+  return role === "accounting" || role === "admin";
+}
+
+export function canManageNetwork(role: AccessRole | null) {
+  return role === "admin";
+}
+
 // Single source of truth for what a viewer may open. Used both to gate a
 // direct page load (canAccessPage below) and to decide what the navigation
 // even shows a viewer (app-shell.tsx) -- those two used to be independently

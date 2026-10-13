@@ -1,0 +1,411 @@
+/* Splatno Síť: partneři, detail vztahu, přijaté faktury, veřejná pozvánka.
+   Jen tokeny z minimal.css (--ink, --muted, --line, --green…), ploché povrchy
+   s 1px okrajem jako zbytek aplikace, breakpointy 1023 / 767 / 479 a dotykové
+   prvky min. 44 px. Žádný tmavý režim (aplikace ho nemá). */
+
+.network-page { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 16px; }
+.network-page > .section-header { margin-bottom: 8px; }
+.network-page .section-header .section-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Souhrn sítě: tři dlaždice ve stylu dashboard-signal. */
+.network-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.network-summary article {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fff;
+}
+.network-summary article > span {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.network-summary article > span svg { width: 18px; }
+.network-summary article.owed-to-us > span { background: var(--green-soft); color: var(--green); }
+.network-summary article.we-owe > span { background: var(--amber-soft); color: var(--amber); }
+.network-summary article > div { min-width: 0; }
+.network-summary small { display: block; color: var(--muted); font-size: 12px; font-weight: 650; }
+.network-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: clamp(18px, 1.6vw, 24px);
+  line-height: 1.2;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.network-summary p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+.network-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.network-notice svg { flex: 0 0 18px; width: 18px; margin-top: 1px; color: var(--green); }
+.network-notice.warning { border-color: #ecd9b5; background: var(--amber-soft); }
+.network-notice.warning svg { color: var(--amber); }
+.network-notice.danger { border-color: #f0cfca; background: var(--red-soft); }
+.network-notice.danger svg { color: var(--red); }
+.network-notice p { margin: 0; }
+.network-notice strong { font-weight: 700; }
+
+/* Panely a hlavičky (stejná typografie jako tabulka zákazníků). */
+.network-panel > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.network-panel > header > div { min-width: 0; }
+.network-panel > header small { display: block; margin-bottom: 6px; color: var(--green); font-size: 12px; font-weight: 750; letter-spacing: .7px; }
+.network-panel > header h2 { margin: 0; font-size: 20px; line-height: 1.35; }
+.network-panel > header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.network-panel-body { padding: 16px 20px 20px; }
+
+/* Záložky (role="tablist"), vzhled jako settings-tabs. */
+.network-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafbf9;
+  scrollbar-width: none;
+}
+.network-tabs::-webkit-scrollbar { display: none; }
+.network-tabs button {
+  display: inline-flex;
+  min-height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.network-tabs button:hover { color: var(--ink); }
+.network-tabs button[aria-selected="true"] { border-color: var(--line); background: #fff; color: var(--ink); }
+.network-tabs em {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+}
+.network-tabs em.attention { background: var(--red-soft); color: var(--red); }
+
+/* Identita firmy (avatar + název + IČO). */
+.network-identity { display: flex; min-width: 0; align-items: center; gap: 11px; }
+.network-identity .company-monogram,
+.network-identity img {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 11px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  object-fit: contain;
+}
+.network-identity img { border: 1px solid var(--line); background: #fff; }
+.network-identity > span:last-child { min-width: 0; }
+.network-identity strong,
+.network-identity small { display: block; }
+.network-identity strong { color: var(--ink); font-size: 14px; overflow-wrap: break-word; }
+.network-identity small { margin-top: 3px; color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: break-word; }
+a.network-identity { color: inherit; text-decoration: none; }
+a.network-identity:hover strong { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Tabulky (partneři, faktury). Na telefonu dlaždice přes data-label. */
+.network-table { overflow: visible; }
+.network-table table { min-width: 0; }
+.network-table tbody tr:last-child td:first-child { border-bottom-left-radius: 10px; }
+.network-table tbody tr:last-child td:last-child { border-bottom-right-radius: 10px; }
+.network-table th { background: #fafbf9; font-size: 12px; }
+.network-table td { font-size: 14px; vertical-align: middle; white-space: normal; }
+.network-table td.money, .network-table td .status, .network-table td .net-pill { white-space: nowrap; }
+.network-table td.network-cell-primary { min-width: 190px; }
+.network-table td small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.network-table tbody tr { transition: background-color .15s; }
+.network-table tbody tr:hover { background: #fbfcfa; }
+.network-table .money,
+.network-money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.network-table .status { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.network-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.network-row-actions .btn { min-height: 34px; padding: 6px 10px; font-size: 12px; }
+.network-row-actions .btn svg { width: 14px; height: 14px; margin-right: 5px; }
+
+.net-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.net-pill.they_owe { background: var(--green-soft); color: var(--green); }
+.net-pill.we_owe { background: var(--amber-soft); color: var(--amber); }
+.net-pill.settled { background: #edf0ee; color: #5d665f; }
+.net-pill-list { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+}
+.flag-badge.payment { background: var(--blue-soft); color: var(--blue); }
+.flag-badge.closed { background: #edf0ee; color: #5d665f; }
+.flag-badge svg { width: 13px; height: 13px; }
+
+/* Žádosti a návrhy jako karty. */
+.network-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.network-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+.network-card.incoming { border-color: #cde0d2; background: #fbfdfb; }
+.network-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.network-card blockquote {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--green);
+  border-radius: 0 8px 8px 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.network-card .network-check { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; line-height: 1.45; }
+.network-card .network-check svg { flex: 0 0 16px; width: 16px; margin-top: 1px; }
+.network-card .network-check.ok { color: var(--green); }
+.network-card .network-check.warn { color: var(--amber); }
+.network-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+
+/* Přidání partnera (IČO -> výsledek). */
+.network-add { display: grid; gap: 14px; }
+.network-add form.network-add-search { display: grid; grid-template-columns: minmax(0, 320px) auto; justify-content: start; align-items: end; gap: 10px; }
+.network-field { display: grid; gap: 6px; min-width: 0; }
+.network-field > span { color: #4c574f; font-size: 12px; font-weight: 650; }
+.network-field textarea { min-height: 76px; resize: vertical; font: inherit; font-size: 13px; }
+.network-field small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.network-add-result {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--cream);
+}
+.network-add-result form { display: grid; gap: 12px; }
+.network-add-result .network-card-actions { margin-top: 0; }
+
+/* Detail partnera: hero s čistou pozicí. */
+.network-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 20px;
+  padding: 22px 24px;
+  border-radius: 15px;
+  background: var(--green-dark);
+  color: #fff;
+}
+.network-hero small { display: block; color: #bdd0c3; font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+.network-hero-net { display: grid; align-content: center; gap: 6px; min-width: 0; }
+.network-hero-net strong {
+  display: block;
+  font-size: clamp(21px, 2.2vw, 30px);
+  line-height: 1.18;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.network-hero-net p { margin: 0; color: #d7e4da; font-size: 13px; line-height: 1.5; }
+.network-hero-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.network-hero-split div { min-width: 0; padding: 14px; border: 1px solid #2a6044; border-radius: 12px; background: #1d5238; }
+.network-hero-split strong { display: block; margin-top: 4px; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.network-hero-split span { display: block; margin-top: 3px; color: #bdd0c3; font-size: 12px; }
+
+.network-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 360px); gap: 16px; align-items: start; }
+.network-detail-grid > div, .network-detail-grid > aside { display: grid; gap: 16px; min-width: 0; }
+.network-facts { display: grid; gap: 0; margin: 0; }
+.network-facts > div { display: grid; grid-template-columns: minmax(0, 130px) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #eef0ee; }
+.network-facts > div:last-child { border-bottom: 0; }
+.network-facts dt { color: var(--muted); font-size: 12px; }
+.network-facts dd { margin: 0; color: var(--ink); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.network-switch { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.45; cursor: pointer; }
+.network-switch input { flex: 0 0 18px; width: 18px; height: 18px; min-height: 18px; margin-top: 2px; accent-color: var(--green); }
+.network-muted { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.network-panel-body > p + p { margin-top: 8px; }
+.network-filter-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+.network-filter-row strong { font-size: 14px; }
+
+/* Formulář připomínky v modálu. */
+.network-flag-form .form-grid span { font-size: 12px; }
+.network-flag-form .form-grid textarea { height: 86px; font-size: 13px; }
+.network-flag-form .network-modal-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* Veřejná stránka pozvánky. */
+.network-invite-facts { display: grid; gap: 8px; margin: 4px 0 18px; padding: 14px 16px; border: 1px solid #dde3de; border-radius: 12px; background: #f8f8f4; font-size: 14px; line-height: 1.5; }
+.network-invite-facts p { margin: 0; }
+.network-invite-actions { display: grid; gap: 10px; }
+.network-invite-actions a { text-decoration: none; }
+.network-invite-secondary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 1px solid #cbd4cd; border-radius: 10px; background: #fff; color: #17251d; font-weight: 700; text-decoration: none; }
+.network-invite-secondary:hover { border-color: #aebbb2; background: #f4f6f3; }
+
+/* Zbytek rozpracované pozvánky po registraci. */
+.network-resume-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; padding: 12px 16px; border: 1px solid #cde0d2; border-radius: 10px; background: var(--green-soft); color: var(--ink); font-size: 13px; }
+.network-resume-banner > div { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Úzký desktop a tablet: hustota tabulky zůstává, vedlejší sloupce pryč. */
+@media screen and (max-width: 1599px) {
+  .partner-detail-page .network-table .network-col-secondary { display: none; }
+}
+
+@media screen and (max-width: 1279px) {
+  .network-detail-grid { grid-template-columns: 1fr; }
+  .network-detail-grid > aside { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); align-items: start; }
+  .network-table .network-col-secondary { display: none; }
+}
+
+@media screen and (max-width: 1023px) {
+  .network-hero { grid-template-columns: 1fr; }
+}
+
+@media screen and (max-width: 767px) {
+  .network-page .section-header { align-items: flex-start; flex-direction: column; }
+  .network-page .section-header .section-actions { width: 100%; justify-content: stretch; }
+  .network-page .section-header .section-actions .btn { flex: 1 1 100%; }
+  .network-summary { grid-template-columns: 1fr; }
+  .network-panel > header { align-items: flex-start; flex-direction: column; }
+  .network-add form.network-add-search { grid-template-columns: 1fr; }
+  .network-add form.network-add-search .btn { width: 100%; }
+  .network-card-actions .btn { flex: 1 1 auto; }
+  .network-hero { padding: 18px; }
+  .network-facts > div { grid-template-columns: 1fr; gap: 2px; }
+
+  .network-table { overflow: visible; padding: 10px; }
+  .network-table table,
+  .network-table tbody { display: block; width: 100%; min-width: 0; }
+  .network-table thead { display: none; }
+  .network-table tbody { display: grid; gap: 9px; }
+  .network-table tr {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fff !important;
+  }
+  .network-table td {
+    display: block !important;
+    min-width: 0 !important;
+    padding: 9px 0;
+    border: 0;
+    white-space: normal !important;
+  }
+  .network-table td::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--muted); font-size: 8px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+  .network-table td.network-cell-primary { grid-column: 1 / -1; padding-top: 0; border-bottom: 1px solid #edf0ed; }
+  .network-table td.network-cell-primary::before { display: none; }
+  .network-table td.network-cell-actions,
+  .network-table td.network-cell-wide { grid-column: 1 / -1; }
+  .network-table td.network-cell-actions::before { display: none; }
+  .network-table .network-col-secondary { display: block !important; }
+  .network-row-actions { justify-content: flex-start; }
+  .network-table td.network-cell-actions { width: auto; }
+  .network-row-actions .btn { flex: 1 1 auto; }
+  .network-resume-banner { align-items: flex-start; flex-direction: column; }
+}
+
+@media screen and (max-width: 479px) {
+  .network-hero-split { grid-template-columns: 1fr; }
+  .network-tabs button { padding: 8px 11px; }
+}
+
+@media screen and (pointer: coarse) {
+  .network-tabs button,
+  .network-row-actions .btn,
+  .network-card-actions .btn { min-height: 44px; }
+  .network-field input,
+  .network-field textarea,
+  .network-flag-form input,
+  .network-flag-form select,
+  .network-flag-form textarea { font-size: 16px; }
+}
+
+.network-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.network-invoice-note { line-height: 1.5; }
+.network-invoice-note .info-section-link { white-space: nowrap; }
+
+/* Menu „⋯“ v tabulce se nesmí oříznout: tabulky nemají vlastní posuvník
+   a do šířky se vejdou díky skrývání vedlejších sloupců níže. */
+@media screen and (min-width: 768px) {
+  .network-table td.network-cell-actions { width: 60px; }
+}
+.network-actions-menu .invoice-actions-menu-popover { text-align: left; }
+.network-actions-menu .invoice-actions-menu-popover span { display: contents; }
+.network-flag-note { display: block; max-width: 320px; margin-top: 6px; color: var(--ink) !important; white-space: normal; overflow-wrap: anywhere; }
+.network-hero-split { align-content: start; }
+.network-invite-button svg { width: 14px; height: 14px; margin-right: 6px; }
+.network-table td.network-cell-wide input { max-width: 320px; }

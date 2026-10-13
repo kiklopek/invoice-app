@@ -7,6 +7,7 @@ import { routeFor } from "@/lib/access-state";
 import { billingNotice } from "@/lib/billing";
 import { loadSubscription } from "@/lib/billing-server";
 import { SubscriptionBanner } from "@/components/subscription-banner";
+import { NetworkInvitationResume } from "@/components/network/network-invitation-resume";
 import { displayName } from "@/lib/user-display";
 import type { AccessProfile } from "@/lib/use-access-role";
 
@@ -49,6 +50,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       <ToastProvider>
         <AppShell initialProfile={initialProfile}>
           <SubscriptionBanner notice={notice} canManage={initialProfile?.role === "admin"} />
+          <NetworkInvitationResume />
           {children}
         </AppShell>
       </ToastProvider>

@@ -70,6 +70,16 @@ const CONVERTED = [
   "src/app/api/invoices/[id]/send/route.ts",
   "src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts",
   "src/app/api/invoices/[id]/assignable-payments/route.ts",
+  "src/app/api/invoices/[id]/network/route.ts",
+  "src/app/api/partners/route.ts",
+  "src/app/api/partners/lookup/route.ts",
+  "src/app/api/partners/[id]/route.ts",
+  "src/app/api/partners/received/route.ts",
+  "src/app/api/partners/invoices/[invoiceId]/pdf/route.ts",
+  "src/app/api/partners/flags/route.ts",
+  "src/app/api/partners/flags/[id]/route.ts",
+  "src/app/api/partners/invitations/route.ts",
+  "src/app/api/network-invitations/[token]/route.ts",
 ];
 
 describe("dohledatelnost chyb 5xx", () => {

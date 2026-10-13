@@ -1244,6 +1244,7 @@ export type Database = {
           created_by: string | null
           onboarding_completed_at: string | null
           verified_at: string | null
+          referred_by_org: string | null
         }
         Insert: {
           bank_account_czk?: string | null
@@ -1852,6 +1853,77 @@ export type Database = {
       claim_trial: {
         Args: { target_org: string; target_fingerprint: string | null; target_ip_hash: string | null }
         Returns: string
+      }
+      network_lookup: {
+        Args: { target_org: string; actor_user: string; target_ico: string }
+        Returns: Json
+      }
+      network_request: {
+        Args: { target_org: string; actor_user: string; target_ico: string; request_message: string | null; request_origin: string }
+        Returns: Json
+      }
+      network_respond: {
+        Args: { target_org: string; actor_user: string; target_connection: string; accept: boolean }
+        Returns: Json
+      }
+      network_revoke: {
+        Args: { target_org: string; actor_user: string; target_connection: string }
+        Returns: Json
+      }
+      network_set_share_history: {
+        Args: { target_org: string; actor_user: string; target_connection: string; share: boolean }
+        Returns: Json
+      }
+      network_overview: {
+        Args: { target_org: string; actor_user: string }
+        Returns: Json
+      }
+      network_partner: {
+        Args: { target_org: string; actor_user: string; target_connection: string }
+        Returns: Json
+      }
+      network_received: {
+        Args: { target_org: string; actor_user: string }
+        Returns: Json
+      }
+      network_partner_invoice: {
+        Args: { target_org: string; actor_user: string; target_invoice: string }
+        Returns: Json
+      }
+      network_invoice_context: {
+        Args: { target_org: string; actor_user: string; target_invoice: string }
+        Returns: Json
+      }
+      network_flag_invoice: {
+        Args: {
+          target_org: string; actor_user: string; target_invoice: string; flag_kind: string; flag_reason: string | null
+          flag_note: string | null; paid_on: string | null; paid_amount_value: number | null
+        }
+        Returns: Json
+      }
+      network_decide_flag: {
+        Args: { target_org: string; actor_user: string; target_flag: string; decision: string; decision_note: string | null }
+        Returns: Json
+      }
+      network_issue_invitation: {
+        Args: { target_org: string; actor_user: string; target_ico: string; target_email: string; token_hash: string; expires_at: string }
+        Returns: Json
+      }
+      network_mark_invitation_sent: {
+        Args: { target_invitation: string }
+        Returns: undefined
+      }
+      network_invitation_preview: {
+        Args: { target_token_hash: string }
+        Returns: Json
+      }
+      network_invitation_opt_out: {
+        Args: { target_token_hash: string }
+        Returns: boolean
+      }
+      network_accept_invitation: {
+        Args: { target_org: string; actor_user: string; target_token_hash: string }
+        Returns: Json
       }
       link_stripe_customer: {
         Args: { target_org: string; customer_id: string }

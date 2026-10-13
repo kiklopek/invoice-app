@@ -64,6 +64,15 @@ const items: NavItem[] = [
     ],
   },
   { href: "/customers", label: "Zákazníci", icon: "users" },
+  // Splatno Síť: propojené firmy a faktury mezi nimi (bez příspěvků a feedu).
+  {
+    href: "/partneri",
+    label: "Partneři",
+    icon: "network",
+    children: [
+      { href: "/partneri/prijate", label: "Přijaté faktury" },
+    ],
+  },
   { href: "/reports", label: "Reporty", icon: "chart" },
   {
     href: "/settings",

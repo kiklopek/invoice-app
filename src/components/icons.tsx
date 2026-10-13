@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export type IconName = "dashboard" | "invoice" | "bank" | "archive" | "statement" | "mail" | "chart" | "settings" | "logout" | "plus" | "upload" | "check" | "alert" | "clock" | "document" | "download" | "print" | "arrow-left" | "arrow-right" | "users" | "edit";
+export type IconName = "dashboard" | "invoice" | "bank" | "archive" | "statement" | "mail" | "chart" | "settings" | "logout" | "plus" | "upload" | "check" | "alert" | "clock" | "document" | "download" | "print" | "arrow-left" | "arrow-right" | "users" | "edit" | "network" | "inbox";
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -25,6 +25,8 @@ export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGEle
     {name === "print" && <><path d="M7 9V3h10v6M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7z"/></>}
     {name === "arrow-left" && <path d="m14 6-6 6 6 6M8 12h12"/>}
     {name === "arrow-right" && <path d="m10 6 6 6-6 6M4 12h12"/>}
+    {name === "network" && <><circle cx="6" cy="7" r="2.6"/><circle cx="18" cy="7" r="2.6"/><circle cx="12" cy="18" r="2.6"/><path d="M8.5 7h7M7.4 9.3l3.3 6.4M16.6 9.3l-3.3 6.4"/></>}
+    {name === "inbox" && <><path d="M3 13h5l1.5 3h5l1.5-3h5"/><path d="M5.5 5h13l2.5 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5l2.5-8Z"/></>}
     {name === "users" && <><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16.5 5a3.5 3.5 0 0 1 0 6.6"/><path d="M21.5 20a6 6 0 0 0-5-5.9"/></>}
   </svg>;
 }
