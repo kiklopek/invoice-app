@@ -124,7 +124,9 @@ function drawKeyValueRow(cursor: Cursor, label: string, value: string, x: number
   cursor.y -= 16;
 }
 
-export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCompany): Promise<Uint8Array> {
+// paymentQr: false vynechá QR platbu -- pro PDF, které čte plátce a faktura
+// už není k úhradě (invoiceSpayd by po úhradě znělo na celou částku znovu).
+export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCompany, options: { paymentQr?: boolean } = {}): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   doc.setTitle(`Faktura ${invoice.invoice_number}`);
@@ -181,7 +183,7 @@ export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCo
   // QR platba. Vykresli se jen tehdy, kdyz je z ceho -- neuplny nebo
   // vymysleny QR kod je horsi nez zadny, protoze vypada funkcne a poslal by
   // penize jinam. buildSpayd proto pri pochybnostech vraci null.
-  const spayd = invoiceSpayd(invoice, company);
+  const spayd = options.paymentQr === false ? null : invoiceSpayd(invoice, company);
   if (spayd) {
     const QR_SIZE = 110;
     ensureSpace(cursor, QR_SIZE + 30);

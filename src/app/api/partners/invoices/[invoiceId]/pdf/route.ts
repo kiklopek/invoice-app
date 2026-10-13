@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-response";
 import { getRequestIdentity } from "@/lib/auth";
 import { generateInvoicePdf, invoicePdfFilename, invoicePdfResponse, type InvoicePdfCompany } from "@/lib/invoice-pdf";
+import { partnerPdfHasPaymentQr } from "@/lib/partner-network";
 import { canViewNetwork } from "@/lib/role-access";
 import { logError } from "@/lib/structured-log";
 import type { Invoice } from "@/types/invoice";
@@ -29,6 +30,6 @@ export async function GET(request: Request, { params }: Context) {
   }
   const shared = data as { invoice: Invoice; issuer: InvoicePdfCompany } | null;
   if (!shared?.invoice || !shared.issuer) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
-  const bytes = await generateInvoicePdf(shared.invoice, shared.issuer);
+  const bytes = await generateInvoicePdf(shared.invoice, shared.issuer, { paymentQr: partnerPdfHasPaymentQr(shared.invoice) });
   return invoicePdfResponse(bytes, invoicePdfFilename(shared.invoice));
 }

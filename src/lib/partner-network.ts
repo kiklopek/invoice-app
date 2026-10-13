@@ -276,6 +276,13 @@ export function openAmount(invoice: Pick<NetworkInvoice, "amount" | "paid_amount
   return Math.max(0, Math.round((Number(invoice.amount) - Number(invoice.paid_amount)) * 100) / 100);
 }
 
+// PDF přijaté faktury nese QR platbu, jen dokud je co platit. Plátcem je tu
+// čtenář PDF, takže QR u zaplacené faktury by vedl k dvojí platbě.
+export function partnerPdfHasPaymentQr(invoice: { status: string; amount: number | string; paid_amount: number | string }) {
+  if (invoice.status !== "pending" && invoice.status !== "overdue") return false;
+  return Number(invoice.amount) - Number(invoice.paid_amount) > 0.004;
+}
+
 export function behaviourLabel(behaviour: PaymentBehaviour | null | undefined) {
   if (!behaviour || !behaviour.paid_count) return "Zatím bez zaplacených faktur";
   const late = Number(behaviour.avg_days_late ?? 0);

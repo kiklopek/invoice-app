@@ -136,6 +136,15 @@ describe("QR platba", () => {
     expect(text).toContain("QR platba");
   });
 
+  it("leaves the payment QR out when the caller says the invoice is not payable", async () => {
+    // PDF přijaté faktury od partnera: u zaplacené faktury by QR na celou
+    // částku (invoiceSpayd po úhradě vrací plnou částku) vyzval k druhé platbě.
+    const bytes = await generateInvoicePdf(fixtureInvoice, payableCompany, { paymentQr: false });
+    expect(hasEmbeddedImage(bytes)).toBe(false);
+    const { text } = await extractText(await getDocumentProxy(bytes), { mergePages: true });
+    expect(text).not.toContain("QR platba");
+  });
+
   it("draws no QR code at all when the account fails the checksum", async () => {
     // Vymysleny nebo poskozeny QR kod je horsi nez zadny: vypada funkcne
     // a poslal by penize jinam.

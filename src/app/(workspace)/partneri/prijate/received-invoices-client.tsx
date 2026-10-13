@@ -16,6 +16,7 @@ import {
   formatMoney,
   hasOpenFlag,
   openAmount,
+  partnerPdfHasPaymentQr,
   type ReceivedInvoice,
   type ReceivedInvoicesPageData,
 } from "@/lib/partner-network";
@@ -145,7 +146,7 @@ export function ReceivedInvoicesClient({ initialData }: { initialData: ReceivedI
                     <td data-label="Akce" className="network-cell-actions">
                       <div className="network-row-actions">
                         <NetworkActionsMenu label={`Akce s fakturou ${invoice.invoice_number}`}>
-                          <a href={`/api/partners/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">Stáhnout PDF s QR platbou</a>
+                          <a href={`/api/partners/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">{partnerPdfHasPaymentQr(invoice) ? "Stáhnout PDF s QR platbou" : "Stáhnout PDF"}</a>
                           {invoice.status !== "paid" && !hasOpenFlag(invoice, "payment_claimed") ? (
                             <button type="button" onClick={() => setFlagTarget({ invoice, kind: "payment_claimed", partnerName: invoice.partner.name })}>Oznámit platbu</button>
                           ) : null}

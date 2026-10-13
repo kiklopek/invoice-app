@@ -12,6 +12,12 @@
 --   (requester_/addressee_share_history).
 -- * Firma je v síti dosažitelná jen tehdy, když její IČO má v organizations
 --   právě jednu firmu. Nejednoznačné IČO se nikdy tiše nepřiřadí.
+-- * IČO obou stran se při vzniku propojení zapíše do propojení a viditelnost se
+--   počítá z něj, ne z aktuálního organizations.ico. Změna IČO firmy její
+--   propojení zruší (trigger níže), takže přepsání IČO v nastavení nikdy
+--   neukáže faktury jiné firmy.
+-- * Faktury otevřené v okamžiku propojení se zapíší do open_snapshot; zůstanou
+--   vidět i po úhradě, i když banka platbu zaúčtuje se zpětným datem.
 -- * Partner nikdy nemění peníze vystavitele. Rozpor nebo oznámená platba je
 --   samostatný záznam (network_invoice_flags), o stavu faktury dál rozhoduje
 --   vystavitel stávajícími cestami (párování, confirm_manual_payment).
@@ -24,6 +30,9 @@ create table if not exists public.organization_connections (
   id uuid primary key default gen_random_uuid(),
   requester_org uuid not null references public.organizations(id) on delete cascade,
   addressee_org uuid not null references public.organizations(id) on delete cascade,
+  requester_ico text not null check (requester_ico ~ '^[0-9]{8}$'),
+  addressee_ico text not null check (addressee_ico ~ '^[0-9]{8}$'),
+  open_snapshot uuid[] not null default '{}',
   org_low uuid generated always as (least(requester_org, addressee_org)) stored,
   org_high uuid generated always as (greatest(requester_org, addressee_org)) stored,
   status text not null default 'pending' check (status in ('pending', 'active', 'declined', 'revoked')),
@@ -108,6 +117,16 @@ create table if not exists public.network_invitations (
 create unique index if not exists network_invitations_open_pair
   on public.network_invitations (inviter_org, invitee_ico) where accepted_at is null;
 
+-- Každý vydaný odkaz pozvánky (i po připomínce s novým odkazem) dál funguje
+-- pro náhled a odhlášení; odhlášení platí pro adresu, na kterou odkaz odešel.
+create table if not exists public.network_invitation_tokens (
+  token_hash text primary key check (token_hash ~ '^[a-f0-9]{64}$'),
+  invitation_id uuid not null references public.network_invitations(id) on delete cascade,
+  email text not null check (email = lower(email)),
+  created_at timestamptz not null default now()
+);
+create index if not exists network_invitation_tokens_invitation_idx on public.network_invitation_tokens (invitation_id);
+
 -- Adresy, které si další pozvánky do Splatna nepřejí (odkaz v každé pozvánce).
 -- Platí pro všechny firmy: zákon 480/2004 Sb. odpovědnost nedělí podle odesílatele.
 create table if not exists public.network_invitation_optouts (
@@ -123,10 +142,13 @@ alter table public.organization_connection_events enable row level security;
 alter table public.network_invoice_flags enable row level security;
 alter table public.network_invitations enable row level security;
 alter table public.network_invitation_optouts enable row level security;
+alter table public.network_invitation_tokens enable row level security;
 revoke all on public.organization_connections, public.organization_connection_events,
-  public.network_invoice_flags, public.network_invitations, public.network_invitation_optouts from anon, authenticated;
+  public.network_invoice_flags, public.network_invitations, public.network_invitation_optouts,
+  public.network_invitation_tokens from anon, authenticated;
 grant select, insert, update, delete on public.organization_connections, public.organization_connection_events,
-  public.network_invoice_flags, public.network_invitations, public.network_invitation_optouts to service_role;
+  public.network_invoice_flags, public.network_invitations, public.network_invitation_optouts,
+  public.network_invitation_tokens to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Pomocné funkce
@@ -162,24 +184,48 @@ $$;
 
 -- Faktury, které vystavitel `issuer` sdílí přes propojení `conn_id` s druhou stranou.
 -- Jediné místo s pravidlem viditelnosti; volají ho všechny čtecí funkce.
+-- Importovaná faktura s počátečním stavem úhrady: datum úhrady je datum
+-- importu, ne skutečné platby (viz record_initial_invoice_payment).
+create or replace function private.network_initially_paid(i public.invoices)
+returns boolean language sql immutable set search_path = pg_catalog, public
+as $$ select coalesce((i.money_evidence->>'initial_paid')::numeric, 0) >= i.amount $$;
+
 create or replace function private.network_shared_invoices(conn_id uuid, issuer uuid)
 returns setof public.invoices language sql stable security definer set search_path = public
 as $$
   select i.*
   from organization_connections c
-  join organizations partner on partner.id = case when c.requester_org = issuer then c.addressee_org else c.requester_org end
   join invoices i on i.organization_id = issuer
   where c.id = conn_id
     and c.status = 'active'
     and issuer in (c.requester_org, c.addressee_org)
     and i.status <> 'cancelled'
-    and private.normalized_ico(i.counterparty_ico) = partner.ico
+    -- IČO partnera z okamžiku propojení, ne aktuální hodnota z nastavení.
+    and private.normalized_ico(i.counterparty_ico) = case when c.requester_org = issuer then c.addressee_ico else c.requester_ico end
     and (
-      i.created_at >= c.activated_at
-      or i.paid_at is null
-      or i.paid_at >= c.activated_at
+      i.id = any(c.open_snapshot)
+      or (i.created_at >= c.activated_at and not private.network_initially_paid(i))
       or case when c.requester_org = issuer then c.requester_share_history else c.addressee_share_history end
     )
+$$;
+
+-- Aktivace propojení: jediné místo, kde se zapisuje okamžik propojení a seznam
+-- faktur obou stran, které v tu chvíli byly otevřené.
+create or replace function private.network_activate(conn_id uuid, actor_user uuid)
+returns void language sql security definer set search_path = public
+as $$
+  update organization_connections c set
+    status = 'active',
+    responded_by = actor_user,
+    responded_at = now(),
+    activated_at = now(),
+    open_snapshot = coalesce((
+      select array_agg(i.id) from invoices i
+      where i.status in ('pending', 'overdue')
+        and ((i.organization_id = c.requester_org and private.normalized_ico(i.counterparty_ico) = c.addressee_ico)
+          or (i.organization_id = c.addressee_org and private.normalized_ico(i.counterparty_ico) = c.requester_ico))
+    ), '{}')
+  where c.id = conn_id
 $$;
 
 -- Zobrazovaný stav: pending po splatnosti je overdue hned, ne až po cronu.
@@ -298,8 +344,7 @@ begin
   if conn.id is not null and conn.requester_org = target_org then raise exception 'already_pending'; end if;
   if conn.id is not null then
     -- Protistrana už žádala: naše žádost je její přijetí.
-    update organization_connections set status = 'active', responded_by = actor_user, responded_at = now(), activated_at = now()
-    where id = conn.id;
+    perform private.network_activate(conn.id, actor_user);
     perform private.network_log(conn.id, target_org, actor_user, 'accepted', jsonb_build_object('via', 'mutual_request'));
     return jsonb_build_object('connection_id', conn.id, 'status', 'active');
   end if;
@@ -313,8 +358,8 @@ begin
     raise exception 'daily_limit';
   end if;
 
-  insert into organization_connections (requester_org, addressee_org, status, origin, message, requested_by, requested_by_email)
-  values (target_org, partner_id, 'pending', request_origin, clean_message, actor_user, actor_email)
+  insert into organization_connections (requester_org, addressee_org, requester_ico, addressee_ico, status, origin, message, requested_by, requested_by_email)
+  values (target_org, partner_id, (select ico from organizations where id = target_org), wanted, 'pending', request_origin, clean_message, actor_user, actor_email)
   returning * into conn;
   perform private.network_log(conn.id, target_org, actor_user, 'requested', jsonb_build_object('origin', request_origin));
   return jsonb_build_object('connection_id', conn.id, 'status', 'pending');
@@ -334,11 +379,11 @@ begin
   if accept and not (private.network_org_ready(conn.requester_org) and private.network_org_ready(target_org)) then
     raise exception 'own_ico_ambiguous';
   end if;
-  update organization_connections set
-    status = case when accept then 'active' else 'declined' end,
-    responded_by = actor_user, responded_at = now(),
-    activated_at = case when accept then now() else null end
-  where id = conn.id;
+  if accept then
+    perform private.network_activate(conn.id, actor_user);
+  else
+    update organization_connections set status = 'declined', responded_by = actor_user, responded_at = now() where id = conn.id;
+  end if;
   perform private.network_log(conn.id, target_org, actor_user, case when accept then 'accepted' else 'declined' end);
   return jsonb_build_object('connection_id', conn.id, 'status', case when accept then 'active' else 'declined' end);
 end;
@@ -461,6 +506,13 @@ begin
       select o2.ico, 'supplier', count(*)
       from invoices i join organizations o2 on o2.id = i.organization_id
       where private.normalized_ico(i.counterparty_ico) = own.ico and i.organization_id <> target_org and i.status <> 'cancelled'
+        -- Jen faktury prokazatelně adresované nám (na e-mail člena nebo firmy).
+        -- Samotné IČO nestačí: kdo by si v nastavení přepsal IČO na cizí,
+        -- viděl by jinak, kdo té firmě fakturuje.
+        and private.network_org_ready(target_org)
+        and lower(i.counterparty_email) in (
+          select lower(m.email) from organization_members m where m.organization_id = target_org
+          union select lower(o3.email) from organizations o3 where o3.id = target_org and o3.email is not null)
       group by 1
     ) r
     join organizations o on o.ico = r.partner_ico
@@ -570,11 +622,13 @@ begin
       'they_pay', (select jsonb_build_object('paid_count', count(*),
           'avg_days_late', round(avg(greatest((i.paid_at at time zone 'Europe/Prague')::date - i.due_date, 0))::numeric, 1),
           'on_time_share', round(avg(case when (i.paid_at at time zone 'Europe/Prague')::date <= i.due_date then 1 else 0 end)::numeric, 2))
-        from private.network_shared_invoices(conn.id, target_org) i where i.status = 'paid' and i.paid_at > now() - interval '12 months'),
+        from private.network_shared_invoices(conn.id, target_org) i where i.status = 'paid' and i.paid_at > now() - interval '12 months'
+          and not private.network_initially_paid(i)),
       'we_pay', (select jsonb_build_object('paid_count', count(*),
           'avg_days_late', round(avg(greatest((i.paid_at at time zone 'Europe/Prague')::date - i.due_date, 0))::numeric, 1),
           'on_time_share', round(avg(case when (i.paid_at at time zone 'Europe/Prague')::date <= i.due_date then 1 else 0 end)::numeric, 2))
-        from private.network_shared_invoices(conn.id, partner_id) i where i.status = 'paid' and i.paid_at > now() - interval '12 months')
+        from private.network_shared_invoices(conn.id, partner_id) i where i.status = 'paid' and i.paid_at > now() - interval '12 months'
+          and not private.network_initially_paid(i))
     )
   );
 end;
@@ -780,6 +834,7 @@ begin
     update network_invitations set invitee_email = clean_email, token_hash = network_issue_invitation.token_hash,
       expires_at = network_issue_invitation.expires_at, invited_by = actor_user
     where id = existing.id returning id into invitation_id;
+    insert into network_invitation_tokens (token_hash, invitation_id, email) values (network_issue_invitation.token_hash, invitation_id, clean_email);
   else
     if (select count(*) from network_invitations where inviter_org = target_org and created_at > now() - interval '1 day') >= 20 then
       raise exception 'daily_limit';
@@ -787,6 +842,7 @@ begin
     insert into network_invitations (inviter_org, invited_by, invitee_ico, invitee_email, token_hash, expires_at)
     values (target_org, actor_user, wanted, clean_email, network_issue_invitation.token_hash, network_issue_invitation.expires_at)
     returning id into invitation_id;
+    insert into network_invitation_tokens (token_hash, invitation_id, email) values (network_issue_invitation.token_hash, invitation_id, clean_email);
   end if;
   perform private.network_log(null, target_org, actor_user, 'invitation_issued', jsonb_build_object('invitation_id', invitation_id, 'ico', wanted));
 
@@ -817,7 +873,8 @@ declare
   inviter organizations%rowtype;
 begin
   if target_token_hash is null or target_token_hash !~ '^[a-f0-9]{64}$' then return null; end if;
-  select * into inv from network_invitations where token_hash = target_token_hash;
+  select n.* into inv from network_invitation_tokens t join network_invitations n on n.id = t.invitation_id
+  where t.token_hash = target_token_hash;
   if inv.id is null then return null; end if;
   select * into inviter from organizations where id = inv.inviter_org;
   return jsonb_build_object(
@@ -839,7 +896,7 @@ as $$
 declare target_email text;
 begin
   if target_token_hash is null or target_token_hash !~ '^[a-f0-9]{64}$' then return false; end if;
-  select invitee_email into target_email from network_invitations where token_hash = target_token_hash;
+  select email into target_email from network_invitation_tokens where token_hash = target_token_hash;
   if target_email is null then return false; end if;
   insert into network_invitation_optouts (email) values (target_email) on conflict (email) do nothing;
   return true;
@@ -858,7 +915,8 @@ declare
 begin
   perform private.require_org_admin(target_org, actor_user);
   if target_token_hash is null or target_token_hash !~ '^[a-f0-9]{64}$' then raise exception 'invitation_not_found'; end if;
-  select * into inv from network_invitations where token_hash = target_token_hash for update;
+  select n.* into inv from network_invitation_tokens t join network_invitations n on n.id = t.invitation_id
+  where t.token_hash = target_token_hash for update of n;
   if inv.id is null then raise exception 'invitation_not_found'; end if;
   if inv.accepted_at is not null then raise exception 'invitation_used'; end if;
   if inv.expires_at < now() then raise exception 'invitation_expired'; end if;
@@ -872,12 +930,12 @@ begin
   where org_low = least(target_org, inv.inviter_org) and org_high = greatest(target_org, inv.inviter_org)
     and status in ('pending', 'active') for update;
   if conn.id is null then
-    insert into organization_connections (requester_org, addressee_org, status, origin, requested_by, responded_by, responded_at, activated_at)
-    values (inv.inviter_org, target_org, 'active', 'invitation', inv.invited_by, actor_user, now(), now())
+    insert into organization_connections (requester_org, addressee_org, requester_ico, addressee_ico, status, origin, requested_by)
+    values (inv.inviter_org, target_org, (select ico from organizations where id = inv.inviter_org), own.ico, 'pending', 'invitation', inv.invited_by)
     returning * into conn;
+    perform private.network_activate(conn.id, actor_user);
   elsif conn.status = 'pending' then
-    update organization_connections set status = 'active', responded_by = actor_user, responded_at = now(), activated_at = now()
-    where id = conn.id returning * into conn;
+    perform private.network_activate(conn.id, actor_user);
   end if;
   update network_invitations set accepted_org = target_org, accepted_at = now() where id = inv.id;
   -- Atribuce jen u firmy, která vznikla až po pozvánce.
@@ -887,6 +945,35 @@ begin
   return jsonb_build_object('connection_id', conn.id, 'status', 'active');
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Změna IČO firmy ukončí její propojení. Propojení platí pro firmu s IČO
+-- z okamžiku propojení; s jiným IČO je to jiná firma, a ta se musí propojit
+-- znovu (a partner ji znovu přijmout).
+-- ---------------------------------------------------------------------------
+create or replace function private.network_revoke_on_ico_change()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare conn record;
+begin
+  if new.ico is not distinct from old.ico then return new; end if;
+  for conn in
+    update organization_connections set status = 'revoked', revoked_by_org = new.id, revoked_at = now()
+    where new.id in (requester_org, addressee_org) and status in ('pending', 'active')
+    returning id
+  loop
+    update network_invoice_flags set status = 'withdrawn', decided_at = now(),
+      resolution_note = 'Propojení skončilo změnou IČO firmy.'
+    where connection_id = conn.id and status = 'open';
+    insert into organization_connection_events (connection_id, organization_id, event_type, details)
+    values (conn.id, new.id, 'revoked', jsonb_build_object('reason', 'ico_changed', 'old_ico', old.ico, 'new_ico', new.ico));
+  end loop;
+  return new;
+end;
+$$;
+drop trigger if exists organizations_network_ico_change on public.organizations;
+create trigger organizations_network_ico_change after update of ico on public.organizations
+for each row execute function private.network_revoke_on_ico_change();
 
 -- ---------------------------------------------------------------------------
 -- Práva: vše jen pro service_role (API route s ověřenou identitou).
@@ -899,6 +986,9 @@ begin
     'private.network_org_ready(uuid)',
     'private.network_actor_role(uuid, uuid, boolean)',
     'private.network_shared_invoices(uuid, uuid)',
+    'private.network_initially_paid(public.invoices)',
+    'private.network_activate(uuid, uuid)',
+    'private.network_revoke_on_ico_change()',
     'private.network_invoice_state(public.invoices)',
     'private.network_balance(uuid, uuid, uuid)',
     'private.network_org_card(uuid)',

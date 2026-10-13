@@ -23,6 +23,7 @@ import {
   hasOpenFlag,
   netPositions,
   openAmount,
+  partnerPdfHasPaymentQr,
   type NetworkFlag,
   type NetworkInvoice,
   type PartnerDetailPageData,
@@ -237,7 +238,7 @@ export function PartnerDetailClient({ id, initialData }: { id: string; initialDa
                             <NetworkActionsMenu label={`Akce s fakturou ${invoice.invoice_number}`}>
                               {side === "received" ? (
                                 <>
-                                  <a href={`/api/partners/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">Stáhnout PDF s QR platbou</a>
+                                  <a href={`/api/partners/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer">{partnerPdfHasPaymentQr(invoice) ? "Stáhnout PDF s QR platbou" : "Stáhnout PDF"}</a>
                                   {invoice.status !== "paid" && !hasOpenFlag(invoice, "payment_claimed") ? (
                                     <button type="button" onClick={() => setFlagTarget({ invoice, kind: "payment_claimed", partnerName: partner.name })}>Oznámit platbu</button>
                                   ) : null}

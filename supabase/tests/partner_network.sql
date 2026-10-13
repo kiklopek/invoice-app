@@ -253,3 +253,109 @@ begin
   end if;
 end $$;
 rollback;
+
+-- Nálezy z revize: změna IČO po propojení, návrhy pro cizí IČO, faktura
+-- otevřená při propojení a zaplacená zpětným datem, importovaná historie,
+-- pozvánka po připomínce.
+begin;
+do $$
+declare
+  admin_x uuid := gen_random_uuid(); admin_y uuid := gen_random_uuid(); admin_s uuid := gen_random_uuid(); admin_q uuid := gen_random_uuid();
+  org_x uuid := gen_random_uuid(); org_y uuid := gen_random_uuid(); org_s uuid := gen_random_uuid(); org_q uuid := gen_random_uuid();
+  conn uuid; inv_open uuid; inv_imported uuid; result jsonb; token_one text := repeat('d', 64); token_two text := repeat('e', 64);
+  invitation uuid;
+begin
+  insert into auth.users(id, email) values (admin_x, 'x@iks.cz'), (admin_y, 'y@ypsilon.cz'), (admin_s, 's@squat.cz'), (admin_q, 'q@kvalita.cz');
+  insert into organizations(id, name, ico, created_at) values
+    (org_x, 'Iks s.r.o.', '12345601', now() - interval '1 year'),
+    (org_y, 'Ypsilon s.r.o.', '12345610', now() - interval '1 year'),
+    (org_s, 'Squatter s.r.o.', '12345628', now() - interval '1 year'),
+    (org_q, 'Kvalita s.r.o.', '12345687', now() - interval '1 year');
+  insert into organization_members(organization_id, user_id, email, role) values
+    (org_x, admin_x, 'x@iks.cz', 'admin'), (org_y, admin_y, 'y@ypsilon.cz', 'admin'),
+    (org_s, admin_s, 's@squat.cz', 'admin'), (org_q, admin_q, 'q@kvalita.cz', 'admin');
+
+  -- X fakturuje Y (otevřená před propojením) a firmě V mimo Splatno (IČO 12345695).
+  insert into invoices(organization_id, invoice_number, counterparty_name, counterparty_ico, counterparty_email,
+    amount_without_vat, vat_rate, amount, currency, issue_date, due_date, status, created_by, created_at)
+  values (org_x, 'X-Y', 'Ypsilon s.r.o.', '12345610', 'y@ypsilon.cz', 1000, 0, 1000, 'CZK',
+    current_date - 10, current_date + 5, 'pending', admin_x, now() - interval '10 days') returning id into inv_open;
+  insert into invoices(organization_id, invoice_number, counterparty_name, counterparty_ico, counterparty_email,
+    amount_without_vat, vat_rate, amount, currency, issue_date, due_date, status, created_by, created_at)
+  values (org_x, 'X-V', 'Véčko s.r.o.', '12345695', 'ucetni@vecko.cz', 99999, 0, 99999, 'CZK',
+    current_date - 10, current_date + 5, 'pending', admin_x, now() - interval '10 days');
+  -- Q fakturuje X na adresu člena X: oprávněný návrh „fakturují vám“.
+  insert into invoices(organization_id, invoice_number, counterparty_name, counterparty_ico, counterparty_email,
+    amount_without_vat, vat_rate, amount, currency, issue_date, due_date, status, created_by, created_at)
+  values (org_q, 'Q-X', 'Iks s.r.o.', '12345601', 'x@iks.cz', 500, 0, 500, 'CZK',
+    current_date - 3, current_date + 10, 'pending', admin_q, now() - interval '3 days');
+
+  conn := (network_request(org_y, admin_y, '12345601', null, 'search')->>'connection_id')::uuid;
+  perform network_respond(org_x, admin_x, conn, true);
+  if (select requester_ico from organization_connections where id = conn) <> '12345610'
+     or (select addressee_ico from organization_connections where id = conn) <> '12345601' then
+    raise exception 'Connection does not pin both IČO';
+  end if;
+
+  -- a) Faktura otevřená při propojení, zaplacená s datem platby PŘED propojením, zůstává vidět.
+  update invoices set status = 'paid', paid_amount = amount, paid_at = now() - interval '2 hours',
+    next_reminder_at = null where id = inv_open;
+  update organization_connections set activated_at = now() - interval '1 hour' where id = conn;
+  if jsonb_array_length(network_received(org_y, admin_y)) <> 1 then
+    raise exception 'Invoice open at activation vanished after backdated payment: %', network_received(org_y, admin_y);
+  end if;
+
+  -- b) Importovaná, už dávno zaplacená faktura (initial_paid) se nesdílí bez souhlasu a nekazí morálku.
+  insert into invoices(organization_id, invoice_number, counterparty_name, counterparty_ico, counterparty_email,
+    amount_without_vat, vat_rate, amount, currency, issue_date, due_date, status, created_by, money_evidence)
+  values (org_x, 'X-OLD', 'Ypsilon s.r.o.', '12345610', 'y@ypsilon.cz', 700, 0, 700, 'CZK',
+    current_date - 400, current_date - 386, 'pending', admin_x,
+    jsonb_build_object('original_total', 700, 'initial_paid', 700, 'initial_paid_confirmed', true, 'total_source', 'manual'))
+  returning id into inv_imported;
+  if (select status from invoices where id = inv_imported) <> 'paid' then raise exception 'Fixture: import not paid'; end if;
+  result := network_partner(org_y, admin_y, conn);
+  if exists (select 1 from jsonb_array_elements(result->'received') x where (x->>'id')::uuid = inv_imported) then
+    raise exception 'Imported paid history shared without consent';
+  end if;
+  perform network_set_share_history(org_x, admin_x, conn, true);
+  result := network_partner(org_y, admin_y, conn);
+  if not exists (select 1 from jsonb_array_elements(result->'received') x where (x->>'id')::uuid = inv_imported) then
+    raise exception 'Shared history does not include imported invoice';
+  end if;
+  if coalesce((result->'behaviour'->'we_pay'->>'avg_days_late')::numeric, 0) > 30 then
+    raise exception 'Imported payment date distorts payment behaviour: %', result->'behaviour';
+  end if;
+
+  -- c) Změna vlastního IČO po propojení nesmí ukázat faktury jiné firmy; propojení končí.
+  update organizations set ico = '12345695' where id = org_y;
+  if exists (select 1 from jsonb_array_elements(network_received(org_y, admin_y)) x where x->>'invoice_number' = 'X-V') then
+    raise exception 'IČO change exposed a third company''s invoice';
+  end if;
+  if (select status from organization_connections where id = conn) <> 'revoked' then
+    raise exception 'Connection survived an IČO change';
+  end if;
+  update organizations set ico = '12345610' where id = org_y;
+
+  -- d) Firma s cizím IČO nevidí dodavatele té firmy v návrzích; oprávněný návrh zůstává.
+  update organizations set ico = '12345695' where id = org_s;
+  if exists (select 1 from jsonb_array_elements(network_overview(org_s, admin_s)->'suggestions') x
+             where x->'partner'->>'name' = 'Iks s.r.o.') then
+    raise exception 'Supplier list leaked to an org holding someone else''s IČO';
+  end if;
+  if not exists (select 1 from jsonb_array_elements(network_overview(org_x, admin_x)->'suggestions') x
+                 where x->'partner'->>'name' = 'Kvalita s.r.o.' and x->>'relation' = 'supplier') then
+    raise exception 'Legitimate supplier suggestion missing: %', network_overview(org_x, admin_x)->'suggestions';
+  end if;
+
+  -- e) Připomínka pozvánky nezneplatní odkaz z prvního e-mailu (odhlášení ani náhled).
+  invitation := (network_issue_invitation(org_x, admin_x, '12345644', 'prvni@nova.cz', token_one, now() + interval '14 days')->>'invitation_id')::uuid;
+  perform network_mark_invitation_sent(invitation);
+  update network_invitations set sent_at = now() - interval '8 days' where id = invitation;
+  perform network_issue_invitation(org_x, admin_x, '12345644', 'druha@nova.cz', token_two, now() + interval '14 days');
+  if network_invitation_preview(token_one) is null then raise exception 'First invitation link died after reminder'; end if;
+  if not network_invitation_opt_out(token_one) then raise exception 'First invitation opt-out died after reminder'; end if;
+  if not exists (select 1 from network_invitation_optouts where email = 'prvni@nova.cz') then
+    raise exception 'Opt-out recorded for the wrong address';
+  end if;
+end $$;
+rollback;

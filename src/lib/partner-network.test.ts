@@ -10,6 +10,7 @@ import {
   networkTotals,
   normalizeIcoInput,
   openAmount,
+  partnerPdfHasPaymentQr,
   type CurrencyBalance,
   type NetworkConnection,
 } from "./partner-network";
@@ -58,6 +59,15 @@ describe("čistá pozice mezi partnery", () => {
   it("lists amounts per currency like the dashboard does", () => {
     expect(formatCurrencyList([{ currency: "CZK", amount: 1000 }, { currency: "EUR", amount: 200 }]).replace(/\s/g, " ")).toBe("1 000 Kč + 200 €");
     expect(formatCurrencyList([{ currency: "CZK", amount: 0 }]).replace(/\s/g, " ")).toBe("0 Kč");
+  });
+
+  it("offers a payment QR to the partner only while something is left to pay", () => {
+    expect(partnerPdfHasPaymentQr({ status: "pending", amount: 1000, paid_amount: 0 })).toBe(true);
+    expect(partnerPdfHasPaymentQr({ status: "overdue", amount: 1000, paid_amount: 400 })).toBe(true);
+    expect(partnerPdfHasPaymentQr({ status: "paid", amount: 1000, paid_amount: 1000 })).toBe(false);
+    expect(partnerPdfHasPaymentQr({ status: "paid", amount: 1000, paid_amount: 900 })).toBe(false);
+    expect(partnerPdfHasPaymentQr({ status: "pending", amount: 1000, paid_amount: 1000 })).toBe(false);
+    expect(partnerPdfHasPaymentQr({ status: "cancelled", amount: 1000, paid_amount: 0 })).toBe(false);
   });
 
   it("computes the open amount without going negative", () => {
