@@ -37,6 +37,45 @@ Aplikační chyby jsou strukturované a nesou `request_id`. Při incidentu vyhle
 
 ## Zálohy a obnova
 
+### Ruční záloha (povinná, dokud je projekt na Supabase Free)
+
+Tarif Supabase Free nedělá žádné zálohy. Ani placené zálohy Supabase navíc
+neobsahují soubory ve Storage (PDF faktur, výpisy, loga). Do přechodu na Pro
+a zavedení automatické zálohy bucketů proto spouštějte jednou týdně:
+
+```shell
+SUPABASE_DB_URL="postgresql://postgres.<ref>:<heslo-databaze>@<host>:5432/postgres" \
+NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/backup-production.mjs
+```
+
+- Připojovací řetězec je v Supabase → Project Settings → Database → Connection string
+  (Session pooler). Heslo databáze není v aplikaci, zná ho vlastník projektu.
+- Potřebuje `pg_dump` verze 17 a vyšší (stejná hlavní verze jako server). Na Windows
+  ho nainstalujete s PostgreSQL 17 (jen „Command Line Tools“).
+- Výsledek je ve složce `backups/<čas>/`: `database.dump`, `storage/<bucket>/…`
+  a `manifest.json` s počty řádků klíčových tabulek a SHA-256 každého souboru.
+  Skript skončí chybou, pokud záloha není úplná.
+- Složka obsahuje osobní a finanční data zákazníků. Zašifrujte ji (např. 7-Zip s AES-256)
+  a uložte mimo Supabase. Do gitu nepatří (`backups/` je v `.gitignore`).
+
+**Ověření obnovy** (nikdy ne do produkce):
+
+```shell
+createdb splatno_restore_test
+pg_restore --no-owner --no-privileges --dbname=splatno_restore_test backups/<čas>/database.dump
+psql splatno_restore_test -c "select count(*) from public.invoices;"
+```
+
+Do obyčejného Postgresu pg_restore nahlásí chyby u objektů, které závisí na
+rozšířeních a rolích Supabase (schémata `auth`, `storage`, `extensions`). Data
+tabulek v `public` se obnoví i tak. Úplnou zkoušku dělejte do nového dočasného
+Supabase projektu. Počet musí sedět s `tableCounts.invoices` v `manifest.json`. Výsledek, datum a čas
+obnovy zapište do provozního protokolu.
+
+### Pravidelný provoz
+
 - Denně ověřte, že Supabase záloha doběhla podle zvoleného tarifu.
 - Alespoň jednou měsíčně obnovte poslední zálohu do odděleného neprodukčního projektu.
 - Po obnově ověřte počty organizací, faktur, plateb, upomínek a dokumentů a proveďte test přihlášení testovacího uživatele.
