@@ -2,11 +2,13 @@
 // slovník (en.ts) musí mít stejnou strukturu; hlídá to typ Dictionary
 // i test dictionaries.test.ts.
 
+import { TRIAL_DAYS, TRIAL_INVOICE_LIMIT } from "@/lib/plans";
+
 export const cs = {
   meta: {
-    landingTitle: "Splatno | Faktury pod kontrolou. Od vystavení až po úhradu.",
+    landingTitle: "Splatno | Správa faktur, párování plateb a upomínky",
     landingDescription:
-      "Splatno hlídá splatnosti, páruje platby a posílá upomínky. Vy řešíte jen to, co opravdu potřebuje vaši pozornost.",
+      `Správa faktur pro firmy a účetní: hlídání splatnosti, párování plateb a automatické upomínky na jednom místě. Vyzkoušejte Splatno zdarma na ${TRIAL_DAYS} dní.`,
     authTitle: "Splatno | Faktury a upomínky pod kontrolou",
     invitationTitle: "Pozvánka do firmy | Splatno",
   },
@@ -156,6 +158,16 @@ export const cs = {
           quote: "„Méně dohledávání plateb, kontroly splatností a ruční práce. Více času na to, co má smysl.“",
           alt: "3D ilustrace účetní s deskami",
         },
+      ],
+    },
+    faq: {
+      title: "Časté otázky o správě faktur",
+      items: [
+        { question: "Co je Splatno a pro koho je určené?", answer: "Splatno je webová aplikace pro správu vydaných faktur, hlídání splatnosti, párování plateb a upomínky. Pomáhá majitelům firem i účetním udržet přehled o tom, co je zaplacené a co vyžaduje pozornost." },
+        { question: "Musím kvůli Splatnu měnit účetní systém?", answer: "Nemusíte. Splatno doplňuje váš účetní systém. Faktury můžete importovat a jejich splatnost, úhrady a upomínky sledovat na jednom místě." },
+        { question: "Jak funguje párování plateb s fakturami?", answer: "Do Splatna nahrajete bankovní výpis. Aplikace porovná platby s fakturami a nejasné případy ponechá ke kontrole, abyste mohli rozhodnout o jejich přiřazení." },
+        { question: "Pomůže mi Splatno s fakturami po splatnosti?", answer: "Ano. V přehledu uvidíte nezaplacené faktury a jejich splatnost. Podle nastavení upomínek může Splatno odesílat odběratelům e-mailová připomenutí." },
+        { question: "Mohu si Splatno vyzkoušet zdarma?", answer: `Ano. Zkušební období trvá ${TRIAL_DAYS} dní a umožňuje vyzkoušet službu s až ${TRIAL_INVOICE_LIMIT} fakturami. Ceny a obsah jednotlivých tarifů najdete v ceníku na této stránce.` },
       ],
     },
     final: {

@@ -1,6 +1,8 @@
 const path = require("path");
 
 const isDev = process.env.NODE_ENV === "development";
+const publicIndexingEnabled = process.env.NODE_ENV === "production" &&
+  (!process.env.VERCEL_ENV || process.env.VERCEL_ENV === "production");
 const csp = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
@@ -50,11 +52,22 @@ const nextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@napi-rs/canvas", "sharp", "tesseract.js", "pdfjs-dist"],
   outputFileTracingIncludes: {
+    "/og/[locale]": ["./assets/fonts/LiberationSans-Bold.ttf"],
     "/api/invoices/extract": ocrRuntimeFiles,
     "/api/invoices/[id]/pdf": invoicePdfFonts,
     "/api/invoices/[id]/send": invoicePdfFonts,
     "/api/invoices/[id]/reminders/[reminderId]/retry": invoicePdfFonts,
     "/api/cron/check-due": invoicePdfFonts,
+  },
+  async redirects() {
+    // Fallback for hosts serving the app without Vercel's domain redirect.
+    // A 308 preserves the request method, path and query (including auth links).
+    return [{
+      source: "/:path*",
+      has: [{ type: "host", value: "splatno.cz" }],
+      destination: "https://www.splatno.cz/:path*",
+      permanent: true,
+    }];
   },
   async headers() {
     return [{
@@ -67,9 +80,15 @@ const nextConfig = {
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "X-Frame-Options", value: "DENY" },
-        { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
       ],
+    }, {
+      // Keep private and unknown routes out of search, including redirects and
+      // non-HTML responses. Product pages and their assets must remain indexable.
+      source: publicIndexingEnabled
+        ? "/:path((?!en/?$|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|icon\\.png$|apple-icon\\.png$|_next/|brand/|landing/|og/).+)"
+        : "/:path*",
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
     }];
   },
 };

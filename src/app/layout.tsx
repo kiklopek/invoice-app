@@ -4,6 +4,7 @@ import "./styles/responsive.css";
 import "./styles/invoice-cards.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { privateRobots, siteOrigin } from "@/lib/seo";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -13,6 +14,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin()),
+  // Public product pages explicitly opt in; new application routes stay private.
+  robots: privateRobots,
   applicationName: "Splatno",
   title: "Splatno | Faktury a upomínky pod kontrolou",
   description: "Přehled faktur, hlídání splatnosti a automatické upomínky.",

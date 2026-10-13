@@ -18,7 +18,9 @@
     "audit:ci": "corepack pnpm exec vitest run src/lib/braces-security.test.ts && corepack pnpm audit --audit-level high",
     "test": "vitest run src",
     "test:e2e": "playwright test",
-    "check:mobile": "node scripts/mobile-viewport-check.mjs"
+    "check:mobile": "node scripts/mobile-viewport-check.mjs",
+    "check:seo": "node scripts/seo-check.mjs",
+    "check:domains": "node scripts/domain-seo-check.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "1.0.5",

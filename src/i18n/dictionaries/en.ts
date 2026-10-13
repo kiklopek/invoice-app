@@ -1,13 +1,14 @@
 import type { Dictionary } from "./cs";
+import { TRIAL_DAYS, TRIAL_INVOICE_LIMIT } from "@/lib/plans";
 
 // English copy for the public part of Splatno (landing and sign-in).
 // Written to read naturally, not as a word-for-word translation of cs.ts.
 
 export const en: Dictionary = {
   meta: {
-    landingTitle: "Splatno | Invoices under control. From issue to payment.",
+    landingTitle: "Splatno | Invoice management, payment matching and reminders",
     landingDescription:
-      "Splatno tracks due dates, matches payments and sends reminders. You only deal with what really needs your attention.",
+      `Manage invoices, track due dates, match payments and send automatic reminders in one place. Built for businesses and accountants. Try Splatno free for ${TRIAL_DAYS} days.`,
     authTitle: "Splatno | Invoices and reminders under control",
     invitationTitle: "Company invitation | Splatno",
   },
@@ -157,6 +158,16 @@ export const en: Dictionary = {
           quote: "“Less chasing payments, checking due dates and manual work. More time for what makes sense.”",
           alt: "3D illustration of an accountant holding folders",
         },
+      ],
+    },
+    faq: {
+      title: "Invoice management: frequently asked questions",
+      items: [
+        { question: "What is Splatno and who is it for?", answer: "Splatno is a web application for managing issued invoices, tracking due dates, matching payments and sending reminders. It helps business owners and accountants see what has been paid and what needs attention." },
+        { question: "Do I need to replace my accounting software?", answer: "No. Splatno works alongside your accounting software. You can import invoices and track their due dates, payments and reminders in one place." },
+        { question: "How does payment matching work?", answer: "Upload a bank statement to Splatno. The application compares payments with invoices and leaves unclear cases for review, so you can decide how to assign them." },
+        { question: "Can Splatno help with overdue invoices?", answer: "Yes. The overview shows unpaid invoices and their due dates. Depending on your reminder settings, Splatno can send email reminders to customers." },
+        { question: "Can I try Splatno for free?", answer: `Yes. The trial lasts ${TRIAL_DAYS} days and lets you try the service with up to ${TRIAL_INVOICE_LIMIT} invoices. You can find plan prices and features in the pricing section on this page.` },
       ],
     },
     final: {

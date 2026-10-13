@@ -23,6 +23,7 @@ import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { formatCzk, formatDate } from "@/i18n/format";
 import { LanguageSwitcher } from "@/i18n/language-switcher";
 import type { Locale } from "@/i18n/locales";
+import { landingStructuredData, serializeJsonLd } from "@/lib/seo";
 import { CountUp } from "./count-up";
 import { LandingMotion } from "./landing-motion";
 import { LandingVideo } from "./landing-video";
@@ -263,7 +264,8 @@ export function LandingPage({ locale }: { locale: Locale }) {
 
   return (
     <I18nProvider locale={locale}>
-      <div className={styles.page}>
+      <div className={styles.page} lang={locale}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(landingStructuredData(locale)) }} />
         <LandingMotion />
         <header className={styles.header}>
           <div className={`${styles.container} ${styles.headerInner}`}>
@@ -548,6 +550,20 @@ export function LandingPage({ locale }: { locale: Locale }) {
           <section className={styles.section} id="cenik">
             <div className={styles.container}>
               <Pricing contactHref={CONTACT_HREF} trialHref={TRIAL_HREF} />
+            </div>
+          </section>
+
+          <section className={styles.section} id="caste-otazky" aria-labelledby="faq-title">
+            <div className={styles.container}>
+              <h2 id="faq-title" className={styles.h2Sm}>{t.landing.faq.title}</h2>
+              <div className={styles.faq}>
+                {t.landing.faq.items.map((item) => (
+                  <details key={item.question}>
+                    <summary>{item.question}</summary>
+                    <p>{item.answer}</p>
+                  </details>
+                ))}
+              </div>
             </div>
           </section>
 
