@@ -99,7 +99,6 @@ export const en: Dictionary = {
       titleLine2: "Payments in the bank. Overview in Excel?",
       lead:
         "Many companies still check payments by hand, dig through bank statements, track due dates and send reminders one by one. It's slow, messy and costs you time you don't need to lose.",
-      link: "You don't have to do this by hand anymore.",
       cards: {
         bank: "Bank",
         accounting: "Accounting",
@@ -110,6 +109,7 @@ export const en: Dictionary = {
       hand2: "too little overview.",
     },
     how: {
+      title: "From invoice to payment.",
       eyebrow: "How it works",
       flow: ["Invoice", "Splatno watches", "Payment", "Done."],
       sub: "A simple process that saves you time and gives you peace of mind.",
@@ -161,7 +161,9 @@ export const en: Dictionary = {
       ],
     },
     faq: {
+      eyebrow: "FAQ",
       title: "Invoice management: frequently asked questions",
+      lead: "Short answers to what companies ask most often before they try Splatno.",
       items: [
         { question: "What is Splatno and who is it for?", answer: "Splatno is a web application for managing issued invoices, tracking due dates, matching payments and sending reminders. It helps business owners and accountants see what has been paid and what needs attention." },
         { question: "Do I need to replace my accounting software?", answer: "No. Splatno works alongside your accounting software. You can import invoices and track their due dates, payments and reminders in one place." },

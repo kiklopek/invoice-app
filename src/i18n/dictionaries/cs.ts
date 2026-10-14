@@ -99,7 +99,6 @@ export const cs = {
       titleLine2: "Platby v bance. Přehled v Excelu?",
       lead:
         "Firmy dnes často kontrolují platby ručně, dohledávají v bance, hlídají splatnosti a posílají upomínky jednotlivě. Je to zdlouhavé, nepřehledné a zbytečně vás to stojí čas.",
-      link: "Tohle už nemusíte dělat ručně.",
       cards: {
         bank: "Banka",
         accounting: "Účetnictví",
@@ -110,6 +109,7 @@ export const cs = {
       hand2: "systémů, málo přehledu.",
     },
     how: {
+      title: "Od faktury k zaplacení.",
       eyebrow: "Jak to funguje",
       flow: ["Faktura", "Splatno hlídá", "Platba", "Hotovo."],
       sub: "Jednoduchý proces, který vám šetří čas a přináší klid.",
@@ -161,7 +161,9 @@ export const cs = {
       ],
     },
     faq: {
+      eyebrow: "Časté otázky",
       title: "Časté otázky o správě faktur",
+      lead: "Krátké odpovědi na to, na co se firmy ptají nejčastěji, než Splatno vyzkouší.",
       items: [
         { question: "Co je Splatno a pro koho je určené?", answer: "Splatno je webová aplikace pro správu vydaných faktur, hlídání splatnosti, párování plateb a upomínky. Pomáhá majitelům firem i účetním udržet přehled o tom, co je zaplacené a co vyžaduje pozornost." },
         { question: "Musím kvůli Splatnu měnit účetní systém?", answer: "Nemusíte. Splatno doplňuje váš účetní systém. Faktury můžete importovat a jejich splatnost, úhrady a upomínky sledovat na jednom místě." },

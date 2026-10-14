@@ -9,22 +9,33 @@ import { useEffect } from "react";
 export function LandingMotion() {
   useEffect(() => {
     const root = document.documentElement;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+    if (!("IntersectionObserver" in window)) return;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let observer: IntersectionObserver | undefined;
 
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        entry.target.setAttribute("data-shown", "");
-        observer.unobserve(entry.target);
-      }
-    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+    const updateMotion = () => {
+      observer?.disconnect();
+      root.removeAttribute("data-motion");
+      if (preference.matches) return;
 
-    const targets = document.querySelectorAll("[data-reveal]");
-    targets.forEach((element) => observer.observe(element));
-    root.setAttribute("data-motion", "");
+      const nextObserver = new IntersectionObserver((entries, activeObserver) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.setAttribute("data-shown", "");
+          activeObserver.unobserve(entry.target);
+        }
+      }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+
+      observer = nextObserver;
+      document.querySelectorAll("[data-reveal]:not([data-shown])").forEach((element) => nextObserver.observe(element));
+      root.setAttribute("data-motion", "");
+    };
+    updateMotion();
+    preference.addEventListener("change", updateMotion);
 
     return () => {
-      observer.disconnect();
+      preference.removeEventListener("change", updateMotion);
+      observer?.disconnect();
       root.removeAttribute("data-motion");
     };
   }, []);

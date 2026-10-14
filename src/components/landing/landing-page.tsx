@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -56,18 +56,24 @@ function Logo({ inverted = false }: { inverted?: boolean }) {
   );
 }
 
-// Karty „roztříštěných systémů“: pozice v souřadnicích 460×340 a natočení.
+// Volný kruh systémů; krátké šipky zůstávají jen v mezerách mezi kartami.
 const CHAOS_CARDS = [
-  { key: "bank", icon: "/landing/icons/bank.svg", x: "6%", y: 96, r: "7deg" },
-  { key: "accounting", icon: "/landing/icons/document.svg", x: "37%", y: 18, r: "10deg" },
-  { key: "excel", icon: "/landing/icons/spreadsheet.svg", x: "27%", y: 198, r: "8deg" },
-  { key: "email", icon: "/landing/icons/mail.svg", x: "60%", y: 186, r: "12deg" },
+  { key: "bank", icon: "/landing/icons/bank.svg", x: "19.5652%", y: 244, mx: "26%", my: 65, r: "7deg" },
+  { key: "accounting", icon: "/landing/icons/document.svg", x: "52.8261%", y: 88, mx: "70%", my: 65, r: "10deg" },
+  { key: "excel", icon: "/landing/icons/spreadsheet.svg", x: "45.8696%", y: 374, mx: "30%", my: 195, r: "8deg" },
+  { key: "email", icon: "/landing/icons/mail.svg", x: "81.7391%", y: 238, mx: "75%", my: 195, r: "12deg" },
 ] as const;
 const CHAOS_ARCS = [
-  "M102.3 87.3Q119.5 56.4 162.4 63.0",
-  "M287.5 145.6Q300.2 155.3 301.5 169.1",
-  "M291.3 315.0Q256.4 352.1 206.9 338.7",
-  "M113.1 264.2Q81.2 256.0 78.5 232.2",
+  "M326 131Q339 138 346 151",
+  "M330 326Q322 338 309 345",
+  "M130 341Q117 335 112 324",
+  "M129 148Q138 135 151 128",
+];
+const CHAOS_MOBILE_ARCS = [
+  "M199 64Q221 54 241 61",
+  "M421 128Q432 144 423 160",
+  "M268 195Q246 204 226 199",
+  "M60 160Q49 144 57 128",
 ];
 
 // Obrázky person; texty jsou ve slovníku ve stejném pořadí.
@@ -228,16 +234,16 @@ function DashboardPreview({ t, locale }: { t: Dictionary; locale: Locale }) {
               </div>
               <ul className={styles.donutLegend}>
                 <li data-c="paid">
-                  {dash.legend.paid} <b>99</b>
+                  <span>{dash.legend.paid}</span> <b>99</b>
                 </li>
                 <li data-c="open">
-                  {dash.legend.waiting} <b>18</b>
+                  <span>{dash.legend.waiting}</span> <b>18</b>
                 </li>
                 <li data-c="late">
-                  {dash.legend.overdue} <b>7</b>
+                  <span>{dash.legend.overdue}</span> <b>7</b>
                 </li>
                 <li data-c="unclear">
-                  {dash.legend.unclear} <b>4</b>
+                  <span>{dash.legend.unclear}</span> <b>4</b>
                 </li>
               </ul>
             </div>
@@ -371,7 +377,7 @@ export function LandingPage({ locale }: { locale: Locale }) {
           </section>
 
           {/* PROBLÉM */}
-          <section className={styles.section}>
+          <section className={`${styles.section} ${styles.problemSection}`}>
             <div className={`${styles.container} ${styles.problemGrid}`}>
               <div data-reveal="">
                 <span className={styles.eyebrow}>{problem.eyebrow}</span>
@@ -381,13 +387,9 @@ export function LandingPage({ locale }: { locale: Locale }) {
                   {problem.titleLine2}
                 </h2>
                 <p className={styles.lead}>{problem.lead}</p>
-                <a href="#jak-to-funguje" className={styles.textLink}>
-                  {problem.link} <ArrowRight />
-                </a>
               </div>
               <div className={styles.chaos} aria-hidden="true" data-reveal="chaos">
-                {/* Oblouky vypočtené z pozic a natočení karet, aby navazovaly na jejich hrany. */}
-                <svg className={styles.chaosFlow} viewBox="0 0 460 340" fill="none" overflow="visible">
+                <svg className={styles.chaosFlow} viewBox="0 0 460 460" fill="none">
                   <defs>
                     <marker id="lp-arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                       <path d="M1 1 8 5 1 9" fill="none" stroke="#b7cdbf" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -397,45 +399,48 @@ export function LandingPage({ locale }: { locale: Locale }) {
                     <path key={d} d={d} pathLength={1} markerEnd="url(#lp-arrowhead)" />
                   ))}
                 </svg>
+                <svg className={`${styles.chaosFlow} ${styles.chaosFlowMobile}`} viewBox="0 0 460 260" fill="none">
+                  <defs>
+                    <marker id="lp-arrowhead-mobile" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M1 1 8 5 1 9" fill="none" stroke="#b7cdbf" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </marker>
+                  </defs>
+                  {CHAOS_MOBILE_ARCS.map((d) => (
+                    <path key={d} d={d} pathLength={1} markerEnd="url(#lp-arrowhead-mobile)" />
+                  ))}
+                </svg>
                 {CHAOS_CARDS.map((card) => (
                   <div
                     key={card.key}
                     className={styles.chaosCard}
-                    style={{ "--x": card.x, "--y": card.y, "--r": card.r } as CSSProperties}
+                    style={{ "--x": card.x, "--y": card.y, "--mx": card.mx, "--my": card.my, "--r": card.r } as CSSProperties}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- malé statické SVG */}
                     <img src={card.icon} alt="" width={64} height={64} />
                     <span>{problem.cards[card.key]}</span>
                   </div>
                 ))}
-                <p className={`${styles.hand} ${styles.chaosHand}`}>
-                  {problem.hand1}
-                  <br />
-                  {problem.hand2}
-                </p>
               </div>
             </div>
           </section>
 
           {/* JAK TO FUNGUJE */}
-          <section className={styles.section} id="jak-to-funguje">
+          <section className={`${styles.section} ${styles.processSection}`} id="jak-to-funguje">
             <div className={styles.container}>
               <div className={styles.center} data-reveal="">
                 <span className={styles.eyebrow}>{how.eyebrow}</span>
-                <h2 className={`${styles.h2} ${styles.flow}`}>
-                  {how.flow.map((word, index) => (
-                    <Fragment key={word}>
-                      {index > 0 ? <ArrowRight /> : null}
-                      <span>{word}</span>
-                    </Fragment>
-                  ))}
-                </h2>
+                <h2 className={`${styles.h2} ${styles.processTitle}`}>{how.title}</h2>
                 <p className={styles.flowSub}>{how.sub}</p>
               </div>
 
-              <div className={styles.steps} data-reveal="steps">
+              <div className={styles.steps}>
                 <article className={styles.step}>
-                  <div className={styles.stepArt} aria-hidden="true">
+                  <div className={styles.stepCopy} data-reveal="process">
+                    <span className={styles.stepNo}>01</span>
+                    <h3>{how.step1.title}</h3>
+                    <p>{how.step1.text}</p>
+                  </div>
+                  <div className={styles.stepArt} data-reveal="process" aria-hidden="true">
                     <div className={`${styles.mini} ${styles.miniInvoice}`}>
                       <p className={styles.miniHead}>
                         <span className={styles.miniIcon}><FileText /></span>{how.step1.art}
@@ -446,15 +451,17 @@ export function LandingPage({ locale }: { locale: Locale }) {
                       </p>
                     </div>
                   </div>
-                  <span className={styles.stepNo}>01</span>
-                  <h3>{how.step1.title}</h3>
-                  <p>{how.step1.text}</p>
                 </article>
 
-                <span className={styles.stepArrow} aria-hidden="true"><ArrowRight /></span>
+                <span className={styles.stepArrow} data-reveal="process" aria-hidden="true"><ArrowRight /></span>
 
                 <article className={styles.step}>
-                  <div className={styles.stepArt} aria-hidden="true">
+                  <div className={styles.stepCopy} data-reveal="process">
+                    <span className={styles.stepNo}>02</span>
+                    <h3>{how.step2.title}</h3>
+                    <p>{how.step2.text}</p>
+                  </div>
+                  <div className={styles.stepArt} data-reveal="process" aria-hidden="true">
                     <div className={`${styles.mini} ${styles.miniRow} ${styles.miniPaid}`}>
                       <Bank className={styles.miniBank} />
                       <div>
@@ -472,15 +479,17 @@ export function LandingPage({ locale }: { locale: Locale }) {
                       <span className={styles.pill} data-tone="green">{how.step2.matching}</span>
                     </div>
                   </div>
-                  <span className={styles.stepNo}>02</span>
-                  <h3>{how.step2.title}</h3>
-                  <p>{how.step2.text}</p>
                 </article>
 
-                <span className={styles.stepArrow} aria-hidden="true"><ArrowRight /></span>
+                <span className={styles.stepArrow} data-reveal="process" aria-hidden="true"><ArrowRight /></span>
 
                 <article className={styles.step}>
-                  <div className={styles.stepArt} aria-hidden="true">
+                  <div className={styles.stepCopy} data-reveal="process">
+                    <span className={styles.stepNo}>03</span>
+                    <h3>{how.step3.title}</h3>
+                    <p>{how.step3.text}</p>
+                  </div>
+                  <div className={styles.stepArt} data-reveal="process" aria-hidden="true">
                     <div className={`${styles.mini} ${styles.miniRow} ${styles.miniSent}`}>
                       <span className={styles.miniMail}><Mail /></span>
                       <div>
@@ -493,9 +502,6 @@ export function LandingPage({ locale }: { locale: Locale }) {
                       <small>{how.step3.auto}</small>
                     </div>
                   </div>
-                  <span className={styles.stepNo}>03</span>
-                  <h3>{how.step3.title}</h3>
-                  <p>{how.step3.text}</p>
                 </article>
               </div>
             </div>
@@ -508,9 +514,6 @@ export function LandingPage({ locale }: { locale: Locale }) {
                 <span className={styles.eyebrowRed}>{attentionCopy.eyebrow}</span>
                 <h2 className={styles.h2}>{attentionCopy.title}</h2>
                 <p className={styles.lead}>{attentionCopy.lead}</p>
-                <Link href={LOGIN_HREF} className={`${styles.btnOutline} ${styles.attentionLogin}`}>
-                  {attentionCopy.login} <ArrowRight />
-                </Link>
               </div>
               <div className={`${styles.card} ${styles.attentionCard}`} data-reveal="" style={{ "--i": 1 } as CSSProperties}>
                 <div className={styles.dashCardHead}>
@@ -553,13 +556,26 @@ export function LandingPage({ locale }: { locale: Locale }) {
             </div>
           </section>
 
-          <section className={styles.section} id="caste-otazky" aria-labelledby="faq-title">
-            <div className={styles.container}>
-              <h2 id="faq-title" className={styles.h2Sm}>{t.landing.faq.title}</h2>
+          <section className={`${styles.section} ${styles.faqSection}`} id="caste-otazky" aria-labelledby="faq-title">
+            <div className={`${styles.container} ${styles.faqGrid}`}>
+              <div className={styles.faqIntro}>
+                <h2 id="faq-title" className={styles.h2}>{t.landing.faq.title}</h2>
+                <p className={`${styles.lead} ${styles.faqLead}`}>{t.landing.faq.lead}</p>
+                <div className={styles.faqArt} aria-hidden="true">
+                  <span className={styles.faqBubble}>?</span>
+                  <Image src="/landing/mascot-wave.webp" alt="" width={640} height={553} sizes="(max-width: 640px) 1px, (max-width: 980px) 140px, 210px" />
+                </div>
+              </div>
               <div className={styles.faq}>
-                {t.landing.faq.items.map((item) => (
+                {t.landing.faq.items.map((item, index) => (
                   <details key={item.question}>
-                    <summary>{item.question}</summary>
+                    <summary>
+                      <span className={styles.faqQuestion}>
+                        <span className={styles.faqNumber} aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                        <span data-faq-question="">{item.question}</span>
+                      </span>
+                      <span className={styles.faqIcon} aria-hidden="true"><ChevronDown /></span>
+                    </summary>
                     <p>{item.answer}</p>
                   </details>
                 ))}
@@ -570,24 +586,15 @@ export function LandingPage({ locale }: { locale: Locale }) {
           {/* FINÁLNÍ CTA */}
           <section className={styles.final}>
             <div className={`${styles.container} ${styles.finalGrid}`}>
-              <div data-reveal="">
+              <div className={styles.finalCopy} data-reveal="">
                 <span className={styles.eyebrow}>{final.eyebrow}</span>
                 <h2 className={styles.h2}>{final.title}</h2>
                 <p className={styles.lead}>{final.lead}</p>
-                <div className={styles.finalCtas}>
-                  <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
-                    {final.cta} <ArrowRight />
-                  </Link>
-                  <small className={styles.muted}>{final.haveAccount} <Link href={LOGIN_HREF} className={styles.inlineLink}>{final.login}</Link></small>
-                </div>
               </div>
-              <div className={styles.finalArt} aria-hidden="true" data-reveal="" style={{ "--i": 1 } as CSSProperties}>
-                <Image src="/landing/mascot-done.webp" alt="" width={600} height={511} className={styles.finalMascot} sizes="230px" />
-                <p className={`${styles.hand} ${styles.finalHand}`}>
-                  {final.hand1}
-                  <br />
-                  {final.hand2}
-                </p>
+              <div className={styles.finalCtas} data-reveal="">
+                <Link href={TRIAL_HREF} className={`${styles.btnPrimary} ${styles.btnLg}`}>
+                  {final.cta} <ArrowRight />
+                </Link>
               </div>
             </div>
           </section>
@@ -601,7 +608,6 @@ export function LandingPage({ locale }: { locale: Locale }) {
               <a href="#cenik">{footer.pricing}</a>
               <a href={CONTACT_HREF}>{footer.contact}</a>
             </nav>
-            <LanguageSwitcher className={styles.footerSwitcher} hrefs={HOME_HREF} />
             <small className={styles.muted}>© {new Date().getFullYear()} Splatno</small>
           </div>
         </footer>
