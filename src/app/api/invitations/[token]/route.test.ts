@@ -80,6 +80,56 @@ describe("přijetí pozvánky", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
+  it("joins an existing account with its current password without creating or editing its profile", async () => {
+    const response = await call({ mode: "existing", password: "Old-valid-1", acceptTerms: true, email: "forged@example.org", role: "admin", companyId: "forged-company" });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ accepted: true, redirect: "/dashboard" });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.deleteUser).not.toHaveBeenCalled();
+    expect(mocks.signIn).toHaveBeenCalledWith({ email: "jana@novafirma.cz", password: "Old-valid-1" });
+    expect(mocks.rpc).toHaveBeenCalledWith("accept_organization_invitation", { token_hash: "f".repeat(64), accepting_user: "new-user" });
+  });
+
+  it("does not create an account when the existing-account password is incorrect", async () => {
+    mocks.signIn.mockResolvedValue({ data: { user: null, session: null }, error: { message: "Invalid login credentials" } });
+    const response = await call({ mode: "existing", password: "wrong", acceptTerms: true });
+    expect(response.status).toBe(401);
+    expect((await response.json()).code).toBe("existing_account_password");
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.loginPref).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty existing-account password and unknown account modes", async () => {
+    expect((await call({ mode: "existing", password: "", acceptTerms: true })).status).toBe(400);
+    expect((await call({ ...body, mode: "admin" })).status).toBe(400);
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it("refuses joining another company without deleting an existing account", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "member_of_other_organization" } });
+    const response = await call({ mode: "existing", password: "current-password", acceptTerms: true });
+    expect(response.status).toBe(409);
+    expect(mocks.deleteUser).not.toHaveBeenCalled();
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.mfaCookie).not.toHaveBeenCalled();
+  });
+
+  it("requires a fresh invitation when an existing account follows an expired link", async () => {
+    mocks.load.mockResolvedValue({ status: "expired" });
+    expect((await call({ mode: "existing", password: "current-password", acceptTerms: true })).status).toBe(410);
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it("returns to normal login if membership was accepted but cookies could not be saved", async () => {
+    mocks.loginPref.mockRejectedValue(new Error("cookies unavailable"));
+    const response = await call({ mode: "existing", password: "current-password", acceptTerms: true });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ accepted: true, redirect: "/login" });
+    expect(mocks.deleteUser).not.toHaveBeenCalled();
+  });
+
   it("rolls back a freshly created account when the database refuses the invitation", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "member_of_other_organization" } });
     const response = await call();

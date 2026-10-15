@@ -25,7 +25,7 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [existingAccount, setExistingAccount] = useState(false);
+  const [existingAccount, setExistingAccount] = useState(Boolean(signedInAs && invitation.status === "valid" && signedInAs === invitation.email));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
@@ -53,9 +53,10 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
 
   async function accept(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     if (invitation.status !== "valid") return;
     setError(null);
-    if (fullName.trim().length < 3) return setError(copy.errors.fullName);
+    if (!existingAccount && fullName.trim().length < 3) return setError(copy.errors.fullName);
     const rule = existingAccount ? null : passwordRule(password);
     if (rule) return setError(common.passwordRules[rule]);
     if (!existingAccount && password !== confirmation) return setError(common.passwordsMismatch);
@@ -64,14 +65,18 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
     const response = await fetch(`/api/invitations/${encodeURIComponent(token)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fullName: fullName.trim(), password, acceptTerms }),
+      body: JSON.stringify({ mode: existingAccount ? "existing" : "new", fullName: fullName.trim(), password, acceptTerms }),
     }).catch(() => null);
     const data = await response?.json().catch(() => null) as { redirect?: string; error?: string; code?: string } | null;
     if (response?.ok && data?.redirect) {
       window.location.replace(data.redirect);
       return;
     }
-    if (data?.code === "existing_account_password") setExistingAccount(true);
+    if (data?.code === "existing_account_password") {
+      setExistingAccount(true);
+      setPassword("");
+      setConfirmation("");
+    }
     setError(invitationApiError(locale, data, copy.errors.failed));
     setSubmitting(false);
   }
@@ -100,14 +105,23 @@ export function InvitationClient({ token, invitation, signedInAs }: { token: str
         </div>
       ) : (
         <form onSubmit={accept} className={styles.form}>
+          <div className={styles.accountChoice} role="group" aria-label={copy.accountChoice}>
+            <button type="button" disabled={submitting} aria-pressed={!existingAccount} onClick={() => {
+              setExistingAccount(false); setPassword(""); setConfirmation(""); setError(null);
+            }}>{copy.newAccount}</button>
+            <button type="button" disabled={submitting} aria-pressed={existingAccount} onClick={() => {
+              setExistingAccount(true); setPassword(""); setConfirmation(""); setError(null);
+            }}>{copy.existingAccount}</button>
+          </div>
+          <p className={styles.note}>{existingAccount ? copy.existingAccountNote : copy.newAccountNote}</p>
           <label className={styles.field}>
             <span>{common.email}</span>
             <span className={styles.control}><Mail /><input type="email" value={invitation.email} readOnly aria-readonly="true" /></span>
           </label>
-          <label className={styles.field}>
+          {!existingAccount && <label className={styles.field}>
             <span>{common.fullName}</span>
             <span className={styles.control}><User /><input autoComplete="name" required placeholder={common.namePlaceholder} value={fullName} onChange={(event) => setFullName(event.target.value)} /></span>
-          </label>
+          </label>}
           {existingAccount ? (
             <label className={styles.field}>
               <span>{copy.existingPassword}</span>

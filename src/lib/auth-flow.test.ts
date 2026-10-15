@@ -114,7 +114,7 @@ describe("authentication flow", () => {
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
     expect(source("src/app/auth/callback/route.ts")).toContain("email: session.email");
-    expect(source("src/components/auth/register-form.tsx")).toContain('access?.mfa_bypassed === true ? "/dashboard" : withEntry("/mfa", brand)');
+    expect(source("src/components/auth/register-form.tsx")).toContain("registrationNextPath({");
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');

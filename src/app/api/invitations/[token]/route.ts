@@ -24,13 +24,19 @@ export async function POST(request: Request, { params }: Context) {
   const { token } = await params;
   if (!isInvitationToken(token)) return apiError(request, "Odkaz pozvánky je neplatný.", 404, "invitation_not_found");
 
-  const body = await request.json().catch(() => null) as { fullName?: unknown; password?: unknown; acceptTerms?: unknown } | null;
+  const body = await request.json().catch(() => null) as { fullName?: unknown; password?: unknown; acceptTerms?: unknown; mode?: unknown } | null;
+  const mode = body?.mode ?? "new";
+  if (mode !== "new" && mode !== "existing") return apiError(request, "Neplatný způsob přijetí pozvánky.", 400, "invalid_mode");
   const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   if (body?.acceptTerms !== true) return apiError(request, "Pro vstup je potřeba souhlasit s podmínkami.", 400, "terms_required");
-  if (fullName.length < 3 || fullName.length > 120) return apiError(request, "Zadejte celé jméno.", 400, "name_required");
-  const problem = passwordProblem(password);
-  if (problem) return apiError(request, problem, 400, "weak_password");
+  if (mode === "new") {
+    if (fullName.length < 3 || fullName.length > 120) return apiError(request, "Zadejte celé jméno.", 400, "name_required");
+    const problem = passwordProblem(password);
+    if (problem) return apiError(request, problem, 400, "weak_password");
+  } else if (!password) {
+    return apiError(request, "Zadejte heslo ke svému stávajícímu účtu.", 400, "password_required");
+  }
 
   let invitation: Awaited<ReturnType<typeof loadInvitation>>;
   try {
@@ -49,17 +55,19 @@ export async function POST(request: Request, { params }: Context) {
 
   const service = createServiceClient();
   let createdUserId: string | null = null;
-  const { data: created, error: createError } = await service.auth.admin.createUser({
-    email: invitation.email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: fullName, terms_accepted_at: new Date().toISOString() },
-  });
-  if (created?.user) {
-    createdUserId = created.user.id;
-  } else if (createError && createError.code !== "email_exists") {
-    logError("Účet z pozvánky se nepodařilo vytvořit", createError, { request_id: requestId(request) });
-    return apiError(request, "Účet se nepodařilo vytvořit. Zkuste to prosím znovu.", 500, "account_create_failed");
+  if (mode === "new") {
+    const { data: created, error: createError } = await service.auth.admin.createUser({
+      email: invitation.email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName, terms_accepted_at: new Date().toISOString() },
+    });
+    if (created?.user) {
+      createdUserId = created.user.id;
+    } else if (createError && createError.code !== "email_exists") {
+      logError("Účet z pozvánky se nepodařilo vytvořit", createError, { request_id: requestId(request) });
+      return apiError(request, "Účet se nepodařilo vytvořit. Zkuste to prosím znovu.", 500, "account_create_failed");
+    }
   }
 
   // Přihlášení nastaví session cookies. U existujícího účtu je to zároveň

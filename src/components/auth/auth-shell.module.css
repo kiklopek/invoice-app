@@ -329,6 +329,37 @@
   cursor: default;
 }
 
+.accountChoice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.accountChoice button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ledger);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.accountChoice button[aria-pressed="true"] {
+  background: var(--mint);
+  color: var(--pine);
+}
+.accountChoice button:focus-visible {
+  outline: 2px solid var(--ledger);
+  outline-offset: 1px;
+}
+.accountChoice button:disabled { cursor: default; }
+.accountChoice + .note { margin-top: 0; }
+
 .sent {
   display: flex;
   gap: 14px;

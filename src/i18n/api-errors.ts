@@ -27,6 +27,8 @@ const EN_INVITATION_ERRORS: Record<string, string> = {
   invitation_expired: "The invitation has expired. Ask your administrator for a new one.",
   terms_required: "You need to agree to the terms to join.",
   name_required: "Enter your full name.",
+  password_required: "Enter the password for your existing account.",
+  invalid_mode: "Choose whether you already have an account.",
   weak_password: "The password must be at least 12 characters long and contain upper- and lowercase letters and a number.",
   rate_limited: "Too many attempts. Try again in a few minutes.",
   invitation_unavailable: "We couldn't verify the invitation right now. Please try again in a moment.",

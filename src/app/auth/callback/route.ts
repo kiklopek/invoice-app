@@ -3,7 +3,8 @@ import { getAuthenticatedSession, resolveMembership } from "@/lib/auth";
 import { hasVerifiedEmailMfa } from "@/lib/email-mfa-server";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { NextResponse } from "next/server";
-import { entryFromSearch, withEntry } from "@/lib/tenant-entries";
+import { entryFromSearch } from "@/lib/tenant-entries";
+import { registrationNextPath } from "@/lib/registration-flow";
 
 // Odkaz z potvrzovacího e-mailu registrace (a obnovy hesla). Pozvaný člověk
 // se tu rovnou připojí ke své firmě; zakladatel firmu ještě nemá a po 2FA
@@ -29,16 +30,20 @@ export async function GET(request: Request) {
       }
 
       // Převezme případnou pozvánku (e-mail je právě ověřený odkazem).
-      await resolveMembership(session);
+      const membership = await resolveMembership(session);
       const verified = await hasVerifiedEmailMfa({
         email: session.email,
         userId: session.user.id,
         sessionId: session.sessionId,
       });
       // Vstup R. Hlavica si nese svůj vzhled i na 2FA (jen vzhled).
-      const mfa = withEntry("/mfa", entryFromSearch(url.searchParams));
+      const destination = registrationNextPath({
+        hasCompany: Boolean(membership),
+        mfaVerified: verified,
+        brand: entryFromSearch(url.searchParams),
+      });
       return NextResponse.redirect(
-        new URL(verified ? "/dashboard" : mfa, url.origin)
+        new URL(destination, url.origin)
       );
     }
   }

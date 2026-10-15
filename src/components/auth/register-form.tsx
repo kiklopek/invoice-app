@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n/client";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
 import { CUSTOM_ENTRY_EMAIL_DOMAIN, emailMatchesDomain, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
 import { withEntry } from "@/lib/login-entry";
+import { registrationNextPath } from "@/lib/registration-flow";
 import { CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { passwordRule } from "@/lib/password-policy";
 import { hasSupabaseBrowserConfig, preloadSupabaseBrowserClient } from "@/lib/supabase-config";
@@ -34,6 +35,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
 
   async function register(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     setError(null);
     const normalizedEmail = normalizeEmail(email);
     if (fullName.trim().length < 3) return setError(copy.errors.fullName);
@@ -46,78 +48,85 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     if (!hasSupabaseBrowserConfig()) return setError(copy.errors.notConfigured);
 
     setSubmitting(true);
-    const accessResponse = await fetch("/api/auth/registration-access", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: normalizedEmail, entry: brand }),
-    });
-    if (!accessResponse.ok) {
-      setError(copy.errors.accessCheck);
-      setSubmitting(false);
-      return;
-    }
-    const access = (await accessResponse.json()) as { allowed?: boolean; kind?: string };
-    if (!access.allowed) {
-      setError(access.kind === "member"
-        ? copy.errors.member
-        : access.kind === "custom_entry"
-          ? "custom_entry"
-          : access.kind === "disposable"
-            ? copy.errors.disposable
-            : copy.errors.notInvited);
-      setSubmitting(false);
-      return;
-    }
-
-    const { createClient } = await import("@/lib/supabase-browser");
-    const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}${withEntry("/auth/callback?next=/mfa", brand)}`,
-        data: customEntry
-          ? { full_name: fullName.trim() }
-          : { full_name: fullName.trim(), terms_accepted_at: new Date().toISOString() },
-      },
-    });
-    if (signUpError) {
-      setError(copy.errors.signUp);
-      setSubmitting(false);
-      return;
-    }
-    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-      setError(copy.errors.member);
-      setSubmitting(false);
-      return;
-    }
-    if (data.session) {
-      const accessResponse = await fetch("/api/auth/access", { method: "POST" });
-      if (!accessResponse.ok) {
-        await supabase.auth.signOut();
-        setError(copy.errors.verify);
-        setSubmitting(false);
-        return;
-      }
-      const access = await accessResponse.json().catch(() => null) as { mfa_bypassed?: unknown } | null;
-      const sessionPreference = await fetch("/api/auth/session-preference", {
+    try {
+      const accessResponse = await fetch("/api/auth/registration-access", {
         method: "POST",
-        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ remember: false }),
+        body: JSON.stringify({ email: normalizedEmail, entry: brand }),
       });
-      if (!sessionPreference.ok) {
-        await supabase.auth.signOut({ scope: "local" });
-        setError(copy.errors.sessionSave);
-        setSubmitting(false);
+      if (!accessResponse.ok) {
+        setError(copy.errors.accessCheck);
         return;
       }
-      window.location.assign(access?.mfa_bypassed === true ? "/dashboard" : withEntry("/mfa", brand));
-      return;
+      const access = (await accessResponse.json()) as { allowed?: boolean; kind?: string };
+      if (!access.allowed) {
+        setError(access.kind === "member"
+          ? copy.errors.member
+          : access.kind === "custom_entry"
+            ? "custom_entry"
+            : access.kind === "disposable"
+              ? copy.errors.disposable
+              : copy.errors.notInvited);
+        return;
+      }
+
+      const { createClient } = await import("@/lib/supabase-browser");
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}${withEntry("/auth/callback?next=/mfa", brand)}`,
+          data: customEntry
+            ? { full_name: fullName.trim() }
+            : { full_name: fullName.trim(), terms_accepted_at: new Date().toISOString() },
+        },
+      });
+      if (signUpError) {
+        setError(copy.errors.signUp);
+        return;
+      }
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setError(copy.errors.member);
+        return;
+      }
+      if (data.session) {
+        const accessResponse = await fetch("/api/auth/access", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
+        });
+        if (!accessResponse.ok) {
+          await supabase.auth.signOut();
+          setError(copy.errors.verify);
+          return;
+        }
+        const access = await accessResponse.json().catch(() => null) as { mfa_bypassed?: unknown; needsOnboarding?: unknown } | null;
+        const sessionPreference = await fetch("/api/auth/session-preference", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+          body: JSON.stringify({ remember: false }),
+        });
+        if (!sessionPreference.ok) {
+          await supabase.auth.signOut({ scope: "local" });
+          setError(copy.errors.sessionSave);
+          return;
+        }
+        window.location.assign(registrationNextPath({
+          hasCompany: access?.needsOnboarding !== true,
+          mfaVerified: access?.mfa_bypassed === true,
+          brand,
+        }));
+        return;
+      }
+      setEmail(normalizedEmail);
+      setSent(true);
+    } catch {
+      setError(copy.errors.connection);
+    } finally {
+      setSubmitting(false);
     }
-    setEmail(normalizedEmail);
-    setSent(true);
-    setSubmitting(false);
   }
 
   return (
@@ -130,6 +139,7 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       <span className={styles.eyebrow}>{copy.eyebrow}</span>
       <h1 className={styles.title}>{customEntry ? copy.titleCustomEntry : copy.title}</h1>
       <p className={styles.sub}>{customEntry ? copy.subCustomEntry : copy.sub}</p>
+      {!customEntry && !sent && <p className={styles.note}>{copy.invitationHint}</p>}
       {sent ? (
         <div className={styles.sent}>
           <Mail width={22} height={22} />
