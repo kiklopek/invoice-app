@@ -8,6 +8,7 @@ import { canManageMembers } from "@/lib/role-access";
 import { invitationErrorMessage, invitationStatus } from "@/lib/invitations";
 import { sendInvitation } from "@/lib/invitation-server";
 import { tenantEntryFor } from "@/lib/tenant-entries";
+import { isValidEmail } from "@/lib/auth-policy";
 
 const roles = ["viewer", "accounting", "admin"] as const;
 type MemberRole = typeof roles[number];
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Požadavek pochází z nepovoleného webu." }, { status: 403 });
   const body = await request.json().catch(() => null) as { email?: unknown; role?: unknown } | null;
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254 || !validRole(body?.role)) return NextResponse.json({ error: "Zkontrolujte e-mail a vybranou roli." }, { status: 400 });
+  if (!isValidEmail(email) || !validRole(body?.role)) return NextResponse.json({ error: "Zkontrolujte e-mail a vybranou roli." }, { status: 400 });
   const result = await adminIdentity();
   if (result.error) return result.error;
   const { identity } = result;

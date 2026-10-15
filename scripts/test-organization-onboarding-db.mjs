@@ -9,6 +9,7 @@ const db = new PGlite({ extensions: { pg_trgm } });
 try {
   await replayMigrations((sql) => db.exec(sql), true);
   await db.exec((await readFile("supabase/tests/organization_onboarding.sql", "utf8")).replace(/^\\.*$/gm, ""));
+  await db.exec(await readFile("supabase/tests/onboarding_drafts.sql", "utf8"));
   console.log("Passed organization founding, invitations, per-organization email domain and permissions.");
 } catch (error) {
   console.error(error.message, error.detail ?? "", error.where ?? "");

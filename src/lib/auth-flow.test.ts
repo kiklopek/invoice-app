@@ -8,11 +8,11 @@ const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
 describe("authentication flow", () => {
   it("checks the registration kind before creating an account", () => {
     const register = source("src/components/auth/register-form.tsx");
-    const accessRoute = source("src/app/api/auth/registration-access/route.ts");
+    const accessRoute = source("src/lib/registration-access-server.ts") + source("src/app/api/auth/registration-access/route.ts");
 
     expect(register).toContain('fetch("/api/auth/registration-access"');
     expect(register.indexOf('fetch("/api/auth/registration-access"')).toBeLessThan(
-      register.indexOf("supabase.auth.signUp")
+      register.indexOf('registrationRequest("send"')
     );
     // Bez pozvánky se zakládá firma; s pozvánkou se člověk připojí ke své.
     // Texty jsou ve slovníku (CZ/EN), formulář je bere podle klíče.
@@ -38,7 +38,8 @@ describe("authentication flow", () => {
 
     expect(register).toContain("copy.sentTitle");
     expect(cs.auth.register.sentTitle).toBe("Potvrďte svůj e-mail");
-    expect(register).toContain("data.user.identities.length === 0");
+    expect(register).toContain('fetch("/api/auth/register"');
+    expect(register).not.toContain("supabase.auth.signUp");
     expect(register).not.toContain("auth-account-guidance");
     expect(register).not.toContain("Účet nevytvářejte znovu");
     expect(settings).toContain("Přihlašovací účet bude smazán");
@@ -114,7 +115,7 @@ describe("authentication flow", () => {
     expect(accessRoute).toContain("mfa_bypassed");
     expect(source("src/proxy.ts")).toContain("isEmailMfaBypassed(email)");
     expect(source("src/app/auth/callback/route.ts")).toContain("email: session.email");
-    expect(source("src/components/auth/register-form.tsx")).toContain("registrationNextPath({");
+    expect(source("src/app/api/auth/register/route.ts")).toContain("registrationNextPath({");
     expect(source("src/lib/email-mfa-core.ts")).not.toContain("EMAIL_MFA_BYPASS_EMAILS");
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/send"');
     expect(source("src/app/(auth)/mfa/page.tsx")).toContain('fetch("/api/auth/email-mfa/verify"');

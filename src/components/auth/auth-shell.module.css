@@ -673,3 +673,122 @@
   background-position: left 30%, right top, bottom;
   background-repeat: no-repeat;
 }
+
+/* Registrace drží výšku obrazovky; při malé výšce se posouvá jen formulář. */
+.page[data-layout="registration"] {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(12px, 2dvh, 24px);
+}
+.page[data-layout="registration"] .card {
+  height: 100%;
+  min-height: 0;
+  max-height: 960px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+}
+.page[data-layout="registration"] .formSide {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  gap: clamp(12px, 2dvh, 24px);
+  padding: clamp(20px, 3dvh, 32px) clamp(24px, 3.6vw, 52px);
+}
+.page[data-layout="registration"] .brandRow {
+  grid-row: 1;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+}
+.page[data-layout="registration"] .body {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  min-width: 0;
+  min-height: 0;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 6px 4px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c6d8cc transparent;
+  scroll-padding-block: 12px;
+}
+.page[data-layout="registration"] .body > * {
+  flex-shrink: 0;
+}
+.page[data-layout="registration"] .eyebrow {
+  align-self: flex-start;
+}
+.page[data-layout="registration"] .title {
+  font-size: clamp(28px, 3vw, 40px);
+}
+.page[data-layout="registration"] .form {
+  gap: 12px;
+  margin-top: 20px;
+}
+.page[data-layout="registration"] .pair {
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.page[data-layout="registration"] .field {
+  min-width: 0;
+}
+.page[data-layout="registration"] .check input {
+  min-width: 18px;
+  min-height: 18px;
+}
+.page[data-layout="registration"] .check input:focus:not(:focus-visible) {
+  outline: none;
+}
+.page[data-layout="registration"] .primary {
+  position: static;
+}
+.page[data-layout="registration"] .foot {
+  margin-top: 16px;
+}
+.page[data-layout="registration"] .mascot {
+  max-height: 48dvh;
+  object-fit: contain;
+}
+.page[data-layout="registration"] .artSide {
+  min-width: 0;
+  min-height: 0;
+  gap: clamp(14px, 3dvh, 26px);
+  padding: clamp(24px, 4dvh, 48px) 28px;
+}
+@media (max-height: 800px) {
+  .page[data-layout="registration"] .title { font-size: 32px; }
+  .page[data-layout="registration"] .sub { margin-top: 8px; font-size: 15px; }
+  .page[data-layout="registration"] .note { margin-top: 12px; font-size: 12px; }
+  .page[data-layout="registration"] .form { gap: 10px; margin-top: 16px; }
+  .page[data-layout="registration"] .control input { height: 46px; }
+  .page[data-layout="registration"] .primary { height: 50px; }
+}
+@media (max-width: 900px) {
+  .page[data-layout="registration"] { padding: 0; }
+  .page[data-layout="registration"] .card {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: none;
+  }
+  .page[data-layout="registration"] .formSide {
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+@media (max-width: 480px) {
+  .page[data-layout="registration"] .formSide { padding-inline: 12px; gap: 10px; }
+  .page[data-layout="registration"] .pair { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .page[data-layout="registration"] .field { gap: 4px; }
+  .page[data-layout="registration"] .field > span { font-size: 13px; }
+  .page[data-layout="registration"] .title { font-size: 28px; }
+  .page[data-layout="registration"] .sub { margin-top: 8px; font-size: 14px; }
+  .page[data-layout="registration"] .note { margin-top: 10px; font-size: 12px; }
+  .page[data-layout="registration"] .form { gap: 10px; margin-top: 16px; }
+  .page[data-layout="registration"] .control input { height: 44px; }
+  .page[data-layout="registration"] .primary { height: 48px; }
+  .page[data-layout="registration"] .check { font-size: 13px; }
+  .page[data-layout="registration"] .foot { margin-top: 12px; font-size: 14px; }
+}

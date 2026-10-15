@@ -6,6 +6,8 @@ import { loadSubscription } from "@/lib/billing-server";
 import { canManageMembers } from "@/lib/role-access";
 import { displayName } from "@/lib/user-display";
 import { isOperatorEmail } from "@/lib/operator";
+import { normalizeOnboardingDraft } from "@/lib/onboarding-draft";
+import { logError } from "@/lib/structured-log";
 import { OnboardingClient } from "./onboarding-client";
 
 export const metadata: Metadata = { title: "Nastavení firmy | Splatno" };
@@ -29,6 +31,8 @@ export default async function OnboardingPage() {
       .select("name").eq("id", membership.membership.organization_id).single();
     return (
       <OnboardingClient
+        key={session.user.id}
+        accountId={session.user.id}
         accountEmail={session.email}
         accountName={accountName}
         payment={{
@@ -43,5 +47,9 @@ export default async function OnboardingPage() {
 
   const decision = routeFor("needs_onboarding", "/onboarding");
   if (decision.type === "redirect") redirect(decision.to);
-  return <OnboardingClient accountEmail={session.email} accountName={accountName} payment={null} />;
+  const { data: saved, error: draftError } = await session.service.from("onboarding_drafts")
+    .select("payload").eq("user_id", session.user.id).maybeSingle();
+  if (draftError) logError("Načtení rozpracovaného onboardingu selhalo", draftError);
+  return <OnboardingClient key={session.user.id} accountId={session.user.id} accountEmail={session.email} accountName={accountName}
+    initialDraft={normalizeOnboardingDraft(saved?.payload)} payment={null} />;
 }

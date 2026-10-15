@@ -1,6 +1,8 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { renderAuthCodeEmail } from "@/lib/auth-code-email";
+import { authCodeLogoAttachment } from "@/lib/auth-code-email-assets";
 import {
   createEmailMfaToken,
   createTrustedDeviceToken,
@@ -142,14 +144,14 @@ export async function sendEmailMfaCode(params: { email: string; code: string; ch
 
   const { Resend } = await import("resend");
   const resend = new Resend(configuration.apiKey);
+  const rendered = renderAuthCodeEmail({ code: params.code, purpose: "login", inlineLogo: true });
   let result: Awaited<ReturnType<typeof resend.emails.send>>;
   try {
     result = await resend.emails.send({
       from: configuration.from,
       to: params.email,
-      subject: "Přihlašovací kód Splatno.cz",
-      html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px"><h1 style="font-size:22px">Ověření přihlášení</h1><p>Pro dokončení přihlášení do aplikace Splatno.cz použijte tento kód:</p><p style="font-size:34px;font-weight:700;letter-spacing:8px;margin:28px 0">${params.code}</p><p>Kód platí 10 minut a lze jej použít pouze jednou. Pokud jste se nepřihlašovali, tento e-mail ignorujte.</p></div>`,
-      text: `Ověření přihlášení do Splatno.cz\n\nVáš kód: ${params.code}\n\nKód platí 10 minut a lze jej použít pouze jednou.`,
+      ...rendered,
+      attachments: [await authCodeLogoAttachment()],
     }, { idempotencyKey: `email-mfa/${params.challengeId}` });
   } catch (error) {
     throw emailMfaDeliveryError(error);

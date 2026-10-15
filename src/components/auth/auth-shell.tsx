@@ -32,12 +32,14 @@ export function AuthShell({
   claim,
   claimSub,
   brand = "splatno",
+  layout = "default",
   children,
 }: {
   art: AuthArt;
   claim: ReactNode;
   claimSub?: ReactNode;
   brand?: AuthBrand;
+  layout?: "default" | "registration";
   children: ReactNode;
 }) {
   const image = ART[art];
@@ -46,7 +48,7 @@ export function AuthShell({
   // Úvodní stránka v jazyce, který si návštěvník zvolil na landing page.
   const home = locale === "en" ? "/en" : "/";
   return (
-    <main className={`${styles.page} ${inter.className}`}>
+    <main className={`${styles.page} ${inter.className}`} data-layout={layout}>
       <div className={styles.card}>
         <section className={styles.formSide}>
           <div className={styles.brandRow}>

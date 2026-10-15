@@ -26,3 +26,6 @@ Název se píše malými písmeny jako `splatno`. Doporučený řez je Inter 750
 - Na landing page používat tmavě zelený wordmark na světlé ploše; hero může pracovat s obrácenou variantou.
 - Teplý akcent patří do CTA, ilustrací a marketingu, nikoli do každého ovládacího prvku.
 - Firemní logo klienta zůstává samostatné a nesmí se zaměňovat za značku produktu.
+- Pro profil odesílatele jsou připravené `splatno-email-avatar.png` a SVG Tiny PS
+  `splatno-email-avatar.svg`; aktivace v doručené poště je popsána v
+  [nastavení profilového obrázku odesílatele](../email-sender-avatar.md).

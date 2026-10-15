@@ -3,6 +3,7 @@
 // nic jiného, v čem by se dal schovat skript, se nepřijme.
 
 export const MAX_LOGO_BYTES = 512 * 1024;
+export const MAX_LOGO_DIMENSION = 4096;
 export const LOGO_BUCKET = "company-logos";
 export type LogoType = "image/png" | "image/jpeg" | "image/webp";
 

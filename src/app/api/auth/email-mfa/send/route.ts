@@ -1,4 +1,5 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { generateVerificationCode } from "@/lib/verification-code-server";
 import { NextResponse } from "next/server";
 import { getAuthenticatedSession } from "@/lib/auth";
 import {
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   }
 
   const challengeId = randomUUID();
-  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  const code = generateVerificationCode();
   const codeHash = hashEmailMfaCode({
     challengeId,
     userId: identity.user.id,

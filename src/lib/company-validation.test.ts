@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidBankAccount, isValidDic, isValidIco, validateCompanyFields } from "./company-validation";
+import { isValidBankAccount, isValidDic, isValidIco, isValidCompanyPhone, isValidDataBoxId, isPlausibleCompanyAddress, validateCompanyFields } from "./company-validation";
 
 describe("isValidIco", () => {
   it("accepts the real IČO of the organization using the app", () => {
@@ -89,5 +89,24 @@ describe("validateCompanyFields", () => {
   it("requires the fields invoices and reminders cannot work without", () => {
     const errors = validateCompanyFields({ name: "", ico: "", email: "" });
     expect(errors.map(error => error.field).sort()).toEqual(["email", "ico", "name"]);
+  });
+});
+
+describe("kontaktní údaje a mezní hodnoty", () => {
+  it.each(["777123456", "+420 777 123 456", "00420 777 123 456", "+44 (20) 7946-0958", "+421 905 123 456"])("accepts phone %s", (value) => {
+    expect(isValidCompanyPhone(value)).toBe(true);
+  });
+  it.each(["123", "+420 123", "000000000", "abc777123456", "+0123456789", "+1234567890123456"])("rejects phone %s", (value) => {
+    expect(isValidCompanyPhone(value)).toBe(false);
+  });
+  it("checks databox identifiers and complete addresses without assuming Czech postal syntax", () => {
+    expect(isValidDataBoxId("ABC1234")).toBe(true);
+    for (const id of ["abc123", "abcdefgh", "abc-123", "ábc1234"]) expect(isValidDataBoxId(id)).toBe(false);
+    for (const address of ["Dlouhá 1, Praha", "Aš 1", "10 Downing Street, London SW1A 2AA"]) expect(isPlausibleCompanyAddress(address)).toBe(true);
+    for (const address of ["123456", "Praha", "Ulice 1\u0000", "X1".repeat(151)]) expect(isPlausibleCompanyAddress(address)).toBe(false);
+  });
+  it("rejects a zero account even when it passes the numeric checksum", () => {
+    expect(isValidBankAccount("0/0100")).toBe(false);
+    expect(isValidBankAccount("6786420257/0000")).toBe(false);
   });
 });

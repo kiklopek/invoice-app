@@ -35,6 +35,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      onboarding_drafts: {
+        Row: { user_id: string; payload: Json; updated_at: string }
+        Insert: { user_id: string; payload: Json; updated_at?: string }
+        Update: { user_id?: string; payload?: Json; updated_at?: string }
+        Relationships: []
+      }
       payment_assistance_settings: AssistanceTable<AssistanceSettingsRow>
       payment_payer_memory: AssistanceTable<PayerMemoryRow>
       payment_assistance_proposals: AssistanceTable<AssistanceProposalRow>

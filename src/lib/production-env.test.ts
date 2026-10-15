@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateProductionEnv } from "../../scripts/validate-production-env.mjs";
-import { prepareNextEnv } from "../../scripts/prepare-next-env.mjs";
+import { prepareNextEnv, prepareNextChildEnv } from "../../scripts/prepare-next-env.mjs";
 
 const validProductionEnv = {
   NODE_ENV: "production",
@@ -19,6 +19,16 @@ const validProductionEnv = {
 } as const;
 
 describe("production environment validation", () => {
+  it("lets Next reload file-based development settings instead of freezing them in child process env", () => {
+    const child = prepareNextChildEnv("dev", { PATH: "/bin", DEBUG: "*" }, {
+      PATH: "/bin", LOCAL_EMAIL_RECIPIENT_ALLOWLIST: "old@example.org", __NEXT_PROCESSED_ENV: "true",
+    });
+    expect(child).toEqual({ PATH: "/bin", NODE_ENV: "development" });
+  });
+  it("preserves explicit deployment settings and still validates loaded production configuration", () => {
+    expect(prepareNextChildEnv("build", validProductionEnv, validProductionEnv)).toEqual(validProductionEnv);
+    expect(() => prepareNextChildEnv("build", {}, {})).toThrow("Produkční konfigurace");
+  });
   it("does not let build/start evade production validation when NODE_ENV is missing", () => {
     expect(() => prepareNextEnv("build", {})).toThrow("Produkční konfigurace");
     expect(() => prepareNextEnv("start", { NODE_ENV:"development" })).toThrow("Produkční konfigurace");

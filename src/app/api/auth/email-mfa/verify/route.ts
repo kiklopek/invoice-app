@@ -5,6 +5,7 @@ import { requireEmailMfaSecret, setTrustedDeviceCookie, setVerifiedEmailMfaCooki
 import { isSameOriginMutation } from "@/lib/request-security";
 import { apiError } from "@/lib/api-response";
 import { logError, requestId } from "@/lib/structured-log";
+import { isVerificationCode, normalizeVerificationCode } from "@/lib/verification-code";
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) {
@@ -21,9 +22,9 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null) as { code?: unknown } | null;
-  const code = typeof body?.code === "string" ? body.code.trim() : "";
-  if (!/^\d{6}$/.test(code)) {
-    return apiError(request, "Zadejte platný šestimístný kód.", 400, "invalid_code");
+  const code = normalizeVerificationCode(typeof body?.code === "string" ? body.code : "");
+  if (!isVerificationCode(code)) {
+    return apiError(request, "Zadejte pětimístný kód z písmen a číslic.", 400, "invalid_code");
   }
 
   const { data: challenge, error: challengeError } = await identity.service

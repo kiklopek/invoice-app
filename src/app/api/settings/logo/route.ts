@@ -5,6 +5,7 @@ import { detectLogoType, LOGO_BUCKET, logoObjectPath, logoPathFor, MAX_LOGO_BYTE
 import { isSameOriginMutation } from "@/lib/request-security";
 import { canManageMembers } from "@/lib/role-access";
 import { logError, requestId } from "@/lib/structured-log";
+import { isDecodableCompanyLogo } from "@/lib/company-logo-validation-server";
 
 async function adminIdentity(request: Request) {
   if (!isSameOriginMutation(request)) return { error: apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied") };
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
   const data = new Uint8Array(await file.arrayBuffer());
   const type = detectLogoType(data);
   if (!type) return apiError(request, "Logo musí být obrázek PNG, JPEG nebo WebP.", 400, "unsupported_type");
+  if (!await isDecodableCompanyLogo(data)) return apiError(request, "Obrázek je poškozený nebo přesahuje 4096 × 4096 pixelů. Vyberte prosím jiný.", 400, "invalid_image");
 
   const org = identity.membership.organization_id;
   const { error: uploadError } = await identity.service.storage

@@ -19,6 +19,7 @@ describe("email MFA delivery", () => {
     vi.stubEnv("AUTH_EMAIL_DELIVERY_ENABLED", "true");
     vi.stubEnv("AUTH_EMAIL_FROM", "Splatno <prihlaseni@mail.splatno.cz>");
     vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("APP_BASE_URL", "https://app.example.cz");
   });
 
   afterEach(() => vi.unstubAllEnvs());
@@ -35,12 +36,12 @@ describe("email MFA delivery", () => {
     });
   });
 
-  it("sends one idempotent six-digit login code", async () => {
+  it("sends one idempotent five-character login code", async () => {
     resendSend.mockResolvedValue({ data: { id: "provider-message-id" }, error: null });
 
     await expect(sendEmailMfaCode({
       email: "user@hlavica.cz",
-      code: "123456",
+      code: "A7K9B",
       challengeId: "11111111-1111-4111-8111-111111111111",
     })).resolves.toBe("provider-message-id");
 
@@ -49,7 +50,9 @@ describe("email MFA delivery", () => {
         from: "Splatno <prihlaseni@mail.splatno.cz>",
         to: "user@hlavica.cz",
         subject: "Přihlašovací kód Splatno.cz",
-        text: expect.stringContaining("123456"),
+        text: expect.stringContaining("A7K9B"),
+        html: expect.stringContaining('src="cid:splatno-auth-mark"'),
+        attachments: [expect.objectContaining({ contentId: "splatno-auth-mark", contentType: "image/png" })],
       }),
       { idempotencyKey: "email-mfa/11111111-1111-4111-8111-111111111111" },
     );
@@ -63,7 +66,7 @@ describe("email MFA delivery", () => {
 
     await expect(sendEmailMfaCode({
       email: "user@hlavica.cz",
-      code: "123456",
+      code: "A7K9B",
       challengeId: "11111111-1111-4111-8111-111111111111",
     })).rejects.toMatchObject({
       message: "EMAIL_MFA_DELIVERY_FAILED",

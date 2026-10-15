@@ -90,8 +90,8 @@ describe("workspace navigation performance", () => {
   // bez potvrzeného MFA mohl tiše zabrat pozvánku.
   it("převzetí pozvánky zůstává až za kontrolou session i MFA", () => {
     const auth = source("src/lib/auth.ts");
-    const sessionGuard = auth.indexOf("if (!hasLoginSession) return null;");
-    const mfaGuard = auth.indexOf("if (!hasMfa) return null;");
+    const sessionGuard = auth.indexOf('if (!hasLoginSession) return rejectSession("missing_login_session");');
+    const mfaGuard = auth.indexOf('if (!hasMfa) return rejectSession("missing_mfa");');
     const claimWrite = auth.indexOf(".update({ user_id: user.id, email, invite_token_hash: null, invite_expires_at: null })");
     expect(sessionGuard, "chybí kontrola přihlašovací session").toBeGreaterThan(-1);
     expect(mfaGuard, "chybí kontrola MFA").toBeGreaterThan(-1);

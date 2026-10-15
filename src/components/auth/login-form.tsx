@@ -59,7 +59,7 @@ export function LoginForm({ brand }: { brand: AuthBrand }) {
     const result = await response.json().catch(() => null) as { error?: unknown; code?: unknown } | null;
     const { createClient } = await import("@/lib/supabase-browser");
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     return {
       ok: false as const,
       message: response.status === 403 && result?.code === "access_denied"

@@ -4,6 +4,8 @@ import { getAuthenticatedSession, resolveMembership } from "@/lib/auth";
 import { normalizeOnboardingCompany, onboardingErrorMessage, validateOnboardingCompany } from "@/lib/onboarding";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { logError, requestId } from "@/lib/structured-log";
+import { lookupAresSubject } from "@/lib/ares";
+import { consumePublicAuthLimit } from "@/lib/auth-rate-limit";
 
 // Dokončení onboardingu: firma, zakladatel jako admin a výchozí (vypnuté)
 // upomínky vzniknou naráz v databázi. Dvojklik ani souběžný požadavek
@@ -22,9 +24,28 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   const company = normalizeOnboardingCompany(body);
-  const errors = validateOnboardingCompany(company);
+  const errors = validateOnboardingCompany(company, { vatPayer: body?.vat_payer === true });
+  if (body?.vat_payer !== undefined && typeof body.vat_payer !== "boolean") {
+    errors.push({ field: "vat_payer", message: "Uveďte, zda je firma plátcem DPH." });
+  }
   if (errors.length) {
     return NextResponse.json({ error: errors[0].message, code: "invalid_company", fields: errors }, { status: 400 });
+  }
+
+  try {
+    if (!await consumePublicAuthLimit(request, "company_lookup", session.user.id)) {
+      return apiError(request, "Příliš mnoho ověření firmy. Zkuste to prosím za chvíli.", 429, "rate_limited");
+    }
+  } catch (error) {
+    logError("Limit ověření firmy se nepodařilo zkontrolovat", error, { request_id: requestId(request) });
+    return apiError(request, "Ověření firmy se nepodařilo spustit. Zkuste to prosím znovu.", 503, "company_verification_unavailable");
+  }
+  // Nález v registru znovu ověří server. Při výpadku registru lze údaje zadat
+  // ručně; skutečné „nenalezeno“ se ale nesmí zaměnit za výpadek služby.
+  const registry = await lookupAresSubject(company.ico);
+  if (registry.status === "not_found" || registry.status === "invalid_ico") {
+    const fields = [{ field: "ico", message: "Toto IČO nebylo nalezeno v registru ARES. Zkontrolujte ho prosím." }];
+    return NextResponse.json({ error: fields[0].message, code: "invalid_company", fields }, { status: 400 });
   }
 
   const { data, error } = await session.service.rpc("create_organization_for_user", {
@@ -47,5 +68,7 @@ export async function POST(request: Request) {
     const { error: vatError } = await session.service.from("organizations").update({ vat_payer: body.vat_payer }).eq("id", result.organization_id);
     if (vatError) logError("Plátcovství DPH se nepodařilo uložit", vatError, { request_id: requestId(request) });
   }
+  const { error: draftError } = await session.service.from("onboarding_drafts").delete().eq("user_id", session.user.id);
+  if (draftError) logError("Úklid dokončeného onboardingu selhal", draftError, { request_id: requestId(request) });
   return NextResponse.json({ created: true, redirect: "/dashboard" }, { status: 201 });
 }

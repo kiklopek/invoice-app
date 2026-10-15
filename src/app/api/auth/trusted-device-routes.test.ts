@@ -40,6 +40,21 @@ beforeEach(() => {
 });
 
 describe("po hesle (/api/auth/access)", () => {
+  it("sends a verified founder without membership to onboarding", async () => {
+    mocks.session.mockResolvedValue(session());
+    const response = await access(post("/api/auth/access"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ allowed: true, needsOnboarding: true, role: null });
+  });
+
+  it("reports an unverifiable session as authentication failure, not inactive company access", async () => {
+    mocks.session.mockResolvedValue(null);
+    const response = await access(post("/api/auth/access"));
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({ code: "invalid_session" });
+    expect(mocks.membership).not.toHaveBeenCalled();
+  });
+
   it("důvěryhodné zařízení přeskočí kód", async () => {
     mocks.session.mockResolvedValue(session());
     mocks.trust.mockResolvedValue(true);
@@ -77,7 +92,7 @@ describe("ověření kódu (/api/auth/email-mfa/verify)", () => {
 
   it("správný kód zapamatuje zařízení", async () => {
     mocks.session.mockResolvedValue(session(serviceWith("verified")));
-    const response = await verify(post("/api/auth/email-mfa/verify", { code: "123456" }));
+    const response = await verify(post("/api/auth/email-mfa/verify", { code: "A7K9B" }));
     expect(await response.json()).toEqual({ verified: true });
     expect(mocks.setMfa).toHaveBeenCalledWith(userId, sessionId);
     expect(mocks.setDevice).toHaveBeenCalledWith(userId);
@@ -85,7 +100,7 @@ describe("ověření kódu (/api/auth/email-mfa/verify)", () => {
 
   it("špatný kód zařízení nezapamatuje", async () => {
     mocks.session.mockResolvedValue(session(serviceWith("invalid")));
-    const response = await verify(post("/api/auth/email-mfa/verify", { code: "123456" }));
+    const response = await verify(post("/api/auth/email-mfa/verify", { code: "A7K9B" }));
     expect(response.status).toBe(400);
     expect(mocks.setDevice).not.toHaveBeenCalled();
   });

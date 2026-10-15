@@ -6,6 +6,7 @@ import { apiError } from "@/lib/api-response";
 import { isEmailMfaBypassed } from "@/lib/email-mfa-core";
 import { trustDeviceSession } from "@/lib/email-mfa-server";
 import { withServerTiming } from "@/lib/server-timing";
+import { requestId } from "@/lib/structured-log";
 
 // Stav po přihlášení heslem. Člen firmy dostane svou firmu a roli;
 // ověřený účet bez firmy je zakladatel před onboardingem (needsOnboarding).
@@ -24,9 +25,10 @@ async function applicationAccess(request: Request) {
     requireMfa: false,
     requireLoginSession: false,
     accessToken: getBearerAccessToken(request),
+    diagnosticRequestId: requestId(request),
   });
   if (!session) {
-    return apiError(request, "Tento účet nemá aktivní přístup do aplikace.", 403, "access_denied");
+    return apiError(request, "Přihlašovací relaci se nepodařilo ověřit. Přihlaste se prosím znovu.", 401, "invalid_session");
   }
   const name = displayName(session.user.user_metadata.full_name, session.email);
   const mfaBypassed = isEmailMfaBypassed(session.email)

@@ -1,22 +1,22 @@
 "use client";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { OtpInput } from "@/components/auth/otp-input";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthShell, authStyles as styles, type AuthBrand } from "@/components/auth/auth-shell";
 import { useI18n } from "@/i18n/client";
 import { ArrowRight, Lock, Mail, User } from "@/components/landing/landing-icons";
 import { CUSTOM_ENTRY_EMAIL_DOMAIN, emailMatchesDomain, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { withEntry } from "@/lib/login-entry";
-import { registrationNextPath } from "@/lib/registration-flow";
 import { CUSTOM_ENTRY_REGISTRATION_PATH, isCustomEntryBrand } from "@/lib/tenant-entries";
 import { passwordRule } from "@/lib/password-policy";
-import { hasSupabaseBrowserConfig, preloadSupabaseBrowserClient } from "@/lib/supabase-config";
+import { hasSupabaseBrowserConfig } from "@/lib/supabase-config";
+import { VERIFICATION_CODE_LENGTH as CODE_LENGTH } from "@/lib/verification-code";
 
 // Registrace. Dva oddělené vstupy:
 // - "splatno" (/register): kdo nemá pozvánku, zakládá firemní účet a po
-//   potvrzení e-mailu a 2FA projde onboardingem; kdo pozvánku má, se po
-//   potvrzení e-mailu připojí ke své firmě. S R. Hlavica nesouvisí.
+//   jednom ověření kódem projde onboardingem; kdo pozvánku má, se po
+//   ověření připojí ke své firmě. S R. Hlavica nesouvisí.
 // - "hlavica" (/hlavica/registrace): jako dřív, jen e-mail @hlavica.cz,
 //   který administrátor R. Hlavica předem pozval.
 export function RegisterForm({ brand }: { brand: AuthBrand }) {
@@ -27,11 +27,21 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
   const [confirmation, setConfirmation] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [resendAt, setResendAt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const copy = t.auth.register;
   const common = t.auth.common;
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000))), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown, resendAt]);
 
   async function register(event: React.FormEvent) {
     event.preventDefault();
@@ -70,56 +80,13 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
         return;
       }
 
-      const { createClient } = await import("@/lib/supabase-browser");
-      const supabase = createClient();
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}${withEntry("/auth/callback?next=/mfa", brand)}`,
-          data: customEntry
-            ? { full_name: fullName.trim() }
-            : { full_name: fullName.trim(), terms_accepted_at: new Date().toISOString() },
-        },
-      });
-      if (signUpError) {
-        setError(copy.errors.signUp);
+      const response = await registrationRequest("send", normalizedEmail);
+      if (!response.ok) {
+        setError(await registrationSendError(response));
         return;
       }
-      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        setError(copy.errors.member);
-        return;
-      }
-      if (data.session) {
-        const accessResponse = await fetch("/api/auth/access", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { Authorization: `Bearer ${data.session.access_token}` },
-        });
-        if (!accessResponse.ok) {
-          await supabase.auth.signOut();
-          setError(copy.errors.verify);
-          return;
-        }
-        const access = await accessResponse.json().catch(() => null) as { mfa_bypassed?: unknown; needsOnboarding?: unknown } | null;
-        const sessionPreference = await fetch("/api/auth/session-preference", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-          body: JSON.stringify({ remember: false }),
-        });
-        if (!sessionPreference.ok) {
-          await supabase.auth.signOut({ scope: "local" });
-          setError(copy.errors.sessionSave);
-          return;
-        }
-        window.location.assign(registrationNextPath({
-          hasCompany: access?.needsOnboarding !== true,
-          mfaVerified: access?.mfa_bypassed === true,
-          brand,
-        }));
-        return;
-      }
+      setCooldown(60);
+      setResendAt(Date.now() + 60_000);
       setEmail(normalizedEmail);
       setSent(true);
     } catch {
@@ -129,9 +96,69 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
     }
   }
 
+  function registrationRequest(action: "send" | "verify", normalizedEmail = email) {
+    return fetch("/api/auth/register", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, email: normalizedEmail, password, fullName: fullName.trim(), acceptTerms, entry: brand, locale, ...(action === "verify" ? { code } : {}) }),
+    });
+  }
+
+  async function registrationSendError(response: Response) {
+    const result = await response.json().catch(() => null) as { code?: string } | null;
+    if (response.status === 429) return copy.errors.rateLimited;
+    return ["email_unavailable", "email_delivery_failed", "local_email_blocked"].includes(result?.code ?? "")
+      ? copy.errors.emailDelivery
+      : copy.errors.signUp;
+  }
+
+  async function verifyCode(event: React.FormEvent) {
+    event.preventDefault();
+    if (submitting || resending || code.length !== CODE_LENGTH) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await registrationRequest("verify");
+      const result = await response.json().catch(() => null) as { redirect?: string; code?: string } | null;
+      if (!response.ok || !result?.redirect) {
+        setError(result?.code === "invalid_code" ? copy.errors.code : result?.code === "rate_limited" ? copy.errors.rateLimited : copy.errors.verify);
+        return;
+      }
+      // The server chooses between onboarding and the invited company.
+      window.location.assign(result.redirect);
+    } catch {
+      setError(copy.errors.connection);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function resendCode() {
+    if (submitting || resending) return;
+    if (cooldown > 0) return setError(copy.errors.resendWait);
+    setResending(true);
+    setError(null);
+    try {
+      const response = await registrationRequest("send");
+      if (!response.ok) {
+        setError(await registrationSendError(response));
+        return;
+      }
+      setCode("");
+      setCooldown(60);
+      setResendAt(Date.now() + 60_000);
+    } catch {
+      setError(copy.errors.connection);
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <AuthShell
       art="laptop"
+      layout="registration"
       brand={brand}
       claim={copy.claim}
       claimSub={customEntry ? copy.claimSubCustomEntry : copy.claimSub}
@@ -141,16 +168,23 @@ export function RegisterForm({ brand }: { brand: AuthBrand }) {
       <p className={styles.sub}>{customEntry ? copy.subCustomEntry : copy.sub}</p>
       {!customEntry && !sent && <p className={styles.note}>{copy.invitationHint}</p>}
       {sent ? (
-        <div className={styles.sent}>
-          <Mail width={22} height={22} />
-          <div>
-            <strong>{copy.sentTitle}</strong>
-            <p>{copy.sentBefore}<b>{email}</b>{copy.sentAfter}</p>
-            {customEntry ? null : <p>{copy.sentSignup}</p>}
+        <form onSubmit={verifyCode} className={styles.form}>
+          <div className={styles.sent} role="status">
+            <Mail width={22} height={22} />
+            <div>
+              <strong>{copy.sentTitle}</strong>
+              <p>{copy.sentBefore}<b>{email}</b>{copy.sentAfter}</p>
+              {customEntry ? null : <p>{copy.sentSignup}</p>}
+            </div>
           </div>
-        </div>
+          <OtpInput value={code} onChange={setCode} length={CODE_LENGTH} ariaLabel={copy.codeLabel} disabled={submitting || resending} autoFocus />
+          {error && <p className={styles.error} role="alert">{error}</p>}
+          <button type="submit" className={styles.primary} disabled={submitting || resending || code.length !== CODE_LENGTH}>{submitting ? copy.verifying : copy.verifyCode} <ArrowRight /></button>
+          <button type="button" className={styles.textButton} disabled={submitting || resending || cooldown > 0} onClick={resendCode}>{resending ? copy.resending : cooldown > 0 ? t.auth.mfa.resendIn(cooldown) : copy.resendCode}</button>
+          <button type="button" className={styles.textButton} disabled={submitting || resending} onClick={() => { setSent(false); setCode(""); setError(null); }}>{copy.changeDetails}</button>
+        </form>
       ) : (
-        <form onSubmit={register} onFocus={preloadSupabaseBrowserClient} className={styles.form}>
+        <form onSubmit={register} className={styles.form}>
           <div className={styles.pair}>
             <label className={styles.field}>
               <span>{common.fullName}</span>

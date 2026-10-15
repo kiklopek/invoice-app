@@ -8,3 +8,13 @@ export function prepareNextEnv(command,input=process.env) {
   delete env.DEBUG;delete env.NEXT_TEST_MODE;delete env.__NEXT_TEST_MODE;
   return env;
 }
+
+// Validate loaded file settings, but let Next load those files itself. Passing
+// them as inherited variables freezes their values across development reloads.
+export function prepareNextChildEnv(command, inherited, loaded) {
+  const validated = prepareNextEnv(command, loaded);
+  const env = { ...inherited, NODE_ENV: validated.NODE_ENV };
+  delete env.__NEXT_PROCESSED_ENV;
+  delete env.DEBUG;delete env.NEXT_TEST_MODE;delete env.__NEXT_TEST_MODE;
+  return env;
+}

@@ -39,6 +39,7 @@ const RAW_MESSAGE_EXEMPT: Record<string, string> = {
 };
 
 const IDENTITY_EXEMPT: Record<string, string> = {
+  "/api/auth/register": "Veřejná registrace: rate limit IP/e-mail, nativní jednorázový signup OTP a kontrola originu.",
   "/api/auth/logout": "Odhlášení musí projít i s už neplatnou identitou.",
   "/api/auth/registration-access": "Veřejné, chráněné rate limitem na IP i e-mail.",
   "/api/auth/password-recovery": "Veřejné, odpovídá neutrálně, aby nešlo zjistit existenci účtu.",

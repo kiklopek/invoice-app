@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeChain } from "@/app/api/payments/__test-helpers__";
 
-const mocks = vi.hoisted(() => ({ claims: vi.fn(), user: vi.fn(), userFrom: vi.fn(), serviceFrom: vi.fn(), rpc: vi.fn(), login: vi.fn(), mfa: vi.fn() }));
+const mocks = vi.hoisted(() => ({ claims: vi.fn(), user: vi.fn(), userFrom: vi.fn(), serviceFrom: vi.fn(), rpc: vi.fn(), login: vi.fn(), mfa: vi.fn(), log: vi.fn() }));
+vi.mock("@/lib/structured-log", () => ({ logInfo: mocks.log }));
 vi.mock("@/lib/supabase-server", () => ({
   createUserServerClient: async () => ({ auth: { getClaims: mocks.claims, getUser: mocks.user }, from: mocks.userFrom }),
-  createServiceClient: () => ({ from: mocks.serviceFrom, rpc: mocks.rpc }),
+  createServiceClient: () => ({ auth: { getClaims: mocks.claims, getUser: mocks.user }, from: mocks.serviceFrom, rpc: mocks.rpc }),
 }));
 vi.mock("@/lib/login-session-server", () => ({ hasServerLoginSession: mocks.login }));
 vi.mock("@/lib/email-mfa-server", () => ({ hasVerifiedEmailMfa: mocks.mfa }));
@@ -24,6 +25,24 @@ beforeEach(() => {
 });
 
 describe("verified identity and isolation", () => {
+  it("accepts a founder's verified bearer token before SSR cookies exist", async () => {
+    const session = await getAuthenticatedSession({ accessToken: "private-token", requireLoginSession: false, requireMfa: false });
+    expect(session).toMatchObject({ user: { id: user.id }, boundMembership: null });
+    expect(mocks.claims).toHaveBeenCalledWith("private-token");
+    expect(mocks.user).toHaveBeenCalledWith("private-token");
+    expect(mocks.log).not.toHaveBeenCalled();
+  });
+
+  it("logs a fixed rejection reason without leaking credentials or provider messages", async () => {
+    mocks.user.mockResolvedValue({ data: { user: null }, error: new Error("private-provider-detail") });
+    expect(await getAuthenticatedSession({ accessToken: "private-token", diagnosticRequestId: "request-a" })).toBeNull();
+    expect(mocks.log).toHaveBeenCalledWith("auth_session_rejected", {
+      request_id: "request-a", reason: "auth_user_rejected", token_source: "bearer",
+      auth_code: undefined, auth_status: undefined, auth_error_type: "Error",
+    });
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toMatch(/private-token|private-provider-detail|member@example/);
+  });
+
   it("allows a verified founder's session while denying access to company data before onboarding", async () => {
     mocks.userFrom.mockReturnValue(fakeChain({ data: null, error: null }));
     const session = await getAuthenticatedSession();

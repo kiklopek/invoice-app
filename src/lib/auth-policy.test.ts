@@ -38,3 +38,12 @@ describe("auth email policy", () => {
     expect(isDisposableEmail("jan@notmailinator.com")).toBe(false);
   });
 });
+
+describe("formát e-mailu", () => {
+  it.each(["a@@firma.cz", ".jan@firma.cz", "jan.@firma.cz", "jan..novak@firma.cz", "a@firma..cz", "a@-firma.cz", "a@firma-.cz", "a@firma.123", "a<@firma.cz", "a".repeat(65) + "@firma.cz"])("rejects malformed email %s", (email) => {
+    expect(isValidEmail(email)).toBe(false);
+  });
+  it.each(["jan.novak+faktury@firma.cz", "a@sub.firma.com", "x_y@firma.cz"])("keeps valid email %s", (email) => {
+    expect(isValidEmail(email)).toBe(true);
+  });
+});

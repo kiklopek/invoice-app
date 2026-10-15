@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeOnboardingCompany, onboardingErrorMessage, validateOnboardingCompany } from "./onboarding";
+import { normalizeOnboardingCompany, onboardingErrorMessage, validateOnboardingCompany, validateOnboardingReminders, onboardingStepForField } from "./onboarding";
 
 const valid = {
   name: " Nová firma s.r.o. ",
@@ -60,5 +60,22 @@ describe("onboardingErrorMessage", () => {
     expect(onboardingErrorMessage("already_member")?.code).toBe("already_member");
     expect(onboardingErrorMessage("pending_invitation")?.message).toContain("pozvánk");
     expect(onboardingErrorMessage("boom")).toBeNull();
+  });
+});
+
+describe("všechna pole průvodce", () => {
+  it("requires the registered address and VAT identifier only for a payer", () => {
+    expect(validateOnboardingCompany(normalizeOnboardingCompany({ ...valid, registered_address: "" }))).toContainEqual(expect.objectContaining({ field: "registered_address" }));
+    expect(validateOnboardingCompany(normalizeOnboardingCompany({ ...valid, dic: "" }), { vatPayer: true })).toContainEqual(expect.objectContaining({ field: "dic" }));
+    expect(validateOnboardingCompany(normalizeOnboardingCompany({ ...valid, dic: "" }), { vatPayer: false })).toEqual([]);
+  });
+  it("routes invalid contact fields back to their editable step", () => {
+    expect(onboardingStepForField("phone")).toBe(2);
+    expect(onboardingStepForField("registered_address")).toBe(1);
+    expect(onboardingStepForField("bank_account_eur")).toBe(3);
+  });
+  it("reports all reminder problems next to their fields", () => {
+    expect(validateOnboardingReminders({ days: [], replyTo: "x@@firma.cz", ccText: "a@firma..cz" }).map(item => item.field)).toEqual(["reminder_days", "reminder_reply_to", "reminder_cc"]);
+    expect(validateOnboardingReminders({ days: [-3, 0, 7], replyTo: "", ccText: "a@firma.cz; b@firma.cz" })).toEqual([]);
   });
 });

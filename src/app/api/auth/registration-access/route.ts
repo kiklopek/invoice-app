@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { emailMatchesDomain, isDisposableEmail, isValidEmail, normalizeEmail } from "@/lib/auth-policy";
-import { CUSTOM_ENTRY, registrationAccessDecision } from "@/lib/tenant-entries";
+import { isValidEmail, normalizeEmail } from "@/lib/auth-policy";
+import { getRegistrationAccess } from "@/lib/registration-access-server";
 import { isSameOriginMutation } from "@/lib/request-security";
-import { createServiceClient } from "@/lib/supabase-server";
 import { apiError } from "@/lib/api-response";
 import { consumePublicAuthLimit } from "@/lib/auth-rate-limit";
 import { logError, requestId } from "@/lib/structured-log";
@@ -33,25 +32,10 @@ export async function POST(request: Request) {
     return apiError(request, "Ověření přístupu se momentálně nepodařilo.", 503, "rate_limit_unavailable");
   }
 
-  const service = createServiceClient();
-  const { data, error } = await service
-    .from("organization_members")
-    .select("id, user_id, organizations(allowed_email_domain)")
-    .eq("email", email)
-    .limit(1);
-
-  if (error) {
+  try {
+    return NextResponse.json(await getRegistrationAccess(email, body.entry));
+  } catch (error) {
     logError("Registration membership lookup failed", error, { request_id: requestId(request) });
     return apiError(request, "Ověření přístupu se nepodařilo.", 500, "membership_lookup_failed");
   }
-
-  const row = data?.[0];
-  const organization = Array.isArray(row?.organizations) ? row.organizations[0] : row?.organizations;
-  // Rozhodnutí (vstup firmy vs. obecná registrace) je v tenant-entries.ts.
-  return NextResponse.json(registrationAccessDecision({
-    entry: body.entry,
-    emailMatchesEntryDomain: emailMatchesDomain(email, CUSTOM_ENTRY.emailDomain),
-    invitation: row ? { claimed: Boolean(row.user_id), organizationDomain: organization?.allowed_email_domain } : null,
-    disposable: isDisposableEmail(email),
-  }));
 }

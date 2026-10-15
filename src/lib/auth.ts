@@ -9,12 +9,14 @@ import { createServiceClient, createUserServerClient } from "@/lib/supabase-serv
 import { isAccessRole } from "@/lib/role-access";
 import { canClaimInvitation } from "@/lib/invitation-claim";
 import { measureServerOperation } from "@/lib/server-timing";
+import { logInfo } from "@/lib/structured-log";
 export { canManageInvoices } from "@/lib/role-access";
 
 type IdentityOptions = {
   requireMfa?: boolean;
   requireLoginSession?: boolean;
   accessToken?: string | null;
+  diagnosticRequestId?: string;
 };
 
 // Ověřená relace: platné přihlášení, aktivní relace prohlížeče a (pokud se
@@ -26,7 +28,22 @@ export async function getAuthenticatedSession(options: IdentityOptions = {}) {
     requireMfa = true,
     requireLoginSession = true,
     accessToken = null,
+    diagnosticRequestId,
   } = options;
+  // Fixed reason codes only: never log credentials, provider messages or PII.
+  const rejectSession = (reason: string, authError?: { code?: string; status?: number; name?: string } | null) => {
+    if (diagnosticRequestId) {
+      logInfo("auth_session_rejected", {
+        request_id: diagnosticRequestId,
+        reason,
+        auth_code: authError?.code,
+        auth_status: authError?.status,
+        auth_error_type: authError?.name,
+        token_source: accessToken ? "bearer" : "cookie",
+      });
+    }
+    return null;
+  };
   const cookieAuth = await createUserServerClient();
   const service = createServiceClient();
   // Immediately after signInWithPassword the browser owns a verified token,
@@ -38,17 +55,18 @@ export async function getAuthenticatedSession(options: IdentityOptions = {}) {
   const { data: claimsData, error: claimsError } = await measureServerOperation("claims", async () => accessToken
     ? await auth.auth.getClaims(accessToken)
     : await auth.auth.getClaims());
-  if (claimsError || !claimsData?.claims?.sub) return null;
+  if (claimsError || !claimsData?.claims?.sub) return rejectSession("invalid_claims", claimsError);
   const { data, error } = await measureServerOperation("auth_user", async () => accessToken
     ? await auth.auth.getUser(accessToken)
     : await auth.auth.getUser());
-  if (error || !data.user || claimsData.claims.sub !== data.user.id) return null;
+  if (error || !data.user) return rejectSession("auth_user_rejected", error);
+  if (claimsData.claims.sub !== data.user.id) return rejectSession("subject_mismatch");
 
   const email = normalizeEmail(data.user.email);
-  if (!isValidEmail(email)) return null;
+  if (!isValidEmail(email)) return rejectSession("invalid_email");
 
   const sessionId = typeof claimsData.claims.session_id === "string" ? claimsData.claims.session_id : null;
-  if (!sessionId) return null;
+  if (!sessionId) return rejectSession("missing_session_id");
 
   // Tyhle tři dotazy na sobě nezávisí -- stojí jen na userId, e-mailu a
   // sessionId, které jsou známé už teď. Sériově to byla tři kola na server
@@ -76,8 +94,8 @@ export async function getAuthenticatedSession(options: IdentityOptions = {}) {
       .limit(1)
       .maybeSingle()),
   ]);
-  if (!hasLoginSession) return null;
-  if (!hasMfa) return null;
+  if (!hasLoginSession) return rejectSession("missing_login_session");
+  if (!hasMfa) return rejectSession("missing_mfa");
 
   return {
     user: data.user,

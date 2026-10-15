@@ -16,10 +16,13 @@
   --red-soft: #fbeae8;
   --amber: #9a6a1f;
 
-  min-height: 100dvh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
   display: grid;
   place-items: center;
-  padding: 32px 24px;
+  padding: clamp(12px, 2dvh, 24px);
   background:
     radial-gradient(700px 500px at 100% 0, rgba(205, 231, 164, 0.22), transparent 70%),
     radial-gradient(600px 460px at 0 100%, rgba(227, 241, 231, 0.9), transparent 70%),
@@ -32,9 +35,11 @@
 .card {
   width: 100%;
   max-width: 1440px;
-  min-height: min(820px, calc(100dvh - 64px));
+  height: 100%;
+  min-height: 0;
+  max-height: 1000px;
   display: grid;
-  grid-template-columns: minmax(230px, 0.62fr) minmax(0, 1.3fr) minmax(0, 1.02fr);
+  grid-template-columns: minmax(216px, 0.62fr) minmax(0, 1.5fr) minmax(0, 1fr);
   overflow: hidden;
   border-radius: 24px;
   background: #fff;
@@ -45,7 +50,10 @@
 .rail {
   display: flex;
   flex-direction: column;
-  padding: 40px 30px 36px 44px;
+  min-height: 0;
+  padding: clamp(20px, 4dvh, 40px) 24px;
+  overflow-y: auto;
+  scrollbar-width: thin;
   border-right: 1px solid #eef2ef;
   background: #fbfcfb;
 }
@@ -65,34 +73,33 @@
 }
 .steps {
   display: grid;
-  margin: 64px 0 0;
+  flex: 1;
+  grid-template-rows: repeat(8, minmax(44px, 1fr));
+  margin: clamp(16px, 3dvh, 32px) 0;
   padding: 0;
   list-style: none;
 }
 .steps li {
   position: relative;
-  padding-bottom: 30px;
-}
-.steps li:last-child {
-  padding-bottom: 0;
 }
 .steps li:not(:last-child)::after {
   content: "";
   position: absolute;
   left: 17px;
-  top: 44px;
-  bottom: 6px;
+  top: 22px;
+  bottom: -22px;
   width: 2px;
   border-radius: 2px;
   background: #e3e9e5;
 }
 .steps li[data-state="done"]:not(:last-child)::after {
-  background: #9fcbb0;
+  background: var(--ledger);
 }
 .steps button {
   display: grid;
   grid-template-columns: 36px 1fr;
-  gap: 2px 16px;
+  gap: 0 12px;
+  min-height: 44px;
   align-items: center;
   width: 100%;
   padding: 0;
@@ -101,13 +108,19 @@
   color: inherit;
   font: inherit;
   text-align: left;
+  white-space: normal;
+  overflow: visible;
   cursor: pointer;
 }
 .steps button:disabled {
   cursor: default;
 }
 .dot {
+  position: relative;
+  z-index: 1;
   grid-row: span 2;
+  align-self: start;
+  margin-top: 4px;
   display: grid;
   place-items: center;
   width: 36px;
@@ -148,16 +161,32 @@
 
 /* ---------- formulář ---------- */
 .main {
-  display: flex;
-  flex-direction: column;
-  padding: 48px clamp(28px, 4.4vw, 72px) 40px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(20px, 4dvh, 40px) clamp(24px, 3vw, 48px) clamp(16px, 3dvh, 28px);
 }
 .pane {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 540px;
-  margin-block: auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c6d8cc transparent;
+  scroll-padding-block: 12px;
+}
+.content {
+  flex: none;
+  width: 100%;
+  max-width: 560px;
+  min-width: 0;
+  margin: auto;
+  padding: 4px;
+  box-sizing: border-box;
 }
 .chip {
   align-self: flex-start;
@@ -170,7 +199,7 @@
 }
 .title {
   margin: 14px 0 0;
-  font-size: clamp(30px, 3vw, 40px);
+  font-size: clamp(28px, 2.6vw, 38px);
   font-weight: 750;
   line-height: 1.08;
   letter-spacing: -0.03em;
@@ -184,10 +213,12 @@
 }
 .form {
   display: grid;
-  gap: 18px;
-  margin-top: 28px;
+  gap: clamp(12px, 2dvh, 18px);
+  margin-top: clamp(18px, 3dvh, 28px);
 }
 .field {
+  min-width: 0;
+  align-content: start;
   display: grid;
   gap: 7px;
 }
@@ -300,18 +331,54 @@
 }
 .pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 14px;
 }
 
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  width: fit-content;
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.checkbox input {
+  appearance: auto;
+  flex: 0 0 20px;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--cta);
+}
+.checkbox input:focus:not(:focus-visible) {
+  outline: none;
+}
 .actions {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 8px;
+  width: 100%;
+  max-width: 560px;
+  min-width: 0;
+  box-sizing: border-box;
+  justify-self: center;
+  margin: 0;
+  padding: 18px 4px 4px;
+  background: #fff;
 }
 .primary {
   flex: 1;
+  min-width: 0;
+  padding: 0 16px;
+  line-height: 1.25;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -432,7 +499,7 @@
 }
 .summary li {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
   padding: 14px 16px;
@@ -567,7 +634,9 @@
 }
 .mascot {
   display: block;
-  width: min(380px, 90%);
+  width: min(380px, 100%);
+  max-height: 46dvh;
+  object-fit: contain;
   height: auto;
   filter: drop-shadow(0 18px 22px rgba(19, 35, 27, 0.1));
 }
@@ -609,7 +678,9 @@
     /* minmax(0, …): sloupec se nesmí roztáhnout podle obsahu (pole pro
        soubor, řádek pozvánky) přes šířku telefonu. */
     grid-template-columns: minmax(0, 1fr);
-    min-height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    max-height: none;
     border-radius: 0;
     box-shadow: none !important;
   }
@@ -623,6 +694,7 @@
   }
   .steps {
     grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: auto;
     gap: 4px;
     margin-top: 16px;
   }
@@ -640,6 +712,8 @@
   }
   .dot {
     grid-row: auto;
+    align-self: center;
+    margin-top: 0;
     width: 32px;
     height: 32px;
     font-size: 14px;
@@ -657,14 +731,13 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .main {
-    padding: 22px 16px 32px;
+    padding: 20px 20px 0;
   }
-  .pair,
   .inviteRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .actions {
-    flex-wrap: wrap;
+  .inviteRow > :first-child {
+    grid-column: 1 / -1;
   }
 }
 
@@ -819,18 +892,10 @@
   .main {
     padding: 18px 16px 0;
   }
-  /* Zpět / Pokračovat přichycené dole: v dosahu palce i u dlouhého kroku. */
   .actions {
-    position: sticky;
-    bottom: 0;
-    z-index: 3;
-    min-width: 0;
-    flex-wrap: nowrap;
-    margin: 16px -16px 0;
-    padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    padding: 12px 4px calc(env(safe-area-inset-bottom, 0px) + 12px);
     border-top: 1px solid #eef2ef;
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(6px);
+    gap: 10px;
   }
   .primary,
   .back {
@@ -901,4 +966,41 @@
   background-size: min(720px, 60%) 240px, 100% min(300px, 34%);
   background-position: right top, bottom;
   background-repeat: no-repeat;
+}
+
+/* Rám drží výšku obrazovky; dlouhý obsah se posouvá pouze uvnitř formuláře. */
+@media (max-height: 760px) and (min-width: 761px) {
+  .stepSub { display: none; }
+  .steps { margin-block: 12px; }
+  .railFoot { font-size: 12px; }
+  .title { font-size: clamp(26px, 2.5vw, 34px); }
+  .sub { margin-top: 8px; font-size: 15px; }
+  .form { gap: 12px; margin-top: 18px; }
+  .control input, .control select { height: 46px; }
+  .summary { margin-top: 18px; gap: 6px; }
+  .summary li { padding: 10px 12px; }
+  .art { padding: 24px; gap: 12px; }
+}
+@media (max-width: 480px) {
+  .pair { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .title { font-size: clamp(25px, 7vw, 30px); }
+  .sub { font-size: 14px; line-height: 1.45; }
+  .form { gap: 12px; margin-top: 18px; }
+  .field { gap: 5px; }
+  .control input, .control select { height: 46px; }
+  .tag { position: static; margin: 4px 0 0 4px; justify-self: start; }
+  .control:has(.tag) { display: grid; }
+  .control:has(.tag) > svg { top: 13px; }
+  .summary li { gap: 8px; padding: 10px; }
+  .summary b, .summary small { overflow-wrap: anywhere; }
+  .invites li { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+  .invites b { grid-column: 1 / -1; }
+}
+@media (max-height: 500px) and (max-width: 760px) {
+  .rail { padding-top: 8px; padding-bottom: 8px; }
+  .logo { min-height: 32px; font-size: 21px; }
+  .mobileProgress { margin-top: 4px; gap: 4px; }
+  .main { padding-top: 10px; }
+  .actions { padding-top: 8px; padding-bottom: 8px; }
+  .primary, .back { height: 44px; }
 }

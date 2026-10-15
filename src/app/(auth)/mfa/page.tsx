@@ -9,6 +9,7 @@ import { safeReturnPath } from "@/lib/safe-return-path";
 import { currentEntryLoginPath, useEntryBrand } from "@/lib/login-entry";
 import { useI18n } from "@/i18n/client";
 import { mfaApiError } from "@/i18n/api-errors";
+import { isVerificationCode, VERIFICATION_CODE_LENGTH } from "@/lib/verification-code";
 
 export default function MfaPage() {
   const brand = useEntryBrand();
@@ -93,7 +94,7 @@ export default function MfaPage() {
 
   async function verify(event: FormEvent) {
     event.preventDefault();
-    if (!/^\d{6}$/.test(code)) {
+    if (!isVerificationCode(code)) {
       setError(copy.errors.invalidCode);
       return;
     }
@@ -147,7 +148,7 @@ export default function MfaPage() {
           <OtpInput value={code} onChange={setCode} disabled={submitting} autoFocus />
           <small className={styles.note} style={{ marginTop: -4 }}>{copy.validity}</small>
           {codeAvailable && error && <p className={styles.error}>{error}</p>}
-          <button type="submit" className={styles.primary} disabled={loading || submitting || code.length !== 6}>
+          <button type="submit" className={styles.primary} disabled={loading || submitting || code.length !== VERIFICATION_CODE_LENGTH}>
             {submitting ? copy.submitting : copy.submit} <ArrowRight />
           </button>
         </form>
