@@ -316,14 +316,18 @@
 .playIcon {
   display: grid;
   place-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
   width: 38px;
   height: 38px;
+  aspect-ratio: 1;
+  border: 2px solid rgba(31, 106, 74, 0.55);
   border-radius: 50%;
   background: #fff;
   color: var(--cta);
   font-size: 18px;
-  /* tenký průsvitný zelený okraj */
-  box-shadow: 0 0 0 1px rgba(31, 106, 74, 0.32) !important;
+  /* Okraj je uvnitř rozměru ikony, takže ho tlačítko nemůže oříznout. */
+  box-shadow: none !important;
 }
 .trust {
   display: flex;
