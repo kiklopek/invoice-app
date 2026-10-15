@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestIdentity } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/auth";
 import { setLoginSessionPreference } from "@/lib/login-session-server";
 import { getBearerAccessToken, isSameOriginMutation } from "@/lib/request-security";
 import { apiError } from "@/lib/api-response";
@@ -14,7 +14,9 @@ async function sessionPreference(request: Request) {
     return apiError(request, "Požadavek pochází z nepovoleného webu.", 403, "origin_denied");
   }
 
-  const identity = await getRequestIdentity({
+  // A new founder must save their login before MFA and company onboarding.
+  // Membership is required by company-data routes, not by this session cookie.
+  const identity = await getAuthenticatedSession({
     requireMfa: false,
     requireLoginSession: false,
     accessToken: getBearerAccessToken(request),

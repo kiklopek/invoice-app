@@ -24,6 +24,13 @@ beforeEach(() => {
 });
 
 describe("verified identity and isolation", () => {
+  it("allows a verified founder's session while denying access to company data before onboarding", async () => {
+    mocks.userFrom.mockReturnValue(fakeChain({ data: null, error: null }));
+    const session = await getAuthenticatedSession();
+    expect(session).toMatchObject({ user: { id: user.id }, sessionId: "session-a", boundMembership: null });
+    expect(await getRequestIdentity()).toBeNull();
+  });
+
   it("rejects unverified claims without calling the user or membership endpoints", async () => {
     mocks.claims.mockResolvedValue({ data: null, error: new Error("invalid signature") });
     expect(await getRequestIdentity()).toBeNull();
