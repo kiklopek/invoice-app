@@ -27,6 +27,9 @@ try {
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(new URL(path, base).href, { waitUntil: "networkidle" });
+      assert.equal(await page.locator('link[rel="icon"][type="image/png"]').getAttribute("href"), "/icon.png");
+      assert.equal(await page.locator('link[rel="icon"][type="image/png"]').getAttribute("sizes"), "96x96");
+      assert.equal(await page.locator('link[rel="apple-touch-icon"]').getAttribute("href"), "/apple-icon.png");
       assert.equal(await page.locator("h1").count(), 1, path);
       assert.equal(new URL(await page.locator('link[rel="canonical"]').getAttribute("href")).href, `${origin}${path}`);
       assert.equal(await page.locator('meta[property="og:locale"]').getAttribute("content"), locale === "cs" ? "cs_CZ" : "en_GB");

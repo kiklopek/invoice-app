@@ -6,8 +6,8 @@ import sharp from "sharp";
 const source = await readFile(new URL("../public/brand/splatno-favicon.svg", import.meta.url));
 const render = (size) => sharp(source, { density: 384 }).resize(size, size).png().toBuffer();
 
-await writeFile(new URL("../src/app/icon.png", import.meta.url), await render(96));
-await writeFile(new URL("../src/app/apple-icon.png", import.meta.url), await render(180));
+await writeFile(new URL("../public/icon.png", import.meta.url), await render(96));
+await writeFile(new URL("../public/apple-icon.png", import.meta.url), await render(180));
 
 // ICO entries contain PNG images, supported by modern browsers and Windows.
 const sizes = [16, 32, 48, 96];
@@ -26,5 +26,5 @@ for (const [index, size] of sizes.entries()) {
   directory.writeUInt32LE(offset, entry + 12);
   offset += images[index].length;
 }
-await writeFile(new URL("../src/app/favicon.ico", import.meta.url), Buffer.concat([directory, ...images]));
+await writeFile(new URL("../public/favicon.ico", import.meta.url), Buffer.concat([directory, ...images]));
 console.log("Generated Splatno favicon (16/32/48/96 px), icon (96 px) and Apple icon (180 px).");
