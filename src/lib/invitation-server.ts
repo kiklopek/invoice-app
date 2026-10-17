@@ -49,11 +49,12 @@ export async function issueAndSendInvitation(identity: RequestIdentity, memberId
 
   const { data: organization } = await identity.service
     .from("organizations")
-    .select("name")
+    .select("name, logo_path")
     .eq("id", identity.membership.organization_id)
     .single();
   const email = renderInvitationEmail({
     companyName: organization?.name?.trim() || "Vaše firma",
+    companyLogo: organization?.logo_path ?? null,
     inviterName: displayName(identity.user.user_metadata.full_name, identity.membership.email),
     role: issued.role,
     url: invitationUrl(getPasswordRecoveryBaseUrl(), token),

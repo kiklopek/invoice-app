@@ -1,4 +1,5 @@
 import type { ReminderStage } from "@/types/invoice";
+import { companyEmailLogoSource, renderCompanyEmailLogo } from "@/lib/company-branding";
 import { invoicePaymentAccount } from "@/lib/bank-accounts";
 import type { ReminderTemplateValues } from "@/lib/reminder-template";
 
@@ -18,14 +19,9 @@ export type ReminderEmailCompany = {
 };
 
 // Logo v upomínce je logo firmy, která upomínku posílá (organizations.
-// logo_path). Firma bez loga posílá upomínku bez loga -- nikdy s cizím.
+// logo_path). Firma bez loga používá značku Splatno.
 export function reminderLogoUrl(logoPath: string | null | undefined, baseUrl: string | null | undefined) {
-  if (!logoPath || !baseUrl) return null;
-  try {
-    return new URL(logoPath, baseUrl).toString();
-  } catch {
-    return null;
-  }
+  return companyEmailLogoSource(logoPath, baseUrl ?? null);
 }
 
 type RenderReminderEmailParams = {
@@ -88,18 +84,6 @@ function escapeHtml(value: string) {
   })[character] ?? character);
 }
 
-function safeLogoUrl(value?: string | null) {
-  const normalized = value?.trim();
-  if (!normalized) return null;
-  if (normalized.startsWith("/")) return normalized;
-  try {
-    const parsed = new URL(normalized);
-    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
 // Do e-mailu smí jen inline příloha nebo PNG vložené přímo, nikdy odkaz ven
 // ani nic, co by vystoupilo z atributu src.
 function safeQrSrc(value?: string | null) {
@@ -149,7 +133,6 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   // (retried next cron run, or visible in the manual-send error) instead of
   // ever sending an e-mail branded as the wrong company.
   if (!companyName) throw new Error("Chybí název firmy pro upomínkový e-mail.");
-  const logoUrl = safeLogoUrl(params.logoUrl);
   const replyAddress = safeReplyAddress(params.replyTo) ?? safeReplyAddress(params.company.email);
   // Účet v měně faktury; nikdy korunový účet u faktury v jiné měně. Uložený
   // účet faktury má přednost, pokud je pořád účtem firmy.
@@ -175,12 +158,7 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   const replyHref = replyAddress
     ? `mailto:${replyAddress}?subject=${encodeURIComponent(`Faktura ${params.values.invoice_number}`)}`
     : null;
-  // Same reasoning as the companyName guard above: when no logo image is
-  // configured, the text fallback must show THIS company's real name, not a
-  // hardcoded brand that only happens to be correct for a single tenant.
-  const logo = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" width="91" height="85" alt="${escapeHtml(companyName)}" style="display:block;width:91px;height:85px;border:0;outline:none;text-decoration:none;object-fit:contain;">`
-    : `<div style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;line-height:1.3;">${escapeHtml(companyName)}</div>`;
+  const logo = renderCompanyEmailLogo(params.logoUrl ?? params.company.logo_path, companyName);
   const cta = replyHref ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0;">
       <tr><td>

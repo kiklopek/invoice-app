@@ -8,9 +8,15 @@ import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import { apiFetch } from "@/lib/api-client";
 import type { CustomerSummary, CustomersPageData } from "@/lib/customers-page-data";
+import { createTextMatcher, searchFields } from "@/lib/text-search";
 
-const money = (value: number, currency = "CZK") =>
-  new Intl.NumberFormat("cs-CZ", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+const moneyFormatter = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
+function CustomerAmount({ value }: { value: number }) {
+  const parts = moneyFormatter.formatToParts(value);
+  const number = parts.filter((part) => part.type !== "currency").map((part) => part.value).join("").trim();
+  const currency = parts.find((part) => part.type === "currency")?.value;
+  return <span className="customer-amount"><span className="customer-amount-number">{number}</span>{" "}<span>{currency}</span></span>;
+}
 const date = (value: string | null) =>
   value ? new Intl.DateTimeFormat("cs-CZ").format(new Date(`${value}T12:00:00`)) : "—";
 
@@ -94,15 +100,13 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
       : { key, dir: key === "name" ? "asc" : "desc" }));
   }
 
+  const customerSearchIndex = useMemo(() => customers.map((customer) => ({
+    customer,
+    fields: searchFields([customer.name, customer.ico, customer.dic, customer.email, customer.phone, customer.address, customer.notes, customer.reminder_policy_name]),
+  })), [customers]);
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const base = needle
-      ? customers.filter((customer) =>
-          customer.name.toLowerCase().includes(needle)
-          || (customer.ico ?? "").includes(needle)
-          || (customer.email ?? "").toLowerCase().includes(needle)
-          || (customer.phone ?? "").toLowerCase().includes(needle))
-      : customers;
+    const matches = createTextMatcher(query);
+    const base = customerSearchIndex.filter(({ fields }) => matches(fields)).map(({ customer }) => customer);
     const factor = sort.dir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
       const left = a[sort.key];
@@ -110,7 +114,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
       if (typeof left === "number" && typeof right === "number") return factor * (left - right);
       return factor * String(left ?? "").localeCompare(String(right ?? ""), "cs");
     });
-  }, [customers, query, sort]);
+  }, [customerSearchIndex, query, sort]);
   function startEditingPhone(customer: CustomerSummary) {
     setEditingEmailId(null);
     setEditingPhoneId(customer.id);
@@ -189,7 +193,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Název, IČO, e-mail nebo telefon"
+              placeholder="Název, IČO, DIČ, kontakt, adresa nebo poznámka"
               enterKeyHint="search"
             />
             {query && (
@@ -235,14 +239,21 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
               </thead>
               <tbody>
                 {filtered.map((customer: CustomerSummary) => (
-                  <tr key={customer.id} ref={customer.id === highlightId ? highlightRef : null} className={customer.id === highlightId ? "customer-row-highlight" : ""}>
+                  <tr
+                    key={customer.id}
+                    ref={customer.id === highlightId ? highlightRef : null}
+                    className={customer.id === highlightId ? "customer-row-highlight" : ""}
+                  >
                     <td data-label="Zákazník" className="customer-identity-cell">
                       <div className="customer-identity">
                         <span className="customer-avatar" aria-hidden="true">{customer.name.trim().charAt(0).toUpperCase() || "?"}</span>
                         <span>
                           <strong>{customer.name}</strong>
-                          <small>{customer.ico ? `IČO ${customer.ico}` : "IČO neuvedeno"}{customer.dic ? ` · DIČ ${customer.dic}` : ""}</small>
-                          {customer.address && <small>{customer.address} · ARES</small>}
+                          <small className="customer-tax-ids">
+                            <span><span className="customer-tax-label">IČO</span> {customer.ico || "neuvedeno"}</span>
+                            {customer.dic ? <span><span className="customer-tax-label">DIČ</span> {customer.dic}</span> : null}
+                          </small>
+                          {customer.address && <small className="customer-address">{customer.address}</small>}
                         </span>
                       </div>
                     </td>
@@ -270,9 +281,14 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                             <small>Změní se i příjemce upomínek u neuhrazených faktur.</small>
                             {emailError && <small className="red-text" role="alert">{emailError}</small>}
                           </form>
+                        ) : customer.email ? (
+                          <div className="customer-contact-line">
+                            <span className="customer-contact-value">{customer.email}</span>
+                            {canManage ? <button type="button" className="customer-contact-edit" onClick={() => startEditingEmail(customer)} disabled={savingEmail || savingPhone} aria-label={`Upravit e-mail zákazníka ${customer.name}`}><Icon name="edit" /></button> : null}
+                          </div>
                         ) : (
                           <button type="button" className="customer-email-display" onClick={() => startEditingEmail(customer)} disabled={!canManage || savingEmail || savingPhone} aria-label={`Upravit e-mail zákazníka ${customer.name}`}>
-                            {customer.email || (canManage ? "+ Přidat e-mail" : "E-mail neuveden")}
+                            <span className="customer-contact-value">{customer.email || (canManage ? "+ Přidat e-mail" : "E-mail neuveden")}</span>
                             {canManage && <Icon name="edit" />}
                           </button>
                         )}
@@ -292,8 +308,13 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                             />
                             <button type="button" onClick={() => savePhone(customer.id)} disabled={savingPhone} aria-label="Uložit telefon"><Icon name="check" /></button>
                           </span>
+                        ) : customer.phone ? (
+                          <div className="customer-contact-line">
+                            <span className="customer-contact-value">{customer.phone}</span>
+                            {canManage ? <button type="button" className="customer-contact-edit" onClick={() => startEditingPhone(customer)} disabled={savingEmail || savingPhone} aria-label={`Upravit telefon zákazníka ${customer.name}`}><Icon name="edit" /></button> : null}
+                          </div>
                         ) : (
-                          <button type="button" className="customer-phone-display" onClick={() => canManage && startEditingPhone(customer)} disabled={!canManage || savingEmail || savingPhone}>
+                          <button type="button" className={`customer-phone-display${!customer.phone ? " is-empty" : ""}`} onClick={() => canManage && startEditingPhone(customer)} disabled={!canManage || savingEmail || savingPhone}>
                             {customer.phone || (canManage ? "+ Přidat telefon" : "Telefon neuveden")}
                           </button>
                         )}
@@ -301,15 +322,15 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                       </div>
                     </td>
                     <td data-label="Fakturace" className="customer-billing-cell">
-                      <Link href={`/invoices?q=${encodeURIComponent(customer.name)}`} className="customer-invoices-link">
-                        <strong>{money(customer.total_invoiced)}</strong>
+                      <Link href={`/invoices?q=${encodeURIComponent(customer.name)}`} className="customer-invoices-link" aria-label={`Zobrazit faktury zákazníka ${customer.name}`}>
+                        <strong><CustomerAmount value={customer.total_invoiced} /></strong>
                         <small>{customer.invoice_count} {customer.invoice_count === 1 ? "faktura" : customer.invoice_count > 1 && customer.invoice_count < 5 ? "faktury" : "faktur"} →</small>
                       </Link>
                     </td>
                     <td data-label="Neuhrazeno" className="customer-outstanding-cell">
                       {customer.outstanding > 0 ? (
                         <span className={`outstanding-badge ${customer.overdue_amount > 0 ? "overdue" : ""}`}>
-                          {money(customer.outstanding)}
+                          <CustomerAmount value={customer.outstanding} />
                         </span>
                       ) : (
                         <span className="customer-paid-state"><Icon name="check" /> Uhrazeno</span>

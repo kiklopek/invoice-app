@@ -330,8 +330,10 @@ export function InvoicesClient({
               <span>Hledat</span>
               <input
                 value={query}
+                maxLength={100}
                 onChange={(e) => changeFilter(() => setQuery(e.target.value))}
-                placeholder="Číslo faktury, odběratel, IČO, e-mail nebo VS"
+                placeholder="Číslo faktury, odběratel, IČO, DIČ, e-mail, VS nebo poznámka"
+                aria-describedby="invoice-search-hint"
               />
             </label>
             <label>
@@ -464,6 +466,7 @@ export function InvoicesClient({
               {exporting ? "Připravuji…" : "Export do Excelu"}
             </button>
           </div>
+          <small id="invoice-search-hint" className="search-hint">Bez diakritiky, i podle více slov v libovolném pořadí.</small>
         </section>
       </MobileDisclosure>
       <section className="page-panel data-panel">

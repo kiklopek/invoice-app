@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
+import { renderCompanyEmailLogo } from "@/lib/company-branding";
 import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 
 const DEFAULT_APP_URL = "https://www.splatno.cz";
@@ -37,12 +38,13 @@ export async function sendPasswordRecoveryEmail(params: { email: string; recover
 
   const resend = new Resend(configuration.apiKey);
   const safeUrl = escapeHtml(params.recoveryUrl);
+  const logo = renderCompanyEmailLogo(null, "Splatno", getPasswordRecoveryBaseUrl());
   const minuteBucket = Math.floor(Date.now() / 60_000);
   const { error } = await resend.emails.send({
     from: configuration.from,
     to: params.email,
     subject: "Obnovení hesla Splatno.cz",
-    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#17251d"><h1 style="font-size:24px">Obnovení hesla</h1><p>Obdrželi jsme žádost o nastavení nového hesla do aplikace Splatno.cz.</p><p style="margin:28px 0"><a href="${safeUrl}" style="display:inline-block;background:#236044;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">Nastavit nové heslo</a></p><p>Odkaz je jednorázový. Pokud jste o změnu hesla nežádali, tento e-mail ignorujte.</p></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#17251d">${logo}<h1 style="font-size:24px">Obnovení hesla</h1><p>Obdrželi jsme žádost o nastavení nového hesla do aplikace Splatno.cz.</p><p style="margin:28px 0"><a href="${safeUrl}" style="display:inline-block;background:#236044;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-weight:700">Nastavit nové heslo</a></p><p>Odkaz je jednorázový. Pokud jste o změnu hesla nežádali, tento e-mail ignorujte.</p></div>`,
     text: `Obnovení hesla Splatno.cz\n\nNové heslo nastavíte pomocí tohoto jednorázového odkazu:\n${params.recoveryUrl}\n\nPokud jste o změnu hesla nežádali, tento e-mail ignorujte.`,
   }, { idempotencyKey: `password-recovery/${params.userId}/${minuteBucket}` });
 

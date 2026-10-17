@@ -155,3 +155,13 @@
 .page.page :global(.gpc-safety-card li)::before { background: #ffffff12; border-color: #8eb69d; color: #e5f1c9; }
 .page.page :global(.payments-switch-archive) { background: #edf4e9; border-color: #a9c3ad; }
 .page.page :global(.payments-switch-icon) { background: #235c42; color: #fff; }
+
+/* Loaded statements use the available workspace instead of the upload hero. */
+.page.page.reviewPage > .stage { max-width: none; height: auto; min-height: 0; margin-block: 0; flex: 1; }
+.page.page.reviewPage :global(.gpc-panel) { min-width: 0; }
+.page.page.reviewPage :global(.gpc-file-summary) { position: sticky; top: 0; z-index: 3; background: #f4f8f4; }
+.page.page.reviewPage :global(.gpc-preview) { scroll-margin-top: 90px; }
+@media (min-width: 1024px) {
+  .page.page.reviewPage { padding-top: 16px; padding-bottom: 16px; overflow: hidden; }
+  .page.page.reviewPage :global(.gpc-panel) { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; }
+}

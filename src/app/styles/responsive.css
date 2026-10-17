@@ -523,12 +523,12 @@
 }
 
 @media screen and (min-width: 1280px) {
-  .customers-list-table th:nth-child(1) { width: 24%; }
-  .customers-list-table th:nth-child(2) { width: 22%; }
+  .customers-list-table th:nth-child(1) { width: 28%; }
+  .customers-list-table th:nth-child(2) { width: 18%; }
   .customers-list-table th:nth-child(3),
-  .customers-list-table th:nth-child(4) { width: 15%; }
-  .customers-list-table th:nth-child(5) { width: 13%; }
-  .customers-list-table th:nth-child(6) { width: 11%; }
+  .customers-list-table th:nth-child(4) { width: 16%; }
+  .customers-list-table th:nth-child(5) { width: 12%; }
+  .customers-list-table th:nth-child(6) { width: 10%; }
   .customers-list-table .customer-contact-cell { display: table-cell; min-width: 0; }
   .customers-list-table .customer-email-display { max-width: 100%; white-space: normal; }
 }
@@ -1265,7 +1265,7 @@
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    font-size: 15px;
+    font-size: 22px;
   }
 
   .customers-list-table .customer-identity {
@@ -1328,6 +1328,13 @@
     font-size: 16px;
     font-variant-numeric: tabular-nums;
   }
+
+  .customers-list-table .customer-billing-cell .customer-amount,
+  .customers-list-table .outstanding-badge .customer-amount {
+    font-size: clamp(12px, 3.6vw, 16px);
+  }
+
+  .customers-list-table .customer-billing-cell .customer-amount { justify-content: flex-start; }
 
   .customers-list-table .customer-billing-cell small {
     margin-top: 5px;

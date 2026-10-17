@@ -12,6 +12,9 @@ import { parseReminderCcInput } from "@/lib/reminder-recipients";
 import type { ReminderTemplateSettings } from "@/lib/reminder-page-data";
 import type { ReminderStage } from "@/types/invoice";
 import styles from "./email-templates-section.module.css";
+import { CompanyLogoEditor } from "./company-logo-editor";
+import { useAccessProfile } from "@/lib/use-access-role";
+import { canManageMembers } from "@/lib/role-access";
 
 type Template = ReminderTemplateSettings;
 
@@ -67,6 +70,7 @@ export function EmailTemplatesSection({
   onRecommended,
   onSendTest,
   onSave,
+  onLogoChange,
 }: {
   templates: Record<ReminderStage, Template>;
   ccInputs: Record<ReminderStage, string>;
@@ -82,7 +86,9 @@ export function EmailTemplatesSection({
   onRecommended: () => void;
   onSendTest: () => void;
   onSave: () => void;
+  onLogoChange: (src: string | null) => void;
 }) {
+  const profile = useAccessProfile();
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
   const template = templates[activeStage];
@@ -248,6 +254,8 @@ export function EmailTemplatesSection({
               </label>
             </div>
           </details>
+
+          {company ? <CompanyLogoEditor src={company.logo_path ?? null} companyName={company.name} canEdit={canManageMembers(profile?.role ?? null)} onSaved={onLogoChange} /> : null}
 
           <div className={styles.actions}>
             <button type="button" className="btn secondary" disabled={sendingTest || !canEdit} onClick={onSendTest}>

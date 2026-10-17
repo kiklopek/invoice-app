@@ -78,9 +78,13 @@ function ccInputsFromTemplates(templates: Record<ReminderStage, Template>) {
 
 export function RemindersClient({
   initialData,
+  view = "automation",
 }: {
   initialData: ReminderPageData;
+  view?: "automation" | "templates";
 }) {
+  const templateView = view === "templates";
+  const draftKey = `splatno:reminders-draft:${view}`;
   const initialPolicy =
     initialData.policies.find(
       (policy) => policy.is_default && !policy.archived_at,
@@ -156,7 +160,15 @@ export function RemindersClient({
     policies.find((policy) => policy.id === selectedPolicyId) ?? null;
   useUnsavedChanges(policyDirty || globalDirty);
   useEffect(() => {
-    const raw = sessionStorage.getItem("splatno:reminders-draft");
+    const legacyDraft = sessionStorage.getItem("splatno:reminders-draft");
+    if (legacyDraft) {
+      for (const section of ["automation", "templates"]) {
+        const key = `splatno:reminders-draft:${section}`;
+        if (!sessionStorage.getItem(key)) sessionStorage.setItem(key, legacyDraft);
+      }
+      sessionStorage.removeItem("splatno:reminders-draft");
+    }
+    const raw = sessionStorage.getItem(draftKey);
     if (!raw) return;
     try {
       const draft = JSON.parse(raw) as {
@@ -169,7 +181,7 @@ export function RemindersClient({
         automationActive: boolean;
       };
       if (draft.baseRevision !== (initialData.settings.last_change?.id ?? null)) {
-        sessionStorage.removeItem("splatno:reminders-draft");
+        sessionStorage.removeItem(draftKey);
         setMessage("Starší koncept upomínek nebyl obnoven, protože nastavení mezitím změnil jiný uživatel.");
         return;
       }
@@ -178,24 +190,27 @@ export function RemindersClient({
           "Byl nalezen neuložený koncept upomínek. Chcete jej obnovit?",
         )
       ) {
-        setRules(draft.rules);
-        setPolicyName(draft.policyName);
-        setSelectedPolicyId(draft.selectedPolicyId);
-        setTemplates(draft.templates);
-        setCcInputs(draft.ccInputs);
-        setAutomationActive(draft.automationActive);
-        setPolicyDirty(true);
+        if (templateView) {
+          setTemplates(draft.templates);
+          setCcInputs(draft.ccInputs);
+        } else {
+          setRules(draft.rules);
+          setPolicyName(draft.policyName);
+          setSelectedPolicyId(draft.selectedPolicyId);
+          setAutomationActive(draft.automationActive);
+          setPolicyDirty(true);
+        }
         setGlobalDirty(true);
         setMessage("Neuložený koncept upomínek byl obnoven.");
-      } else sessionStorage.removeItem("splatno:reminders-draft");
+      } else sessionStorage.removeItem(draftKey);
     } catch {
-      sessionStorage.removeItem("splatno:reminders-draft");
+      sessionStorage.removeItem(draftKey);
     }
-  }, [initialData.settings.last_change?.id]);
+  }, [draftKey, templateView, initialData.settings.last_change?.id]);
   useEffect(() => {
     if (policyDirty || globalDirty)
       sessionStorage.setItem(
-        "splatno:reminders-draft",
+        draftKey,
         JSON.stringify({
           baseRevision: lastChange?.id ?? null,
           rules,
@@ -206,8 +221,9 @@ export function RemindersClient({
           automationActive,
         }),
       );
-    else sessionStorage.removeItem("splatno:reminders-draft");
+    else sessionStorage.removeItem(draftKey);
   }, [
+    draftKey,
     automationActive,
     ccInputs,
     globalDirty,
@@ -471,9 +487,11 @@ export function RemindersClient({
         { ...templates[stage], cc: parseReminderCcInput(ccInputs[stage]) },
       ]),
     );
+    const baseline = (refreshedData ?? initialData).settings;
     try {
       const data = await apiFetch<{
         active: boolean;
+        days: number[];
         templates: Record<ReminderStage, Template>;
         last_change?: SettingsChange | null;
       }>("/api/settings/reminders", {
@@ -483,9 +501,9 @@ export function RemindersClient({
           "x-idempotency-key": `reminders-${lastChange?.id ?? "initial"}`,
         },
         body: JSON.stringify({
-          active: automationActive,
-          days: defaultDays,
-          templates: templatesToSave,
+          active: templateView ? baseline.active : automationActive,
+          days: templateView ? baseline.days : defaultDays,
+          templates: templateView ? templatesToSave : baseline.templates,
           revision: lastChange?.id ?? null,
         }),
       });
@@ -494,16 +512,20 @@ export function RemindersClient({
       setCcInputs(ccInputsFromTemplates(data.templates));
       setLastChange(data.last_change ?? lastChange);
       setGlobalDirty(false);
-      if (!policyDirty) sessionStorage.removeItem("splatno:reminders-draft");
+      await refreshPage((current) => ({
+        ...(current ?? initialData),
+        settings: { active: data.active, days: data.days, templates: data.templates, last_change: data.last_change ?? lastChange },
+      }), { revalidate: false });
+      if (!policyDirty) sessionStorage.removeItem(draftKey);
       if (!data.active)
         setOperations((current) => ({ ...current, upcoming: [] }));
-      else {
+      else if (!templateView) {
         const overview = await apiFetch<ReminderOperations>("/api/reminders");
         setOperations(overview);
       }
       setMessage(
-        data.active
-          ? "Společné nastavení a šablony jsou uložené."
+        templateView ? "E-mailové šablony jsou uložené." : data.active
+          ? "Nastavení automatu je uložené."
           : "Automatické odesílání je bezpečně pozastavené.",
       );
     } catch (cause) {
@@ -605,18 +627,13 @@ export function RemindersClient({
     <AppFrame>
       <header className="section-header reminders-hero">
         <div className="reminders-hero-copy">
-          <p>AUTOMATIZACE</p>
-          <h1>Upomínky</h1>
+          <p>{templateView ? "VZHLED A TEXTY E-MAILŮ" : "AUTOMATIZACE"}</p>
+          <h1>{templateView ? "E-mailová šablona" : "Upomínky"}</h1>
           <span>
-            Nastavte srozumitelný postup, podle kterého aplikace kontaktuje
-            odběratele.
+            {templateView ? "Upravte texty a vzhled e-mailů, které dostanou vaši odběratelé." : "Nastavte srozumitelný postup, podle kterého aplikace kontaktuje odběratele."}
           </span>
         </div>
-        <div className="section-actions reminders-hero-side">
-          <span className={`reminders-hero-status ${automationActive ? "is-active" : "is-paused"}`}>
-            <i aria-hidden="true" />
-            {automationActive ? "Automat je aktivní" : "Automat je pozastavený"}
-          </span>
+        {!templateView && <div className="section-actions reminders-hero-side">
           {operations.can_run && (
             <button
               className="btn secondary reminders-hero-run"
@@ -633,12 +650,11 @@ export function RemindersClient({
               )}
             </button>
           )}
-        </div>
+        </div>}
       </header>
       {!loading && !operations.can_run && (
         <p className="read-only-note">
-          Máte přístup pouze pro čtení. Pravidla může změnit nebo kontrolu
-          spustit účetní či administrátor.
+          {templateView ? "Máte přístup pouze pro čtení. Šablony může měnit účetní či administrátor." : "Máte přístup pouze pro čtení. Pravidla může změnit nebo kontrolu spustit účetní či administrátor."}
         </p>
       )}
       {message && (
@@ -655,6 +671,7 @@ export function RemindersClient({
           {message}
         </p>
       )}
+      {!templateView && <>
       <section
         className={`page-panel automation-switch reminders-automation-card ${automationActive ? "active" : "paused"}`}
       >
@@ -947,25 +964,21 @@ export function RemindersClient({
           </aside>
         </MobileDisclosure>
       </div>
-      {templates && (
-        <details open className="page-panel reminder-section-disclosure reminder-email-settings">
-          <summary>
-            <span>
-              <strong>E-mailová šablona</strong>
-              <small>
-                Co odběratel uvidí v e-mailu. Platí pro všechny kategorie.
-              </small>
-            </span>
-            <span className="reminder-disclosure-meta">
-              <ChevronDown className="reminder-disclosure-chevron" />
-            </span>
-          </summary>
-          <div className="reminder-disclosure-body">
+      </>}
+      {templateView && templates && (
+        <section className="page-panel reminder-email-settings" aria-label="Úprava e-mailových šablon">
             <EmailTemplatesSection
               templates={templates}
               ccInputs={ccInputs}
               activeStage={activeStage}
               company={company}
+              onLogoChange={(logoPath) => {
+                setCompany((current) => current ? { ...current, logo_path: logoPath } : current);
+                void refreshPage((current) => current ? {
+                  ...current,
+                  company: current.company ? { ...current.company, logo_path: logoPath } : null,
+                } : current, { revalidate: false });
+              }}
               canEdit={operations.can_run}
               busy={saving || loading || runningNow}
               saving={saving}
@@ -980,9 +993,9 @@ export function RemindersClient({
               onSendTest={sendTest}
               onSave={save}
             />
-          </div>
-        </details>
+        </section>
       )}
+      {!templateView && <>
       <details className={`page-panel reminder-section-disclosure ${operations.failed.length || automationRunProblem ? "has-alert" : ""}`}>
         <summary>
           <span>
@@ -1109,6 +1122,7 @@ export function RemindersClient({
         </div>
       </details>
       <EmailSuppressionsPanel />
+      </>}
     </AppFrame>
   );
 }

@@ -68,6 +68,28 @@ const send = async (extra: Record<string, unknown> = {}) => {
 };
 
 describe("sendReminderEmail", () => {
+  it("brands password recovery with the same default PNG", async () => {
+    process.env.APP_BASE_URL = "https://app.example.cz";
+    process.env.AUTH_EMAIL_DELIVERY_ENABLED = "true";
+    const { sendPasswordRecoveryEmail } = await import("./password-recovery-server");
+    await sendPasswordRecoveryEmail({ email: "user@example.com", recoveryUrl: "https://app.example.cz/reset-password", userId: "fixture" });
+    expect(sent[0].payload.html).toContain('src="https://app.example.cz/brand/splatno-mark.png"');
+    expect(sent[0].payload.html).toContain("https://app.example.cz/reset-password");
+  });
+  it("sends the Splatno fallback logo as an absolute PNG URL", async () => {
+    process.env.APP_BASE_URL = "https://app.example.cz";
+    await send();
+    expect(sent[0].payload.html).toContain('src="https://app.example.cz/brand/splatno-mark.png"');
+    expect(sent[0].payload.html).toContain('alt="Splatno"');
+    expect(sent[0].payload.subject).toContain(company.name);
+  });
+
+  it("preserves the organization's versioned logo in the outgoing email", async () => {
+    process.env.APP_BASE_URL = "https://app.example.cz";
+    await send({ company: { ...company, logo_path: "/logo/company?v=42" } });
+    expect(sent[0].payload.html).toContain('src="https://app.example.cz/logo/company?v=42"');
+    expect(sent[0].payload.html).not.toContain("splatno-mark.png");
+  });
   it("sends to the testing mailbox only when enabled, retaining other issuer blocks", async () => {
     const ownCompany = { ...company, email: "info@hlavica.cz" };
     delete process.env.REMINDER_TEST_RECIPIENTS;

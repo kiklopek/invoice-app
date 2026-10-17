@@ -190,14 +190,12 @@ describe("mobile application layout", () => {
     expect(remindersPage).toContain("reminders-automation-card");
     expect(remindersPage).toContain("reminder-stat-card is-scheduled");
     expect(remindersPage).toContain("reminders-process-card");
-    expect(remindersPage.match(/<details\s/g)).toHaveLength(2);
+    expect(remindersPage.match(/<details\s/g)).toHaveLength(1);
     expect(remindersPage).toContain("Provozní přehled a historie");
-    // E-mailová šablona je nahoře a rozbalená, protože se s ní pracuje nejčastěji;
-    // provozní přehled zůstává sbalený.
-    expect(remindersPage).toContain("E-mailová šablona");
-    expect(remindersPage.indexOf("E-mailová šablona")).toBeLessThan(remindersPage.indexOf("Provozní přehled a historie"));
-    expect(remindersPage).toMatch(/<details\s+open\s+className="[^"]*reminder-email-settings/);
-    expect(remindersPage.match(/<details[^>]*\sopen(?:=|\s|>)/g)).toHaveLength(1);
+    // Editor má vlastní stránku; provozní přehled zůstává sbalený v Upomínkách.
+    expect(source("src/app/(workspace)/settings/email-template/page.tsx")).toContain('view="templates"');
+    expect(remindersPage).toContain('templateView && templates');
+    expect(remindersPage.match(/<details[^>]*\sopen(?:=|\s|>)/g)).toBeNull();
     expect(css).toContain(".reminder-section-disclosure > summary:focus-visible");
     expect(css).toContain(".reminder-operations.reminder-quick-stats");
     // Záhlaví Upomínek a Zákazníků je stejné jako u Reportů a Archivu:

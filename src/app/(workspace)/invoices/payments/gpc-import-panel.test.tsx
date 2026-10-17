@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ fetch:vi.fn(),confirm:vi.fn() }));
 vi.mock("@/lib/api-client",() => ({ apiFetch:mocks.fetch,ApiRequestError:class extends Error {} }));
 vi.mock("@/lib/confirm-action",() => ({ confirmAction:mocks.confirm }));
+vi.mock("@/components/layout/app-shell", () => ({ AppFrame: ({ children, className }: { children: React.ReactNode; className?: string }) => React.createElement("main", { className }, children) }));
+vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => React.createElement("a", { href }, children) }));
 import { GpcImportPanel } from "./gpc-import-panel";
+import { PaymentsClient } from "./payments-client";
 const entry = { id:"entry",line_number:1,fingerprint:"fingerprint",disposition:"accepted",reason:null,amount:100,currency:"CZK",booked_on:"2026-10-03",variable_symbol:null,counterparty_name:"Customer",counterparty_account:null,counterparty_account_verified:false,proposal_kind:"manual",proposal_confidence:"review",proposal_reason:null,proposed_invoice_ids:[] };
 const preview = { import:{ id:"statement",revision:1,duplicate:false,status:"review" },account_mismatch:false,statement_account:null,expected_account:null,totals:{ accepted:1,ignored:0,errors:0 },entries:[entry],proposal_invoices:[],total_entries:1,request_id:"test" };
 const detail = { ...preview,progress:{ booked:0,errors:0,remaining:1 },match_reasons:{},allocations:[],total:1 };
@@ -36,7 +39,20 @@ describe("bank import completion",() => {
     host=document.createElement("div");document.body.append(host);root=createRoot(host);
     await act(async () => root.render(<GpcImportPanel invoices={[]} canManage onCommitted={committed}/>));
   });
-  afterEach(async () => { await act(async () => root.unmount());host.remove(); });
+  afterEach(async () => { await act(async () => root.unmount());host.remove();vi.restoreAllMocks(); });
+  it("opens the review workspace without the upload hero and restores it when changing the file", async () => {
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    await act(async () => root.render(<PaymentsClient initialData={{ payments: [], open_invoices: [], can_manage: true, gpc_enabled: true, runtime_mode: "production-database" }} />));
+    expect(host.querySelector(".payments-hero")).not.toBeNull();
+    await uploadFiles();
+    expect(host.querySelector(".payments-hero")).toBeNull();
+    expect(host.querySelector(".gpc-preview")).not.toBeNull();
+    expect(host.querySelector("#gpc-statement-title")?.textContent).toBe("test.gpc");
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0 });
+    await click("Nahrát jiný soubor");
+    expect(host.querySelector(".payments-hero")).not.toBeNull();
+    expect(host.querySelector(".gpc-preview")).toBeNull();
+  });
   it("returns to an empty upload screen only after successful completion",async () => {
     await uploadFiles();await click("Uložit kontrolu a potvrdit import");
     expect(host.querySelector('input[type="file"]')).not.toBeNull();

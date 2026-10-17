@@ -5,5 +5,5 @@ import { RemindersClient } from "./reminders-client";
 export default async function RemindersPage() {
   const identity = await getCachedRequestIdentity();
   const initialData = await loadReminderPageData(identity);
-  return <RemindersClient initialData={initialData} />;
+  return <RemindersClient key="automation" initialData={initialData} />;
 }

@@ -254,7 +254,7 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
       id: `onboarding-${field}`,
       maxLength: field === "reminder_reply_to" ? 254 : 1280,
       "aria-invalid": Boolean(fieldErrors[field]),
-      "aria-describedby": fieldErrors[field] ? `onboarding-${field}-error` : undefined,
+      "aria-describedby": [field === "reminder_reply_to" ? "onboarding-reply-to-hint" : "", fieldErrors[field] ? `onboarding-${field}-error` : ""].filter(Boolean).join(" ") || undefined,
       onBlur: () => {
         const problem = validateOnboardingReminders(reminders).find((item) => item.field === field);
         setFieldErrors((current) => ({ ...current, [field]: problem?.message ?? "" }));
@@ -364,18 +364,25 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
       const problems = validateOnboardingReminders(reminders);
       if (problems.length) return showFieldErrors(problems);
     }
+    if (next > step && step === 6 && inviteEmail.trim() && !addInvite()) return;
     setStep(next);
     setReached((current) => (next > current ? next : current));
   }
 
   function addInvite() {
     const email = normalizeEmail(inviteEmail);
-    if (!isValidEmail(email)) return showFieldErrors([{ field: "invite_email", message: "Zadejte platný e-mail kolegy." }]);
-    if (email === normalizeEmail(accountEmail)) return setError("Sebe zvát nemusíte, budete administrátor firmy.");
-    if (invites.some((invite) => invite.email === email)) return setError("Tento e-mail už v seznamu je.");
+    if (!isValidEmail(email)) {
+      showFieldErrors([{ field: "invite_email", message: "Zadejte platný e-mail kolegy." }]);
+      return false;
+    }
+    if (email === normalizeEmail(accountEmail)) { setError("Sebe zvát nemusíte, budete administrátor firmy."); return false; }
+    if (invites.some((invite) => invite.email === email)) { setError("Tento e-mail už v seznamu je."); return false; }
     setError(null);
     setInvites((current) => [...current, { email, role: inviteRole }]);
     setInviteEmail("");
+    setFieldErrors((current) => ({ ...current, invite_email: "" }));
+    document.getElementById("onboarding-invite_email")?.focus();
+    return true;
   }
 
   async function finish() {
@@ -757,8 +764,9 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
                       {fieldErrors.reminder_days ? <p id="onboarding-reminder_days-error" className={styles.fieldError}>{fieldErrors.reminder_days}</p> : null}
                     </fieldset>
                     <label className={styles.field}>
-                      <span className={styles.label}>Odpovědi zákazníků chodí na <small>(prázdné = {company.email || "e-mail firmy"})</small></span>
-                      <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="off" placeholder={company.email || "faktury@firma.cz"} {...reminderInputProps("reminder_reply_to")} value={reminders.replyTo} onChange={(event) => setReminders((current) => ({ ...current, replyTo: event.target.value }))} /></span>
+                      <span className={styles.label}>Jiný e-mail pro odpovědi na upomínky <small>(nepovinné)</small></span>
+                      <span className={styles.control}><Mail /><input type="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" inputMode="email" autoComplete="off" placeholder="Např. ucetni@firma.cz" {...reminderInputProps("reminder_reply_to")} value={reminders.replyTo} onChange={(event) => setReminders((current) => ({ ...current, replyTo: event.target.value }))} /></span>
+                      <p id="onboarding-reply-to-hint" className={styles.hint}>Pokud pole necháte prázdné, odpovědi zákazníků na upomínky přijdou na {company.email || "kontaktní e-mail firmy z kroku Kontakt"}. Vyplňte jen tehdy, pokud mají odpovědi chodit jinam.</p>
                       {fieldErrors.reminder_reply_to ? <p id="onboarding-reminder_reply_to-error" className={styles.fieldError}>{fieldErrors.reminder_reply_to}</p> : null}
                     </label>
                     <label className={styles.field}>
@@ -795,12 +803,12 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
               {step === 6 && (
                 <>
                   <h1 className={styles.title}>Pozvěte kolegy</h1>
-                  <p className={styles.sub}>Každý dostane e-mail s odkazem, nastaví si heslo a hned uvidí vaši firmu. Pozvánky odejdou až po vašem potvrzení na konci.</p>
+                  <p className={styles.sub}>Přidejte všechny kolegy, kteří budou Splatno používat. Každému nastavte roli. Pozvánky odejdou až po vašem potvrzení na konci.</p>
                   <form id="onboarding-step-form" className={styles.form} noValidate onSubmit={(event) => { event.preventDefault(); addInvite(); }}>
                     <div className={styles.inviteRow}>
                       <label className={styles.field}>
                         <span className={styles.label}>E-mail kolegy</span>
-                        <span className={styles.control}><Mail /><input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" autoComplete="off" placeholder="kolega@firma.cz" id="onboarding-invite_email" maxLength={254} aria-invalid={Boolean(fieldErrors.invite_email)} aria-describedby={fieldErrors.invite_email ? "onboarding-invite_email-error" : undefined} onBlur={() => { if (inviteEmail.trim() && !isValidEmail(inviteEmail)) setFieldErrors((current) => ({ ...current, invite_email: "Zadejte platný e-mail kolegy." })); }} value={inviteEmail} onChange={(event) => { setInviteEmail(event.target.value); setFieldErrors((current) => ({ ...current, invite_email: "" })); }} /></span>
+                        <span className={styles.control}><Mail /><input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" autoComplete="off" placeholder="kolega@firma.cz" id="onboarding-invite_email" maxLength={254} aria-invalid={Boolean(fieldErrors.invite_email)} aria-describedby={fieldErrors.invite_email ? "onboarding-invite_email-error" : undefined} onBlur={() => { if (inviteEmail.trim() && !isValidEmail(inviteEmail)) setFieldErrors((current) => ({ ...current, invite_email: "Zadejte platný e-mail kolegy." })); }} value={inviteEmail} onChange={(event) => { setInviteEmail(event.target.value); setError(null); setFieldErrors((current) => ({ ...current, invite_email: "" })); }} /></span>
                         {fieldErrors.invite_email ? <p id="onboarding-invite_email-error" className={styles.fieldError}>{fieldErrors.invite_email}</p> : null}
                       </label>
                       <label className={styles.field}>
@@ -813,8 +821,10 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
                           </select>
                         </span>
                       </label>
-                      <button type="submit" className={styles.addButton}>Přidat</button>
+                      <button type="submit" className={styles.addButton}>Přidat kolegu</button>
                     </div>
+                    <p className={styles.hint}>Po přidání můžete zadat další e-mail a roli. Každý kolega dostane vlastní pozvánku a nastaví si heslo.</p>
+                    <p className={styles.hint} role="status">{invites.length ? `Připraveno k pozvání: ${invites.length} ${invites.length === 1 ? "kolega" : invites.length < 5 ? "kolegové" : "kolegů"}.` : "Zatím jste nepřidali žádného kolegu. Tento krok můžete přeskočit."}</p>
                     {invites.length ? (
                       <ul className={styles.invites}>
                         {invites.map((invite) => (
@@ -929,7 +939,7 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
                   {step === 5 && !logoFile ? "Přeskočit, přidám později" : "Pokračovat"} <ArrowRight />
                 </button>
               ) : step === 6 ? (
-                <button className={styles.primary} type="button" onClick={() => go(7)}>{invites.length ? "Pokračovat" : "Přeskočit, pozvu později"} <ArrowRight /></button>
+                <button className={styles.primary} type="button" onClick={() => go(7)}>{invites.length || inviteEmail.trim() ? "Pokračovat" : "Přeskočit, pozvu později"} <ArrowRight /></button>
               ) : step === 7 ? (
                 <button className={styles.primary} type="button" disabled={submitting} onClick={finish}>
                   {submitting ? "Zakládám firmu…" : "Dokončit nastavení"} <ArrowRight />

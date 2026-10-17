@@ -1,17 +1,12 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
+import { DEFAULT_COMPANY_LOGO } from "@/lib/company-branding";
 
 // Logo firmy, které člověk patří (R8). Logo bere z dat firmy
-// (organizations.logo_path); firma bez loga dostane monogram z názvu.
-// Konkrétní firma se tu nikdy nedosazuje natvrdo.
-
-function monogram(name: string) {
-  const words = name
-    .replace(/\b(s\.?\s?r\.?\s?o\.?|a\.?\s?s\.?|spol\.?|v\.?\s?o\.?\s?s\.?)\b/gi, "")
-    .split(/\s+/)
-    .filter((word) => /[\p{L}\p{N}]/u.test(word));
-  const letters = words.slice(0, 2).map((word) => [...word.replace(/[^\p{L}\p{N}]/gu, "")][0] ?? "");
-  return letters.join("").toUpperCase() || "F";
-}
+// (organizations.logo_path), společné pro administrátora i pozvané členy.
+// Bez vlastního nebo dostupného loga se zobrazí značka Splatno.
 
 export function CompanyLogo({
   src,
@@ -22,24 +17,22 @@ export function CompanyLogo({
   name?: string;
   className?: string;
 }) {
-  if (!src) {
-    return (
-      <span className={`company-monogram ${className}`} role="img" aria-label={`Firma ${name}`}>
-        {monogram(name)}
-      </span>
-    );
-  }
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const companySource = src?.trim() || null;
+  const imageSource = companySource && companySource !== failedSource ? companySource : DEFAULT_COMPANY_LOGO;
+  const usesCompanyLogo = imageSource !== DEFAULT_COMPANY_LOGO;
   return (
     <Image
-      src={src}
+      src={imageSource}
       // Nahrané logo (/logo/<firma>?v=…) se vydává už hotové; optimalizace
       // obrázků by kvůli parametru verze vyžadovala zvláštní povolení.
-      unoptimized={src.startsWith("/logo/")}
-      alt="Logo firmy"
+      unoptimized={imageSource.startsWith("/logo/") || imageSource === DEFAULT_COMPANY_LOGO}
+      alt={usesCompanyLogo ? `Logo firmy ${name}` : "Splatno"}
       width={91}
       height={85}
       className={className}
-      priority
+      preload
+      onError={usesCompanyLogo ? () => setFailedSource(companySource) : undefined}
     />
   );
 }

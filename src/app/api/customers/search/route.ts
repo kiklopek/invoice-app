@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-response";
-import { logError } from "@/lib/structured-log";
+import { logError, requestId } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { canViewFinancialInsights } from "@/lib/role-access";
-import { customerSearchFilter, sanitizeCustomerSearch } from "@/lib/customer-search-query";
+import { legacyCustomerSearchFilter, parseCustomerSearchQuery } from "@/lib/customer-search-query";
 
 export async function GET(request: Request) {
   const identity = await getRequestIdentity();
@@ -11,22 +11,29 @@ export async function GET(request: Request) {
   if (!canViewFinancialInsights(identity.membership.role))
     return NextResponse.json({ error: "K vyhledávání zákazníků nemáte přístup." }, { status: 403 });
 
-  // Vstup se sklada do PostgREST `or()` retezce, kde carka a zavorky jsou
-  // ridici znaky -- driv se escapovalo jen % a _, takze slo pripojit dalsi
-  // podminku a filtrovat podle sloupcu mimo select. sanitizeCustomerSearch
-  // pouziva allowlist; blacklist na tenhle jazyk jde vzdycky obejit.
-  const safeQuery = sanitizeCustomerSearch(new URL(request.url).searchParams.get("q"));
-  if (!safeQuery) return NextResponse.json({ customers: [] });
+  const parsed = parseCustomerSearchQuery(new URL(request.url).searchParams.get("q"));
+  if (!parsed.valid) {
+    logError("Neplatný vyhledávací dotaz zákazníků", new Error("invalid_search"), { request_id: requestId(request) });
+    return apiError(request, "Vyhledávací dotaz je neplatný nebo příliš dlouhý.", 400, "invalid_search");
+  }
+  if (!parsed.query) return NextResponse.json({ customers: [] });
 
-  const { data, error } = await identity.service
-    .from("customers")
-    .select("id, name, ico, dic, email")
-    .eq("organization_id", identity.membership.organization_id)
-    .or(customerSearchFilter(safeQuery))
-    .order("name", { ascending: true })
-    .limit(10);
+  let { data, error } = await identity.service
+    .rpc("search_customers", {
+      target_org: identity.membership.organization_id,
+      actor_user: identity.user.id,
+      search_query: parsed.query,
+    });
+  if (error?.code === "PGRST202" || error?.code === "42883") {
+    const filter = legacyCustomerSearchFilter(parsed.query);
+    if (!filter) return NextResponse.json({ customers: [] });
+    ({ data, error } = await identity.service.from("customers")
+      .select("id, name, ico, dic, email")
+      .eq("organization_id", identity.membership.organization_id)
+      .or(filter).order("name", { ascending: true }).limit(10));
+  }
   if (error) {
-    logError("Vyhledávání zákazníků selhalo", error);
+    logError("Vyhledávání zákazníků selhalo", error, { request_id: requestId(request) });
     return apiError(request, "Zákazníky se nepodařilo vyhledat.", 500, "customer_search_failed");
   }
   return NextResponse.json({ customers: data ?? [] });

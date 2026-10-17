@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
 import type { PaymentsPageData } from "@/lib/payments-page-data";
@@ -13,12 +13,17 @@ import styles from "./payments-upload.module.css";
 // /invoices/payments/archive, kde je na ně podstatně víc místa.
 export function PaymentsClient({ initialData }: { initialData: PaymentsPageData }) {
   const [committed, setCommitted] = useState(false);
+  const [reviewActive, setReviewActive] = useState(false);
   const gpcEnabled = initialData.gpc_enabled;
 
+  useEffect(() => {
+    if (reviewActive) window.scrollTo({ top: 0 });
+  }, [reviewActive]);
+
   return (
-    <AppFrame className={`content section-page payments-page payments-upload-page ${styles.page}`}>
+    <AppFrame className={`content section-page payments-page payments-upload-page ${styles.page}${reviewActive ? ` ${styles.reviewPage}` : ""}`}>
       <div className={styles.stage}>
-      <header className="section-header payments-hero">
+      {!reviewActive && <header className="section-header payments-hero">
         <div className="payments-hero-copy">
           <p>BANKOVNÍ PÁROVÁNÍ</p>
           <h1>Spárujte platby s fakturami</h1>
@@ -34,7 +39,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData 
             <span className="payments-switch-arrow" aria-hidden="true"><Icon name="arrow-right" /></span>
           </Link>
         </div>
-      </header>
+      </header>}
 
       <div id="import-vypisu" className="payments-anchor" />
       {gpcEnabled ? (
@@ -43,6 +48,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData 
           canManage={initialData.can_manage}
           onCommitted={() => setCommitted(true)}
           camtEnabled={initialData.assistance_flags?.camt ?? false}
+          onReviewActiveChange={setReviewActive}
         />
       ) : (
         <section className="page-panel payments-unavailable">

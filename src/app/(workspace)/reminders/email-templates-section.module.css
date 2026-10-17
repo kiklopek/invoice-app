@@ -280,9 +280,17 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
 }
+
+.actions :global(.btn) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.actions svg { width: 18px; height: 18px; flex-shrink: 0; }
 
 .preview {
   display: grid;

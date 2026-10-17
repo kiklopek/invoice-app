@@ -109,7 +109,7 @@ export default function InvoiceArchivePage() {
         <div className="filter-row archive-filter-row">
           <label className="grow">
             <span>Hledat</span>
-            <input value={query} onChange={(event) => changeFilter(() => setQuery(event.target.value))} placeholder="Číslo faktury, odběratel, e-mail nebo VS" />
+            <input value={query} maxLength={100} onChange={(event) => changeFilter(() => setQuery(event.target.value))} placeholder="Číslo faktury, odběratel, IČO, DIČ, e-mail, VS nebo poznámka" aria-describedby="archive-search-hint" />
           </label>
           <label>
             <span>Stav</span>
@@ -135,6 +135,7 @@ export default function InvoiceArchivePage() {
             <input type="date" value={to} min={from || undefined} onChange={(event) => changeFilter(() => setTo(event.target.value))} />
           </label>
         </div>
+        <small id="archive-search-hint" className="search-hint">Bez diakritiky, i podle více slov v libovolném pořadí.</small>
       </section>
       </MobileDisclosure>
 

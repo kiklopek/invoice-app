@@ -1,5 +1,5 @@
 // Product brand mark (Splatno) — kept separate from CompanyLogo, which shows
-// the client's own business logo. See docs/brand/README.md.
+// the client's own business logo, falling back to Splatno. See docs/brand/README.md.
 //
 // A plain <img>, not next/image: next.config.js doesn't set
 // images.dangerouslyAllowSVG, so the image optimizer refuses local SVGs

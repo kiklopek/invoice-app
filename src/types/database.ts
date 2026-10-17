@@ -1944,6 +1944,15 @@ export type Database = {
         Args: { target_org: string; actor_user: string; target_customer: string; change_email?: boolean; new_email?: string | null; change_phone?: boolean; new_phone?: string | null }
         Returns: Json
       }
+      search_customers: {
+        Args: { target_org: string; actor_user: string; search_query: string }
+        Returns: { id: string; name: string; ico: string | null; dic: string | null; email: string | null }[]
+      }
+      normalize_search_text: { Args: { value: string | null }; Returns: string }
+      compact_search_text: { Args: { value: string }; Returns: string }
+      search_text_matches: { Args: { fields: (string | null)[]; search_query: string | null }; Returns: boolean }
+      search_document: { Args: { fields: (string | null)[] }; Returns: string }
+      search_prefilter: { Args: { search_query: string | null }; Returns: string | null }
       run_bank_reconciliation_jobs: { Args: Record<PropertyKey, never>; Returns: Json }
       configure_payment_assistance: { Args: { target_org: string; new_mode: string; new_memory: boolean; new_reevaluation: boolean }; Returns: undefined }
       payment_assistance_overview: { Args: { target_org: string; actor_user: string }; Returns: Json }

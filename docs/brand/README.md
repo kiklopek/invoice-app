@@ -25,7 +25,9 @@ Název se píše malými písmeny jako `splatno`. Doporučený řez je Inter 750
 - V aplikaci lze používat samotný znak nebo znak s wordmarkem.
 - Na landing page používat tmavě zelený wordmark na světlé ploše; hero může pracovat s obrácenou variantou.
 - Teplý akcent patří do CTA, ilustrací a marketingu, nikoli do každého ovládacího prvku.
-- Firemní logo klienta zůstává samostatné a nesmí se zaměňovat za značku produktu.
+- Firemní logo se načítá z organizace a je společné pro administrátora i pozvané členy. Pokud chybí nebo se nenačte, aplikace na jeho místě zobrazí značku Splatno.
+- Upomínkové e-maily, jejich náhledy a pozvánky používají vlastní logo firmy, nebo výchozí logo Splatna. Odesílané e-maily mají absolutní adresy obrázků; výchozí značka používá PNG.
+- Přihlašovací kódy a obnova hesla používají logo Splatna.
 - Pro profil odesílatele jsou připravené `splatno-email-avatar.png` a SVG Tiny PS
   `splatno-email-avatar.svg`; aktivace v doručené poště je popsána v
   [nastavení profilového obrázku odesílatele](../email-sender-avatar.md).

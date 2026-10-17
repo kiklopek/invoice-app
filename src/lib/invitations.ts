@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { roleNames, type AccessRole } from "@/lib/role-access";
+import { renderCompanyEmailLogo } from "@/lib/company-branding";
 
 // Pozvánka do firmy (scénář 2 v návrhu procesů). Odkaz nese náhodný token;
 // v databázi je jen jeho SHA-256 otisk, takže kdo získá výpis databáze,
@@ -54,6 +55,7 @@ function czechDate(value: Date) {
 
 export function renderInvitationEmail(params: {
   companyName: string;
+  companyLogo?: string | null;
   inviterName: string;
   role: AccessRole;
   url: string;
@@ -64,9 +66,10 @@ export function renderInvitationEmail(params: {
   const role = roleNames[params.role];
   const url = escapeHtml(params.url);
   const until = czechDate(params.expiresAt);
+  const logo = renderCompanyEmailLogo(params.companyLogo, params.companyName, params.url);
   return {
     subject: `${params.companyName} vás zve do Splatna`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#13231b"><p style="font-size:22px;font-weight:700;margin:0 0 18px">splatno</p><h1 style="font-size:24px;margin:0 0 12px">${company} vás zve do Splatna</h1><p>${inviter} vám ve firmě <b>${company}</b> vytvořil(a) přístup s rolí <b>${role}</b>. Splatno hlídá vydané faktury, platby a upomínky.</p><p style="margin:28px 0"><a href="${url}" style="display:inline-block;background:#17613f;color:#fff;text-decoration:none;padding:14px 22px;border-radius:10px;font-weight:700">Přijmout pozvánku</a></p><p style="color:#6b776f;font-size:14px">Odkaz platí do ${until} a lze ho použít jen jednou. Pokud pozvánku nečekáte, e-mail ignorujte.</p></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#13231b">${logo}<h1 style="font-size:24px;margin:0 0 12px">${company} vás zve do Splatna</h1><p>${inviter} vám ve firmě <b>${company}</b> vytvořil(a) přístup s rolí <b>${role}</b>. Splatno hlídá vydané faktury, platby a upomínky.</p><p style="margin:28px 0"><a href="${url}" style="display:inline-block;background:#17613f;color:#fff;text-decoration:none;padding:14px 22px;border-radius:10px;font-weight:700">Přijmout pozvánku</a></p><p style="color:#6b776f;font-size:14px">Odkaz platí do ${until} a lze ho použít jen jednou. Pokud pozvánku nečekáte, e-mail ignorujte.</p></div>`,
     text: `${params.companyName} vás zve do Splatna\n\n${params.inviterName} vám ve firmě ${params.companyName} vytvořil(a) přístup s rolí ${role}.\n\nPřijmout pozvánku: ${params.url}\n\nOdkaz platí do ${until} a lze ho použít jen jednou. Pokud pozvánku nečekáte, e-mail ignorujte.`,
   };
 }

@@ -71,7 +71,8 @@ const items: NavItem[] = [
     label: "Nastavení",
     icon: "settings",
     children: [
-      { href: "/reminders", label: "Upomínky a šablony" },
+      { href: "/reminders", label: "Upomínky" },
+      { href: "/settings/email-template", label: "E-mailová šablona" },
       { href: "/predplatne", label: "Předplatné" },
     ],
   },

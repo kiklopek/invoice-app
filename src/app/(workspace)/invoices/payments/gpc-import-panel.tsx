@@ -135,11 +135,13 @@ export function GpcImportPanel({
   canManage,
   onCommitted,
   camtEnabled = false,
+  onReviewActiveChange,
 }: {
   invoices: Invoice[];
   canManage: boolean;
   onCommitted: () => void;
   camtEnabled?: boolean;
+  onReviewActiveChange?: (active: boolean) => void;
 }) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [selected, setSelected] = useState<Record<string, string[]>>({});
@@ -173,6 +175,10 @@ export function GpcImportPanel({
   );
   const [archive, setArchive] = useState<ArchiveItem[]>([]);
   const [selectedFilename, setSelectedFilename] = useState("");
+  const reviewActive = Boolean(preview || selectedFilename);
+  useEffect(() => {
+    onReviewActiveChange?.(reviewActive);
+  }, [onReviewActiveChange, reviewActive]);
   // Each statement file becomes its own separate import (own preview/review/
   // commit) -- multi-file selection just queues them so the accountant can
   // work through several statements back-to-back without re-opening the
@@ -624,7 +630,7 @@ export function GpcImportPanel({
 
   return (
     <>
-      <section className="page-panel import-panel payment-import-panel gpc-panel" aria-labelledby="gpc-import-title">
+      <section className="page-panel import-panel payment-import-panel gpc-panel" aria-labelledby={preview ? "gpc-statement-title" : "gpc-import-title"}>
         {!preview ? (
           <div className="gpc-intro-grid">
             <div className="gpc-upload-column">
@@ -671,7 +677,7 @@ export function GpcImportPanel({
           <div className="gpc-file-summary">
             <span className="gpc-file-summary-icon"><Icon name="document" /></span>
             <div className="gpc-file-summary-copy">
-              <strong>{selectedFilename}</strong>
+              <strong id="gpc-statement-title">{selectedFilename}</strong>
               <small>{["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]}{fileQueue.length > 1 ? ` · Výpis ${Math.min(queueIndex + 1, fileQueue.length)} z ${fileQueue.length}` : ""}</small>
             </div>
             {/* Available whenever nothing is running, not only before the first
