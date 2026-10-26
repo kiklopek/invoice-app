@@ -59,9 +59,11 @@ try{
   expect(Math.abs(box.y-anchor.bottom-6)).toBeLessThanOrEqual(1);expect(Math.abs(box.x-anchor.x)).toBeLessThanOrEqual(1);expect(Math.abs(box.width-anchor.width)).toBeLessThanOrEqual(1);expect(box.height).toBeLessThanOrEqual(260);expect(box.y+box.height).toBeLessThanOrEqual(989);
   await p.screenshot({path:resolve(out,`${engine}-${width}-customers.png`)});await menu.evaluate(n=>{n.scrollTop=n.scrollHeight});await expect(menu.getByRole('option',{name:/Zákazník 50/})).toBeInViewport();expect(c.errors).toEqual([]);await p.close();results.push({scenario:`50 customers anchored below input at ${width}`,passed:true});console.log('PASS customer dropdown anchor '+width);
  }
- for(const width of [1920,1440,1280,1024,768,390,320]){
+ for(const width of [1920,1440,1280,1024,1023,768,767,390,320]){
   const c=await setup(width);await fill(c.page);await expect(c.page.locator('[data-invoice-document]')).toContainText('60 500,00 Kč');await expect(c.page.getByAltText('QR platba')).toBeVisible();
   expect(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const outside=await c.page.locator('form').filter({has:c.page.getByRole('textbox',{name:'Název položky 1',exact:true})}).evaluate(form=>{const r=form.getBoundingClientRect();return [...form.querySelectorAll('input,select,textarea')].filter(n=>n.getClientRects().length&&getComputedStyle(n).opacity!=='0'&&getComputedStyle(n).clipPath==='none').filter(n=>{const b=n.getBoundingClientRect();return b.x<r.x-1||b.right>r.right+1||b.height<44}).map(n=>({html:n.outerHTML.slice(0,400),width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,x:n.getBoundingClientRect().x,formX:r.x,formWidth:r.width}))});
+  expect(outside).toEqual([]);
   await expect(c.page.getByRole('link',{name:'Vystavit fakturu',exact:true})).toHaveCount(width>=1024?1:0);
   if(width>=1280){const a=await c.page.locator('form').first().boundingBox(),b=await c.page.locator('[data-invoice-document]').boundingBox();expect(b.x).toBeGreaterThan(a.x+a.width);}
   await c.page.screenshot({path:resolve(out,`${engine}-${width}.png`),fullPage:true});
@@ -102,6 +104,17 @@ try{
   c.failIssue();await p.getByRole('button',{name:'Vystavit fakturu',exact:true}).click();await expect(p.getByRole('alert').filter({hasText:'Testovací chyba vystavení'})).toBeVisible();await expect(p.getByRole('textbox',{name:'Cena za jednotku 1',exact:true})).toHaveValue('50000');
   await p.getByRole('button',{name:'Vystavit fakturu',exact:true}).click();await expect(p.getByRole('button',{name:'Faktura vystavena',exact:true})).toBeDisabled();const posts=c.requests.filter(r=>r.path==='/api/invoices'&&r.method==='POST');expect(posts).toHaveLength(2);expect(posts[0].body.creation.request_id).toBe(posts[1].body.creation.request_id);
   await p.screenshot({path:resolve(out,`${engine}-nonpayer.png`),fullPage:true});expect(c.errors).toEqual([]);await p.close();results.push({scenario:'nonpayer, discount, duplicate/remove, cash without QR, issuance retry',passed:true});console.log('PASS nonpayer, item actions and failed issuance recovery');
+ }
+ for(const width of [320,390,767,768,1023]){
+  const c=await setup(width,568),p=c.page;
+  await p.locator('.mobile-navigation-toggle').click();
+  const nav=p.getByRole('navigation',{name:'Mobilní navigace',exact:true});
+  await expect(nav).toBeVisible();
+  expect(await nav.locator('.nav-symbol svg').evaluateAll(nodes=>nodes.map(n=>Math.round(n.getBoundingClientRect().width)))).toEqual(Array(7).fill(20));
+  const esko=p.getByRole('button',{name:'Esko',exact:true});
+  await esko.scrollIntoViewIfNeeded();await expect(esko).toBeInViewport();
+  await p.screenshot({path:resolve(out,`${engine}-menu-${width}.png`)});
+  await p.close();console.log('PASS smaller menu icons and reachable Esko '+width);
  }
  await writeFile(resolve(out,`${engine}-results.json`),JSON.stringify(results,null,2));
 }finally{await browser.close();await server.close();}

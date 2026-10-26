@@ -30,6 +30,8 @@
   border-radius: 16px;
   background: #fff;
   color: #172b22;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .dialog .header {
   display: flex;
@@ -82,6 +84,7 @@
 .dialog .settings fieldset {
   display: grid;
   gap: 12px;
+  min-width: 0;
   margin: 0 0 22px;
   padding: 0;
   border: 0;
@@ -101,7 +104,9 @@
 .dialog .settings :is(input[type="date"], select) {
   width: 100%;
   min-width: 0;
-  height: 42px;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: 44px;
   padding: 8px;
   border: 1px solid #dce6df;
   border-radius: 8px;
@@ -285,75 +290,101 @@
   opacity: 0;
   pointer-events: none;
 }
-@media (max-width: 767px) {
-  .dialog.dialog {
-    width: calc(100vw - 16px) !important;
-    margin: auto;
-    height: calc(100dvh - 16px);
-    max-height: calc(100dvh - 16px);
-    border-radius: 12px;
-  }
-  .dialog .header {
-    padding: 16px;
-  }
-  .dialog .header h2 {
-    font-size: 18px;
-  }
+/* Stack settings and preview before the sidebar crowds the document. */
+@media (max-width: 1023px) {
   .body {
     display: block;
     overflow: auto;
+    overscroll-behavior: contain;
   }
   .dialog .settings {
     border-right: 0;
     border-bottom: 1px solid #e3ebe6;
-    padding: 16px;
     overflow: visible;
+  }
+  .preview {
+    height: clamp(300px, 65dvh, 620px);
+    min-height: 0;
+  }
+}
+@media (max-width: 767px) {
+  .dialog.dialog {
+    width: calc(100% - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))) !important;
+    margin: auto;
+    height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+    max-height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+    border-radius: 12px;
+  }
+  .dialog .header {
+    padding: 12px;
+    gap: 10px;
+  }
+  .dialog .header > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .dialog .header h2 {
+    font-size: 18px;
+  }
+  .dialog .settings {
+    padding: 16px;
   }
   .dialog .settings :is(input[type="date"], select) {
     font-size: 16px;
   }
+  .pair {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  }
   .preview {
-    min-height: 520px;
-    height: 65dvh;
     padding: 12px;
+  }
+  .empty {
+    min-height: 0;
+    padding: 16px;
   }
   .dialog .footer {
-    padding: 12px;
+    padding: 10px 12px;
     gap: 8px;
   }
-  .dialog .footer > div {
-    flex: 1;
-    justify-content: flex-end;
-  }
-  .dialog .footer :global(.btn) {
-    font-size: 12px;
-    padding: 8px;
-  }
-  .dialog .footer a {
-    flex-basis: 100%;
-    text-align: right;
-  }
-  .trigger {
-    min-height: 36px;
-    padding: 7px 10px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 767px) {
   .dialog .footer > button {
     display: none;
   }
   .dialog .footer > div {
     display: grid;
+    min-width: 0;
     width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dialog .footer :global(.btn) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px;
+    font-size: 14px;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .dialog .footer > div > button:first-child,
   .dialog .footer a {
     grid-column: 1 / -1;
   }
   .dialog .footer a {
+    padding: 4px;
     text-align: center;
+  }
+  .trigger {
+    min-height: 40px;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+}
+/* Keep the body scrollable with the keyboard open or in landscape. */
+@media (max-width: 767px) and (max-height: 500px) {
+  .dialog.dialog {
+    overflow: auto;
+  }
+  .body {
+    flex: none;
+    overflow: visible;
   }
 }

@@ -228,7 +228,7 @@
 }
 .fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(200px, calc(50% - 8px))), 1fr));
   gap: 18px 16px;
 }
 .field,
@@ -246,6 +246,7 @@
   display: block;
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   padding: 10px 12px;
   border: 1px solid #d9e3dc;
@@ -363,7 +364,7 @@
 }
 .itemRow label > span {
   min-height: 18px;
-  white-space: nowrap;
+  white-space: normal;
 }
 .lineTotal {
   min-width: 0;
@@ -1295,14 +1296,27 @@
   color: #17613f;
   font-size: 14px;
 }
-@container creation-items (max-width: 610px) {
+@container creation-items (max-width: 760px) {
   .itemRow {
-    grid-template-columns:
-      minmax(50px, 0.7fr) minmax(45px, 0.6fr) minmax(75px, 1fr)
-      minmax(60px, 0.8fr) minmax(100px, 1.2fr) 30px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: relative;
+    padding-right: 0;
   }
   .itemRow > label:first-child {
     grid-column: 1 / -1;
+    padding-right: 40px;
+  }
+  .itemMenu {
+    position: absolute;
+    right: 0;
+    top: 25px;
+    margin: 0;
+  }
+  .lineTotal {
+    grid-column: 1 / -1;
+  }
+  .lineTotal strong {
+    min-height: 30px;
   }
 }
 @media (max-width: 1279px) {
@@ -1314,6 +1328,14 @@
     width: 100%;
     max-width: 760px;
     justify-self: center;
+  }
+}
+@media (max-width: 1023px) {
+  .creation input,
+  .creation select,
+  .creation textarea,
+  .dialog input {
+    font-size: 16px;
   }
 }
 @media (max-width: 767px) {
@@ -1329,12 +1351,6 @@
   }
   .fields {
     gap: 14px 12px;
-  }
-  .creation input,
-  .creation select,
-  .creation textarea,
-  .dialog input {
-    font-size: 16px;
   }
   .customerRow {
     align-items: stretch;
@@ -1363,28 +1379,6 @@
   }
   .paper {
     padding: 18px 14px;
-  }
-}
-@container creation-items (max-width: 460px) {
-  .itemRow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    position: relative;
-    padding-right: 0;
-  }
-  .itemRow > label:first-child {
-    padding-right: 40px;
-  }
-  .itemMenu {
-    position: absolute;
-    right: 0;
-    top: 25px;
-    margin: 0;
-  }
-  .lineTotal {
-    grid-column: 1 / -1;
-  }
-  .lineTotal strong {
-    min-height: 30px;
   }
 }
 @media (max-width: 359px) {

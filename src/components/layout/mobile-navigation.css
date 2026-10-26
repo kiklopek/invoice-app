@@ -213,7 +213,7 @@ body.mobile-navigation-lock { overflow: hidden; }
     background: #e8f0ea;
     color: #286344;
   }
-  .sidebar .mobile-navigation-links .nav-symbol svg { width: 26px; height: 26px; }
+  .sidebar .mobile-navigation-links .nav-symbol svg { width: 20px; height: 20px; }
   .sidebar .mobile-navigation-links a > span:nth-child(2) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .sidebar .mobile-navigation-links a em {
     display: grid;
