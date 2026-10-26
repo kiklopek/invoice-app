@@ -4,7 +4,9 @@ const WIDTHS = [320, 330, 359, 360, 380, 390, 440, 639, 640, 641, 667, 760, 761,
 
 async function resize(page: Page, width: number) {
   await page.setViewportSize({ width, height: 1000 });
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  // A layout read flushes resize synchronously. WebKit may suspend animation
+  // frames in background CI pages, so awaiting rAF can hang without a UI fault.
+  await expect.poll(() => page.evaluate(() => document.documentElement.getBoundingClientRect().width)).toBe(width);
 }
 
 async function layoutProblems(page: Page) {
@@ -20,7 +22,7 @@ async function layoutProblems(page: Page) {
       if (!rect.width || !rect.height || style.visibility === "hidden") continue;
       const label = element.textContent?.trim().slice(0, 50);
       if (rect.left < -1 || rect.right > viewport + 1) issues.push(`${label}: outside viewport`);
-      if (element.scrollWidth > element.clientWidth + 1) issues.push(`${label}: clipped`);
+      if (label && element.scrollWidth > element.clientWidth + 1) issues.push(`${label}: clipped`);
       if (element.matches("h1,h2,h3,p")) {
         const range = document.createRange();
         range.selectNodeContents(element);

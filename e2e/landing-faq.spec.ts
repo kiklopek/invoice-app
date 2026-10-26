@@ -69,6 +69,7 @@ for (const locale of ["cs", "en"] as const) {
   }
 
   test(`${locale}: native keyboard controls and reduced motion`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(route);
     const faq = page.locator("#caste-otazky");
     const first = faq.locator("summary").first();

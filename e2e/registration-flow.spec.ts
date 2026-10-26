@@ -19,8 +19,8 @@ for (const locale of ["cs", "en"] as const) {
   const copy = getDictionary(locale).auth.register;
 
   for (const mode of ["code", "delivery_failure", "offline"] as const) {
-    test(`${locale}: founder registration handles ${mode}`, async ({ page }, testInfo) => {
-      await page.context().addCookies([{ name: "splatno-lang", value: locale, url: "http://127.0.0.1:3000" }]);
+    test(`${locale}: founder registration handles ${mode}`, async ({ page, baseURL, browserName }, testInfo) => {
+      await page.context().addCookies([{ name: "splatno-lang", value: locale, url: baseURL ?? "http://127.0.0.1:3000" }]);
       await page.clock.install();
       const calls: string[] = [];
       await page.route("**/api/auth/registration-access", async (route) => {
@@ -41,6 +41,7 @@ for (const locale of ["cs", "en"] as const) {
       });
       await page.route("**/onboarding", route => route.fulfill({ contentType: "text/html", body: "<h1>Company setup</h1>" }));
       await page.goto("/register");
+      await page.waitForLoadState("networkidle");
       await expect(page.getByText(copy.invitationHint)).toBeVisible();
       await fillRegistration(page, locale);
       await page.getByRole("button", { name: copy.submit, exact: true }).click();
@@ -50,7 +51,7 @@ for (const locale of ["cs", "en"] as const) {
         const fields = page.getByRole("group", { name: copy.codeLabel, exact: true }).locator("input");
         // This macOS WebKit harness crashes in its native OTP autofill popover.
         // Exercise paste/focus/verification with the native popover disabled.
-        if (testInfo.project.name === "webkit") await fields.evaluateAll(elements => elements.forEach(element => {
+        if (browserName === "webkit") await fields.evaluateAll(elements => elements.forEach(element => {
           element.setAttribute("autocomplete", "off");
           // Avoid the harness's broken native selection bridge. Chromium
           // exercises real focus; WebKit still exercises paste and form state.

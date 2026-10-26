@@ -1,0 +1,33 @@
+
+Running 20 tests using 2 workers
+
+(node:93590) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:93591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [desktop] › e2e/landing-breakpoints.spec.ts:42:7 › /: resizing across mobile, tablet and desktop preserves content (7.6s)
+  ✓   1 [desktop] › e2e/landing-breakpoints.spec.ts:42:7 › /en: resizing across mobile, tablet and desktop preserves content (7.7s)
+  ✓   4 [desktop] › e2e/landing-faq.spec.ts:71:7 › en: native keyboard controls and reduced motion (445ms)
+  ✓   3 [desktop] › e2e/landing-faq.spec.ts:71:7 › cs: native keyboard controls and reduced motion (709ms)
+  ✓   6 [desktop] › e2e/registration-flow.spec.ts:22:9 › cs: founder registration handles delivery_failure (1.7s)
+  ✓   5 [desktop] › e2e/registration-flow.spec.ts:22:9 › cs: founder registration handles code (2.4s)
+  ✓   7 [desktop] › e2e/registration-flow.spec.ts:22:9 › cs: founder registration handles offline (1.2s)
+  ✓   8 [desktop] › e2e/registration-flow.spec.ts:22:9 › en: founder registration handles code (1.7s)
+  ✓   9 [desktop] › e2e/registration-flow.spec.ts:22:9 › en: founder registration handles delivery_failure (1.2s)
+(node:93618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 [desktop] › e2e/registration-flow.spec.ts:22:9 › en: founder registration handles offline (1.8s)
+(node:93627) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [desktop-safari] › e2e/landing-breakpoints.spec.ts:42:7 › /: resizing across mobile, tablet and desktop preserves content (9.9s)
+  ✓  12 [desktop-safari] › e2e/landing-breakpoints.spec.ts:42:7 › /en: resizing across mobile, tablet and desktop preserves content (9.9s)
+  ✓  14 [desktop-safari] › e2e/landing-faq.spec.ts:71:7 › en: native keyboard controls and reduced motion (1.1s)
+  ✓  13 [desktop-safari] › e2e/landing-faq.spec.ts:71:7 › cs: native keyboard controls and reduced motion (1.1s)
+  ✓  15 [desktop-safari] › e2e/registration-flow.spec.ts:22:9 › cs: founder registration handles delivery_failure (1.7s)
+  ✓  16 [desktop-safari] › e2e/registration-flow.spec.ts:22:9 › cs: founder registration handles code (2.4s)
+  ✓  17 [desktop-safari] › e2e/registration-flow.spec.ts:22:9 › cs: founder registration handles offline (1.4s)
+  ✓  19 [desktop-safari] › e2e/registration-flow.spec.ts:22:9 › en: founder registration handles delivery_failure (3.3s)
+  ✓  18 [desktop-safari] › e2e/registration-flow.spec.ts:22:9 › en: founder registration handles code (4.7s)
+  ✓  20 [desktop-safari] › e2e/registration-flow.spec.ts:22:9 › en: founder registration handles offline (1.5s)
+
+  20 passed (34.5s)

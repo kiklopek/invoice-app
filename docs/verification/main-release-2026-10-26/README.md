@@ -21,3 +21,13 @@ Před vydáním kontrola audit:ci odhalila kritické a vysoké nálezy v dosavad
 - Všechny čtyři doobjednané produkční migrace byly před tímto vydáním nasazeny a ověřeny. [Protokol](../core-audit-fixes-2026-10-26/README.md).
 
 Toto vydání neřeší samostatné otevřené nálezy F1/F6/F7 z [původního auditu](../core-audit-2026-10-26/README.md); uživatel byl o nich informován před výslovným požadavkem na vydání.
+
+## Nasazení a následná kontrola
+
+Merge commit `78d0f9aed8d9e4980f0c379b0e0a6c91a4cb80e2` byl pushnut na main. Vercel nasazení `dpl_Fcz5DSY2KYeZvMvni8DBPbzxRiE2` dokončilo produkční build a získalo stav READY; `www.splatno.com` bylo ověřeno jako alias tohoto přesného commitu.
+
+Živá kontrola přihlášení v Chromiu i WebKitu při 390/1440 px: HTTP 200, bez horizontálního přetékání a chyb JavaScriptu, publikované PNG loga bajtově odpovídá vydání. Nové chráněné podstránky přesměrovaly na login, nové API routy bez přihlášení vracely 401. Dosavadní runtime logy nového deploymentu neobsahovaly error/fatal záznamy. Kontrola neprováděla skutečné odesílání zpráv ani změny klientských dat.
+
+První [GitHub CI](https://github.com/kiklopek/invoice-app/actions/runs/40364076195) prošlo instalací, lintem, typecheckem, unit testy, migracemi, bezpečnostní kontrolou a buildem. Prohlížečová sada hlásila 12 selhání a 4 flaky testy: deset selhání kontrolovalo nulovou animaci bez aktivace reduced-motion; dvě přestala dostávat requestAnimationFrame při změnách viewportu v headless WebKitu. Flaky registrace vyžadovaly počkat na hydrataci a správně rozpoznat WebKit pro existující obcházení chyby nativního OTP autofillu. Kontrola textového ořezu navíc nesmí pokládat prázdnou grafickou ikonu za oříznutý text; kontrola hranic viewportu zůstává i pro ni.
+
+Opraveny pouze testy, žádné z nich nebyly vyřazeny. [Cílené ověření](public-e2e-fixes.log) ve skutečném Chromiu/WebKitu proti ostré veřejné verzi: **20 passed, 0 retries**. Všechny registrační API požadavky byly zachycené; nevznikly účty ani e-maily. Lint a typecheck po této úpravě znovu prošly. Navazující kompletní CI se spouští pushem opravy testů.
