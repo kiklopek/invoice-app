@@ -1,0 +1,46 @@
+chromium 1440 /dashboard 200 0
+chromium 1440 /invoices/create 200 0
+chromium 1440 /invoices/import 200 0
+chromium 1440 /invoices/payments 200 0
+chromium 1440 /reports 200 0
+chromium 1440 /notifications 200 0
+chromium 390 /dashboard 200 0
+chromium 390 /invoices/create 200 0
+chromium 390 /invoices/import 200 0
+chromium 390 /invoices/payments 200 0
+chromium 390 /reports 200 0
+chromium 390 /notifications 200 0
+webkit 1440 /dashboard 200 0
+webkit 1440 /invoices/create FAIL page.goto: Navigation to "http://127.0.0.1:3006/invoices/create" is interrupted by another navigation to "http://127.0.0.1:3006/dashboard"
+Call log:
+  - navigating to "http://127.0.0.1:3006/invoices/create", waiting until "domcontentloaded"
+
+webkit 1440 /invoices/import 200 0
+webkit 1440 /invoices/payments FAIL page.goto: Navigation to "http://127.0.0.1:3006/invoices/payments" is interrupted by another navigation to "http://127.0.0.1:3006/invoices/import"
+Call log:
+  - navigating to "http://127.0.0.1:3006/invoices/payments", waiting until "domcontentloaded"
+
+webkit 1440 /reports 200 0
+webkit 1440 /notifications 200 0
+webkit 1440 /notifications FAIL page.screenshot: Timeout 15000ms exceeded.
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+
+webkit 390 /dashboard 200 0
+webkit 390 /dashboard FAIL page.screenshot: Timeout 15000ms exceeded.
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+
+webkit 390 /invoices/create 200 0
+webkit 390 /invoices/import FAIL page.goto: Navigation to "http://127.0.0.1:3006/invoices/import" is interrupted by another navigation to "http://127.0.0.1:3006/invoices/create"
+Call log:
+  - navigating to "http://127.0.0.1:3006/invoices/import", waiting until "domcontentloaded"
+
+webkit 390 /invoices/payments 200 0
+webkit 390 /reports FAIL page.goto: Navigation to "http://127.0.0.1:3006/reports" is interrupted by another navigation to "http://127.0.0.1:3006/invoices/payments"
+Call log:
+  - navigating to "http://127.0.0.1:3006/reports", waiting until "domcontentloaded"
+
+webkit 390 /notifications 200 0

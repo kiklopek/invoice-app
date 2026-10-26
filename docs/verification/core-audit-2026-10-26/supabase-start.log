@@ -1,0 +1,46 @@
+WARNING: The following container names are not valid to exclude: analytics
+Valid containers to exclude are: edge-runtime, gotrue, imgproxy, kong, logflare, mailpit, postgres-meta, postgrest, realtime, storage-api, studio, supavisor, vector
+supabase start is already running.
+Stopped services: [supabase_imgproxy_invoice-app supabase_edge_runtime_invoice-app supabase_pooler_invoice-app]
+supabase local development setup is running.
+
+╭──────────────────────────────────────╮
+│ 🔧 Development Tools                 │
+├─────────┬────────────────────────────┤
+│ Studio  │ http://127.0.0.1:54323     │
+│ Mailpit │ http://127.0.0.1:54324     │
+│ MCP     │ http://127.0.0.1:54321/mcp │
+╰─────────┴────────────────────────────╯
+
+╭─────────────────────────────────────────────────╮
+│ 🌐 APIs                                         │
+├─────────────┬───────────────────────────────────┤
+│ Project URL │ http://127.0.0.1:54321            │
+│ REST        │ http://127.0.0.1:54321/rest/v1    │
+│ GraphQL     │ http://127.0.0.1:54321/graphql/v1 │
+╰─────────────┴───────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────╮
+│ ⛁ Database                                                    │
+├─────┬─────────────────────────────────────────────────────────┤
+│ URL │ postgresql://postgres:postgres@127.0.0.1:54322/postgres │
+╰─────┴─────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────╮
+│ 🔑 Authentication Keys                                       │
+├─────────────┬────────────────────────────────────────────────┤
+[local credential redacted]
+[local credential redacted]
+╰─────────────┴────────────────────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────────────────────╮
+│ 📦 Storage (S3)                                                               │
+├────────────┬──────────────────────────────────────────────────────────────────┤
+│ URL        │ http://127.0.0.1:54321/storage/v1/s3                             │
+[local credential redacted]
+[local credential redacted]
+│ Region     │ local                                                            │
+╰────────────┴──────────────────────────────────────────────────────────────────╯
+
+A new version of Supabase CLI is available: v2.122.0 (currently installed v2.101.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

@@ -1,6 +1,10 @@
 "use client";
 
+import { formatCzechDate } from "@/lib/display-date";
+import { ExactMoney } from "@/components/money-amount";
+
 import Link from "next/link";
+import styles from "./payments-archive-search.module.css";
 import { useEffect, useMemo, useState } from "react";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
@@ -30,7 +34,7 @@ const matchStatusOrder: Record<SavedPayment["match_status"], number> = {
   unmatched: 3,
 };
 
-export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPageData }) {
+export function PaymentsArchiveClient({ initialData, highlightPaymentId }: { initialData: PaymentsPageData; highlightPaymentId?: string }) {
   const [history, setHistory] = useState<SavedPayment[]>(initialData.payments);
   const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>(initialData.open_invoices);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
@@ -47,6 +51,13 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
   const [historyQuery, setHistoryQuery] = useState("");
   const [unmatchedOnly, setUnmatchedOnly] = useState(false);
   const [paymentSort, setPaymentSort] = useState<PaymentSort>("default");
+
+  useEffect(() => {
+    if (!highlightPaymentId) return;
+    const row = document.getElementById(`payment-${highlightPaymentId}`);
+    row?.scrollIntoView({ block: "center" });
+    row?.focus({ preventScroll: true });
+  }, [highlightPaymentId]);
 
   const filteredHistory = useMemo(() => {
     const needle = historyQuery.trim().toLowerCase();
@@ -79,7 +90,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
   }, [history, historyQuery, unmatchedOnly, paymentSort]);
 
   async function refreshPayments() {
-    const data = await apiFetch<PaymentsPageData>("/api/payments");
+    const data = await apiFetch<PaymentsPageData>(highlightPaymentId ? `/api/payments?highlight=${encodeURIComponent(highlightPaymentId)}` : "/api/payments");
     setHistory(data.payments ?? []);
     setOpenInvoices(data.open_invoices ?? []);
     setCanManage(Boolean(data.can_manage));
@@ -283,6 +294,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
 
       {message && <p className="form-error">{message}</p>}
       {notice && <p className="form-success">{notice}</p>}
+      {highlightPaymentId && !history.some(payment => payment.id === highlightPaymentId) ? <p role="status">Vybraná platba už není dostupná.</p> : null}
 
       <section className="page-panel data-panel payments-history" id="historie-plateb" aria-label="Importované platby">
         <div className="filter-row payments-history-toolbar">
@@ -312,16 +324,16 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
         {filteredHistory.length ? (
           <div className="payment-history-table" role="list" aria-label="Importované platby">
             {filteredHistory.map((payment) => (
-              <article className={`payment-history-item ${payment.match_status}`} role="listitem" key={payment.id}>
+              <article id={`payment-${payment.id}`} tabIndex={payment.id === highlightPaymentId ? -1 : undefined} className={`payment-history-item ${payment.match_status} ${payment.id === highlightPaymentId ? styles.highlighted : ""}`} role="listitem" key={payment.id}>
                 <div className="payment-history-identity">
                   <strong>{payment.counterparty_name || "Neznámá protistrana"}</strong>
                   <div className="payment-history-meta">
-                    <time dateTime={payment.booked_on}>{payment.booked_on}</time>
+                    <time dateTime={payment.booked_on}>{formatCzechDate(payment.booked_on)}</time>
                     {payment.variable_symbol && <span>VS {payment.variable_symbol}</span>}
                   </div>
                 </div>
                 <div className="payment-history-summary">
-                  <strong>{money(Number(payment.amount), payment.currency)}</strong>
+                  <strong><ExactMoney value={Number(payment.amount)} currency={payment.currency} /></strong>
                   <span className={`payment-match ${payment.match_status}`}>{statusLabel[payment.match_status]}</span>
                   {payment.source === "manual" && <small>Ručně potvrzeno</small>}
                   {payment.match_reason?.startsWith("Automaticky podle jména") && <small>Shoda jména a částky neurčuje záměr plátce. Ověřte ji, pokud ještě nejsou nahrané všechny jeho faktury.</small>}
@@ -330,7 +342,7 @@ export function PaymentsArchiveClient({ initialData }: { initialData: PaymentsPa
                   {payment.invoice_id || payment.allocations?.length ? (
                     <div className="payment-assignment matched-payment">
                       {(payment.allocations?.length ? payment.allocations : payment.invoice_id ? [{ invoice_id: payment.invoice_id, invoice_number: payment.invoices?.invoice_number || "Detail", amount: Number(payment.amount), counterparty_name: payment.invoices?.counterparty_name || "" }] : []).map(allocation => <Link key={allocation.invoice_id} href={`/invoices/${allocation.invoice_id}`}>
-                        <span>Faktura {allocation.invoice_number}</span><strong>{money(Number(allocation.amount), payment.currency)}</strong><span aria-hidden="true">→</span>
+                        <span>Faktura {allocation.invoice_number}</span><strong><ExactMoney value={Number(allocation.amount)} currency={payment.currency} /></strong><span aria-hidden="true">→</span>
                       </Link>)}
                       {canManage && (
                         <button type="button" className="btn secondary compact" disabled={working} onClick={() => unassign(payment)}>

@@ -1,0 +1,24 @@
+[
+  {
+    "role": "admin",
+    "company": "B",
+    "login_and_mfa": "PASS",
+    "invoice_read": 404,
+    "upload": 201,
+    "logout": 200,
+    "after_logout": 401
+  },
+  {
+    "role": "accounting",
+    "error": "page.waitForURL: Timeout 90000ms exceeded."
+  },
+  {
+    "role": "viewer",
+    "company": "A",
+    "login_and_mfa": "PASS",
+    "invoice_read": 200,
+    "upload": 403,
+    "logout": 200,
+    "after_logout": 401
+  }
+]

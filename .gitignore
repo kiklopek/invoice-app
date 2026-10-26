@@ -20,3 +20,9 @@ playwright-report/
 
 # graphify knowledge graph output (lokální, negenerovat do repa)
 graphify-out/
+
+# Generated local visual checks (source scripts and audit reports are versioned)
+.DS_Store
+/artifacts/
+/docs/redesign/visual-validation/
+/docs/design-audit/**/*.png

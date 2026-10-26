@@ -1,0 +1,252 @@
+{
+  "scope": "SPL-DASH-001 single-screen refinement",
+  "verified_at": "2026-10-17T22:28:18.171285+00:00",
+  "branch": "design-rebuild",
+  "baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+  "state": "implemented locally; uncommitted; not pushed/deployed; awaiting user visual review",
+  "sources": [
+    {
+      "source": "scripts/dashboard-design-check.mjs",
+      "sha256": "a9de7d85094859041e07b49e82acb585a729aef91cc752229cb2a1d54ac93619"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-client.test.tsx",
+      "sha256": "37aabd0b6383e81fb2bbd5ce32d7a8679d247fedeee2762e736b3488f7c8ebed"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-client.tsx",
+      "sha256": "c32fd2cf00569fa53b65e02fda1b58b99dfb2bfc1e52d94c6bc358db29a22b79"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-presentation.test.ts",
+      "sha256": "460dc8f75ca1884d0d25ce136e44424aabf301b1cb3faefaed5a4b660c44b23f"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-presentation.ts",
+      "sha256": "c668484fcf25b74a99bdcd13bdef371a9567e93891d358abc677cc006b2ff602"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-summary.module.css",
+      "sha256": "1a1f5687913a2ed13c58968af462947d8e7f5f359c5c9737b43792383e27c9f6"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-widgets.tsx",
+      "sha256": "b40077dd903cb6a6c7ac3007c3c7ca30a0fcb72482d4391a1cf648949946b35c"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/loading.tsx",
+      "sha256": "d126a5b83952b41ec78486c30b3c3ea5b3f2a375665070f7dc94cedb2830153d"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/page.tsx",
+      "sha256": "fe274564e88a89a0b9faaa2f35e11c891cb0988652fe3cf37a71f455a2b39d19"
+    },
+    {
+      "source": "src/components/icons.tsx",
+      "sha256": "766a516195c9090829af0c6811b0be60876488092fcac166b194d1568418d232"
+    },
+    {
+      "source": "src/components/layout/app-shell.tsx",
+      "sha256": "b1cd3516b49fdb08d61c3a0624aff1bc1db18902c2fd371e30a77aaa63cbef8d"
+    },
+    {
+      "source": "src/components/layout/dashboard-shell.module.css",
+      "sha256": "a5549630d480fd766f05a14eaac0acab2c96f6232672511646c2b834b08a8c9b"
+    },
+    {
+      "source": "src/lib/dashboard-action-items.test.ts",
+      "sha256": "7838fe1646659be172d2302f02d87dc464df3f0d066f09e11cdca8ceedaa2735"
+    },
+    {
+      "source": "src/lib/mobile-responsive.test.ts",
+      "sha256": "2d3fe98fdeaa78bdbfabeef74464d00fd1641b5d31d016be89283097d31557ce"
+    },
+    {
+      "source": "src/lib/role-authorization.test.ts",
+      "sha256": "750adbf2576cf4b6b087434f77ca48b0c759a3904e7c07c2e31c73877a95f43b"
+    }
+  ],
+  "checks": {
+    "tests": {
+      "command": "corepack pnpm exec vitest run src --maxWorkers=2",
+      "result": "200 files / 1716 tests passed; final CSS source/interactions subsequently checked in focused suite",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-tests.log"
+    },
+    "focused": {
+      "command": "corepack pnpm exec vitest run dashboard-client dashboard-presentation mobile-responsive dashboard-action-items role-authorization",
+      "result": "5 files / 41 tests passed after final CSS fix",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-focused.log"
+    },
+    "lint": {
+      "command": "corepack pnpm lint",
+      "result": "passed",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-lint.log"
+    },
+    "typecheck": {
+      "command": "corepack pnpm typecheck",
+      "result": "passed",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-typecheck.log"
+    },
+    "build": {
+      "command": "node /private/tmp/splatno-dashboard-build-run.mjs",
+      "result": "isolated production webpack build passed, synthetic configuration",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-build.log"
+    },
+    "chromium": {
+      "command": "node scripts/dashboard-design-check.mjs",
+      "result": "35 cases passed",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-chromium.log"
+    },
+    "webkit": {
+      "command": "node scripts/dashboard-design-check.mjs --webkit",
+      "result": "35 cases passed",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-webkit.log"
+    },
+    "ocr_recheck": {
+      "command": "corepack pnpm exec vitest run src/lib/invoice-ocr-server.test.ts",
+      "result": "14 tests passed; initial full unbounded run had 3 OCR timeouts under concurrent load, no OCR code or timeout changes",
+      "evidence": "docs/redesign/screens/dashboard/evidence/refinement-ocr_recheck.log"
+    }
+  },
+  "browser": {
+    "chromium": {
+      "passed": 35,
+      "results": "artifacts/dashboard-design/refinement-chromium/results.json",
+      "targets": [
+        {
+          "width": 390,
+          "height": 844,
+          "document_height": 3140,
+          "vertical_scroll": true,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-chromium/normal-390x844.png"
+        },
+        {
+          "width": 1280,
+          "height": 800,
+          "document_height": 1569,
+          "vertical_scroll": true,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-chromium/normal-1280x800.png"
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "document_height": 900,
+          "vertical_scroll": false,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-chromium/normal-1440x900.png"
+        },
+        {
+          "width": 1536,
+          "height": 1024,
+          "document_height": 1024,
+          "vertical_scroll": false,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-chromium/normal-1536x1024.png"
+        }
+      ],
+      "fallbacks": {
+        "expandedChart": {
+          "open": true,
+          "tableHeight": 559,
+          "tableWithinCard": true,
+          "scrolls": true,
+          "overlap": false
+        },
+        "expandedReminders": 4,
+        "cssZoom200": {
+          "scrolls": true,
+          "horizontalOverflow": false,
+          "hidden": false
+        }
+      },
+      "stress_scroll_range_contains_panels": true
+    },
+    "webkit": {
+      "passed": 35,
+      "results": "artifacts/dashboard-design/refinement-webkit/results.json",
+      "targets": [
+        {
+          "width": 390,
+          "height": 844,
+          "document_height": 3140,
+          "vertical_scroll": true,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-webkit/normal-390x844.png"
+        },
+        {
+          "width": 1280,
+          "height": 800,
+          "document_height": 1569,
+          "vertical_scroll": true,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-webkit/normal-1280x800.png"
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "document_height": 900,
+          "vertical_scroll": false,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-webkit/normal-1440x900.png"
+        },
+        {
+          "width": 1536,
+          "height": 1024,
+          "document_height": 1024,
+          "vertical_scroll": false,
+          "horizontal_overflow": false,
+          "nested_scroll_panels": 0,
+          "screenshot": "artifacts/dashboard-design/refinement-webkit/normal-1536x1024.png"
+        }
+      ],
+      "fallbacks": {
+        "expandedChart": {
+          "open": true,
+          "tableHeight": 559,
+          "tableWithinCard": true,
+          "scrolls": true,
+          "overlap": false
+        },
+        "expandedReminders": 4,
+        "cssZoom200": {
+          "scrolls": true,
+          "horizontalOverflow": false,
+          "hidden": false
+        }
+      },
+      "stress_scroll_range_contains_panels": true
+    }
+  },
+  "build_snapshot_matches_sources": [
+    "scripts/dashboard-design-check.mjs",
+    "src/app/(workspace)/dashboard/dashboard-client.test.tsx",
+    "src/app/(workspace)/dashboard/dashboard-client.tsx",
+    "src/app/(workspace)/dashboard/dashboard-presentation.test.ts",
+    "src/app/(workspace)/dashboard/dashboard-presentation.ts",
+    "src/app/(workspace)/dashboard/dashboard-summary.module.css",
+    "src/app/(workspace)/dashboard/dashboard-widgets.tsx",
+    "src/app/(workspace)/dashboard/loading.tsx",
+    "src/app/(workspace)/dashboard/page.tsx",
+    "src/components/icons.tsx",
+    "src/components/layout/app-shell.tsx",
+    "src/components/layout/dashboard-shell.module.css",
+    "src/lib/dashboard-action-items.test.ts",
+    "src/lib/mobile-responsive.test.ts",
+    "src/lib/role-authorization.test.ts"
+  ],
+  "limits": [
+    "Real React/CSS with synthetic GET-only fixtures; not authenticated Next/Supabase E2E.",
+    "CSS zoom 200% and responsive viewports tested; not a complete WCAG or assistive-technology audit.",
+    "Large/expanded content intentionally grows the whole document.",
+    "No changes to backend/RLS/auth/accounting API or production data."
+  ]
+}

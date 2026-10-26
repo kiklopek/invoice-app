@@ -1,297 +1,449 @@
 "use client";
 
+import { ApiRequestError } from "@/lib/api-client";
+import { ExactMoney } from "@/components/money-amount";
+
 import Link from "next/link";
-import styles from "./dashboard-summary.module.css";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
-import { MobileDisclosure } from "@/components/mobile-disclosure";
-import type { DashboardPageData } from "@/lib/dashboard-page-data";
+import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { canManageInvoices } from "@/lib/role-access";
-import { useAccessRole } from "@/lib/use-access-role";
+import { useAccessProfile } from "@/lib/use-access-role";
+import { todayInTimeZone } from "@/lib/reminders";
+import type { DashboardPageData } from "@/lib/dashboard-page-data";
+import {
+  DashboardKpiGrid,
+  InvoiceStatusChart,
+  PaymentTrendChart,
+  SectionError,
+} from "./dashboard-widgets";
+import {
+  dashboardCountChange,
+  dashboardDate,
+} from "./dashboard-presentation";
+import { DashboardReminderOverview as ReminderOverview } from "./dashboard-reminders";
+import styles from "./dashboard-summary.module.css";
+import { emptyDashboardData } from "@/lib/dashboard-summary";
+import {
+  dashboardPeriodRange,
+  dashboardPreviousRange,
+  dashboardRangeParams,
+  type DashboardPeriod,
+} from "@/lib/dashboard-period";
 
-const money = (value: number, currency = "CZK") =>
-  new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
-const shortDate = (value: string) =>
-  new Intl.DateTimeFormat("cs-CZ", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-const isToday = (value: string) => {
-  const date = new Date(value);
-  const today = new Date();
-  return date.getFullYear() === today.getFullYear()
-    && date.getMonth() === today.getMonth()
-    && date.getDate() === today.getDate();
-};
 const statusLabel = {
   pending: "Čeká na úhradu",
   overdue: "Po splatnosti",
   paid: "Zaplaceno",
   cancelled: "Stornováno",
 };
-function CurrencyTotals({ totals }: { totals: Record<string, number> }) {
-  const rows = Object.entries(totals).sort(([a], [b]) => a.localeCompare(b));
+
+export function DashboardClient({
+  initialData,
+  initialNow,
+}: {
+  initialData: DashboardPageData;
+  initialNow?: string;
+}) {
+  const profile = useAccessProfile();
+  const role = profile?.role ?? null;
+  const canManage = canManageInvoices(role);
+  const [now] = useState(() => new Date(initialNow ?? Date.now()));
+  useEffect(() => {
+    const dismiss = (event: Event) => {
+      for (const menu of document.querySelectorAll<HTMLDetailsElement>(
+        "details[data-dashboard-popup][open]",
+      )) {
+        if (event instanceof KeyboardEvent) {
+          if (event.key !== "Escape") continue;
+          menu.open = false;
+          menu.querySelector("summary")?.focus();
+        } else if (event.target instanceof Node && !menu.contains(event.target))
+          menu.open = false;
+      }
+    };
+    document.addEventListener("keydown", dismiss);
+    document.addEventListener("pointerdown", dismiss);
+    return () => {
+      document.removeEventListener("keydown", dismiss);
+      document.removeEventListener("pointerdown", dismiss);
+    };
+  }, []);
+  const [months, setMonths] = useState<DashboardPeriod>("all");
+  const [currency, setCurrency] = useState("CZK");
+  const today = todayInTimeZone(now);
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      timeZone: "Europe/Prague",
+    }).format(now),
+  );
+  const greeting =
+    hour < 11 ? "Dobré ráno" : hour < 18 ? "Dobrý den" : "Dobrý večer";
+  const range = dashboardPeriodRange(today, months);
+  const rangeParams = dashboardRangeParams(range).toString();
+  const summaryKey = `/api/dashboard?${rangeParams}`;
+  const fallback =
+    initialData.period?.from === range.from &&
+    initialData.period?.to === range.to
+      ? initialData
+      : undefined;
+  const revalidateOnRevisit = useRevalidateOnRevisit(summaryKey);
+  const {
+    data: periodSummary,
+    error: summaryError,
+    mutate: reloadSummary,
+  } = useSWR<DashboardPageData>(summaryKey, {
+    fallbackData: fallback,
+    revalidateOnMount: !fallback || revalidateOnRevisit,
+    keepPreviousData: false,
+    refreshInterval: 60_000,
+    // Only transient read failures retry; permission failures must stay visible.
+    shouldRetryOnError: (error: unknown) =>
+      error instanceof ApiRequestError &&
+      (error.status === 0 || error.status === 408 || error.status === 429 || error.status >= 500),
+    errorRetryCount: 2,
+    errorRetryInterval: 1_500,
+  });
+  const summary = periodSummary ?? emptyDashboardData;
+  const previousRange = dashboardPreviousRange(range);
+  const countChange = dashboardCountChange(
+    periodSummary?.invoice_count,
+    periodSummary?.previous_invoice_count ?? undefined,
+  );
+  const chart = periodSummary?.charts?.[currency];
+  const report = chart ?? { monthly: [] };
+  const statusReports = chart?.statuses ?? {
+    paid: { monthly: [] }, pending: { monthly: [] }, overdue: { monthly: [] },
+  };
+  const currencies = [
+    ...new Set(["CZK", currency, ...(periodSummary?.currencies ?? [])]),
+  ].sort();
+
   return (
-    <span className="dashboard-currency-totals">
-      {(rows.length ? rows : [["CZK", 0] as const]).map(([currency, amount], index) => (
-        <span className="dashboard-currency-total" key={currency}>
-          {index > 0 ? <span className="dashboard-currency-separator">+ </span> : null}
-          {money(Number(amount), currency).replace(/[\u00a0\u202f]/g, " ")}
-        </span>
-      ))}
-    </span>
+    <AppFrame
+      invoiceCount={summary.active_count}
+      className={`content ${styles.page}`}
+    >
+      <header className={styles.heading}>
+        <div>
+          <p className={styles.date}>
+            {new Intl.DateTimeFormat("cs-CZ", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              timeZone: "Europe/Prague",
+            }).format(now)}
+          </p>
+          <h1>
+            {greeting}
+            {profile?.name ? `, ${profile.name}` : ""}!
+          </h1>
+          <p>
+            {!periodSummary ? (
+              "Načítání přehledu za vybrané období…"
+            ) : summary.active_count ? (
+              <>
+                {new Intl.NumberFormat("cs-CZ").format(summary.active_count)}{" "}
+                faktur čeká na úplnou úhradu
+                {summary.overdue_count
+                  ? `, z toho ${summary.overdue_count} po splatnosti`
+                  : ""}
+                .
+              </>
+            ) : (
+              "Ve vybraném období nemáte neuhrazené faktury."
+            )}
+          </p>
+        </div>
+        <div className={styles.headingActions}>
+          <label className={styles.periodControl}>
+            <span className={styles.srOnly}>Období dashboardu</span>
+            <Icon name="calendar" />
+            <select
+              value={months}
+              onChange={(event) =>
+                setMonths(
+                  event.target.value === "all"
+                    ? "all"
+                    : (Number(event.target.value) as 3 | 6 | 12),
+                )
+              }
+            >
+              <option value={3}>Poslední 3 měsíce</option>
+              <option value={6}>Posledních 6 měsíců</option>
+              <option value={12}>Posledních 12 měsíců</option>
+              <option value="all">Za celé období</option>
+            </select>
+          </label>
+        </div>
+      </header>
+      {summaryError ? (
+        <SectionError
+          retry={() => {
+            void reloadSummary();
+          }}
+        >
+          Přehled se nepodařilo aktualizovat. Zkuste načtení zopakovat.
+        </SectionError>
+      ) : null}
+      {periodSummary ? (
+        <>
+          {periodSummary?.invoice_count === 0 ? (
+            <section className={styles.welcome}>
+              <Icon name="document" />
+              <div>
+                <h2>V tomto období nejsou žádné faktury</h2>
+                <p>
+                  {canManage
+                    ? "Vyberte jiné období nebo přidejte fakturu."
+                    : "Zkuste vybrat jiné období."}
+                </p>
+              </div>
+            </section>
+          ) : null}
+          <DashboardKpiGrid
+            countChange={countChange}
+            allTime={months === "all"}
+            invoiceQuery={rangeParams}
+            comparisonTitle={
+              previousRange
+                ? `Počet vystavených faktur od ${dashboardDate(range.from!)} do ${dashboardDate(range.to)} oproti stejně dlouhému předchozímu období, všechny měny.`
+                : undefined
+            }
+            comparisonFailed={Boolean(summaryError)}
+            retryComparison={() => {
+              void reloadSummary();
+            }}
+            summary={summary}
+            total={periodSummary?.invoice_count}
+            paidCount={periodSummary?.paid_invoice_count}
+            totalFailed={Boolean(summaryError)}
+            paidFailed={Boolean(summaryError)}
+            retryCounts={() => {
+              void reloadSummary();
+            }}
+          />
+          <section className={styles.charts} aria-label="Grafy faktur">
+            <PaymentTrendChart
+              data={report}
+              statusReports={statusReports}
+              loading={!periodSummary}
+              failed={Boolean(summaryError)}
+              retry={() => {
+                void reloadSummary();
+              }}
+              currency={currency}
+              currencies={currencies}
+              onCurrencyChange={setCurrency}
+            />
+            <InvoiceStatusChart
+              summary={summary}
+              paidCount={periodSummary?.paid_invoice_count}
+              failed={Boolean(summaryError)}
+              retry={() => {
+                void reloadSummary();
+              }}
+            />
+          </section>
+          <div className={styles.lists}>
+            <RecentInvoices
+              invoices={summary.recent}
+              invoiceQuery={rangeParams}
+            />
+            <ReminderOverview
+              summary={summary}
+              canManage={canManage}
+              today={today}
+            />
+          </div>
+        </>
+      ) : !summaryError ? (
+        <p role="status">Načítání dat za vybrané období…</p>
+      ) : null}
+    </AppFrame>
   );
 }
 
-export function DashboardClient({ initialData }: { initialData: DashboardPageData }) {
+function RecentInvoices({
+  invoices,
+  invoiceQuery,
+}: {
+  invoiceQuery: string;
+  invoices: DashboardPageData["recent"];
+}) {
   const router = useRouter();
-  const role = useAccessRole();
-  // Název firmy z profilu, ne natvrdo -- aplikace se má dát nasadit
-  // i pro jinou firmu, aniž by se přepisovaly komponenty.
-  const canManage = canManageInvoices(role);
-  // Znovu načíst jen při návratu na stránku (v cache jsou starší data);
-  // při první návštěvě stačí data, která právě poslal server.
-  const revalidateOnRevisit = useRevalidateOnRevisit("/api/dashboard");
-  const { data: summary = initialData, error: loadError } = useSWR<DashboardPageData>("/api/dashboard", { fallbackData: initialData, revalidateOnMount: revalidateOnRevisit });
-  const error = loadError instanceof Error ? loadError.message : "";
-
-  const activeCount = summary.active_count;
-  const recent = summary.recent;
-  const upcoming = summary.upcoming;
-
+  const preview = invoices.slice(0, 5);
+  const badges = (invoice: DashboardPageData["recent"][number]) => {
+    const partial =
+      (invoice.status === "pending" || invoice.status === "overdue") &&
+      Number(invoice.paid_amount) > 0;
+    return (
+      <span
+        className={styles.statuses}
+        title={`${statusLabel[invoice.status]}${partial ? " · Částečně uhrazeno" : ""}`}
+      >
+        <span className={styles.status} data-status={invoice.status}>
+          {partial ? "Částečně uhrazeno" : statusLabel[invoice.status]}
+        </span>
+      </span>
+    );
+  };
   return (
-    <AppFrame invoiceCount={activeCount} className={`content dashboard-page ${styles.page}`}>
-        {/* Viditelná hlavička byla odebrána, aby místo dostaly panely faktur;
-            nadpis stránky zůstává pro čtečky obrazovky. */}
-        <h1 className={styles.srOnly}>Finanční přehled</h1>
-        <section className="dashboard-command" aria-label="Souhrn pohledávek">
-          <article className="dashboard-balance-card">
-            <div className="dashboard-balance-topline">
-              <span>CELKOVĚ K ÚHRADĚ</span>
-              <span className="dashboard-live-state"><i /> Aktuální stav</span>
-            </div>
-            <div className="dashboard-balance-summary">
-              <strong><CurrencyTotals totals={summary.open_totals} /></strong>
-              <p>{activeCount} aktivních faktur čeká na úplné uhrazení</p>
-            </div>
-            <div className="dashboard-balance-actions">
-              <Link href="/invoices">Zobrazit pohledávky <span>→</span></Link>
-              <Link href="/reports">Otevřít reporty</Link>
-            </div>
-          </article>
-          <div className={`${styles.side}${canManage ? "" : ` ${styles.readOnly}`}`}>
-          <div className="dashboard-signal-grid">
-            <article className="dashboard-signal critical">
-              <span className="dashboard-signal-icon"><Icon name="clock" /></span>
-              <div><small>Po splatnosti</small><strong><CurrencyTotals totals={summary.overdue_totals} /></strong><p>{summary.overdue_count} {summary.overdue_count === 1 ? "faktura vyžaduje" : "faktur vyžaduje"} pozornost</p></div>
-            </article>
-            <article className="dashboard-signal positive">
-              <span className="dashboard-signal-icon"><Icon name="check" /></span>
-              <div><small>Celkem přijato</small><strong><CurrencyTotals totals={summary.paid_totals} /></strong><p>Včetně částečných úhrad</p></div>
-            </article>
-            <article className="dashboard-signal neutral">
-              <span className="dashboard-signal-icon"><Icon name="mail" /></span>
-              <div><small>Odeslané upomínky</small><strong>{summary.reminders_sent}</strong><p>Automaticky evidováno</p></div>
-            </article>
-          </div>
-          {canManage ? <div className="top-actions dashboard-actions">
-            <Link
-              className="btn primary dashboard-document-upload"
-              href="/invoices/import"
-            >
-              <Icon name="upload" />
-              Nahrát dokument
-            </Link>
-            <Link
-              className="btn secondary dashboard-add-invoice"
-              href="/invoices/new"
-            >
-              <Icon name="plus" />
-              Přidat fakturu
-            </Link>
-            <Link className="btn secondary" href="/invoices/payments">
-              <Icon name="bank" />
-              Spárovat platby
-            </Link>
-          </div> : null}
-          </div>
-        </section>
-        <section className="workspace-grid dashboard-workspace">
-          <div className="panel invoice-panel">
-            <div className="panel-head">
-              <div>
-                <h2>Poslední faktury</h2>
-                <p>Nejnověji přidané vydané faktury</p>
-              </div>
-              <Link href="/invoices">Zobrazit všechny →</Link>
-            </div>
-            {error ? (
-              <p className="state error-state">{error}</p>
-            ) : (
-              <div className="table-wrap dashboard-invoice-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Faktura</th>
-                      <th>Odběratel</th>
-                      <th>Částka</th>
-                      <th>Splatnost</th>
-                      <th>Upomínky</th>
-                      <th>Stav</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recent.map((invoice) => (
-                      <tr
-                        key={invoice.id}
-                        className={`invoice-row${invoice.status === "paid" ? " is-paid" : ""}`}
-                        onClick={(event) => {
-                          const target = event.target;
-                          if (target instanceof HTMLElement && target.closest("a, button, input, select, textarea")) return;
-                          router.push(`/invoices/${invoice.id}`);
-                        }}
-                      >
-                        <td data-label="Faktura">
-                          <Link href={`/invoices/${invoice.id}`}>
-                            <strong>{invoice.invoice_number}</strong>
-                          </Link>
-                          <small>VS {invoice.variable_symbol || "—"}</small>
-                        </td>
-                        <td data-label="Odběratel">
-                          <strong>{invoice.counterparty_name}</strong>
-                          <small>{invoice.counterparty_email}</small>
-                        </td>
-                        <td data-label="Částka">
-                          <strong>
-                            {money(Number(invoice.amount), invoice.currency)}
-                          </strong>
-                        </td>
-                        <td data-label="Splatnost">
-                          <strong
-                            className={
-                              invoice.status === "overdue" ? "red-text" : ""
-                            }
-                          >
-                            {shortDate(invoice.due_date)}
-                          </strong>
-                        </td>
-                        <td data-label="Upomínky">{invoice.reminders_sent}×</td>
-                        <td data-label="Stav">
-                          <span className={`status ${invoice.status}`}>
-                            {statusLabel[invoice.status]}
-                          </span>
-                          {(invoice.status === "pending" || invoice.status === "overdue") &&
-                          Number(invoice.paid_amount) > 0 ? (
-                            <span className="status partial">Částečně uhrazeno</span>
-                          ) : null}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="dashboard-invoice-compact-list" role="list" aria-label="Poslední faktury">
-                  {recent.map((invoice) => (
-                    <Link
-                      className={`dashboard-invoice-compact-row${invoice.status === "paid" ? " is-paid" : ""}`}
-                      href={`/invoices/${invoice.id}`}
-                      key={`compact-${invoice.id}`}
-                      role="listitem"
+    <section
+      className={styles.card}
+      aria-labelledby="dashboard-invoices-heading"
+    >
+      <header className={styles.cardHeader}>
+        <div>
+          <h2 id="dashboard-invoices-heading">Poslední faktury</h2>
+        </div>
+        <Link className={styles.textLink} href={`/invoices?${invoiceQuery}`}>
+          Zobrazit všechny <Icon name="arrow-right" />
+        </Link>
+      </header>
+      {!invoices.length ? (
+        <div className={styles.emptyList}>
+          Ve vybraném období nejsou žádné evidované faktury.
+        </div>
+      ) : (
+        <>
+          <div className={styles.invoiceTable}>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Faktura</th>
+                  <th scope="col">Odběratel</th>
+                  <th scope="col">Částka</th>
+                  <th scope="col">Splatnost</th>
+                  <th scope="col">Stav</th>
+                  <th scope="col">
+                    <span className={styles.srOnly}>Akce</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((invoice) => (
+                  <tr
+                    key={invoice.id}
+                    onClick={(event) => {
+                      if (window.getSelection()?.toString()) return;
+                      if (
+                        event.target instanceof HTMLElement &&
+                        event.target.closest(
+                          "a, button, input, select, textarea, summary, details",
+                        )
+                      )
+                        return;
+                      router.push(`/invoices/${invoice.id}`);
+                    }}
+                  >
+                    <td
+                      title={`Variabilní symbol: ${invoice.variable_symbol || "—"}`}
                     >
-                      <span className="dashboard-invoice-compact-customer">
-                        <strong>{invoice.counterparty_name}</strong>
-                        <small>{invoice.counterparty_email}</small>
-                      </span>
-                      <span className="dashboard-invoice-compact-amount">
-                        <strong>{money(Number(invoice.amount), invoice.currency)}</strong>
-                      </span>
-                      <span className="dashboard-invoice-compact-meta">
-                        <span aria-label={`Faktura ${invoice.invoice_number}`} title="Číslo faktury">
-                          <Icon name="document" />
-                          <strong>{invoice.invoice_number}</strong>
-                        </span>
-                        <span
-                          className={invoice.status === "overdue" ? "red-text" : undefined}
-                          aria-label={`Splatnost ${shortDate(invoice.due_date)}`}
-                          title="Splatnost"
-                        >
-                          <Icon name="clock" />
-                          <span>{shortDate(invoice.due_date)}</span>
-                        </span>
-                        <span aria-label={`${invoice.reminders_sent} odeslaných upomínek`} title="Odeslané upomínky">
-                          <Icon name="mail" />
-                          <span>{invoice.reminders_sent}×</span>
-                        </span>
-                      </span>
-                      <span className="dashboard-invoice-compact-statuses">
-                        <span className={`status ${invoice.status}`}>{statusLabel[invoice.status]}</span>
-                        {(invoice.status === "pending" || invoice.status === "overdue") && Number(invoice.paid_amount) > 0 ? (
-                          <span className="status partial">Částečně uhrazeno</span>
-                        ) : null}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <MobileDisclosure label="Vyžaduje pozornost" className="dashboard-upcoming-disclosure" defaultOpen>
-            <aside className="panel activity-panel dashboard-attention-panel">
-              <div className="panel-head">
-                <div>
-                  <h2>Vyžaduje pozornost</h2>
-                  <p>Co je potřeba řešit jako první</p>
-                </div>
-                <span
-                  aria-label={`${upcoming.length} upozornění`}
-                  role="img"
-                  className="dashboard-attention-count"
-                >
-                  <Icon name="alert" /><span aria-hidden="true">{upcoming.length}</span>
-                </span>
-              </div>
-              <div className="timeline">
-                {upcoming.length ? (
-                  upcoming.map((invoice) => (
-                    <Link
-                      className="dashboard-timeline-item"
-                      href={`/invoices/${invoice.id}`}
-                      key={invoice.id}
+                      <Link href={`/invoices/${invoice.id}`}>
+                        {invoice.invoice_number}
+                      </Link>
+                      <small>VS {invoice.variable_symbol || "—"}</small>
+                    </td>
+                    <td title={invoice.counterparty_email || undefined}>
+                      <strong>{invoice.counterparty_name}</strong>
+                      <small>{invoice.counterparty_email}</small>
+                    </td>
+                    <td className={styles.amount}>
+                      <ExactMoney value={Number(invoice.amount)} currency={invoice.currency} />
+                    </td>
+                    <td
+                      title={`${invoice.reminders_sent}× upomínka`}
+                      className={
+                        invoice.status === "overdue"
+                          ? styles.overdueDate
+                          : undefined
+                      }
                     >
-                      <span className="timeline-icon amber">
-                        <Icon name="mail" />
-                      </span>
-                      <section>
-                        <small>{shortDate(invoice.next_reminder_at!)}</small>
-                        {isToday(invoice.next_reminder_at!) ? <span className="today-task-tag">Dnešní úkol</span> : null}
-                        <strong>{invoice.counterparty_name}</strong>
-                        <p>
-                          {invoice.invoice_number} · zbývá{" "}
-                          {money(Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount)), invoice.currency)}
-                        </p>
-                        <em>
-                          {invoice.status === "overdue"
-                            ? "Faktura po splatnosti"
-                            : "Naplánováno"}
-                        </em>
-                      </section>
-                      <span className="dashboard-timeline-arrow" aria-hidden="true">→</span>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="empty-box">Žádné nadcházející upomínky.</p>
-                )}
-              </div>
-            </aside>
-          </MobileDisclosure>
-        </section>
-    </AppFrame>
+                      {dashboardDate(invoice.due_date)}
+                      <small>{invoice.reminders_sent}× upomínka</small>
+                    </td>
+                    <td>{badges(invoice)}</td>
+                    <td>
+                      <InvoiceActions
+                        id={invoice.id}
+                        number={invoice.invoice_number}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div
+            className={styles.invoiceCards}
+            role="list"
+            aria-label="Poslední faktury"
+          >
+            {preview.map((invoice) => (
+              <article
+                className={styles.invoiceCard}
+                key={invoice.id}
+                role="listitem"
+              >
+                <header>
+                  <Link href={`/invoices/${invoice.id}`}>
+                    {invoice.invoice_number}
+                  </Link>
+                </header>
+                <strong>{invoice.counterparty_name}</strong>
+                <span>{invoice.counterparty_email}</span>
+                <div className={styles.invoiceCardAmount}>
+                  <ExactMoney value={Number(invoice.amount)} currency={invoice.currency} />
+                </div>
+                <footer>
+                  {invoice.reminders_sent > 0 && <span className={styles.invoiceCardReminders}>{invoice.reminders_sent}× upomínka</span>}
+                </footer>
+                <div className={styles.invoiceCardSide}>
+                  {badges(invoice)}
+                  <small>VS {invoice.variable_symbol || "—"}</small>
+                  <span className={styles.invoiceCardDue}>
+                    <span>Splatnost</span>
+                    <time dateTime={invoice.due_date}>{dashboardDate(invoice.due_date)}</time>
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function InvoiceActions({ id, number }: { id: string; number: string }) {
+  const [notice, setNotice] = useState("");
+  async function copy() {
+    try {
+      if (!navigator.clipboard) throw new Error();
+      await navigator.clipboard.writeText(number);
+      setNotice("Zkopírováno");
+    } catch {
+      setNotice("Číslo můžete označit a zkopírovat z řádku.");
+    }
+  }
+  return (
+    <details data-dashboard-popup className={styles.invoiceActions}>
+      <summary aria-label={`Akce faktury ${number}`}>
+        <Icon name="more" />
+      </summary>
+      <div data-popup>
+        <Link href={`/invoices/${id}`}>Otevřít detail faktury</Link>
+        <button type="button" onClick={() => void copy()}>
+          Kopírovat číslo faktury
+        </button>
+        {notice ? <span role="status">{notice}</span> : null}
+      </div>
+    </details>
   );
 }

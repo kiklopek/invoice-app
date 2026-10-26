@@ -2,6 +2,7 @@ import "server-only";
 
 import type { RequestIdentity } from "@/lib/auth";
 import { invoiceAllowance, subscriptionState, type SubscriptionRow } from "@/lib/billing";
+import { findPlan } from "@/lib/plans";
 import { apiError } from "@/lib/api-response";
 import { BillingError, type BillingDeps, type Service } from "@/lib/stripe-billing";
 import { getStripe, stripeConfiguration } from "@/lib/stripe";
@@ -26,7 +27,7 @@ export function billingDeps(service: Service): BillingDeps | null {
   return configuration && stripe ? { stripe, service, taxRateId: configuration.taxRateId } : null;
 }
 
-const SUBSCRIPTION_CODES = new Set(["trial_invoice_limit", "subscription_payment_required", "subscription_expired"]);
+const SUBSCRIPTION_CODES = new Set(["trial_invoice_limit", "monthly_invoice_limit", "subscription_payment_required", "subscription_expired"]);
 
 /**
  * Smí firma přidat `count` faktur? Při chybě čtení se neblokuje (výpadek
@@ -43,12 +44,24 @@ export async function subscriptionBlock(identity: RequestIdentity, count = 1) {
       code: "trial_invoice_limit",
     }, { status: 402 });
   }
+  const limit = row?.billing_exempt ? null : findPlan(typeof row?.plan === "string" ? row.plan : null)?.monthlyInvoiceLimit;
+  if (row && subscriptionState(row) !== "trial" && limit != null) {
+    const { data, error } = await identity.service.from("subscriptions").select("invoice_month_start,invoice_month_used").eq("organization_id", identity.membership.organization_id).maybeSingle();
+    if (!error && data) {
+      const counter = data;
+      const now = new Date();
+      const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const used = counter.invoice_month_start && new Date(counter.invoice_month_start).toISOString() === month ? counter.invoice_month_used : 0;
+      if (used + count > limit) return Response.json({ error: "Měsíční limit faktur vašeho tarifu je vyčerpaný. Změňte tarif v Nastavení → Předplatné nebo počkejte na další měsíc.", code: "monthly_invoice_limit" }, { status: 402 });
+    }
+  }
   return null;
 }
 
 /** Chyba z databázového triggeru (limit faktur) jako srozumitelná 402. */
 export function subscriptionErrorResponse(error: { message?: string } | null | undefined) {
   if (!error?.message || !SUBSCRIPTION_CODES.has(error.message)) return null;
+  if (error.message === "monthly_invoice_limit") return Response.json({ error: "Měsíční limit faktur vašeho tarifu je vyčerpaný. Změňte tarif v Nastavení → Předplatné nebo počkejte na další měsíc.", code: error.message }, { status: 402 });
   const allowance = invoiceAllowance({
     status: error.message === "subscription_payment_required" ? "incomplete" : error.message === "subscription_expired" ? "canceled" : "trialing",
     trial_ends_at: null,
@@ -65,7 +78,7 @@ export function billingErrorResponse(request: Request, error: unknown) {
     return apiError(request, error.message, error.status, error.code);
   }
   logError("Platební brána Stripe odpověděla chybou", error);
-  return apiError(request, "Platební brána teď neodpovídá. Nic se nestrhlo; zkuste to prosím za chvíli.", 502, "stripe_error");
+  return apiError(request, "Platební brána teď neodpovídá. Stav operace ověřte obnovením údajů před dalším pokusem.", 502, "stripe_error");
 }
 
 /**

@@ -1,0 +1,3101 @@
+{
+  "baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+  "date": "2026-10-17",
+  "branch": "design-rebuild",
+  "limits": "Static source inventory; not proof of deployed database policies, authentication or complete runtime coverage.",
+  "pages": [
+    {
+      "id": "R01",
+      "route": "/forgot-password",
+      "source": "src/app/(auth)/forgot-password/page.tsx",
+      "imports": [
+        "next/link",
+        "react",
+        "@/components/auth/auth-shell",
+        "@/components/landing/landing-icons",
+        "@/i18n/client",
+        "@/lib/auth-policy",
+        "@/lib/login-entry"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R02",
+      "route": "/hlavica",
+      "source": "src/app/(auth)/hlavica/page.tsx",
+      "imports": [
+        "@/components/auth/login-form"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R03",
+      "route": "/hlavica/registrace",
+      "source": "src/app/(auth)/hlavica/registrace/page.tsx",
+      "imports": [
+        "@/components/auth/register-form"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R04",
+      "route": "/login",
+      "source": "src/app/(auth)/login/page.tsx",
+      "imports": [
+        "@/components/auth/login-form"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R05",
+      "route": "/mfa",
+      "source": "src/app/(auth)/mfa/page.tsx",
+      "imports": [
+        "react",
+        "@/components/auth/auth-shell",
+        "@/components/auth/otp-input",
+        "@/components/landing/landing-icons",
+        "@/lib/sign-out",
+        "@/lib/safe-return-path",
+        "@/lib/login-entry",
+        "@/i18n/client",
+        "@/i18n/api-errors",
+        "@/lib/verification-code"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R06",
+      "route": "/pozvanka/[token]",
+      "source": "src/app/(auth)/pozvanka/[token]/page.tsx",
+      "imports": [
+        "next",
+        "@/lib/auth",
+        "@/lib/invitation-server",
+        "@/i18n/server",
+        "./invitation-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R07",
+      "route": "/register",
+      "source": "src/app/(auth)/register/page.tsx",
+      "imports": [
+        "@/components/auth/plan-choice-memo",
+        "@/components/auth/register-form"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R08",
+      "route": "/reset-password",
+      "source": "src/app/(auth)/reset-password/page.tsx",
+      "imports": [
+        "@/components/auth/password-input",
+        "react",
+        "next/navigation",
+        "@/components/auth/auth-shell",
+        "@/lib/login-entry",
+        "@/components/landing/landing-icons",
+        "@/lib/password-policy",
+        "@/i18n/client",
+        "@/lib/supabase-browser",
+        "@/lib/tenant-entries"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R09",
+      "route": "/en",
+      "source": "src/app/(landing)/en/page.tsx",
+      "imports": [
+        "@/components/landing/landing-page",
+        "@/lib/seo"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R10",
+      "route": "/",
+      "source": "src/app/(landing)/page.tsx",
+      "imports": [
+        "@/components/landing/landing-page",
+        "@/lib/seo"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R11",
+      "route": "/ochrana-osobnich-udaju",
+      "source": "src/app/(legal)/ochrana-osobnich-udaju/page.tsx",
+      "imports": [
+        "next",
+        "../legal-page"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R12",
+      "route": "/podminky",
+      "source": "src/app/(legal)/podminky/page.tsx",
+      "imports": [
+        "next",
+        "../legal-page",
+        "@/lib/plans"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R13",
+      "route": "/onboarding",
+      "source": "src/app/(onboarding)/onboarding/page.tsx",
+      "imports": [
+        "next",
+        "next/navigation",
+        "@/lib/access-state",
+        "@/lib/auth",
+        "@/lib/billing-server",
+        "@/lib/role-access",
+        "@/lib/user-display",
+        "@/lib/operator",
+        "@/lib/onboarding-draft",
+        "@/lib/structured-log",
+        "./onboarding-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R14",
+      "route": "/provoz",
+      "source": "src/app/(operator)/provoz/page.tsx",
+      "imports": [
+        "next",
+        "next/navigation",
+        "@/lib/operator-server",
+        "@/lib/billing",
+        "@/lib/plans",
+        "@/lib/stripe",
+        "./operator-console"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R15",
+      "route": "/customers",
+      "source": "src/app/(workspace)/customers/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/customers-page-data",
+        "./customers-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R16",
+      "route": "/dashboard",
+      "source": "src/app/(workspace)/dashboard/page.tsx",
+      "imports": [
+        "./dashboard-client",
+        "@/lib/auth",
+        "@/lib/dashboard-page-data"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R17",
+      "route": "/invoices/[id]",
+      "source": "src/app/(workspace)/invoices/[id]/page.tsx",
+      "imports": [
+        "next/navigation",
+        "@/lib/auth",
+        "@/lib/dashboard-page-data",
+        "@/lib/invoice-detail-page-data",
+        "./invoice-detail-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R18",
+      "route": "/invoices/archive",
+      "source": "src/app/(workspace)/invoices/archive/page.tsx",
+      "imports": [
+        "next/navigation",
+        "react",
+        "swr",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/components/mobile-disclosure",
+        "@/types/invoice",
+        "next/link"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R19",
+      "route": "/invoices/import",
+      "source": "src/app/(workspace)/invoices/import/page.tsx",
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "react",
+        "@/components/layout/app-shell",
+        "@/components/invoice-form",
+        "@/types/invoice",
+        "@/lib/supabase-browser",
+        "@/lib/document-validation",
+        "@/components/icons",
+        "@/lib/workspace-cache",
+        "@/components/document-preview",
+        "@/lib/document-locate",
+        "@/lib/invoice-ocr",
+        "@/lib/vat",
+        "./invoice-import.module.css"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R20",
+      "route": "/invoices/new",
+      "source": "src/app/(workspace)/invoices/new/page.tsx",
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "@/components/layout/app-shell",
+        "@/components/invoice-form",
+        "@/components/icons",
+        "@/lib/workspace-cache",
+        "@/types/invoice"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R21",
+      "route": "/invoices",
+      "source": "src/app/(workspace)/invoices/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/invoice-list-page-data",
+        "@/lib/invoice-list-query",
+        "./invoices-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R22",
+      "route": "/invoices/payments/archive",
+      "source": "src/app/(workspace)/invoices/payments/archive/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/payments-page-data",
+        "./payments-archive-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R23",
+      "route": "/invoices/payments",
+      "source": "src/app/(workspace)/invoices/payments/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/payments-page-data",
+        "./payments-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R24",
+      "route": "/predplatne",
+      "source": "src/app/(workspace)/predplatne/page.tsx",
+      "imports": [
+        "next",
+        "./subscription-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R25",
+      "route": "/reminders",
+      "source": "src/app/(workspace)/reminders/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/reminder-page-data",
+        "./reminders-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R26",
+      "route": "/reports",
+      "source": "src/app/(workspace)/reports/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/report-page-data",
+        "@/lib/reminders",
+        "./reports-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R27",
+      "route": "/settings/email-template",
+      "source": "src/app/(workspace)/settings/email-template/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/reminder-page-data",
+        "../../reminders/reminders-client"
+      ],
+      "mockup": "missing approval/reference"
+    },
+    {
+      "id": "R28",
+      "route": "/settings",
+      "source": "src/app/(workspace)/settings/page.tsx",
+      "imports": [
+        "@/lib/auth",
+        "@/lib/settings-page-data",
+        "./settings-client"
+      ],
+      "mockup": "missing approval/reference"
+    }
+  ],
+  "handlers": [
+    {
+      "id": "H01",
+      "route": "/api/auth/access",
+      "source": "src/app/api/auth/access/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H02",
+      "route": "/api/auth/email-mfa/send",
+      "source": "src/app/api/auth/email-mfa/send/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "create_email_mfa_challenge"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H03",
+      "route": "/api/auth/email-mfa/verify",
+      "source": "src/app/api/auth/email-mfa/verify/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "verify_email_mfa_challenge"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H04",
+      "route": "/api/auth/logout",
+      "source": "src/app/api/auth/logout/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "end_support_session"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H05",
+      "route": "/api/auth/password-recovery",
+      "source": "src/app/api/auth/password-recovery/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H06",
+      "route": "/api/auth/register",
+      "source": "src/app/api/auth/register/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H07",
+      "route": "/api/auth/registration-access",
+      "source": "src/app/api/auth/registration-access/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H08",
+      "route": "/api/auth/session-preference",
+      "source": "src/app/api/auth/session-preference/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H09",
+      "route": "/api/billing/activate",
+      "source": "src/app/api/billing/activate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H10",
+      "route": "/api/billing",
+      "source": "src/app/api/billing/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H11",
+      "route": "/api/billing/setup",
+      "source": "src/app/api/billing/setup/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H12",
+      "route": "/api/billing/stripe",
+      "source": "src/app/api/billing/stripe/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "record_stripe_event",
+        "record_stripe_event"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H13",
+      "route": "/api/billing/subscription",
+      "source": "src/app/api/billing/subscription/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H14",
+      "route": "/api/cron/check-due",
+      "source": "src/app/api/cron/check-due/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "schedule_reminder_jobs",
+        "claim_reminder_jobs",
+        "release_claimed_reminder_jobs",
+        "fail_claimed_reminder_job",
+        "skip_claimed_reminder_job",
+        "complete_claimed_reminder_send",
+        "fail_claimed_reminder_job",
+        "release_claimed_reminder_jobs",
+        "cleanup_expired_support_sessions"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H15",
+      "route": "/api/cron/reconcile-payments",
+      "source": "src/app/api/cron/reconcile-payments/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [
+        "run_bank_reconciliation_jobs"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H16",
+      "route": "/api/customers/[id]",
+      "source": "src/app/api/customers/[id]/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "literal_rpc_calls": [
+        "update_customer_contact"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H17",
+      "route": "/api/customers",
+      "source": "src/app/api/customers/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H18",
+      "route": "/api/customers/search",
+      "source": "src/app/api/customers/search/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [
+        "search_customers"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H19",
+      "route": "/api/dashboard",
+      "source": "src/app/api/dashboard/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H20",
+      "route": "/api/health",
+      "source": "src/app/api/health/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [
+        "list_invoices_page",
+        "invoice_report_summary",
+        "dashboard_summary"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H21",
+      "route": "/api/invitations/[token]",
+      "source": "src/app/api/invitations/[token]/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "accept_organization_invitation"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H22",
+      "route": "/api/invoices/[id]/activity",
+      "source": "src/app/api/invoices/[id]/activity/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H23",
+      "route": "/api/invoices/[id]/assignable-payments",
+      "source": "src/app/api/invoices/[id]/assignable-payments/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H24",
+      "route": "/api/invoices/[id]/document",
+      "source": "src/app/api/invoices/[id]/document/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H25",
+      "route": "/api/invoices/[id]/page-data",
+      "source": "src/app/api/invoices/[id]/page-data/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H26",
+      "route": "/api/invoices/[id]/pdf",
+      "source": "src/app/api/invoices/[id]/pdf/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H27",
+      "route": "/api/invoices/[id]/reminders/[reminderId]/retry",
+      "source": "src/app/api/invoices/[id]/reminders/[reminderId]/retry/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "complete_reminder_send"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H28",
+      "route": "/api/invoices/[id]/reminders",
+      "source": "src/app/api/invoices/[id]/reminders/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H29",
+      "route": "/api/invoices/[id]",
+      "source": "src/app/api/invoices/[id]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [
+        "confirm_manual_payment",
+        "reopen_paid_invoice",
+        "delete_invoice_safely"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H30",
+      "route": "/api/invoices/[id]/send",
+      "source": "src/app/api/invoices/[id]/send/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H31",
+      "route": "/api/invoices/extract",
+      "source": "src/app/api/invoices/extract/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "claim_invoice_ocr"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H32",
+      "route": "/api/invoices/import",
+      "source": "src/app/api/invoices/import/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H33",
+      "route": "/api/invoices/reminder-policy-preference",
+      "source": "src/app/api/invoices/reminder-policy-preference/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H34",
+      "route": "/api/invoices",
+      "source": "src/app/api/invoices/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "list_invoices_page_filtered"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H35",
+      "route": "/api/invoices/upload",
+      "source": "src/app/api/invoices/upload/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H36",
+      "route": "/api/invoices/upload/verify",
+      "source": "src/app/api/invoices/upload/verify/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H37",
+      "route": "/api/onboarding/ares",
+      "source": "src/app/api/onboarding/ares/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H38",
+      "route": "/api/onboarding/draft",
+      "source": "src/app/api/onboarding/draft/route.ts",
+      "methods": [
+        "PUT"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H39",
+      "route": "/api/onboarding/organization",
+      "source": "src/app/api/onboarding/organization/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "create_organization_for_user"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H40",
+      "route": "/api/operator/support",
+      "source": "src/app/api/operator/support/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [
+        "start_support_session",
+        "end_support_session"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H41",
+      "route": "/api/payments/assistance",
+      "source": "src/app/api/payments/assistance/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "payment_assistance_overview",
+        "request_payment_assistance",
+        "set_payment_assistance_waiting",
+        "decide_payment_assistance",
+        "save_payment_payer_memory"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H42",
+      "route": "/api/payments/audit",
+      "source": "src/app/api/payments/audit/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [
+        "audit_invoice_money"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H43",
+      "route": "/api/payments/imports/[id]/commit",
+      "source": "src/app/api/payments/imports/[id]/commit/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "reconcile_bank_statement"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H44",
+      "route": "/api/payments/imports/[id]/discard",
+      "source": "src/app/api/payments/imports/[id]/discard/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "discard_bank_statement_import"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H45",
+      "route": "/api/payments/imports/[id]/release",
+      "source": "src/app/api/payments/imports/[id]/release/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "release_statement_entry"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H46",
+      "route": "/api/payments/imports/[id]",
+      "source": "src/app/api/payments/imports/[id]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "literal_rpc_calls": [
+        "save_bank_statement_allocations"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H47",
+      "route": "/api/payments/imports/overlap",
+      "source": "src/app/api/payments/imports/overlap/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "acknowledge_statement_overlap"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H48",
+      "route": "/api/payments/imports",
+      "source": "src/app/api/payments/imports/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "reconcile_bank_statement"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H49",
+      "route": "/api/payments/invoice-candidates",
+      "source": "src/app/api/payments/invoice-candidates/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [
+        "list_open_invoice_candidates"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H50",
+      "route": "/api/payments",
+      "source": "src/app/api/payments/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [
+        "assign_bank_payment",
+        "unassign_bank_payment_allocations"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H51",
+      "route": "/api/reminders/page-data",
+      "source": "src/app/api/reminders/page-data/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H52",
+      "route": "/api/reminders",
+      "source": "src/app/api/reminders/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H53",
+      "route": "/api/reports",
+      "source": "src/app/api/reports/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [
+        "invoice_report_rows_page",
+        "invoice_report_summary"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H54",
+      "route": "/api/settings/bank-accounts",
+      "source": "src/app/api/settings/bank-accounts/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H55",
+      "route": "/api/settings/company",
+      "source": "src/app/api/settings/company/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H56",
+      "route": "/api/settings/email-suppressions",
+      "source": "src/app/api/settings/email-suppressions/route.ts",
+      "methods": [
+        "GET",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H57",
+      "route": "/api/settings/logo",
+      "source": "src/app/api/settings/logo/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H58",
+      "route": "/api/settings/members/invitation",
+      "source": "src/app/api/settings/members/invitation/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H59",
+      "route": "/api/settings/members",
+      "source": "src/app/api/settings/members/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [
+        "add_organization_member",
+        "update_organization_member_role",
+        "end_support_session",
+        "delete_organization_member",
+        "restore_organization_member_after_auth_delete_failure"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H60",
+      "route": "/api/settings/page-data",
+      "source": "src/app/api/settings/page-data/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H61",
+      "route": "/api/settings/reminder-policies",
+      "source": "src/app/api/settings/reminder-policies/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "literal_rpc_calls": [
+        "set_default_reminder_policy"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H62",
+      "route": "/api/settings/reminders",
+      "source": "src/app/api/settings/reminders/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "literal_rpc_calls": [
+        "save_default_reminder_settings_versioned"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H63",
+      "route": "/api/settings/reminders/test",
+      "source": "src/app/api/settings/reminders/test/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H64",
+      "route": "/api/webhooks/resend",
+      "source": "src/app/api/webhooks/resend/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "literal_rpc_calls": [
+        "process_resend_delivery_event"
+      ],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H65",
+      "route": "/auth/callback",
+      "source": "src/app/auth/callback/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H66",
+      "route": "/auth/recovery",
+      "source": "src/app/auth/recovery/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H67",
+      "route": "/logo/[organizationId]",
+      "source": "src/app/logo/[organizationId]/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    },
+    {
+      "id": "H68",
+      "route": "/og/[locale]",
+      "source": "src/app/og/[locale]/route.tsx",
+      "methods": [
+        "GET"
+      ],
+      "literal_rpc_calls": [],
+      "note": "Literal RPCs only; helpers may call more."
+    }
+  ],
+  "ui_files": [
+    {
+      "source": "src/app/(auth)/forgot-password/page.tsx",
+      "lines": 80,
+      "client": true,
+      "imports": [
+        "next/link",
+        "react",
+        "@/components/auth/auth-shell",
+        "@/components/landing/landing-icons",
+        "@/i18n/client",
+        "@/lib/auth-policy",
+        "@/lib/login-entry"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/hlavica/page.tsx",
+      "lines": 7,
+      "client": false,
+      "imports": [
+        "@/components/auth/login-form"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/hlavica/registrace/page.tsx",
+      "lines": 7,
+      "client": false,
+      "imports": [
+        "@/components/auth/register-form"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/layout.tsx",
+      "lines": 16,
+      "client": false,
+      "imports": [
+        "next",
+        "react",
+        "@/i18n/client",
+        "@/i18n/server"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/app-loading/app-loading"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/login/page.tsx",
+      "lines": 6,
+      "client": false,
+      "imports": [
+        "@/components/auth/login-form"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/mfa/page.tsx",
+      "lines": 184,
+      "client": true,
+      "imports": [
+        "react",
+        "@/components/auth/auth-shell",
+        "@/components/auth/otp-input",
+        "@/components/landing/landing-icons",
+        "@/lib/sign-out",
+        "@/lib/safe-return-path",
+        "@/lib/login-entry",
+        "@/i18n/client",
+        "@/i18n/api-errors",
+        "@/lib/verification-code"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/pozvanka/[token]/invitation-client.tsx",
+      "lines": 157,
+      "client": true,
+      "imports": [
+        "@/components/auth/password-input",
+        "next/link",
+        "react",
+        "@/components/auth/auth-shell",
+        "@/components/company-logo",
+        "@/components/landing/landing-icons",
+        "@/i18n/api-errors",
+        "@/i18n/client",
+        "@/i18n/format",
+        "@/lib/password-policy",
+        "@/lib/role-access",
+        "@/lib/sign-out"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/pozvanka/[token]/page.tsx",
+      "lines": 34,
+      "client": false,
+      "imports": [
+        "next",
+        "@/lib/auth",
+        "@/lib/invitation-server",
+        "@/i18n/server",
+        "./invitation-client"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/register/page.tsx",
+      "lines": 12,
+      "client": false,
+      "imports": [
+        "@/components/auth/plan-choice-memo",
+        "@/components/auth/register-form"
+      ]
+    },
+    {
+      "source": "src/app/(auth)/reset-password/page.tsx",
+      "lines": 82,
+      "client": true,
+      "imports": [
+        "@/components/auth/password-input",
+        "react",
+        "next/navigation",
+        "@/components/auth/auth-shell",
+        "@/lib/login-entry",
+        "@/components/landing/landing-icons",
+        "@/lib/password-policy",
+        "@/i18n/client",
+        "@/lib/supabase-browser",
+        "@/lib/tenant-entries"
+      ]
+    },
+    {
+      "source": "src/app/(landing)/en/page.tsx",
+      "lines": 10,
+      "client": false,
+      "imports": [
+        "@/components/landing/landing-page",
+        "@/lib/seo"
+      ]
+    },
+    {
+      "source": "src/app/(landing)/layout.tsx",
+      "lines": 29,
+      "client": false,
+      "imports": [
+        "react",
+        "next/font/google"
+      ]
+    },
+    {
+      "source": "src/app/(landing)/page.tsx",
+      "lines": 11,
+      "client": false,
+      "imports": [
+        "@/components/landing/landing-page",
+        "@/lib/seo"
+      ]
+    },
+    {
+      "source": "src/app/(legal)/legal-page.tsx",
+      "lines": 23,
+      "client": false,
+      "imports": [
+        "next/link",
+        "react",
+        "next/font/google",
+        "@/components/landing/landing-icons",
+        "./legal.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(legal)/ochrana-osobnich-udaju/page.tsx",
+      "lines": 23,
+      "client": false,
+      "imports": [
+        "next",
+        "../legal-page"
+      ]
+    },
+    {
+      "source": "src/app/(legal)/podminky/page.tsx",
+      "lines": 27,
+      "client": false,
+      "imports": [
+        "next",
+        "../legal-page",
+        "@/lib/plans"
+      ]
+    },
+    {
+      "source": "src/app/(onboarding)/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/app-loading/app-loading"
+      ]
+    },
+    {
+      "source": "src/app/(onboarding)/onboarding/onboarding-client.tsx",
+      "lines": 968,
+      "client": true,
+      "imports": [
+        "next/image",
+        "next/link",
+        "next/font/google",
+        "react",
+        "@/components/landing/landing-icons",
+        "@/lib/plans",
+        "@/components/landing/landing-icons",
+        "@/lib/company-validation",
+        "@/lib/confirm-action",
+        "@/lib/auth-policy",
+        "@/lib/onboarding",
+        "@/lib/role-access",
+        "@/lib/reminder-defaults",
+        "@/lib/reminder-recipients",
+        "@/lib/company-logo-file",
+        "@/lib/onboarding-draft",
+        "./onboarding.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(onboarding)/onboarding/page.tsx",
+      "lines": 55,
+      "client": false,
+      "imports": [
+        "next",
+        "next/navigation",
+        "@/lib/access-state",
+        "@/lib/auth",
+        "@/lib/billing-server",
+        "@/lib/role-access",
+        "@/lib/user-display",
+        "@/lib/operator",
+        "@/lib/onboarding-draft",
+        "@/lib/structured-log",
+        "./onboarding-client"
+      ]
+    },
+    {
+      "source": "src/app/(operator)/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/app-loading/app-loading"
+      ]
+    },
+    {
+      "source": "src/app/(operator)/provoz/operator-console.tsx",
+      "lines": 68,
+      "client": false,
+      "imports": [
+        "./support-entry"
+      ]
+    },
+    {
+      "source": "src/app/(operator)/provoz/page.tsx",
+      "lines": 46,
+      "client": false,
+      "imports": [
+        "next",
+        "next/navigation",
+        "@/lib/operator-server",
+        "@/lib/billing",
+        "@/lib/plans",
+        "@/lib/stripe",
+        "./operator-console"
+      ]
+    },
+    {
+      "source": "src/app/(operator)/provoz/support-entry.tsx",
+      "lines": 64,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/api-client",
+        "@/lib/confirm-action"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/customers/customers-client.tsx",
+      "lines": 361,
+      "client": true,
+      "imports": [
+        "next/link",
+        "react",
+        "swr",
+        "@/lib/revalidate-on-revisit",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/lib/api-client",
+        "@/lib/customers-page-data",
+        "@/lib/text-search"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/customers/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/customers-page-data",
+        "./customers-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-client.tsx",
+      "lines": 297,
+      "client": true,
+      "imports": [
+        "next/link",
+        "./dashboard-summary.module.css",
+        "next/navigation",
+        "swr",
+        "@/lib/revalidate-on-revisit",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/components/mobile-disclosure",
+        "@/lib/dashboard-page-data",
+        "@/lib/role-access",
+        "@/lib/use-access-role"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "./dashboard-client",
+        "@/lib/auth",
+        "@/lib/dashboard-page-data"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/error.tsx",
+      "lines": 7,
+      "client": true,
+      "imports": [
+        "../error"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/[id]/invoice-detail-client.tsx",
+      "lines": 1075,
+      "client": true,
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "react",
+        "next/dynamic",
+        "swr",
+        "@/components/layout/app-shell",
+        "@/components/mobile-disclosure",
+        "@/components/modal",
+        "@/components/optional-payment-assignment",
+        "@/lib/assignable-bank-payment",
+        "@/lib/reminders",
+        "@/lib/confirm-action",
+        "@/lib/workspace-cache",
+        "@/types/invoice",
+        "@/lib/invoice-detail-page-data",
+        "@/components/toast"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/[id]/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/[id]/page.tsx",
+      "lines": 26,
+      "client": false,
+      "imports": [
+        "next/navigation",
+        "@/lib/auth",
+        "@/lib/dashboard-page-data",
+        "@/lib/invoice-detail-page-data",
+        "./invoice-detail-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/archive/page.tsx",
+      "lines": 196,
+      "client": true,
+      "imports": [
+        "next/navigation",
+        "react",
+        "swr",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/components/mobile-disclosure",
+        "@/types/invoice",
+        "next/link"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/import/page.tsx",
+      "lines": 451,
+      "client": true,
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "react",
+        "@/components/layout/app-shell",
+        "@/components/invoice-form",
+        "@/types/invoice",
+        "@/lib/supabase-browser",
+        "@/lib/document-validation",
+        "@/components/icons",
+        "@/lib/workspace-cache",
+        "@/components/document-preview",
+        "@/lib/document-locate",
+        "@/lib/invoice-ocr",
+        "@/lib/vat",
+        "./invoice-import.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/invoice-area-background.tsx",
+      "lines": 23,
+      "client": true,
+      "imports": [
+        "next/navigation"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/invoices-client.tsx",
+      "lines": 710,
+      "client": true,
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "react",
+        "swr",
+        "@/lib/revalidate-on-revisit",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/components/mobile-disclosure",
+        "@/components/modal",
+        "@/components/optional-payment-assignment",
+        "@/lib/assignable-bank-payment",
+        "@/lib/reminders",
+        "@/lib/workspace-cache",
+        "@/types/invoice",
+        "@/lib/invoice-list-page-data",
+        "@/lib/invoice-list-query",
+        "@/components/toast"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/layout.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/new/page.tsx",
+      "lines": 24,
+      "client": true,
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "@/components/layout/app-shell",
+        "@/components/invoice-form",
+        "@/components/icons",
+        "@/lib/workspace-cache",
+        "@/types/invoice"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/page.tsx",
+      "lines": 61,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/invoice-list-page-data",
+        "@/lib/invoice-list-query",
+        "./invoices-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/archive/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/payments-page-data",
+        "./payments-archive-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.tsx",
+      "lines": 120,
+      "client": true,
+      "imports": [
+        "react",
+        "next/link",
+        "@/lib/api-client",
+        "@/lib/confirm-action",
+        "@/lib/payment-assistance-flags",
+        "@/types/payment-assistance",
+        "@/lib/payments-page-data",
+        "./payment-assistance.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/archive/payments-archive-client.tsx",
+      "lines": 366,
+      "client": true,
+      "imports": [
+        "next/link",
+        "react",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/lib/confirm-action",
+        "@/lib/api-client",
+        "@/lib/payments-page-data",
+        "@/lib/payment-matching",
+        "./statement-archive",
+        "./payment-assistance-panel"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/archive/statement-archive.tsx",
+      "lines": 140,
+      "client": true,
+      "imports": [
+        "react",
+        "@/components/icons",
+        "@/lib/api-client",
+        "@/lib/confirm-action"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/gpc-import-panel.tsx",
+      "lines": 1208,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/api-client",
+        "@/components/icons",
+        "@/lib/money",
+        "@/lib/reconciliation-errors",
+        "@/lib/confirm-action",
+        "@/lib/payment-unrelated-rows"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/payments-page-data",
+        "./payments-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/payments-client.tsx",
+      "lines": 72,
+      "client": true,
+      "imports": [
+        "next/link",
+        "react",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/lib/payments-page-data",
+        "./gpc-import-panel",
+        "./payments-upload.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/layout.tsx",
+      "lines": 70,
+      "client": false,
+      "imports": [
+        "@/components/layout/app-shell",
+        "@/components/toast",
+        "@/components/workspace-data-provider",
+        "next/navigation",
+        "@/lib/auth",
+        "@/lib/access-state",
+        "@/lib/billing",
+        "@/lib/billing-server",
+        "@/components/subscription-banner",
+        "@/components/support-banner",
+        "@/lib/operator",
+        "@/lib/user-display",
+        "@/lib/use-access-role"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/predplatne/page.tsx",
+      "lines": 8,
+      "client": false,
+      "imports": [
+        "next",
+        "./subscription-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/predplatne/subscription-client.tsx",
+      "lines": 297,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/confirm-action",
+        "@/lib/plans",
+        "./predplatne.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/company-logo-editor.tsx",
+      "lines": 90,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/api-client",
+        "@/lib/company-logo-file",
+        "@/components/company-logo",
+        "@/components/icons",
+        "./company-logo-editor.module.css"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/email-suppressions-panel.tsx",
+      "lines": 115,
+      "client": true,
+      "imports": [
+        "react",
+        "swr",
+        "@/components/icons",
+        "@/lib/confirm-action",
+        "@/lib/api-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/email-templates-section.tsx",
+      "lines": 335,
+      "client": true,
+      "imports": [
+        "react",
+        "next/link",
+        "@/components/chevron-down",
+        "@/components/icons",
+        "@/lib/czech-payment",
+        "@/lib/reminder-template",
+        "@/lib/reminder-subject",
+        "@/lib/reminder-email-template",
+        "@/lib/reminder-recipients",
+        "@/lib/reminder-page-data",
+        "@/types/invoice",
+        "./email-templates-section.module.css",
+        "./company-logo-editor",
+        "@/lib/use-access-role",
+        "@/lib/role-access"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/reminder-page-data",
+        "./reminders-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/reminders-client.tsx",
+      "lines": 1128,
+      "client": true,
+      "imports": [
+        "react",
+        "swr",
+        "next/link",
+        "@/components/layout/app-shell",
+        "@/components/mobile-disclosure",
+        "@/components/chevron-down",
+        "./email-suppressions-panel",
+        "./email-templates-section",
+        "@/components/icons",
+        "@/lib/automation-run",
+        "@/lib/reminder-recipients",
+        "@/lib/reminder-defaults",
+        "@/lib/reminder-email-template",
+        "@/types/invoice",
+        "@/lib/reminder-policies",
+        "@/lib/confirm-action",
+        "@/lib/api-client",
+        "@/components/toast",
+        "@/lib/use-unsaved-changes",
+        "@/lib/reminder-page-data"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reports/layout.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reports/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reports/page.tsx",
+      "lines": 12,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/report-page-data",
+        "@/lib/reminders",
+        "./reports-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reports/report-print-document.tsx",
+      "lines": 162,
+      "client": true,
+      "imports": [
+        "react",
+        "@/components/company-logo",
+        "@/lib/czech-plural",
+        "@/lib/report-page-data",
+        "@/types/invoice"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reports/reports-client.tsx",
+      "lines": 421,
+      "client": true,
+      "imports": [
+        "react",
+        "swr",
+        "@/components/layout/app-shell",
+        "@/components/icons",
+        "@/components/mobile-disclosure",
+        "@/lib/reminders",
+        "@/lib/report-query",
+        "@/lib/report-page-data",
+        "@/lib/use-access-role",
+        "@/types/invoice",
+        "./report-print-document"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/settings/bank-accounts-section.tsx",
+      "lines": 215,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/api-client",
+        "@/lib/confirm-action",
+        "@/lib/invoice-currency",
+        "@/lib/bank-accounts",
+        "@/components/chevron-down",
+        "./settings-page.module.css",
+        "@/lib/settings-page-data"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/settings/email-template/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/reminder-page-data",
+        "../../reminders/reminders-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/settings/loading.tsx",
+      "lines": 3,
+      "client": false,
+      "imports": [
+        "@/components/page-skeleton"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/settings/page.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": [
+        "@/lib/auth",
+        "@/lib/settings-page-data",
+        "./settings-client"
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/settings/settings-client.tsx",
+      "lines": 799,
+      "client": true,
+      "imports": [
+        "react",
+        "react",
+        "./settings-page.module.css",
+        "swr",
+        "@/components/layout/app-shell",
+        "@/components/mobile-disclosure",
+        "@/components/chevron-down",
+        "@/lib/use-access-role",
+        "@/lib/role-access",
+        "@/lib/confirm-action",
+        "@/lib/use-unsaved-changes",
+        "@/lib/settings-page-data",
+        "@/lib/api-client",
+        "@/lib/company-validation",
+        "./bank-accounts-section",
+        "@/components/icons",
+        "@/lib/company-settings-draft"
+      ]
+    },
+    {
+      "source": "src/app/error.tsx",
+      "lines": 42,
+      "client": true,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/app/global-error.tsx",
+      "lines": 24,
+      "client": true,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/app/layout.tsx",
+      "lines": 51,
+      "client": false,
+      "imports": [
+        "next",
+        "react",
+        "@/lib/seo"
+      ]
+    },
+    {
+      "source": "src/app/not-found.tsx",
+      "lines": 27,
+      "client": false,
+      "imports": [
+        "next/link"
+      ]
+    },
+    {
+      "source": "src/app/og/[locale]/route.tsx",
+      "lines": 38,
+      "client": false,
+      "imports": [
+        "node:fs/promises",
+        "node:path",
+        "next/og",
+        "@/i18n/dictionaries",
+        "@/components/landing/landing-icons"
+      ]
+    },
+    {
+      "source": "src/components/app-loading/app-loading.tsx",
+      "lines": 11,
+      "client": false,
+      "imports": []
+    },
+    {
+      "source": "src/components/auth/auth-shell.tsx",
+      "lines": 108,
+      "client": true,
+      "imports": [
+        "next/image",
+        "next/link",
+        "react",
+        "next/font/google",
+        "@/components/company-logo",
+        "@/i18n/client",
+        "@/lib/tenant-entries",
+        "@/components/landing/landing-icons",
+        "./auth-shell.module.css"
+      ]
+    },
+    {
+      "source": "src/components/auth/login-form.tsx",
+      "lines": 179,
+      "client": true,
+      "imports": [
+        "@/components/auth/password-input",
+        "next/link",
+        "react",
+        "@/lib/supabase-config",
+        "@/components/auth/auth-shell",
+        "@/i18n/client",
+        "@/components/landing/landing-icons",
+        "@/lib/auth-policy",
+        "@/lib/login-entry",
+        "@/lib/tenant-entries",
+        "@/lib/safe-return-path"
+      ]
+    },
+    {
+      "source": "src/components/auth/otp-input.tsx",
+      "lines": 98,
+      "client": true,
+      "imports": [
+        "react",
+        "@/i18n/client",
+        "./auth-shell",
+        "@/lib/verification-code"
+      ]
+    },
+    {
+      "source": "src/components/auth/password-input.tsx",
+      "lines": 34,
+      "client": true,
+      "imports": [
+        "react",
+        "@/components/landing/landing-icons",
+        "@/i18n/client",
+        "./auth-shell.module.css"
+      ]
+    },
+    {
+      "source": "src/components/auth/plan-choice-memo.tsx",
+      "lines": 22,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/plans"
+      ]
+    },
+    {
+      "source": "src/components/auth/register-form.tsx",
+      "lines": 226,
+      "client": true,
+      "imports": [
+        "@/components/auth/password-input",
+        "@/components/auth/otp-input",
+        "next/link",
+        "react",
+        "@/components/auth/auth-shell",
+        "@/i18n/client",
+        "@/components/landing/landing-icons",
+        "@/lib/auth-policy",
+        "@/lib/tenant-entries",
+        "@/lib/password-policy",
+        "@/lib/supabase-config",
+        "@/lib/verification-code"
+      ]
+    },
+    {
+      "source": "src/components/chevron-down.tsx",
+      "lines": 21,
+      "client": false,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/components/company-logo.tsx",
+      "lines": 38,
+      "client": true,
+      "imports": [
+        "next/image",
+        "react",
+        "@/lib/company-branding"
+      ]
+    },
+    {
+      "source": "src/components/document-preview.tsx",
+      "lines": 307,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/invoice-ocr",
+        "@/lib/document-locate"
+      ]
+    },
+    {
+      "source": "src/components/esko/esko-assistant.tsx",
+      "lines": 191,
+      "client": true,
+      "imports": [
+        "next/image",
+        "next/link",
+        "react",
+        "swr",
+        "@/lib/dashboard-summary",
+        "@/lib/api-client",
+        "@/lib/esko",
+        "@/lib/use-access-role",
+        "@/types/invoice",
+        "./esko-assistant.module.css"
+      ]
+    },
+    {
+      "source": "src/components/icons.tsx",
+      "lines": 30,
+      "client": false,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/components/invoice-form.tsx",
+      "lines": 448,
+      "client": true,
+      "imports": [
+        "react",
+        "next/navigation",
+        "@/lib/invoice-drafts",
+        "@/types/invoice",
+        "@/lib/reminders",
+        "@/lib/vat",
+        "@/lib/money",
+        "@/lib/use-unsaved-changes",
+        "@/lib/reminder-policies",
+        "@/lib/invoice-ocr",
+        "@/lib/counterparty-reminder-preferences",
+        "@/lib/ocr-field-review",
+        "@/lib/invoice-currency",
+        "@/lib/use-access-role"
+      ]
+    },
+    {
+      "source": "src/components/landing/count-up.tsx",
+      "lines": 76,
+      "client": true,
+      "imports": [
+        "react",
+        "@/i18n/format",
+        "@/i18n/locales"
+      ]
+    },
+    {
+      "source": "src/components/landing/landing-icons.tsx",
+      "lines": 175,
+      "client": false,
+      "imports": [
+        "react",
+        "@/components/chevron-down"
+      ]
+    },
+    {
+      "source": "src/components/landing/landing-motion.tsx",
+      "lines": 43,
+      "client": true,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/components/landing/landing-page.tsx",
+      "lines": 617,
+      "client": false,
+      "imports": [
+        "react",
+        "next/image",
+        "next/link",
+        "./landing-icons",
+        "@/i18n/client",
+        "@/i18n/dictionaries",
+        "@/i18n/format",
+        "@/i18n/language-switcher",
+        "@/i18n/locales",
+        "@/lib/seo",
+        "./count-up",
+        "./landing-motion",
+        "./landing-video",
+        "./pricing",
+        "./landing.module.css"
+      ]
+    },
+    {
+      "source": "src/components/landing/landing-video.tsx",
+      "lines": 59,
+      "client": true,
+      "imports": [
+        "react",
+        "@/components/modal",
+        "@/i18n/client",
+        "./landing-icons",
+        "./landing.module.css",
+        "./landing-video.module.css"
+      ]
+    },
+    {
+      "source": "src/components/landing/pricing.tsx",
+      "lines": 103,
+      "client": true,
+      "imports": [
+        "next/link",
+        "react",
+        "@/i18n/client",
+        "@/i18n/format",
+        "./landing-icons",
+        "./landing.module.css",
+        "@/lib/plans"
+      ]
+    },
+    {
+      "source": "src/components/layout/app-shell.tsx",
+      "lines": 520,
+      "client": true,
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "react",
+        "@/components/icons",
+        "@/components/company-logo",
+        "@/components/esko/esko-assistant",
+        "@/components/popup-fitter",
+        "@/lib/confirm-action",
+        "@/lib/sign-out",
+        "@/lib/role-access",
+        "@/lib/use-access-role",
+        "@/lib/user-display",
+        "Faktury"
+      ]
+    },
+    {
+      "source": "src/components/mobile-disclosure.tsx",
+      "lines": 38,
+      "client": true,
+      "imports": [
+        "react",
+        "@/components/chevron-down"
+      ]
+    },
+    {
+      "source": "src/components/modal.tsx",
+      "lines": 68,
+      "client": true,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/components/optional-payment-assignment.tsx",
+      "lines": 74,
+      "client": true,
+      "imports": [
+        "swr",
+        "@/lib/assignable-bank-payment"
+      ]
+    },
+    {
+      "source": "src/components/page-skeleton.tsx",
+      "lines": 9,
+      "client": false,
+      "imports": []
+    },
+    {
+      "source": "src/components/popup-fitter.tsx",
+      "lines": 76,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/popup-fit"
+      ]
+    },
+    {
+      "source": "src/components/router-cache-invalidator.tsx",
+      "lines": 42,
+      "client": true,
+      "imports": [
+        "react",
+        "next/navigation",
+        "@/lib/router-cache"
+      ]
+    },
+    {
+      "source": "src/components/settings-tabs.tsx",
+      "lines": 32,
+      "client": true,
+      "imports": [
+        "next/link",
+        "next/navigation"
+      ]
+    },
+    {
+      "source": "src/components/splatno-mark.tsx",
+      "lines": 19,
+      "client": false,
+      "imports": []
+    },
+    {
+      "source": "src/components/subscription-banner.tsx",
+      "lines": 35,
+      "client": false,
+      "imports": [
+        "next/link",
+        "@/lib/billing"
+      ]
+    },
+    {
+      "source": "src/components/support-banner.tsx",
+      "lines": 26,
+      "client": true,
+      "imports": [
+        "react",
+        "@/lib/api-client"
+      ]
+    },
+    {
+      "source": "src/components/toast.tsx",
+      "lines": 131,
+      "client": true,
+      "imports": [
+        "react"
+      ]
+    },
+    {
+      "source": "src/components/workspace-data-provider.tsx",
+      "lines": 36,
+      "client": true,
+      "imports": [
+        "react",
+        "swr",
+        "@/lib/api-client",
+        "@/components/router-cache-invalidator"
+      ]
+    }
+  ],
+  "styles": [
+    {
+      "source": "src/app/(legal)/legal.module.css",
+      "lines": 65,
+      "important": 0,
+      "media": 1,
+      "queries": [
+        "(max-width: 640px) "
+      ]
+    },
+    {
+      "source": "src/app/(onboarding)/onboarding/onboarding.module.css",
+      "lines": 1006,
+      "important": 9,
+      "media": 9,
+      "queries": [
+        "(max-width: 1180px) ",
+        "(max-width: 760px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(max-width: 760px) ",
+        "(max-width: 640px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(max-height: 760px) and (min-width: 761px) ",
+        "(max-width: 480px) ",
+        "(max-height: 500px) and (max-width: 760px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-summary.module.css",
+      "lines": 571,
+      "important": 10,
+      "media": 3,
+      "queries": [
+        "screen ",
+        "(min-width: 1181px) and (min-height: 700px) ",
+        "(min-width: 1181px) and (min-height: 700px) and (max-height: 760px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/import/invoice-import.module.css",
+      "lines": 91,
+      "important": 0,
+      "media": 5,
+      "queries": [
+        "(min-width: 1024px) and (min-height: 761px) ",
+        "(max-width: 1023px) ",
+        "(min-width: 1024px) and (max-width: 1350px) ",
+        "(max-width: 600px) ",
+        "(min-width: 1024px) and (max-height: 760px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/archive/payment-assistance.module.css",
+      "lines": 13,
+      "important": 0,
+      "media": 1,
+      "queries": [
+        "(max-width: 600px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/invoices/payments/payments-upload.module.css",
+      "lines": 167,
+      "important": 0,
+      "media": 9,
+      "queries": [
+        "(max-width: 1100px) ",
+        "(max-width: 980px) ",
+        "(max-width: 760px) ",
+        "(min-width: 1024px) ",
+        "(min-width: 1181px) and (min-height: 761px) ",
+        "(min-width: 1024px) and (max-width: 1180px) ",
+        "(min-width: 1024px) and (max-height: 760px) ",
+        "(min-width: 1024px) and (max-height: 650px) ",
+        "(min-width: 1024px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/predplatne/predplatne.module.css",
+      "lines": 41,
+      "important": 1,
+      "media": 1,
+      "queries": [
+        "(max-width: 760px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/company-logo-editor.module.css",
+      "lines": 36,
+      "important": 0,
+      "media": 1,
+      "queries": [
+        "(prefers-reduced-motion: reduce) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/reminders/email-templates-section.module.css",
+      "lines": 431,
+      "important": 0,
+      "media": 1,
+      "queries": [
+        "screen and (max-width: 560px) "
+      ]
+    },
+    {
+      "source": "src/app/(workspace)/settings/settings-page.module.css",
+      "lines": 509,
+      "important": 0,
+      "media": 3,
+      "queries": [
+        "(max-width: 900px) ",
+        "(max-width: 1100px) ",
+        "(max-width: 600px) "
+      ]
+    },
+    {
+      "source": "src/app/globals.css",
+      "lines": 212,
+      "important": 6,
+      "media": 24,
+      "queries": [
+        "screen and (max-width:1180px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:980px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:760px)",
+        "(prefers-reduced-motion:reduce)",
+        "print",
+        "print bloku na konci src/app/minimal.css. Zdejsi pravidla stejne prebijela pozdejsi neprintova pravidla v tomto souboru (radky 114/134), takze byla mrtva. */}\n\n:root",
+        "screen and (max-width:1180px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:520px)",
+        "(prefers-reduced-motion:reduce)",
+        "screen and (max-width:820px)",
+        "screen and (max-width:560px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:520px)",
+        "screen and (max-width:520px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:1180px) and (min-width:761px)",
+        "screen and (max-width:980px)",
+        "screen and (max-width:760px)",
+        "screen and (max-width:520px)"
+      ]
+    },
+    {
+      "source": "src/app/minimal.css",
+      "lines": 4215,
+      "important": 293,
+      "media": 53,
+      "queries": [
+        "screen and (min-width: 1181px) ",
+        "screen and (min-width: 1181px) and (max-height: 760px) ",
+        "screen and (max-width: 1180px) ",
+        "screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-width: 520px) ",
+        "screen and (max-width: 1023px) ",
+        "screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-width: 520px) ",
+        "screen and (min-width: 981px) ",
+        "screen and (max-width: 760px) ",
+        "screen and (max-width: 980px) ",
+        "screen and (max-width: 1180px) ",
+        "screen and (max-width: 760px) ",
+        "screen and (max-width: 520px) ",
+        "screen and (max-width: 1180px) ",
+        "screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-height: 620px) and (min-width: 781px) ",
+        "screen and (max-width: 520px) ",
+        "screen and (max-width: 360px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "screen and (max-width: 760px) ",
+        "screen and (max-width: 360px) ",
+        "screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-width: 420px) ",
+        "screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-width: 520px) ",
+        "screen and (max-width: 360px) ",
+        "screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-width:1100px)",
+        "screen and (max-width:1100px)",
+        "screen and (max-width:1100px)",
+        "screen and (max-width:1100px)",
+        "screen and (max-width:780px)",
+        "screen and (max-width:780px)",
+        "screen and (max-width:1100px)",
+        "screen and (max-width:620px)",
+        "screen and (max-width:620px)",
+        "screen and (max-width:520px)",
+        "screen and (max-width:520px)",
+        "screen and (max-width:1100px)",
+        "screen and (max-width:600px)",
+        "screen and (max-width: 780px), screen and (max-width: 900px) and (orientation: landscape) ",
+        "screen and (max-width: 780px) ",
+        "screen and (max-width: 520px) ",
+        "screen and (max-width: 1100px) ",
+        "screen and (max-width: 680px) ",
+        "screen and (max-width: 420px) ",
+        "screen and (max-width: 760px) ",
+        "screen and (max-width: 420px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "screen and (max-width: 780px) ",
+        "screen and (max-width: 640px) ",
+        "print "
+      ]
+    },
+    {
+      "source": "src/app/styles/invoice-cards.css",
+      "lines": 366,
+      "important": 1,
+      "media": 1,
+      "queries": [
+        "(prefers-reduced-motion: reduce) "
+      ]
+    },
+    {
+      "source": "src/app/styles/responsive.css",
+      "lines": 2105,
+      "important": 193,
+      "media": 40,
+      "queries": [
+        "screen ",
+        "screen and (max-width: 1350px) ",
+        "screen and (max-width: 600px) ",
+        "screen and (min-width: 601px) and (max-width: 820px) ",
+        "screen and (min-width: 641px) ",
+        "screen ",
+        "screen ",
+        "screen and (min-width: 768px) ",
+        "screen and (max-width: 1023px), screen and (max-height: 600px) ",
+        "screen and (max-width: 767px) ",
+        "screen and (min-width: 768px) ",
+        "screen and (min-width: 1024px) ",
+        "screen and (min-width: 1024px) ",
+        "screen and (min-width: 1024px) and (min-height: 621px) and (max-height: 800px) ",
+        "screen and (min-width: 1024px) and (max-width: 1279px) ",
+        "screen and (min-width: 1024px) and (max-width: 1180px) ",
+        "screen and (max-width: 1023px) ",
+        "screen and (min-width: 768px) ",
+        "screen and (min-width: 1280px) ",
+        "screen and (min-width: 1024px) and (max-width: 1279px) ",
+        "screen and (min-width: 768px) and (max-width: 1023px) ",
+        "screen and (min-width: 768px) and (max-width: 1023px) ",
+        "screen and (min-width: 768px) ",
+        "screen and (min-width: 768px) ",
+        "screen and (max-width: 767px) ",
+        "screen and (max-width: 479px) ",
+        "screen and (pointer: coarse) ",
+        "screen and (max-height: 500px) and (orientation: landscape) and (max-width: 1023px) ",
+        "screen and (max-width: 1023px) ",
+        "screen ",
+        "screen and (min-width: 768px) ",
+        "screen and (max-width: 767px) ",
+        "screen and (max-width: 479px) ",
+        "screen and (max-width: 359px) ",
+        "screen ",
+        "screen ",
+        "screen and (min-width: 768px) ",
+        "screen and (max-width: 767px) ",
+        "screen and (max-width: 479px) ",
+        "screen and (max-width: 767px) "
+      ]
+    },
+    {
+      "source": "src/components/auth/auth-shell.module.css",
+      "lines": 794,
+      "important": 7,
+      "media": 9,
+      "queries": [
+        "(max-width: 900px) ",
+        "(max-width: 480px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(max-width: 900px) ",
+        "(max-width: 480px) ",
+        "(max-width: 480px) ",
+        "(max-height: 800px) ",
+        "(max-width: 900px) ",
+        "(max-width: 480px) "
+      ]
+    },
+    {
+      "source": "src/components/esko/esko-assistant.module.css",
+      "lines": 273,
+      "important": 5,
+      "media": 3,
+      "queries": [
+        "(max-width: 560px) ",
+        "print ",
+        "(prefers-reduced-motion: reduce) "
+      ]
+    },
+    {
+      "source": "src/components/landing/landing-video.module.css",
+      "lines": 55,
+      "important": 1,
+      "media": 0,
+      "queries": []
+    },
+    {
+      "source": "src/components/landing/landing.module.css",
+      "lines": 2706,
+      "important": 58,
+      "media": 40,
+      "queries": [
+        "(min-width: 641px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(max-width: 1080px) ",
+        "(max-width: 640px) ",
+        "(max-width: 440px) ",
+        "(max-width: 360px) ",
+        "(max-width: 330px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(min-width: 641px) ",
+        "(min-width: 1081px) and (max-width: 1439px) ",
+        "(min-width: 641px) and (max-width: 1080px) ",
+        "(max-width: 1080px) ",
+        "(max-width: 980px) ",
+        "(max-width: 640px) ",
+        "(max-width: 359px) ",
+        "(max-width: 380px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(max-width: 1080px) ",
+        "(max-width: 640px) ",
+        "(max-width: 330px) ",
+        "(min-width: 1081px) ",
+        "(min-width: 1081px) ",
+        "(min-width: 1440px) ",
+        "(min-width: 1440px) ",
+        "(max-width: 440px) ",
+        "(prefers-reduced-motion: no-preference) ",
+        "(min-width: 1081px) ",
+        "(hover: hover) and (pointer: fine) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(max-width: 980px) ",
+        "(max-width: 380px) ",
+        "(min-width: 641px) and (max-width: 1080px) ",
+        "(hover: hover) and (pointer: fine) ",
+        "(max-width: 980px) ",
+        "(max-width: 640px) ",
+        "(prefers-reduced-motion: reduce) ",
+        "(min-width: 1081px) ",
+        "(max-width: 760px) ",
+        "(max-width: 1080px) ",
+        "(min-width: 641px) and (max-width: 1080px) "
+      ]
+    },
+    {
+      "source": "src/components/layout/mobile-navigation.css",
+      "lines": 282,
+      "important": 4,
+      "media": 3,
+      "queries": [
+        "screen and (max-width: 1023px) ",
+        "screen and (max-width: 479px) ",
+        "print "
+      ]
+    },
+    {
+      "source": "src/components/layout/workspace-background.css",
+      "lines": 80,
+      "important": 0,
+      "media": 3,
+      "queries": [
+        "(min-width: 1024px) and (max-width: 1180px) ",
+        "(max-width: 1023px) ",
+        "print "
+      ]
+    },
+    {
+      "source": "src/i18n/language-switcher.module.css",
+      "lines": 53,
+      "important": 1,
+      "media": 1,
+      "queries": [
+        "(pointer: coarse), (max-width: 480px) "
+      ]
+    }
+  ],
+  "boundaries": [
+    "src/app/(auth)/layout.tsx",
+    "src/app/(auth)/loading.tsx",
+    "src/app/(landing)/layout.tsx",
+    "src/app/(onboarding)/loading.tsx",
+    "src/app/(operator)/loading.tsx",
+    "src/app/(workspace)/dashboard/loading.tsx",
+    "src/app/(workspace)/error.tsx",
+    "src/app/(workspace)/invoices/[id]/loading.tsx",
+    "src/app/(workspace)/invoices/layout.tsx",
+    "src/app/(workspace)/invoices/loading.tsx",
+    "src/app/(workspace)/layout.tsx",
+    "src/app/(workspace)/loading.tsx",
+    "src/app/(workspace)/reminders/loading.tsx",
+    "src/app/(workspace)/reports/layout.tsx",
+    "src/app/(workspace)/reports/loading.tsx",
+    "src/app/(workspace)/settings/loading.tsx",
+    "src/app/error.tsx",
+    "src/app/global-error.tsx",
+    "src/app/layout.tsx",
+    "src/app/not-found.tsx"
+  ],
+  "tests": [
+    "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+    "src/app/(workspace)/invoices/invoice-payment-flow.test.ts",
+    "src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.test.tsx",
+    "src/app/(workspace)/invoices/payments/gpc-import-panel.test.tsx",
+    "src/app/(workspace)/reminders/company-logo-editor.test.tsx",
+    "src/app/(workspace)/settings/bank-accounts-section.test.tsx",
+    "src/app/api/auth/register/route.test.ts",
+    "src/app/api/auth/registration-access/route.test.ts",
+    "src/app/api/auth/session-preference/route.test.ts",
+    "src/app/api/auth/trusted-device-routes.test.ts",
+    "src/app/api/billing/stripe/route.test.ts",
+    "src/app/api/customers/[id]/route.test.ts",
+    "src/app/api/customers/search/route.test.ts",
+    "src/app/api/invitations/[token]/route.test.ts",
+    "src/app/api/invoices/[id]/assignable-payments/route.test.ts",
+    "src/app/api/invoices/[id]/money-integrity.test.ts",
+    "src/app/api/onboarding/ares/route.test.ts",
+    "src/app/api/onboarding/draft/route.test.ts",
+    "src/app/api/onboarding/organization/route.test.ts",
+    "src/app/api/operator/support/route.test.ts",
+    "src/app/api/payments/assistance/route.test.ts",
+    "src/app/api/payments/imports/[id]/commit/route.test.ts",
+    "src/app/api/payments/imports/[id]/route.test.ts",
+    "src/app/api/payments/imports/route.test.ts",
+    "src/app/api/payments/invoice-candidates/route.test.ts",
+    "src/app/api/payments/route.test.ts",
+    "src/app/api/settings/bank-accounts/route.test.ts",
+    "src/app/api/settings/company/route.test.ts",
+    "src/app/api/settings/members/route.test.ts",
+    "src/app/auth/callback/route.test.ts",
+    "src/components/company-logo.test.tsx",
+    "src/components/landing/count-up.test.ts",
+    "src/components/optional-payment-assignment.test.ts",
+    "src/components/router-cache-invalidator.test.tsx",
+    "src/i18n/api-errors.test.ts",
+    "src/i18n/dictionaries.test.ts",
+    "src/i18n/format.test.ts",
+    "src/i18n/locales.test.ts",
+    "src/instrumentation.test.ts",
+    "src/lib/access-profile-cache.test.ts",
+    "src/lib/access-state.test.ts",
+    "src/lib/amount-adjustment-tolerance.test.ts",
+    "src/lib/api-client.test.ts",
+    "src/lib/api-error-identity.test.ts",
+    "src/lib/api-response.test.ts",
+    "src/lib/api-route-contract.test.ts",
+    "src/lib/ares.test.ts",
+    "src/lib/auth-code-email.test.ts",
+    "src/lib/auth-flow.test.ts",
+    "src/lib/auth-policy.test.ts",
+    "src/lib/auth-rate-limit.test.ts",
+    "src/lib/auth-security.test.ts",
+    "src/lib/automation-route-security.test.ts",
+    "src/lib/automation-run.test.ts",
+    "src/lib/bank-accounts.test.ts",
+    "src/lib/bank-formats/detect.test.ts",
+    "src/lib/bank-statement-schema.test.ts",
+    "src/lib/billing.test.ts",
+    "src/lib/braces-security.test.ts",
+    "src/lib/camt-statement-parser.test.ts",
+    "src/lib/ci-browser-install.test.ts",
+    "src/lib/company-branding.test.ts",
+    "src/lib/company-logo-file.test.ts",
+    "src/lib/company-logo-validation-server.test.ts",
+    "src/lib/company-settings-draft.test.ts",
+    "src/lib/company-validation.test.ts",
+    "src/lib/confirm-action.test.ts",
+    "src/lib/contrast.test.ts",
+    "src/lib/counterparty-reminder-preferences.test.ts",
+    "src/lib/cron-runtime.test.ts",
+    "src/lib/csv-statement-parser.test.ts",
+    "src/lib/csv.test.ts",
+    "src/lib/customer-invoice-linking.test.ts",
+    "src/lib/customer-search-query.test.ts",
+    "src/lib/customers-ui.test.ts",
+    "src/lib/czech-payment.test.ts",
+    "src/lib/czech-plural.test.ts",
+    "src/lib/dashboard-action-items.test.ts",
+    "src/lib/dashboard-summary.test.ts",
+    "src/lib/database-hardening.test.ts",
+    "src/lib/database-schema.test.ts",
+    "src/lib/dependencies.test.ts",
+    "src/lib/deployment-tracing.test.ts",
+    "src/lib/destructive-actions.test.ts",
+    "src/lib/document-locate.test.ts",
+    "src/lib/document-validation.test.ts",
+    "src/lib/email-mfa-core.test.ts",
+    "src/lib/email-mfa-server.test.ts",
+    "src/lib/email.test.ts",
+    "src/lib/empty-states.test.ts",
+    "src/lib/esko.test.ts",
+    "src/lib/excel-export.test.ts",
+    "src/lib/gpc-auto-match.test.ts",
+    "src/lib/gpc-feature.test.ts",
+    "src/lib/gpc-parser.test.ts",
+    "src/lib/import-split-preview.test.ts",
+    "src/lib/import-ui-regressions.test.ts",
+    "src/lib/invitation-claim.test.ts",
+    "src/lib/invitations.test.ts",
+    "src/lib/invoice-currency.test.ts",
+    "src/lib/invoice-detail-cache-invalidation.test.ts",
+    "src/lib/invoice-detail-presentation.test.ts",
+    "src/lib/invoice-drafts.test.ts",
+    "src/lib/invoice-events.test.ts",
+    "src/lib/invoice-form-money-review.test.ts",
+    "src/lib/invoice-isdoc.test.ts",
+    "src/lib/invoice-list-query.test.ts",
+    "src/lib/invoice-ocr-corpus.test.ts",
+    "src/lib/invoice-ocr-currency.test.ts",
+    "src/lib/invoice-ocr-gemini.test.ts",
+    "src/lib/invoice-ocr-label-values.test.ts",
+    "src/lib/invoice-ocr-reconcile.test.ts",
+    "src/lib/invoice-ocr-registry.test.ts",
+    "src/lib/invoice-ocr-schema.test.ts",
+    "src/lib/invoice-ocr-server.test.ts",
+    "src/lib/invoice-ocr-sources.test.ts",
+    "src/lib/invoice-ocr-vocabulary.test.ts",
+    "src/lib/invoice-ocr.test.ts",
+    "src/lib/invoice-payment-account.test.ts",
+    "src/lib/invoice-payment-history.test.ts",
+    "src/lib/invoice-pdf.test.ts",
+    "src/lib/invoice-qr.test.ts",
+    "src/lib/invoice-validation.test.ts",
+    "src/lib/landing-static.test.ts",
+    "src/lib/local-email-allowlist.test.ts",
+    "src/lib/login-entry.test.ts",
+    "src/lib/login-session.test.ts",
+    "src/lib/mobile-responsive.test.ts",
+    "src/lib/money.test.ts",
+    "src/lib/ocr-field-review.test.ts",
+    "src/lib/onboarding-draft.test.ts",
+    "src/lib/onboarding.test.ts",
+    "src/lib/operator.test.ts",
+    "src/lib/password-policy.test.ts",
+    "src/lib/payment-assistance-flags.test.ts",
+    "src/lib/payment-assistance.test.ts",
+    "src/lib/payment-import.test.ts",
+    "src/lib/payment-lifecycle.test.ts",
+    "src/lib/payment-matching.test.ts",
+    "src/lib/payment-reconciliation-query.test.ts",
+    "src/lib/payment-unrelated-rows.test.ts",
+    "src/lib/payment-validation.test.ts",
+    "src/lib/pdfjs-assets.test.ts",
+    "src/lib/plans.test.ts",
+    "src/lib/popup-fit.test.ts",
+    "src/lib/production-env.test.ts",
+    "src/lib/proxy-route-coverage.test.ts",
+    "src/lib/reconciliation-errors.test.ts",
+    "src/lib/reconciliation-regressions.test.ts",
+    "src/lib/registration-code-server.test.ts",
+    "src/lib/registration-email-server.test.ts",
+    "src/lib/release-audit.test.ts",
+    "src/lib/reminder-automation-query.test.ts",
+    "src/lib/reminder-defaults.test.ts",
+    "src/lib/reminder-email-template.test.ts",
+    "src/lib/reminder-policies.test.ts",
+    "src/lib/reminder-queue-optimization.test.ts",
+    "src/lib/reminder-recipient-policy.test.ts",
+    "src/lib/reminder-recipient-safety.test.ts",
+    "src/lib/reminder-recipients.test.ts",
+    "src/lib/reminder-retry-route.test.ts",
+    "src/lib/reminder-subject.test.ts",
+    "src/lib/reminder-template.test.ts",
+    "src/lib/reminders.test.ts",
+    "src/lib/report-print.test.ts",
+    "src/lib/report-query.test.ts",
+    "src/lib/reporting.test.ts",
+    "src/lib/request-security.test.ts",
+    "src/lib/resend-webhook.test.ts",
+    "src/lib/revalidate-on-revisit.test.ts",
+    "src/lib/role-access.test.ts",
+    "src/lib/role-authorization.test.ts",
+    "src/lib/router-cache.test.ts",
+    "src/lib/safe-return-path.test.ts",
+    "src/lib/seo.test.ts",
+    "src/lib/server-timing.test.ts",
+    "src/lib/settings-page-data.test.ts",
+    "src/lib/sign-out.test.ts",
+    "src/lib/statement-assignment-rules.test.ts",
+    "src/lib/statement-assignment.test.ts",
+    "src/lib/statement-discard.test.ts",
+    "src/lib/stripe-billing.test.ts",
+    "src/lib/structured-log.test.ts",
+    "src/lib/tenant-exclusivity.test.ts",
+    "src/lib/text-search.test.ts",
+    "src/lib/toast-contract.test.ts",
+    "src/lib/trusted-device-server.test.ts",
+    "src/lib/trusted-device.test.ts",
+    "src/lib/use-access-role.test.ts",
+    "src/lib/use-unsaved-changes.test.ts",
+    "src/lib/user-display.test.ts",
+    "src/lib/vat.test.ts",
+    "src/lib/verification-code.test.ts",
+    "src/lib/workspace-cache.test.ts",
+    "src/lib/workspace-performance.test.ts",
+    "src/lib/workspace-speed.test.ts",
+    "src/proxy-cache.test.ts",
+    "src/proxy.test.ts",
+    "e2e/breakpoints.spec.ts",
+    "e2e/customer-email.spec.ts",
+    "e2e/document-preview.spec.ts",
+    "e2e/gpc-import.spec.ts",
+    "e2e/landing-breakpoints.spec.ts",
+    "e2e/landing-faq.spec.ts",
+    "e2e/landing-process-motion.spec.ts",
+    "e2e/mobile-tables.spec.ts",
+    "e2e/navigation-regressions.spec.ts",
+    "e2e/public-responsive.spec.ts",
+    "e2e/registration-flow.spec.ts",
+    "e2e/report-print.spec.ts",
+    "e2e/smoke.spec.ts",
+    "e2e/staging-auth.spec.ts",
+    "e2e/visual-baseline.spec.ts"
+  ],
+  "migrations": [
+    "supabase/migrations/20260808000000_baseline_schema.sql",
+    "supabase/migrations/20260915095449_add_bank_statement_imports.sql",
+    "supabase/migrations/20260915095546_index_bank_statement_foreign_keys.sql",
+    "supabase/migrations/20260916000000_unify_payment_ledger.sql",
+    "supabase/migrations/20260916010000_remember_reminder_policy_for_all_sources.sql",
+    "supabase/migrations/20260917000000_customers_registry.sql",
+    "supabase/migrations/20260917010000_fix_reminder_settings_expected_event_default.sql",
+    "supabase/migrations/20260917020000_payment_reconciliation_summary.sql",
+    "supabase/migrations/20260918111705_robust_reconciliation.sql",
+    "supabase/migrations/20260918150000_learn_statement_account_identity.sql",
+    "supabase/migrations/20260918160000_automation_after_acknowledged_mismatch.sql",
+    "supabase/migrations/20260918170000_phase1_matching_rules.sql",
+    "supabase/migrations/20260918180000_name_amount_auto_match.sql",
+    "supabase/migrations/20260918200000_mismatch_stops_blocking_automation.sql",
+    "supabase/migrations/20260918210000_name_combination_auto_match.sql",
+    "supabase/migrations/20260918220000_single_engine_version.sql",
+    "supabase/migrations/20260918230000_release_statement_entry.sql",
+    "supabase/migrations/20260919094355_expand_dashboard_scroll_lists.sql",
+    "supabase/migrations/20260919124500_customer_registry_no_duplicates.sql",
+    "supabase/migrations/20260919133000_reconciliation_integrity_guards.sql",
+    "supabase/migrations/20260919140000_dashboard_action_items.sql",
+    "supabase/migrations/20260919150000_organization_ico_format.sql",
+    "supabase/migrations/20260920090000_tolerate_rounding_adjustment.sql",
+    "supabase/migrations/20260920121948_report_vat_dso_yoy_breakdown.sql",
+    "supabase/migrations/20260920140111_gpc_account_checksum_unverified.sql",
+    "supabase/migrations/20260920140127_reconciliation_mismatch_visibility.sql",
+    "supabase/migrations/20260922175732_invoice_emailed_event.sql",
+    "supabase/migrations/20260922175746_discard_bank_statement_import.sql",
+    "supabase/migrations/20260924102621_contextual_invoice_ocr.sql",
+    "supabase/migrations/20260930195017_gpc_unrelated_rows.sql",
+    "supabase/migrations/20261001235711_customer_ares_address_contact_guard.sql",
+    "supabase/migrations/20261003101756_payment_assistance.sql",
+    "supabase/migrations/20261003103140_camt_statement_evidence.sql",
+    "supabase/migrations/20261003152613_release_security_permissions.sql",
+    "supabase/migrations/20261005103634_customer_email_edit.sql",
+    "supabase/migrations/20261005113440_accept_invoice_total_without_adjustment_confirmation.sql",
+    "supabase/migrations/20261007124800_organization_onboarding.sql",
+    "supabase/migrations/20261007125359_billing_and_verification.sql",
+    "supabase/migrations/20261007125410_company_logos.sql",
+    "supabase/migrations/20261007132631_auth_rate_limit_actions.sql",
+    "supabase/migrations/20261009120000_stripe_subscriptions.sql",
+    "supabase/migrations/20261010120000_tenant_isolation_guards.sql",
+    "supabase/migrations/20261010121000_billing_exempt.sql",
+    "supabase/migrations/20261010122000_auto_booking_per_organization.sql",
+    "supabase/migrations/20261010123000_organization_bank_accounts.sql",
+    "supabase/migrations/20261010124000_statement_bank_dialect.sql",
+    "supabase/migrations/20261010125000_support_sessions.sql",
+    "supabase/migrations/20261010126000_fair_reminder_queue.sql",
+    "supabase/migrations/20261010127000_vat_payer.sql",
+    "supabase/migrations/20261012120000_invoice_payment_account.sql",
+    "supabase/migrations/20261012233239_comprehensive_search.sql",
+    "supabase/migrations/20261015142246_registration_otp_rate_limits.sql",
+    "supabase/migrations/20261015181557_onboarding_drafts.sql"
+  ],
+  "counts": {
+    "pages": 28,
+    "handlers": 68,
+    "ui_files": 105,
+    "styles": 21,
+    "boundaries": 20,
+    "tests": 213,
+    "migrations": 53
+  }
+}

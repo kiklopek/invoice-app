@@ -18,7 +18,8 @@ import type { Database, Json } from "@/types/database";
 //   dalšího období přes subscription schedule.
 
 export type Service = SupabaseClient<Database>;
-export type BillingDeps = { stripe: Stripe; service: Service; taxRateId: string | null; now?: () => Date };
+export type BillingDeps = { stripe: Stripe; service: Service; taxRateId: string | null; now?: () => Date; idempotencyKey?: string };
+const operationOptions = (deps: BillingDeps, step: string) => deps.idempotencyKey ? { idempotencyKey: `${deps.idempotencyKey}-${step}` } : undefined;
 
 export class BillingError extends Error {
   constructor(public code: string, message: string, public status = 400) {
@@ -130,8 +131,15 @@ export async function startCardSetup(deps: BillingDeps, input: {
   returnBase: string;
   returnPath: "/onboarding" | "/predplatne";
 }) {
-  const row = await subscriptionRow(deps.service, input.organizationId);
-  if (!row) throw new BillingError("subscription_not_found", "Firma nemá založené předplatné.", 409);
+  let row = await subscriptionRow(deps.service, input.organizationId);
+  if (!row) {
+    // An existing authenticated firm without a subscription can enter the
+    // same setup flow as onboarding. Never overwrite a concurrent creation.
+    const { error } = await deps.service.from("subscriptions").upsert({ organization_id: input.organizationId, status: "incomplete", plan: input.choice.plan, period: input.choice.period }, { onConflict: "organization_id", ignoreDuplicates: true });
+    if (error) throw error;
+    row = await subscriptionRow(deps.service, input.organizationId);
+    if (!row) throw new BillingError("subscription_not_found", "Firma nemá založené předplatné.", 409);
+  }
   assertNotExempt(row);
   if (row.stripe_subscription_id && !TERMINAL.has(row.status)) {
     throw new BillingError("already_subscribed", "Předplatné už běží. Kartu změníte v Nastavení → Předplatné → Karta a faktury.", 409);
@@ -229,7 +237,7 @@ export async function activateFromSetupSession(deps: BillingDeps, sessionId: str
     trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
     default_tax_rates: deps.taxRateId ? [deps.taxRateId] : undefined,
     metadata: { organization_id: organizationId },
-  }, { idempotencyKey: `splatno-trial-${organizationId}-${session.id}` });
+  }, { idempotencyKey: `splatno-trial-${organizationId}` });
   await syncSubscription(deps, subscription.id);
   return { status: "subscribed", subscriptionStatus: subscription.status };
 }
@@ -259,7 +267,7 @@ export async function startPaidSubscription(deps: BillingDeps, organizationId: s
     default_tax_rates: deps.taxRateId ? [deps.taxRateId] : undefined,
     metadata: { organization_id: organizationId },
     expand: ["latest_invoice"],
-  }, { idempotencyKey: `splatno-paid-${organizationId}-${row.plan}-${row.period}-${defaultMethod}-${row.stripe_subscription_id ?? "first"}` });
+  }, { idempotencyKey: `splatno-paid-${organizationId}-${row.stripe_subscription_id ?? "first"}` });
   await syncSubscription(deps, subscription.id);
   const invoice = subscription.latest_invoice && typeof subscription.latest_invoice === "object" ? subscription.latest_invoice : null;
   if (subscription.status === "incomplete") {
@@ -275,6 +283,9 @@ async function liveSubscription(deps: BillingDeps, organizationId: string) {
     throw new BillingError("no_subscription", "Firma nemá běžící předplatné.", 409);
   }
   const subscription = await deps.stripe.subscriptions.retrieve(row.stripe_subscription_id, { expand: ["schedule"] });
+  if ((row.stripe_customer_id && idOf(subscription.customer) !== row.stripe_customer_id) || (subscription.metadata.organization_id && subscription.metadata.organization_id !== organizationId)) {
+    throw new BillingError("subscription_mismatch", "Předplatné neodpovídá této firmě. Kontaktujte podporu.", 409);
+  }
   const current = planOfSubscription(subscription);
   const item = subscription.items.data[0];
   if (!current || !item) throw new BillingError("unknown_price", "Předplatné má cenu, kterou Splatno nezná. Kontaktujte podporu.", 409);
@@ -299,23 +310,28 @@ export async function previewChange(deps: BillingDeps, organizationId: string, t
   }
   const now = (deps.now ?? (() => new Date()))();
   const prorationDate = Math.floor(now.getTime() / 1000);
-  const nextChargeHalere = grossOf(target, deps.taxRateId);
+  const price = await priceFor(deps.stripe, target.plan, target.period);
+  const [regular, prorated] = await Promise.all([
+    deps.stripe.invoices.createPreview({
+      customer: idOf(subscription.customer) ?? undefined,
+      subscription: subscription.id,
+      subscription_details: { items: [{ id: item.id, price }], proration_behavior: "none", ...(subscription.status === "trialing" ? { trial_end: "now" as const } : {}) },
+    }),
+    kind === "upgrade" && subscription.status !== "trialing" ? deps.stripe.invoices.createPreview({
+      customer: idOf(subscription.customer) ?? undefined,
+      subscription: subscription.id,
+      subscription_details: { items: [{ id: item.id, price }], proration_behavior: "always_invoice", proration_date: prorationDate },
+    }) : null,
+  ]);
+  const nextChargeHalere = Math.max(0, regular.total);
   if (subscription.status === "trialing") {
     return { kind: "trial", dueNowHalere: 0, nextChargeHalere, effectiveAt: now.toISOString(), prorationDate };
   }
   if (kind === "downgrade") {
     return { kind, dueNowHalere: 0, nextChargeHalere, effectiveAt: iso(item.current_period_end) ?? now.toISOString(), prorationDate };
   }
-  const preview = await deps.stripe.invoices.createPreview({
-    customer: idOf(subscription.customer) ?? undefined,
-    subscription: subscription.id,
-    subscription_details: {
-      items: [{ id: item.id, price: await priceFor(deps.stripe, target.plan, target.period) }],
-      proration_behavior: "always_invoice",
-      proration_date: prorationDate,
-    },
-  });
-  return { kind, dueNowHalere: Math.max(0, preview.amount_due), nextChargeHalere, effectiveAt: now.toISOString(), prorationDate };
+  if (!prorated) throw new BillingError("preview_unavailable", "Náhled změny není dostupný.", 502);
+  return { kind, dueNowHalere: Math.max(0, prorated.amount_due), nextChargeHalere, effectiveAt: now.toISOString(), prorationDate };
 }
 
 async function releaseSchedule(deps: BillingDeps, subscription: Stripe.Subscription) {
@@ -335,7 +351,7 @@ export async function changePlan(deps: BillingDeps, organizationId: string, targ
 
   if (subscription.status === "trialing") {
     await releaseSchedule(deps, subscription);
-    await deps.stripe.subscriptions.update(subscription.id, { items: [{ id: item.id, price }], proration_behavior: "none" });
+    await deps.stripe.subscriptions.update(subscription.id, { items: [{ id: item.id, price }], proration_behavior: "none" }, operationOptions(deps, "trial-change"));
     await syncSubscription(deps, subscription.id);
     return { status: "changed" as const, kind: "trial" as const };
   }
@@ -348,7 +364,7 @@ export async function changePlan(deps: BillingDeps, organizationId: string, targ
       proration_date: prorationDate,
       payment_behavior: "pending_if_incomplete",
       expand: ["latest_invoice"],
-    });
+    }, operationOptions(deps, "upgrade"));
     await syncSubscription(deps, subscription.id);
     if (updated.pending_update) {
       const invoice = updated.latest_invoice && typeof updated.latest_invoice === "object" ? updated.latest_invoice : null;
@@ -360,7 +376,7 @@ export async function changePlan(deps: BillingDeps, organizationId: string, targ
   // Nižší tarif nebo měsíční platba: od dalšího období, bez vracení peněz.
   const existing = subscription.schedule && typeof subscription.schedule === "object" && subscription.schedule.status === "active"
     ? subscription.schedule
-    : await deps.stripe.subscriptionSchedules.create({ from_subscription: subscription.id });
+    : await deps.stripe.subscriptionSchedules.create({ from_subscription: subscription.id }, operationOptions(deps, "schedule-create"));
   const phase = existing.phases[0];
   await deps.stripe.subscriptionSchedules.update(existing.id, {
     end_behavior: "release",
@@ -369,7 +385,7 @@ export async function changePlan(deps: BillingDeps, organizationId: string, targ
       { items: [{ price: item.price.id, quantity: 1 }], start_date: phase.start_date, end_date: phase.end_date, default_tax_rates: deps.taxRateId ? [deps.taxRateId] : undefined },
       { items: [{ price, quantity: 1 }], duration: { interval: target.period === "yearly" ? "year" : "month", interval_count: 1 }, default_tax_rates: deps.taxRateId ? [deps.taxRateId] : undefined },
     ],
-  });
+  }, operationOptions(deps, "schedule-update"));
   await syncSubscription(deps, subscription.id);
   return { status: "scheduled" as const, kind, effectiveAt: iso(item.current_period_end) };
 }
@@ -382,6 +398,13 @@ export async function cancelScheduledChange(deps: BillingDeps, organizationId: s
 }
 
 /** Ukončí zkušební dobu hned a strhne tarif (po potvrzení uživatelem). */
+export async function previewTrialEnd(deps: BillingDeps, organizationId: string) {
+  const { subscription } = await liveSubscription(deps, organizationId);
+  if (subscription.status !== "trialing") throw new BillingError("not_trialing", "Zkušební doba už skončila.", 409);
+  const invoice = await deps.stripe.invoices.createPreview({ subscription: subscription.id, subscription_details: { trial_end: "now", proration_behavior: "none" } });
+  return { dueNowHalere: invoice.amount_due, currency: invoice.currency };
+}
+
 export async function endTrialNow(deps: BillingDeps, organizationId: string) {
   const { subscription } = await liveSubscription(deps, organizationId);
   if (subscription.status !== "trialing") throw new BillingError("not_trialing", "Zkušební doba už skončila.", 409);
@@ -390,7 +413,7 @@ export async function endTrialNow(deps: BillingDeps, organizationId: string) {
     proration_behavior: "none",
     payment_behavior: "allow_incomplete",
     expand: ["latest_invoice"],
-  });
+  }, operationOptions(deps, "end-trial"));
   await syncSubscription(deps, subscription.id);
   const invoice = updated.latest_invoice && typeof updated.latest_invoice === "object" ? updated.latest_invoice : null;
   if (updated.status === "incomplete" || updated.status === "past_due") {
@@ -403,7 +426,7 @@ export async function endTrialNow(deps: BillingDeps, organizationId: string) {
 export async function setCancelAtPeriodEnd(deps: BillingDeps, organizationId: string, cancel: boolean) {
   const { subscription } = await liveSubscription(deps, organizationId);
   if (cancel) await releaseSchedule(deps, subscription);
-  await deps.stripe.subscriptions.update(subscription.id, { cancel_at_period_end: cancel });
+  await deps.stripe.subscriptions.update(subscription.id, { cancel_at_period_end: cancel }, operationOptions(deps, cancel ? "cancel" : "resume"));
   await syncSubscription(deps, subscription.id);
 }
 

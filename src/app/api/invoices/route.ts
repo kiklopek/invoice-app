@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { subscriptionBlock, subscriptionErrorResponse } from "@/lib/billing-server";
 import { apiError } from "@/lib/api-response";
-import { logError } from "@/lib/structured-log";
+import { logError, requestId } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import type { Invoice } from "@/types/invoice";
 import { initialNextReminderAt, todayInTimeZone } from "@/lib/reminders";
@@ -9,6 +9,7 @@ import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { ownInvoiceAccount } from "@/lib/bank-accounts";
 import { isSameOriginMutation } from "@/lib/request-security";
 import { parseInvoiceListQuery } from "@/lib/invoice-list-query";
+import { DEFAULT_INVOICE_PAGE_SIZE } from "@/lib/invoice-page-size";
 import {
   createExcelWorkbook,
   excelDate,
@@ -20,6 +21,9 @@ import { OCR_REVIEW_FIELDS } from "@/lib/invoice-ocr";
 import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 import { lookupAresSubject } from "@/lib/ares";
 import { companyNamesAgree } from "@/lib/invoice-ocr-registry";
+
+import { CREATION_COMPANY_FIELDS, creationSupplier, prepareCreation, sameCreation, creationRequest } from "@/lib/invoice-creation-server";
+import { InvoiceCreationError, issuedDocument, type IssuedInvoiceDocument } from "@/lib/invoice-creation";
 
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
@@ -89,7 +93,7 @@ async function invoiceExcel(invoices: Invoice[]) {
       ico: invoice.counterparty_ico,
       email: invoice.counterparty_email,
       net: Number(invoice.amount_without_vat),
-      vat: Number(invoice.vat_rate),
+      vat: issuedDocument(invoice)?.supplier.vat_payer === false ? "Neplátce DPH" : issuedDocument(invoice)?.totals.breakdown.length && issuedDocument(invoice)!.totals.breakdown.length > 1 ? issuedDocument(invoice)!.totals.breakdown.map(row => `${row.rate} %`).join(" / ") : Number(invoice.vat_rate),
       gross: Number(invoice.amount),
       paid: Number(invoice.paid_amount),
       remaining: Math.max(
@@ -115,6 +119,11 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   const wantsExcel = url.searchParams.get("format") === "xlsx";
+  const rawSelected = url.searchParams.get("selected_ids");
+  const selectedIds = rawSelected === null ? null : rawSelected.toLowerCase().split(",");
+  if (selectedIds && (!wantsExcel || selectedIds.length > 100 || new Set(selectedIds).size !== selectedIds.length || selectedIds.some(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)))) {
+    return NextResponse.json({ error: "Neplatný výběr faktur pro export." }, { status: 400 });
+  }
 
   const identity = await getRequestIdentity();
   const identityDoneAt = performance.now();
@@ -146,10 +155,24 @@ export async function GET(request: Request) {
     );
     return { data: data as InvoicePageResult | null, error };
   };
+  if (wantsExcel && selectedIds) {
+    // Use the same organization/actor-authorized RPC as the list. Selection
+    // is confined to its current page; never widen permissions or filters.
+    const result = await loadPage(query.page, query.pageSize ?? DEFAULT_INVOICE_PAGE_SIZE);
+    if (result.error || !result.data) {
+      logError("Vybrané faktury pro export se nepodařilo načíst", result.error, { request_id: requestId(request) });
+      return apiError(request, "Export se nepodařilo připravit.", 500, "invoice_export_failed");
+    }
+    const allowed = new Map(result.data.invoices.map(invoice => [invoice.id, invoice]));
+    if (selectedIds.some(id => !allowed.has(id))) {
+      return NextResponse.json({ error: "Výběr faktur se změnil. Obnovte seznam a vyberte faktury znovu." }, { status: 409 });
+    }
+    return excelResponse(await invoiceExcel(selectedIds.map(id => allowed.get(id)!)), "vybrane-faktury.xlsx");
+  }
   if (wantsExcel) {
     const first = await loadPage(1, EXPORT_PAGE_SIZE);
     if (first.error || !first.data) {
-      logError("První stránku exportu faktur se nepodařilo načíst", first.error);
+      logError("První stránku exportu faktur se nepodařilo načíst", first.error, { request_id: requestId(request) });
       return apiError(request, "Export se nepodařilo připravit. Zkuste to prosím znovu za chvíli.", 500, "invoice_export_failed");
     }
     if (first.data.total > MAX_EXPORT_ROWS)
@@ -189,7 +212,7 @@ export async function GET(request: Request) {
         { error: error.message },
         { status: error.status },
       );
-    logError("Faktury se nepodařilo načíst", error);
+    logError("Faktury se nepodařilo načíst", error, { request_id: requestId(request) });
     return apiError(request, "Faktury se nepodařilo načíst.", 500, "invoices_read_failed");
   }
 }
@@ -201,8 +224,9 @@ export async function POST(request: Request) {
       { status: 403 },
     );
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
-  const input = parseInvoiceInput(body);
-  if (!input) {
+  let input = parseInvoiceInput(body);
+  const creating = body?.creation !== undefined;
+  if (!input && !creating) {
     return NextResponse.json(
       { error: "Zkontrolujte povinná pole, e-mail, částku a data faktury." },
       { status: 400 },
@@ -227,12 +251,34 @@ export async function POST(request: Request) {
 
   const organizationId = identity.membership.organization_id;
   const { data: issuer, error: issuerError } = await identity.service.from("organizations")
-    .select("name, email, bank_account_czk, bank_account_eur, bank_accounts:organization_bank_accounts(account, currency)")
+    .select(CREATION_COMPANY_FIELDS)
     .eq("id", organizationId).single();
   if (issuerError || !issuer) {
-    logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError);
+    logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError, { request_id: requestId(request) });
     return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_issuer_read_failed");
   }
+  let creation: IssuedInvoiceDocument | null = null;
+  if (creating) {
+    try {
+      const { draft, hash } = creationRequest(body!.creation);
+      const { data: replay, error: replayError } = await identity.service.from("invoices").select("*")
+        .eq("id", draft.request_id).eq("organization_id", organizationId).maybeSingle();
+      if (replayError) {
+        logError("Vystavení faktury se nepodařilo ověřit", replayError, { request_id: requestId(request) });
+        return apiError(request, "Vystavení faktury se nepodařilo ověřit.", 503, "invoice_replay_failed");
+      }
+      if (replay) return sameCreation(issuedDocument(replay), draft.request_id, hash)
+        ? NextResponse.json({ invoice: replay, replayed: true }, { status: 200 })
+        : NextResponse.json({ error: "Tento požadavek už vystavil jiný doklad. Otevřete uloženou fakturu." }, { status: 409 });
+      const prepared = await prepareCreation(draft, creationSupplier(issuer), identity);
+      input = prepared.input; creation = prepared.document;
+    } catch (cause) {
+      if (cause instanceof InvoiceCreationError && cause.status < 500) return NextResponse.json({ error: cause.message }, { status: cause.status });
+      logError("Vystavení faktury se nepodařilo připravit", cause, { request_id: requestId(request) });
+      return apiError(request, "Vystavení faktury se nepodařilo připravit.", 503, "invoice_creation_failed");
+    }
+  }
+  if (!input) return NextResponse.json({ error: "Neplatná faktura." }, { status: 400 });
   if (isBlockedReminderRecipient(input.counterparty_email, issuer)) {
     return NextResponse.json({ error: "E-mail pro upomínky patří vaší firmě. Zadejte adresu odběratele." }, { status: 400 });
   }
@@ -285,11 +331,12 @@ export async function POST(request: Request) {
     );
   const reminderDays = selectedPolicy.days_from_due ?? [-3, 0, 7, 14];
 
-  const paymentAccount = ownInvoiceAccount(body?.payment_account, input.currency, issuer, issuer.bank_accounts ?? []);
+  const paymentAccount = ownInvoiceAccount(creation ? creation.payment_account : body?.payment_account, input.currency, issuer, issuer.bank_accounts ?? []);
   const { data, error } = await identity.service
     .from("invoices")
     .insert({
       ...input,
+      ...(creation ? { id: creation.request_id, customer_id: creation.customer_id || null, ...(input.counterparty_email ? {} : { reminders_paused: true, reminders_paused_at: new Date().toISOString(), reminders_paused_by: identity.user.id }) } : {}),
       file_url: input.file_url ?? null,
       // Účet nalezený na PDF faktury (OCR) -- jen když patří firmě a je v měně
       // faktury. PDF, QR a upomínky pak platí na něj (invoicePaymentAccount).
@@ -300,7 +347,7 @@ export async function POST(request: Request) {
       reminder_days_snapshot: reminderDays,
       reminder_plan_effective_from: null,
       next_reminder_at:
-        selectedPolicy.is_active === false
+        selectedPolicy.is_active === false || (creation && !input.counterparty_email)
           ? null
           : initialNextReminderAt(
               input.due_date,
@@ -313,18 +360,15 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
+    if (creation && error.code === "23505") {
+      const { data: concurrent } = await identity.service.from("invoices").select("*").eq("organization_id", organizationId).eq("id", creation.request_id).maybeSingle();
+      if (concurrent && sameCreation(issuedDocument(concurrent), creation.request_id, creation.request_hash)) return NextResponse.json({ invoice: concurrent, replayed: true }, { status: 200 });
+    }
     const blocked = subscriptionErrorResponse(error);
     if (blocked) return blocked;
-    const status = error.code === "23505" ? 409 : 500;
-    return NextResponse.json(
-      {
-        error:
-          status === 409
-            ? "Číslo faktury nebo přiložený dokument už je evidován."
-            : "Fakturu se nepodařilo uložit.",
-      },
-      { status },
-    );
+    if (error.code === "23505") return NextResponse.json({ error: "Číslo faktury nebo přiložený dokument už je evidován." }, { status: 409 });
+    logError("Fakturu se nepodařilo uložit", error, { request_id: requestId(request) });
+    return apiError(request, "Fakturu se nepodařilo uložit.", 500, "invoice_insert_failed");
   }
   // The invoice trigger links the customer by IČO. Enrich only an empty
   // registered-office field; an existing address may have been curated.

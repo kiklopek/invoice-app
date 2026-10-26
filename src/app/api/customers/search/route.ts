@@ -1,9 +1,10 @@
+import { searchCustomers } from "@/lib/customer-search-data";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-response";
 import { logError, requestId } from "@/lib/structured-log";
 import { getRequestIdentity } from "@/lib/auth";
 import { canViewFinancialInsights } from "@/lib/role-access";
-import { legacyCustomerSearchFilter, parseCustomerSearchQuery } from "@/lib/customer-search-query";
+import { parseCustomerSearchQuery } from "@/lib/customer-search-query";
 
 export async function GET(request: Request) {
   const identity = await getRequestIdentity();
@@ -18,23 +19,11 @@ export async function GET(request: Request) {
   }
   if (!parsed.query) return NextResponse.json({ customers: [] });
 
-  let { data, error } = await identity.service
-    .rpc("search_customers", {
-      target_org: identity.membership.organization_id,
-      actor_user: identity.user.id,
-      search_query: parsed.query,
-    });
-  if (error?.code === "PGRST202" || error?.code === "42883") {
-    const filter = legacyCustomerSearchFilter(parsed.query);
-    if (!filter) return NextResponse.json({ customers: [] });
-    ({ data, error } = await identity.service.from("customers")
-      .select("id, name, ico, dic, email")
-      .eq("organization_id", identity.membership.organization_id)
-      .or(filter).order("name", { ascending: true }).limit(10));
-  }
-  if (error) {
+  try {
+    const customers = await searchCustomers(identity, parsed.query);
+    return NextResponse.json({ customers });
+  } catch (error) {
     logError("Vyhledávání zákazníků selhalo", error, { request_id: requestId(request) });
     return apiError(request, "Zákazníky se nepodařilo vyhledat.", 500, "customer_search_failed");
   }
-  return NextResponse.json({ customers: data ?? [] });
 }

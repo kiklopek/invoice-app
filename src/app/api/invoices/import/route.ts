@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Import musí obsahovat 1 až ${MAX_BATCH_SIZE} faktur.` }, { status: 400 });
   }
 
-  const parsed = body.invoices.map(parseInvoiceInput);
+  const parsed = body.invoices.map(value => parseInvoiceInput(value));
   const invalidRows = parsed.flatMap((invoice, index) => invoice ? [] : [index + 2]);
   if (invalidRows.length) {
     return NextResponse.json({ error: `Neplatné údaje na řádku ${invalidRows.slice(0, 10).join(", ")}.` }, { status: 400 });

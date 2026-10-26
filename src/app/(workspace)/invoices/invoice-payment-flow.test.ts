@@ -39,7 +39,7 @@ afterEach(() => {
   container.remove();
 });
 async function click(label: string) {
-  const button = [...container.querySelectorAll("button")].find(button => button.textContent?.trim() === label);
+  const button = [...document.querySelectorAll("button")].find(button => button.textContent?.trim() === label);
   expect(button).toBeDefined();
   await act(async () => button!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 }
@@ -48,10 +48,11 @@ async function assignPayment() {
     id: "invoice", invoice_number: "FV-2026-1", counterparty_name: "Zákazník", counterparty_email: "test@example.cz",
     amount: 1000, paid_amount: 0, currency: "CZK", status: "pending", issue_date: "2026-10-01", due_date: "2026-10-15", reminders_sent: 0,
   } as Invoice;
-  const data = { invoices: [invoice], total: 1, total_pages: 1, active_count: 1, can_manage: true, currencies: ["CZK"] } as InvoiceListPageData;
+  const data = { invoices: [invoice], total: 1, total_pages: 1, active_count: 1, can_manage: true, currencies: ["CZK"], open_totals: { CZK: 1000 }, page: 1, page_size: 25 } as InvoiceListPageData;
   await act(async () => root.render(createElement(InvoicesClient, {
     initialData: data, initialQuery: parseInvoiceListQuery(new URLSearchParams("status=pending"))!, initialKey: "/api/invoices?paged=1&page=1&status=pending",
   })));
+  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Akce faktury FV-2026-1"]')!.click());
   await click("Potvrdit úhradu");
   await click("Vybrat bankovní platbu");
   await click("Přiřadit a potvrdit");
@@ -63,8 +64,8 @@ describe("přiřazení bankovní platby ze seznamu faktur", () => {
     await assignPayment();
     expect(mocks.assign).toHaveBeenCalledWith("bank-payment", "invoice");
     expect(container.querySelector("[role=dialog]")).toBeNull();
-    expect(container.querySelector(".invoice-row")?.textContent).toContain("FV-2026-1");
-    expect(container.querySelector(".invoice-row")?.textContent).toContain("Částečně uhrazeno");
+    expect(container.querySelector("[data-invoice-id]")?.textContent).toContain("FV-2026-1");
+    expect(container.querySelector("[data-invoice-id]")?.textContent).toContain("Částečně uhrazeno");
     expect(container.querySelector("[data-active-count]")?.textContent).toBe("1");
     expect(container.textContent).toContain("Faktura zůstává otevřená.");
     expect(mocks.invalidate).toHaveBeenCalledOnce();
@@ -74,7 +75,7 @@ describe("přiřazení bankovní platby ze seznamu faktur", () => {
   it("plná úhrada odstraní fakturu z otevřeného přehledu", async () => {
     mocks.assign.mockResolvedValue({ settlement: "full", invoice_status: "paid", paid_amount: 1000, remaining: 0 });
     await assignPayment();
-    expect(container.querySelector(".invoice-row")).toBeNull();
+    expect(container.querySelector("[data-invoice-id]")).toBeNull();
     expect(container.querySelector("[data-active-count]")?.textContent).toBe("0");
     expect(mocks.showToast).not.toHaveBeenCalled();
   });

@@ -23,10 +23,17 @@ const values: ReminderTemplateValues = {
 };
 
 describe("branded reminder email", () => {
+  it("presents newly issued invoices independently of the reminder stage", () => {
+    const result = renderReminderEmail({ company, stage: "overdue", purpose: "issue", subject: "Faktura", message: "V příloze zasíláme fakturu.", values });
+    expect(result.html).toContain("NOVÁ FAKTURA");
+    expect(result.html).toContain("Zasíláme vám fakturu");
+    expect(result.html).not.toContain("Faktura po splatnosti");
+    expect(result.text).toContain("V příloze zasíláme fakturu.");
+  });
   it("uses the company's shared logo in the preview without an explicit override", () => {
     const result = renderReminderEmail({ company: { ...company, logo_path: "/logo/company?v=42" }, stage: "overdue", subject: "Test", message: "Test", values });
     expect(result.html).toContain('src="/logo/company?v=42"');
-    expect(result.html).not.toContain("splatno-mark.png");
+    expect(result.html).not.toContain("splatno-auth-mark.png");
   });
   it("renders a client-compatible branded invoice reminder with text fallback", () => {
     const result = renderReminderEmail({
@@ -129,7 +136,7 @@ describe("branded reminder email", () => {
     expect(result.html).toContain("Jiná firma s.r.o.");
     expect(result.html).not.toContain("R. Hlavica");
     expect(result.html).not.toContain("DŘEVO");
-    expect(result.html).toContain('src="/brand/splatno-mark.png"');
+    expect(result.html).toContain('src="/brand/splatno-auth-mark.png"');
     expect(result.html).toContain('alt="Splatno"');
   });
 });
@@ -192,8 +199,8 @@ describe("reminderLogoUrl", () => {
   it("uses the company logo or the shared Splatno PNG with an absolute URL", async () => {
     const { reminderLogoUrl } = await import("./reminder-email-template");
     expect(reminderLogoUrl("/brand/drevohlavica.png", "https://www.splatno.cz")).toBe("https://www.splatno.cz/brand/drevohlavica.png");
-    expect(reminderLogoUrl(null, "https://www.splatno.cz")).toBe("https://www.splatno.cz/brand/splatno-mark.png");
-    expect(reminderLogoUrl(undefined, "https://www.splatno.cz")).toBe("https://www.splatno.cz/brand/splatno-mark.png");
+    expect(reminderLogoUrl(null, "https://www.splatno.cz")).toBe("https://www.splatno.cz/brand/splatno-auth-mark.png");
+    expect(reminderLogoUrl(undefined, "https://www.splatno.cz")).toBe("https://www.splatno.cz/brand/splatno-auth-mark.png");
     expect(reminderLogoUrl("/brand/x.png", "")).toBe("https://www.splatno.cz/brand/x.png");
   });
 });

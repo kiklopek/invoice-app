@@ -1,0 +1,86 @@
+.saveNoteTitle { display: none; }
+.form { display: flex; flex-direction: column; gap: 0; width: 100%; min-width: 0; margin: 0; color: #17251e; }
+@media screen and (max-width: 767px) {
+  .saveNoteTitle { display: block; margin-bottom: 3px; color: #243c30; font-size: 14px; font-weight: 650; }
+}
+.section { min-width: 0; margin: 0; padding: 16px 0 18px; border: 0; background: none; }
+.section:first-of-type { padding-top: 0; }
+.section + .section { border-top: 1px solid #edf0ee; }
+.sectionHeader { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 14px; }
+.sectionHeader h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; line-height: 22px; font-weight: 650; letter-spacing: -.02em; color: #0c171d; }
+.ocrBadge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 20px; background: #edf7f1; color: #17613f; font-size: 11px; line-height: 16px; white-space: nowrap; }
+.ocrBadge svg { width: 16px; height: 16px; flex-shrink: 0; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 16px; align-items: start; min-width: 0; }
+.fields > :global(.wide) { grid-column: 1 / -1; }
+.fields label { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; margin: 0; font-size: 13px; line-height: 18px; color: #6c7988; }
+.fields label > span:first-child { padding: 0; margin: 0; font-size: 13px; font-weight: 400; line-height: 18px; color: #6c7988; }
+.fields input, .fields select, .fields textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 42px; height: 42px; margin: 0; padding: 9px 12px; border: 1px solid #dfe6e9; border-radius: 7px; box-shadow: none; background: #fff; color: #17251e; font: inherit; font-size: 14px; line-height: 22px; }
+.fields label:has(> :global(.ocr-field-meta)) > input { padding-right: 38px; }
+.fields select { appearance: none; padding-right: 34px; background: #fff var(--select-chevron-image) no-repeat right 12px center / 14px; }
+.fields label:has(> :global(.ocr-field-meta)) > select { --select-chevron-offset: 36px; padding-right: var(--select-chevron-padding); background-position: right 36px center; }
+.fields textarea { height: 76px; min-height: 76px; resize: vertical; }
+.fields input[type="checkbox"] { width: 18px; min-height: 18px; height: 18px; flex: none; padding: 0; }
+.fields :is(input, select, textarea):focus-visible { outline: 2px solid #277b55; outline-offset: 2px; }
+.fields input:user-invalid { border-color: #c64343; }
+.fields small { margin: 0; color: #74818a; font-size: 12px; line-height: 17px; }
+.copy { display: inline-block; min-height: 20px; padding: 0; margin: 4px 0 0; border: 0; background: none; color: #17613f; font: inherit; font-size: 12px; line-height: 18px; cursor: pointer; text-align: left; text-decoration: underline; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta) { min-height: 20px; margin: 0 !important; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.verified) { position: absolute; top: 36px; right: 12px; width: 17px; min-height: 17px; height: 17px; margin: 0 !important; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.verified .ocr-field-status) { position: relative; display: grid !important; place-items: center; width: 17px; height: 17px; min-height: 17px; padding: 0; border: 0; border-radius: 50%; background: #28a366; color: white !important; font-size: 0 !important; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.verified .ocr-field-status)::before { display: none; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.verified .ocr-field-status)::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; }
+.form :global(.ocr-field-meta.verified .ocr-field-origin) { display: none; }
+.form :global(.ocr-field-meta:not(.verified)) { align-self: start; }
+.form :global(.ocr-field-choices) { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 !important; }
+.form :global(.ocr-field-choices .btn) { min-height: 28px; height: auto; padding: 5px 8px; border: 1px solid #e0e6e2; background: #fff; box-shadow: none; font-size: 12px; line-height: 17px; white-space: normal; }
+.form :global(.ocr-field-tooltip), .form :global(.ocr-field-tooltip strong), .form :global(.ocr-field-tooltip small) { font-size: 12px !important; line-height: 1.5; }
+.form :global(.ocr-review-summary) { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; margin: 0 0 12px; width: 100%; text-align: left; background: #fff8ed; color: #8a5a12; border: 1px solid #f0dcc0; border-radius: 8px; font: inherit; font-size: 12px; cursor: pointer; }
+.form :global(.ocr-review-summary svg) { width: 16px; height: 16px; flex: none; }
+.form :global(.ocr-review-summary span) { margin-left: auto; text-decoration: underline; }
+.form :global(.ocr-warnings) { width: 100%; margin: 0 0 12px; padding: 8px 0; border: 0; border-bottom: 1px solid #edf0ee; border-radius: 0; background: none; color: #8a5a12; font-size: 12px; line-height: 18px; }
+.form :global(.ocr-warnings summary) { cursor: pointer; }
+.form :global(.ocr-warnings summary span) { margin-left: 8px; font-size: 12px; }
+:global(#manual-invoice-form) .form :global(.reminder-policy-field > .ocr-policy-assignment) { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0; padding: 6px 8px; border: 0; border-radius: 6px; background: #f0f7f3; font-size: 12px; line-height: 17px; }
+.form :global(.ocr-policy-assignment strong), .form :global(.ocr-policy-assignment span) { font-size: 12px; line-height: 17px; font-weight: 400; }
+.form :global(.invoice-money-review), .form :global(.invoice-payment-account) { grid-column: 1 / -1; font-size: 12px; line-height: 17px; }
+.form :global(.invoice-money-confirm) { flex-direction: row; align-items: start; }
+.form :global(.form-error), .form :global(.field-error), .form :global(.field-warning) { font-size: 13px; line-height: 18px; }
+.form :global(.customer-search-results) { font-size: 13px; }
+@media (max-width: 600px) {
+  .fields { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .fields input, .fields select, .fields textarea { font-size: 16px; }
+  .sectionHeader { align-items: start; }
+}
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.review),
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.missing) { position: absolute; top: 36px; right: 12px; width: 17px; min-height: 17px; height: 17px; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.review .ocr-field-status),
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.missing .ocr-field-status) { position: relative; display: grid !important; place-items: center; width: 17px; min-height: 17px; height: 17px; padding: 0; border: 0; border-radius: 50%; background: #d28a24; color: white !important; font-size: 0 !important; }
+:global(#manual-invoice-form) .form :global(.ocr-field-meta.missing .ocr-field-status) { background: #c64343; }
+.form :global(.ocr-field-meta:not(.verified) .ocr-field-status)::before { display: none; }
+.form :global(.ocr-field-meta:not(.verified) .ocr-field-status)::after { content: "!"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; }
+.form :global(.ocr-field-origin) { display: none; }
+:global(#manual-invoice-form) .form label:has(input:user-invalid) :global(.ocr-field-status) { background: #c64343; }
+.form label:has(input:user-invalid) :global(.ocr-field-status)::after { content: "!"; }
+.form :global(.ocr-review-summary) { min-height: 30px; padding: 5px 8px; margin-bottom: 8px; font-size: 12px; line-height: 18px; gap: 6px; }
+.form :global(.ocr-warnings) { padding: 3px 0 6px; margin-bottom: 8px; }
+
+.form :global(.ocr-field-meta)::before { content: ""; position: absolute; inset: -6px; }
+.sourceTooltip { position: fixed; z-index: 1000; display: grid; gap: 9px; width: min(320px, calc(100vw - 24px)); box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; padding: 12px 14px; border: 1px solid #d6e2d9; border-radius: 10px; background: #fff; color: #34483c; box-shadow: 0 10px 30px #183d2b26 !important; font-family: "Splatno Dashboard Inter", Inter, sans-serif; font-size: 12px; font-weight: 400; line-height: 1.5; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.sourceTooltip strong { font-size: 12px; font-weight: 650; }
+.sourceTooltip small { font-size: 11px; }
+.sourceTooltip a { color: #17613f; text-decoration: underline; }
+
+@media screen and (max-width:767px) {
+  .form .section { margin:0 0 16px;padding:0 0 16px;border:0;border-bottom:1px solid #e7ece8;border-radius:0; }
+  .form .sectionHeader { margin:0 0 12px;gap:8px;align-items:center;flex-wrap:wrap; }
+  .form .sectionHeader h2 { margin:0;font-size:16px;line-height:1.35; }
+  .form .fields { display:grid;grid-template-columns:minmax(0,1fr);gap:14px; }
+  .form .fields label { min-width:0; }
+  .form .fields label > span { font-size:13px;line-height:1.4; }
+  .form .fields :is(input:not([type=checkbox]),select,textarea) { min-height:44px;height:auto;padding:10px 36px 10px 10px;font-size:16px; }
+  .form .fields textarea { min-height:76px; }
+  .form .ocrBadge { font-size:11px; }
+  .form .copy, .form :global(.ocr-field-choices .btn) { min-height:44px;font-size:13px; }
+  .form :global(.ocr-review-summary) { min-height:44px;padding:10px;font-size:13px; }
+  :global(#manual-invoice-form) .form :global(.ocr-field-meta.verified) { top:36px;right:10px; }
+}

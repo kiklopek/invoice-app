@@ -6,6 +6,11 @@
   min-height: 100dvh;
   background: transparent;
 }
+.mobileBack, .mobileTitle { display: none; }
+.page.page :global(.gpc-mobile-info),
+.page.page :global(.gpc-mobile-button-label) { display: none; }
+.page.page :global(.gpc-dropzone > strong) { overflow-wrap: anywhere; max-width: 100%; }
+.page.page :global(.gpc-upload-limits) { max-width: 100%; font-size: 12px; line-height: 1.6; }
 
 .page.page > .stage { width: 100%; max-width: 1480px; margin: auto; min-height: 0; display: flex; flex-direction: column; }
 .page.page :global(.payments-hero), .page.page :global(.gpc-panel) { width: 100%; max-width: none; margin-inline: 0; }
@@ -27,7 +32,7 @@
 .page.page :global(.payments-switch-copy strong) { font-size: 14px; }
 .page.page :global(.payments-switch-copy small) { font-size: 11px; line-height: 1.5; color: var(--upload-muted); }
 .page.page :global(.payments-switch-arrow) { background: none; color: #286348; }
-.page.page :global(.gpc-panel) { border: 1px solid #dce4de; border-radius: 20px; background: #fff; box-shadow: 0 8px 32px #163b2b05; }
+.page.page :global(.gpc-panel) { border: 1px solid #dce4de; border-radius: 20px; background: #fff; box-shadow: 0 8px 32px #163b2b05; overflow: clip; }
 .page.page :global(.gpc-intro-grid) { grid-template-columns: minmax(0, 1.65fr) minmax(285px, 1fr); gap: 0; }
 .page.page :global(.gpc-upload-column) { padding: 26px; }
 .page.page :global(.gpc-title-row) { gap: 14px; }
@@ -93,17 +98,18 @@
 }
 
 @media (min-width: 1024px) {
-  .page.page { height: 100dvh; min-height: 0; display: flex; flex-direction: column; padding-top: clamp(20px, 3dvh, 36px); padding-bottom: 24px; }
+  .page.page { height: auto; min-height: 100dvh; display: flex; flex-direction: column; padding-top: clamp(20px, 3dvh, 36px); padding-bottom: 24px; }
   .page.page :global(.payments-hero) { flex-shrink: 0; }
   .page.page :global(.payments-anchor) { display: none; }
-  .page.page :global(.gpc-panel) { min-height: 0; margin-bottom: 0; flex-shrink: 1; overflow-y: auto; }
+  .page.page :global(.gpc-panel) { min-height: auto; margin-bottom: 0; flex-shrink: 0; display: flex; flex-direction: column; }
+  .page.page :global(.gpc-intro-grid) { flex: 1; }
   .page.page :global(.payments-committed-note) { flex-shrink: 0; margin-top: 12px; }
 }
 
 @media (min-width: 1181px) and (min-height: 761px) {
-  .page.page > .stage { height: min(82dvh, 960px); }
+  .page.page > .stage { min-height: min(82dvh, 960px); height: auto; }
   .page.page :global(.gpc-panel) { flex: 1; }
-  .page.page :global(.gpc-intro-grid) { min-height: 100%; }
+  .page.page :global(.gpc-intro-grid) { min-height: 0; }
   .page.page :global(.gpc-upload-column) { display: flex; flex-direction: column; padding: clamp(28px, 2.4vw, 40px); }
   .page.page :global(.gpc-dropzone) { flex: 1; min-height: 240px; }
   .page.page :global(.gpc-safety-card) { padding: clamp(28px, 2.4vw, 40px); align-content: center; }
@@ -156,12 +162,141 @@
 .page.page :global(.payments-switch-archive) { background: #edf4e9; border-color: #a9c3ad; }
 .page.page :global(.payments-switch-icon) { background: #235c42; color: #fff; }
 
-/* Loaded statements use the available workspace instead of the upload hero. */
-.page.page.reviewPage > .stage { max-width: none; height: auto; min-height: 0; margin-block: 0; flex: 1; }
-.page.page.reviewPage :global(.gpc-panel) { min-width: 0; }
-.page.page.reviewPage :global(.gpc-file-summary) { position: sticky; top: 0; z-index: 3; background: #f4f8f4; }
-.page.page.reviewPage :global(.gpc-preview) { scroll-margin-top: 90px; }
+/* The review uses document scrolling and the shared shell/topbar. */
+.page.page.reviewPage { height: auto; min-height: 100dvh; overflow: visible; padding-top: 12px; padding-bottom: 24px; }
+.page.page.reviewPage > .stage { display: block; max-width: none; height: auto; min-height: 0; margin-block: 0; flex: none; }
+
+/* The upload page reflows independently of the shared application header. */
 @media (min-width: 1024px) {
-  .page.page.reviewPage { padding-top: 16px; padding-bottom: 16px; overflow: hidden; }
-  .page.page.reviewPage :global(.gpc-panel) { flex: 1; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; }
+  .page.page > .stage { min-height: 0; height: auto; margin-block: 12px 0; }
+  .page.page :global(.gpc-dropzone) { flex: none; min-height: 280px; }
+  .page.page :global(.gpc-safety-card) { align-content: center; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page.page :global(.payments-hero) { flex-direction: row; align-items: flex-start; gap: 16px; }
+  .page.page :global(.payments-hero-copy) { flex: 1; min-width: 0; }
+  .page.page :global(.payments-hero-side) { flex: none; width: auto; }
+  .page.page :global(.payments-switch-archive) { min-height: 44px; padding: 10px 12px; border-radius: 9px; gap: 10px; grid-template-columns: minmax(0, 1fr) 18px; }
+  .page.page :global(.payments-switch-copy strong) { white-space: nowrap; }
+  .page.page :global(.payments-switch-arrow) { width: 18px; height: 18px; }
+  .page.page :global(.payments-switch-icon),
+  .page.page :global(.payments-switch-copy small) { display: none; }
+  .page.page :global(.gpc-intro-grid) { grid-template-columns: minmax(0, 1fr); }
+  .page.page :global(.gpc-upload-column) { padding: 26px; }
+  .page.page :global(.gpc-safety-card) { display: grid; grid-template-columns: 36px minmax(0, 1fr); padding: 22px 26px; border-left: 0; border-top: 1px solid #17462f; }
+  .page.page :global(.gpc-safety-icon) { width: 36px; height: 36px; border-radius: 10px; }
+  .page.page :global(.gpc-safety-card h3) { font-size: 20px; }
+  .page.page :global(.gpc-safety-card ol) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+  .page.page :global(.gpc-safety-card li) { min-width: 0; padding-left: 0; padding-top: 34px; }
+  .page.page :global(.gpc-safety-card li)::before { top: 0; }
+  .page.page :global(.gpc-safety-card li strong) { font-size: 13px; }
+  .page.page :global(.gpc-safety-card li span) { font-size: 12px; line-height: 1.6; }
+}
+
+@media (max-width: 767px) {
+  .page.page > .stage { margin: 0; min-height: 0; height: auto; }
+  .mobileBack { display: inline-flex; align-items: center; align-self: flex-start; gap: 8px; min-height: 44px; margin: 0 0 12px; color: #607168; font-size: 14px; font-weight: 550; text-decoration: none; }
+  .mobileBack svg { width: 18px; height: 18px; }
+  .mobileTitle { display: inline; }
+  .desktopTitle { display: none; }
+  .page.page :global(.payments-hero) { display: block; padding: 0; margin: 0 0 20px; border: 0; }
+  .page.page :global(.payments-hero-copy > p) { font-size: 11px; margin-bottom: 8px; letter-spacing: 1.8px; }
+  .page.page :global(.payments-hero-copy h1) { font-size: clamp(24px, 4vw, 28px); line-height: 1.2; letter-spacing: -.7px; margin-bottom: 12px; }
+  .page.page :global(.payments-hero-copy > span) { display: block; font-size: 14px; line-height: 1.6; }
+  .page.page :global(.payments-hero-side) { display: none; }
+  .page.page :global(.gpc-panel) { display: block; border: 0; background: transparent; border-radius: 0; box-shadow: none; margin: 0; overflow: visible; }
+  .page.page :global(.gpc-intro-grid) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .page.page :global(.gpc-upload-column) { padding: 0; background: transparent; min-width: 0; }
+  .page.page :global(.gpc-title-row),
+  .page.page :global(.gpc-lead),
+  .page.page :global(.gpc-upload-note),
+  .page.page :global(.gpc-safety-card) { display: none; }
+  .page.page :global(.gpc-dropzone) { min-height: 0; padding: 20px 16px; border: 1px dashed #5c9071; border-radius: 16px; background: #eef5efb3; }
+  .page.page :global(.gpc-dropzone-icon) { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; background: #e0efdb; color: #216745; }
+  .page.page :global(.gpc-dropzone-icon svg) { width: 30px; height: 30px; }
+  .page.page :global(.gpc-dropzone > strong) { display: block; font-size: 18px; line-height: 1.35; letter-spacing: -.3px; }
+  .page.page :global(.gpc-dropzone > small) { font-size: 13px; line-height: 1.6; margin-top: 8px; max-width: 340px; }
+  .page.page :global(.gpc-select-file) { justify-content: center; width: 100%; min-height: 48px; margin-top: 18px; padding: 12px 16px; gap: 10px; border-radius: 10px; font-size: 15px; line-height: 1.4; }
+  .page.page :global(.gpc-select-file svg) { width: 20px; height: 20px; }
+  .page.page :global(.gpc-mobile-button-label) { display: inline; }
+  .page.page :global(.gpc-desktop-button-label) { display: none; }
+  .page.page :global(.gpc-file-formats) { margin-top: 12px; gap: 8px; }
+  .page.page :global(.gpc-file-formats > span) { font-size: 12px; padding: 4px 9px; border-radius: 6px; }
+  .page.page :global(.gpc-dropzone > .gpc-upload-limits) { margin-top: 10px; font-size: 12px; }
+  .page.page :global(.gpc-mobile-info) { display: block; min-width: 0; border: 1px solid #dce5de; border-radius: 14px; background: #ffffffb3; }
+  .page.page :global(.gpc-mobile-info > summary) { display: flex; align-items: center; list-style: none; gap: 12px; padding: 16px 12px; cursor: pointer; }
+  .page.page :global(.gpc-mobile-info > summary::-webkit-details-marker) { display: none; }
+  .page.page :global(.gpc-info-icon) { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: #e8f3e4; color: #216745; }
+  .page.page :global(.gpc-info-icon svg) { width: 22px; height: 22px; }
+  .page.page :global(.gpc-mobile-info summary > span:nth-child(2)) { flex: 1; min-width: 0; text-align: center; }
+  .page.page :global(.gpc-mobile-info summary strong) { display: block; margin-bottom: 4px; font-size: 15px; line-height: 1.4; color: #173c2d; }
+  .page.page :global(.gpc-mobile-info summary strong + span) { display: block; font-size: 12px; line-height: 1.6; color: #607168; }
+  .page.page :global(.gpc-mobile-info summary > svg) { width: 16px; height: 16px; flex: none; color: #607168; transition: transform .18s ease; }
+  .page.page :global(.gpc-mobile-info[open] summary > svg) { transform: rotate(180deg); }
+  .page.page :global(.gpc-mobile-info ol) { display: grid; gap: 14px; margin: 0 16px 16px 32px; padding: 14px 0 0; border-top: 1px solid #e1e9e3; color: #41604c; }
+  .page.page :global(.gpc-mobile-info li) { padding-left: 4px; font-size: 12px; }
+  .page.page :global(.gpc-mobile-info li strong) { display: block; line-height: 1.5; }
+  .page.page :global(.gpc-mobile-info li span) { display: block; margin-top: 3px; color: #607168; line-height: 1.6; }
+  .page.page :global(.gpc-panel > .form-error) { margin: 14px 0 0; overflow-wrap: anywhere; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page.page :global(.gpc-mobile-info summary > svg) { transition: none; }
+}
+
+/* On this upload screen, help sits below the content rather than above the file picker. */
+:global(.app-shell):has(> .page:not(.reviewPage)) { position: relative; }
+.page.page:not(.reviewPage) { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+.page:not(.reviewPage) ~ :global([data-esko-launcher]) {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  width: 48px;
+  height: 48px;
+}
+.page:not(.reviewPage) ~ :global(button[aria-label="Zobrazit asistenta Esko"]) {
+  position: absolute;
+  right: 0;
+  bottom: 10px;
+}
+
+@media (max-width: 767px) {
+  .page.page:not(.reviewPage) { display: flex; flex-direction: column; padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)) !important; }
+  .page.page:not(.reviewPage) > .stage { flex: 1; min-height: min-content; }
+  .page.page :global(.gpc-panel) { display: flex; flex-direction: column; flex: 1; }
+  .page.page :global(.gpc-intro-grid) { display: flex; flex-direction: column; flex: 1; gap: 16px; }
+  .page.page :global(.gpc-upload-column) { display: flex; flex-direction: column; flex: 1; min-height: min-content; }
+  .page.page :global(.gpc-dropzone) { flex: 1; justify-content: center; padding-block: clamp(16px, 3dvh, 30px); }
+  .page.page :global(.gpc-mobile-info) { flex-shrink: 0; }
+  .page:not(.reviewPage) ~ :global([data-esko-launcher]) { width: 64px; height: 64px; }
+  .page:not(.reviewPage) ~ :global([data-esko-launcher]),
+  .page:not(.reviewPage) ~ :global(button[aria-label="Zobrazit asistenta Esko"]) {
+    top: calc(76px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 780px) {
+  .mobileBack { min-height: 36px; margin-bottom: 4px; }
+  .page.page :global(.payments-hero) { margin-bottom: 12px; }
+  .page.page :global(.payments-hero-copy h1) { margin-bottom: 8px; }
+  .page.page :global(.payments-hero-copy > span) { font-size: 13px; line-height: 1.5; }
+  .page.page :global(.gpc-intro-grid) { gap: 12px; }
+  .page.page :global(.gpc-dropzone) { padding-block: 12px; }
+  .page.page :global(.gpc-dropzone-icon),
+  .page.page :global(#gpc-upload-formats) { display: none; }
+  .page.page :global(.gpc-dropzone > strong) { font-size: 16px; line-height: 1.3; }
+  .page.page :global(.gpc-select-file) { margin-top: 10px; min-height: 44px; padding-block: 10px; }
+  .page.page :global(.gpc-file-formats) { margin-top: 8px; }
+  .page.page :global(.gpc-file-formats > span) { padding: 2px 7px; font-size: 11px; }
+  .page.page :global(.gpc-dropzone > .gpc-upload-limits) { margin-top: 8px; font-size: 11px; line-height: 1.4; }
+  .page.page :global(.gpc-mobile-info > summary) { min-height: 52px; padding-block: 10px; }
+  .page.page :global(.gpc-info-icon) { width: 32px; height: 32px; }
+  .page.page :global(.gpc-mobile-info summary strong) { margin: 0; font-size: 14px; }
+  .page.page :global(.gpc-mobile-info summary strong + span) { display: none; }
+}
+
+@media (max-width: 767px) and (min-height: 650px) and (max-height: 780px) {
+  .page.page :global(.gpc-dropzone-icon) { display: grid; width: 40px; height: 40px; margin-bottom: 10px; }
 }

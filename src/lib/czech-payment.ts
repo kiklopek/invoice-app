@@ -130,6 +130,7 @@ export function invoiceSpayd(
     due_date?: string | null;
     /** Účet nalezený na PDF faktury (OCR); viz invoicePaymentAccount. */
     payment_account?: string | null;
+    money_evidence?: { [key: string]: unknown } | null;
   },
   company: {
     bank_account_czk?: string | null;
@@ -137,13 +138,15 @@ export function invoiceSpayd(
     bank_accounts?: { account: string; currency: string }[] | null;
   },
 ): string | null {
+  const issued = invoice.money_evidence?.issued_document as { version?: number; payment_method?: string; payment_account?: string } | undefined;
+  if (issued?.version === 1 && issued.payment_method === "cash") return null;
   const remaining = Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount));
   // Zpráva pro příjemce: podle čísla faktury a jména odběratele účetní na
   // výpisu hned pozná, kdo platil. Číslo je první, takže ho limit 60 znaků
   // v buildSpayd nikdy neuřízne -- zkrátí se nanejvýš jméno.
   const payer = invoice.counterparty_name?.trim();
   return buildSpayd({
-    account: invoicePaymentAccount(invoice, company, company.bank_accounts ?? []),
+    account: issued?.version === 1 ? issued.payment_account : invoicePaymentAccount(invoice, company, company.bank_accounts ?? []),
     amount: remaining > 0 ? remaining : Number(invoice.amount),
     currency: invoice.currency,
     variableSymbol: invoice.variable_symbol,

@@ -1,0 +1,46 @@
+[
+  {
+    "script": "scripts/test-billing-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-customer-email-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-dashboard-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-financial-report-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-invoice-creation-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-invoice-total-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-multi-tenant-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-notifications-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-organization-onboarding-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-payment-assistance-db.mjs",
+    "exit_code": 0
+  },
+  {
+    "script": "scripts/test-search-db.mjs",
+    "exit_code": 0
+  }
+]

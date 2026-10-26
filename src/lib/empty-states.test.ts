@@ -32,13 +32,13 @@ describe("prázdný seznam faktur", () => {
   // i když žádný filtr nastavený nebyl. Hláška lhala a neporadila nic.
   it("tells a new organization what to do, instead of blaming a filter", () => {
     const source = invoices();
-    expect(source).toContain("Zatím tu není žádná faktura");
+    expect(source).toContain("Zatím nemáte žádné faktury.");
     expect(source).toContain("hasActiveFilter");
   });
 
   it("offers to clear the filters when a filter really is the reason", () => {
     const source = invoices();
-    expect(source).toContain("Zrušit filtry");
+    expect(source).toContain("Vymazat filtry");
     expect(source).toContain("function clearFilters(");
   });
 

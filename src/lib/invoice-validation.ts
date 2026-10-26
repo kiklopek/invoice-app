@@ -16,7 +16,7 @@ export function isIsoDate(value: string) {
   return parsed.toISOString().slice(0, 10) === value;
 }
 
-export function parseInvoiceInput(value: unknown): InvoiceInput | null {
+export function parseInvoiceInput(value: unknown, options: { allowEmptyEmail?: boolean } = {}): InvoiceInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
   const invoiceNumber = text(body, "invoice_number", 100);
@@ -37,7 +37,7 @@ export function parseInvoiceInput(value: unknown): InvoiceInput | null {
   if (
     !invoiceNumber || invoiceNumber.length > 100 ||
     !counterpartyName || counterpartyName.length > 200 ||
-    !email || email.length > 254 || !/^\S+@\S+\.\S+$/.test(email) ||
+    (!email && !options.allowEmptyEmail) || email.length > 254 || (email !== "" && !/^\S+@\S+\.\S+$/.test(email)) ||
     !Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT ||
     !Number.isFinite(amountWithoutVat) || amountWithoutVat <= 0 || amountWithoutVat > MAX_AMOUNT ||
     !Number.isFinite(vatRate) || vatRate < 0 || vatRate > MAX_VAT_RATE ||

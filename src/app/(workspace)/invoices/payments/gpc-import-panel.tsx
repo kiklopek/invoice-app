@@ -3,132 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api-client";
 import { Icon } from "@/components/icons";
+import { ImportProcessingView } from "@/components/import-processing-view";
 import { minorUnits } from "@/lib/money";
 import { reconciliationError } from "@/lib/reconciliation-errors";
 import { confirmAction } from "@/lib/confirm-action";
 import {
-  OWN_TRANSFER_LABEL,
-  UNRELATED_LABEL,
   buildStatementReviewSubmission,
 } from "@/lib/payment-unrelated-rows";
 
-type Invoice = {
-  id: string;
-  invoice_number: string;
-  counterparty_name: string;
-  amount: number;
-  paid_amount: number;
-  currency: string;
-  variable_symbol: string | null;
-};
-type PreviewEntry = {
-  overlap_warning?: boolean;
-  overlap_acknowledged_by?: string | null;
-  bank_payment_id?: string | null;
-  processing_error?: string | null;
-  line_number: number;
-  fingerprint: string;
-  disposition: "accepted" | "ignored" | "error" | "duplicate";
-  reason: string | null;
-  amount: number | null;
-  currency: string | null;
-  booked_on: string | null;
-  variable_symbol: string | null;
-  counterparty_name: string | null;
-  counterparty_account: string | null;
-  counterparty_account_verified: boolean;
-  proposal_kind:
-    | "exact"
-    | "combination"
-    | "account_suggestion"
-    | "ambiguous"
-    | "manual"
-    | null;
-  proposal_confidence: "safe" | "review" | null;
-  proposal_reason: string | null;
-  proposed_invoice_ids: string[];
-  /** Set when a reviewer marked the row "Nesouvisí s fakturami". */
-  unrelated_at?: string | null;
-};
-type PersistedPreviewEntry = PreviewEntry & { id: string };
-type PreviewDetail = {
-  progress: { booked: number; errors: number; remaining: number };
-  /** Payment id -> why an unattended run booked it. Empty for human decisions. */
-  match_reasons: Record<string, string>;
-  /** Entry id -> why the row looks like a transfer between own accounts. */
-  own_transfers?: Record<string, string>;
-  import: Preview["import"];
-  totals: Preview["totals"];
-  total_entries: number;
-  entries: PersistedPreviewEntry[];
-  allocations: Array<{
-    statement_entry_id: string | null;
-    invoice_id: string;
-    amount: number;
-    is_manual_partial: boolean;
-    is_committed: boolean;
-  }>;
-  proposal_invoices: Invoice[];
-  total: number;
-};
-type Preview = {
-  progress?: PreviewDetail["progress"];
-  import: { id: string; revision: number; duplicate: boolean; status: string };
-  account_mismatch: boolean;
-  statement_account: string | null;
-  expected_account: string | null;
-  statement_bank?: { code: string | null; name: string | null; verified: boolean } | null;
-  totals: { accepted: number; ignored: number; errors: number };
-  entries: PreviewEntry[];
-  proposal_invoices: Invoice[];
-  total_entries: number;
-  request_id: string;
-};
-type ArchiveItem = {
-  id: string;
-  original_filename: string;
-  status: string;
-  entry_count: number;
-  accepted_count: number;
-  ignored_count: number;
-  error_count: number;
-  created_at: string;
-  committed_at: string | null;
-};
+import type { Invoice, PreviewEntry, PersistedPreviewEntry, PreviewDetail, Preview, ArchiveItem } from "./payment-matching-types";
+import { PaymentMatchingWorkspace } from "./payment-matching-workspace";
+import { MatchingNotice } from "./payment-matching-notice";
+import { BankMatchingProcessInfo } from "./bank-matching-process-info";
+import { allocationIsValid } from "./payment-matching-presentation";
 
-const money = (value: number, currency: string) =>
-  new Intl.NumberFormat("cs-CZ", { style: "currency", currency }).format(value);
-const labels = {
-  exact: "Přesná shoda",
-  combination: "Kombinovaná platba",
-  account_suggestion: "Návrh podle účtu",
-  ambiguous: "Nejednoznačné",
-  manual: "Ruční kontrola",
-};
-
-// The matcher returns kind "exact" for "one payment, one whole invoice" -- that
-// describes the SHAPE of the proposal, not how sure it is. A row proposed only
-// because the amount happens to be unique is "exact" too, and labelling that
-// "Přesná shoda" told the user the opposite of what the row actually needs.
-// Confidence is what decides whether it books itself, so confidence is what the
-// headline says; the specific evidence is right underneath in proposal_reason.
-function proposalLabel(
-  kind: keyof typeof labels | null,
-  confidence: string | null,
-  proposedCount = 1,
-) {
-  if (!kind) return null;
-  if (confidence === "safe") return labels[kind];
-  // Nothing proposed means nothing to confirm: "Čeká na potvrzení" made a
-  // supplier refund or an own transfer look like a stuck error.
-  return proposedCount > 0 ? "Čeká na potvrzení" : "Bez návrhu faktury";
+function mergeInvoices(current: Map<string, Invoice>, values: Invoice[]) {
+  const next = new Map(current);
+  for (const invoice of values) next.set(invoice.id, { ...next.get(invoice.id), ...invoice });
+  return next;
 }
-const dispositionLabels = {
-  accepted: "Přijato",
-  ignored: "Ignorováno",
-  error: "Chyba",
-  duplicate: "Duplicita",
-};
 
 export function GpcImportPanel({
   invoices,
@@ -162,6 +55,10 @@ export function GpcImportPanel({
   const [accountAck, setAccountAck] = useState(false);
   const [matchReasons, setMatchReasons] = useState<Record<string, string>>({});
   const [working, setWorking] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [bookingStage, setBookingStage] = useState<0 | 1 | 2 | null>(null);
+  const [confirmedRows, setConfirmedRows] = useState<Set<string>>(() => new Set());
+  const mutationInFlight = useRef(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [invoiceQuery, setInvoiceQuery] = useState("");
@@ -170,12 +67,15 @@ export function GpcImportPanel({
     invoices.slice(0, 25),
   );
   const [candidateTotal, setCandidateTotal] = useState(invoices.length);
+  const [candidateLoading, setCandidateLoading] = useState(false);
+  const [candidateError, setCandidateError] = useState("");
+  const [candidateRetry, setCandidateRetry] = useState(0);
   const [invoiceById, setInvoiceById] = useState<Map<string, Invoice>>(
     () => new Map(invoices.map((invoice) => [invoice.id, invoice])),
   );
   const [archive, setArchive] = useState<ArchiveItem[]>([]);
   const [selectedFilename, setSelectedFilename] = useState("");
-  const reviewActive = Boolean(preview || selectedFilename);
+  const reviewActive = Boolean(preview || uploading || bookingStage !== null);
   useEffect(() => {
     onReviewActiveChange?.(reviewActive);
   }, [onReviewActiveChange, reviewActive]);
@@ -201,15 +101,6 @@ export function GpcImportPanel({
     preview?.account_mismatch && !accountAck
       ? "Nejdřív potvrďte kontrolu bankovního účtu ve upozornění nahoře."
       : null;
-  const activeImportStep =
-    preview?.import.status === "committed"
-      ? 4
-      : preview && working
-        ? 3
-        : preview
-          ? 2
-          : 0;
-
   useEffect(() => {
     apiFetch<{ imports: ArchiveItem[] }>("/api/payments/imports")
       .then((data) => setArchive(data.imports))
@@ -217,27 +108,26 @@ export function GpcImportPanel({
   }, []);
 
   useEffect(() => {
+    let active = true;
     const timer = window.setTimeout(() => {
+      setCandidateLoading(true);
       void apiFetch<{ invoices: Invoice[]; total: number }>(
         `/api/payments/invoice-candidates?q=${encodeURIComponent(invoiceQuery.trim())}&page=${invoicePage}`,
       )
         .then((data) => {
+          if (!active) return;
+          setCandidateLoading(false); setCandidateError("");
           setCandidateInvoices(data.invoices);
           setCandidateTotal(data.total);
           setInvoiceById(
             (current) =>
-              new Map([
-                ...current,
-                ...data.invoices.map(
-                  (invoice) => [invoice.id, invoice] as const,
-                ),
-              ]),
+              mergeInvoices(current, data.invoices),
           );
         })
-        .catch(() => undefined);
+        .catch(cause => { if (active) { setCandidateLoading(false); setCandidateInvoices([]); setCandidateTotal(0); setCandidateError(cause instanceof Error ? cause.message : "Faktury se nepodařilo načíst."); } });
     }, 250);
-    return () => window.clearTimeout(timer);
-  }, [invoicePage, invoiceQuery]);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [invoicePage, invoiceQuery, candidateRetry]);
 
   useEffect(() => {
     if (!previewImportId) return;
@@ -276,12 +166,7 @@ export function GpcImportPanel({
         });
         setInvoiceById(
           (current) =>
-            new Map([
-              ...current,
-              ...detail.proposal_invoices.map(
-                (invoice) => [invoice.id, invoice] as const,
-              ),
-            ]),
+            mergeInvoices(current, detail.proposal_invoices),
         );
         const allocationsByEntry = new Map<string, string[]>();
         for (const allocation of detail.allocations) {
@@ -353,6 +238,7 @@ export function GpcImportPanel({
   async function upload(file: File | null) {
     setError("");
     setDone("");
+    setConfirmedRows(new Set());
     setPreview(null);
     setSelected({});
     setAllocationAmounts({});
@@ -367,6 +253,7 @@ export function GpcImportPanel({
     setAccountAck(false);
     setSelectedFilename(file?.name ?? "");
     if (!file) return;
+    setUploading(true);
     setWorking(true);
     try {
       const form = new FormData();
@@ -386,12 +273,7 @@ export function GpcImportPanel({
       setFilteredEntriesTotal(data.total_entries);
       setInvoiceById(
         (current) =>
-          new Map([
-            ...current,
-            ...(data.proposal_invoices ?? []).map(
-              (invoice) => [invoice.id, invoice] as const,
-            ),
-          ]),
+          mergeInvoices(current, data.proposal_invoices ?? []),
       );
     } catch (cause) {
       setError(
@@ -402,6 +284,7 @@ export function GpcImportPanel({
             : "Výpis se nepodařilo nahrát.",
       );
     } finally {
+      setUploading(false);
       setWorking(false);
     }
   }
@@ -440,7 +323,8 @@ export function GpcImportPanel({
    * would simply book the same answer again.
    */
   async function releaseEntry(entry: PersistedPreviewEntry) {
-    if (!preview) return;
+    if (!preview || !canManage || working || mutationInFlight.current) return;
+    mutationInFlight.current = true;
     setWorking(true);
     setError("");
     setDone("");
@@ -450,6 +334,17 @@ export function GpcImportPanel({
         body: JSON.stringify({ entry_id: entry.id }),
       });
       touchedEntries.current.delete(entry.fingerprint);
+      // Releasing a booked payment restores the invoice balance on the server.
+      // Refresh candidates too: the parent props and the last search can still
+      // omit that invoice or contain its previously paid balance.
+      setCandidateLoading(true);
+      setCandidateError("");
+      setCandidateRetry(value => value + 1);
+      setConfirmedRows(current => {
+        const next = new Set(current);
+        next.delete(entry.fingerprint);
+        return next;
+      });
       setDone(`Řádek ${entry.line_number} byl uvolněn. Faktura je zpět mezi neuhrazenými a přiřazení můžete změnit.`);
       setRefreshVersion((value) => value + 1);
       onCommitted();
@@ -460,6 +355,7 @@ export function GpcImportPanel({
           : "Řádek se nepodařilo uvolnit.",
       );
     } finally {
+      mutationInFlight.current = false;
       setWorking(false);
     }
   }
@@ -495,6 +391,12 @@ export function GpcImportPanel({
   }
 
   async function commit() {
+    if (!preview || !canManage || working || mutationInFlight.current || confirmBlockedReason) return;
+    mutationInFlight.current = true;
+    try { await commitImport(); } finally { mutationInFlight.current = false; }
+  }
+
+  async function commitImport() {
     if (!preview) return;
     const reviewedEntries = Object.values(loadedEntries).filter(
       (entry) => entry.disposition === "accepted" && !entry.bank_payment_id,
@@ -532,6 +434,7 @@ export function GpcImportPanel({
       confirmVariant: "primary",
     }))) return;
     setWorking(true);
+    setBookingStage(0);
     setError("");
     setDone("");
     try {
@@ -551,6 +454,7 @@ export function GpcImportPanel({
           }),
         },
       );
+      setBookingStage(1);
       const result = await apiFetch<{ imported: number; matched: number; status: string; revision: number; remaining: number; unrelated?: number; errors: { line_number: number; code: string }[] }>(
         `/api/payments/imports/${preview.import.id}/commit`,
         {
@@ -566,6 +470,7 @@ export function GpcImportPanel({
         },
         45_000,
       );
+      setBookingStage(2);
       const completed = result.status === "committed" && result.remaining === 0 && !result.errors?.length;
       setDone(
         `${result.status === "committed" ? "Import je dokončený" : "Průběh byl uložen"}: ${result.imported} plateb, ${result.matched} přiřazených položek.${result.unrelated ? ` ${result.unrelated} řádků nesouvisí s fakturami a jako platby se nezapsaly.` : ""}${result.remaining ? ` Zbývá ${result.remaining} položek.` : ""}`,
@@ -609,11 +514,12 @@ export function GpcImportPanel({
             : "Import se nepodařilo potvrdit.",
       );
     } finally {
+      setBookingStage(null);
       setWorking(false);
     }
   }
 
-  async function download(item: ArchiveItem) {
+  async function download(item: Pick<ArchiveItem, "id">) {
     try {
       const data = await apiFetch<{ url: string }>(
         `/api/payments/imports/${item.id}?download=1`,
@@ -628,21 +534,166 @@ export function GpcImportPanel({
     }
   }
 
+  function touch(fingerprint: string) {
+    touchedEntries.current.add(fingerprint);
+    setConfirmedRows(current => { const next = new Set(current); next.delete(fingerprint); return next; });
+  }
+
+  async function changeFile() {
+    if (working || mutationInFlight.current) return;
+    if (touchedEntries.current.size > 0 && !await confirmAction({
+      title: "Opustit rozpracovaný výpis?",
+      description: "Nepotvrzené změny v přiřazení faktur se zahodí. Už zaúčtované platby zůstávají.",
+      confirmLabel: "Nahrát jiný soubor",
+    })) return;
+    setFileQueue([]); setQueueIndex(0); void upload(null);
+  }
+
+  function canConfirm(entry: PreviewEntry) {
+    const info = allocationInfo(entry);
+    if (!allocationIsValid(entry, info.values, info.difference, Boolean(partial[entry.fingerprint]), Boolean(unrelated[entry.fingerprint]))) return false;
+    const allocations = reviewAllocations(entry);
+    return allocations.every(allocation => {
+      const invoice = invoiceById.get(allocation.invoice_id);
+      return invoice && Number.isFinite(allocation.amount) && minorUnits(allocation.amount) > 0
+        && minorUnits(allocation.amount) <= minorUnits(Number(invoice.amount) - Number(invoice.paid_amount));
+    });
+  }
+
+  async function saveRows(fingerprints: string[]) {
+    if (!preview || !canManage || working || mutationInFlight.current || confirmBlockedReason) return;
+    const entries = fingerprints.map(key => loadedEntries[key]);
+    if (!entries.length || entries.some(entry => !entry || entry.disposition !== "accepted" || entry.bank_payment_id)) return;
+    const invalid = entries.find(entry => !canConfirm(entry));
+    if (invalid) { setError(`Řádek ${invalid.line_number}: vyberte fakturu a ověřte částky nebo částečnou úhradu.`); return; }
+    const submission = buildStatementReviewSubmission({ entries, unrelated, allocationsFor: reviewAllocations });
+    if (!submission.ok) { setError(submission.error); return; }
+    mutationInFlight.current = true; setWorking(true); setError(""); setDone("");
+    try {
+      const saved = await apiFetch<{ revision: number }>(`/api/payments/imports/${preview.import.id}`, {
+        method: "PATCH", headers: { "content-type": "application/json", "x-idempotency-key": `save-${preview.import.id}-${preview.import.revision}` },
+        body: JSON.stringify({ revision: preview.import.revision, reviewed_entry_ids: submission.reviewed_entry_ids, unrelated_entry_ids: submission.unrelated_entry_ids, allocations: submission.allocations }),
+      });
+      setPreview(current => current ? { ...current, import: { ...current.import, revision: saved.revision } } : current);
+      setConfirmedRows(current => new Set([...current, ...fingerprints]));
+      // Keep local decisions pinned until the next complete detail fetch.
+      setDone(`Přiřazení uloženo (${entries.length}). Platby se zaúčtují až akcí „Zaúčtovat výpis“.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Přiřazení se nepodařilo uložit.");
+    } finally { mutationInFlight.current = false; setWorking(false); }
+  }
+
+  async function clearAssignment(entry: PreviewEntry) {
+    const persisted = loadedEntries[entry.fingerprint];
+    if (!preview || !persisted || !canManage || working || mutationInFlight.current || confirmBlockedReason || preview.import.status === "committed" || entry.disposition !== "accepted" || entry.bank_payment_id) return;
+    mutationInFlight.current = true;
+    setWorking(true); setError(""); setDone("");
+    try {
+      const saved = await apiFetch<{ revision: number }>(`/api/payments/imports/${preview.import.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", "x-idempotency-key": `clear-${preview.import.id}-${preview.import.revision}-${persisted.id}` },
+        body: JSON.stringify({ revision: preview.import.revision, reviewed_entry_ids: [persisted.id], unrelated_entry_ids: [], allocations: [] }),
+      });
+      touch(entry.fingerprint);
+      setSelected(current => ({ ...current, [entry.fingerprint]: [] }));
+      setPartial(current => ({ ...current, [entry.fingerprint]: false }));
+      setAllocationAmounts(current => ({ ...current, [entry.fingerprint]: {} }));
+      setPreview(current => current ? { ...current, import: { ...current.import, revision: saved.revision }, entries: current.entries.map(row => row.fingerprint === entry.fingerprint ? { ...row, proposed_invoice_ids: [] } : row) } : current);
+      setDone(`Přiřazení u řádku ${entry.line_number} bylo odstraněno. Platba zůstává nespárovaná.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Přiřazení se nepodařilo odstranit.");
+    } finally { mutationInFlight.current = false; setWorking(false); }
+  }
+
+  async function acknowledgeOverlap(entry: PreviewEntry) {
+    const persisted = loadedEntries[entry.fingerprint];
+    if (!preview || !persisted || !canManage || working || mutationInFlight.current) return;
+    mutationInFlight.current = true;
+    try {
+      if (!await confirmAction({ title:"Potvrdit kontrolu možné duplicity?", description:"Ověřili jste původní výpis a tato položka představuje další samostatnou platbu?", confirmLabel:"Ano, je to další platba" })) return;
+      setWorking(true); setError("");
+      const result = await apiFetch<{ revision:number }>("/api/payments/imports/overlap", { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ entry_id:persisted.id, revision:preview.import.revision }) });
+      setLoadedEntries(current => ({ ...current, [entry.fingerprint]: { ...persisted, overlap_acknowledged_by: "confirmed" } }));
+      setPreview(current => current ? { ...current, import:{ ...current.import, revision:result.revision }, entries:current.entries.map(row => row.fingerprint === entry.fingerprint ? { ...row, overlap_acknowledged_by:"confirmed" } : row) } : current);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Kontrolu se nepodařilo uložit."); }
+    finally { mutationInFlight.current = false; setWorking(false); }
+  }
+
+  if (bookingStage !== null) {
+    const count = `Výpis ${queueIndex + 1} z ${Math.max(1, fileQueue.length)}`;
+    return <ImportProcessingView kind="statement" title="Zaúčtováváme platby z výpisu"
+      description="Ukládáme potvrzené přiřazení a zapisujeme platby k fakturám."
+      phase={bookingStage} count={count} progressLabel="Zaúčtování bankovního výpisu"
+      progressText={`${count}. ${["Ukládáme přiřazení plateb.", "Zaúčtováváme platby.", "Aktualizujeme přehled plateb."][bookingStage]}`}
+      stagesLabel="Fáze zaúčtování bankovního výpisu"
+      stages={[
+        { title: "Uložení přiřazení", detail: "Ukládáme vaše potvrzené přiřazení plateb k fakturám…" },
+        { title: "Zaúčtování plateb", detail: "Zapisujeme platby a aktualizujeme uhrazené částky faktur…" },
+        { title: "Aktualizace přehledu", detail: "Načítáme výsledek zpracování bankovního výpisu…" },
+      ]}
+      notice="Po dokončení zobrazíme výsledek importu a případné položky, které ještě vyžadují kontrolu."
+    />;
+  }
+
+  if (uploading) {
+    const count = `Výpis ${queueIndex + 1} z ${Math.max(1, fileQueue.length)}`;
+    return <ImportProcessingView kind="statement" title="Zpracováváme bankovní výpis"
+      description="Načítáme bankovní výpis a porovnáváme platby s fakturami."
+      phase={1} count={count} progressLabel="Zpracování bankovního výpisu"
+      progressText={`${count}. Probíhá načítání a párování plateb.`}
+      stagesLabel="Fáze zpracování bankovního výpisu"
+      stages={[
+        { title: "Výběr souboru", detail: "Bankovní výpis je vybraný." },
+        { title: "Načítání a párování plateb", detail: "Ověřujeme formát výpisu a hledáme odpovídající faktury…" },
+        { title: "Kontrola výsledku", detail: "Po zpracování zobrazíme návrhy shod ke kontrole." },
+      ]}
+      notice="Po zpracování uvidíte návrhy shod i položky, které potřebují vaši kontrolu."
+    />;
+  }
+
+  if (preview) return <PaymentMatchingWorkspace
+    preview={preview} filename={selectedFilename} queueIndex={queueIndex} queueTotal={fileQueue.length}
+    working={working} canManage={canManage} error={error} done={done}
+    selected={selected} partial={partial} unrelated={unrelated} allocationAmounts={allocationAmounts}
+    invoiceById={invoiceById} candidates={candidateInvoices} candidateTotal={candidateTotal}
+    candidateLoading={candidateLoading} candidateError={candidateError} onCandidateRetry={() => setCandidateRetry(value => value + 1)}
+    invoiceQuery={invoiceQuery} invoicePage={invoicePage} onInvoiceQuery={value => { setCandidateLoading(true); setInvoiceQuery(value); setInvoicePage(1); }} onInvoicePage={value => { setCandidateLoading(true); setInvoicePage(value); }}
+    loadedEntries={loadedEntries} ownTransfers={ownTransfers} matchReasons={matchReasons} confirmedRows={confirmedRows}
+    entryFilter={entryFilter} onEntryFilter={value => { setEntryFilter(value); setPreviewPage(1); }}
+    page={previewPage} total={filteredEntriesTotal} onPage={setPreviewPage}
+    accountAck={accountAck} onAccountAck={setAccountAck} blockedReason={confirmBlockedReason}
+    onChangeFile={() => void changeFile()} onNextFile={continueQueue}
+    onCommit={() => void commit()} onSaveRows={keys => void saveRows(keys)}
+    onDownload={() => void download({ id: preview.import.id })}
+    onRelease={entry => { const persisted = loadedEntries[entry.fingerprint]; if (persisted) void releaseEntry(persisted); }}
+    onAcknowledgeOverlap={entry => void acknowledgeOverlap(entry)}
+    onClearAssignment={entry => void clearAssignment(entry)}
+    allocationInfo={allocationInfo} canConfirm={canConfirm}
+    onSelected={(key, ids) => { touch(key); setSelected(current => ({ ...current, [key]: ids })); }}
+    onPartial={(key, value) => { touch(key); setPartial(current => ({ ...current, [key]: value })); }}
+    onAllocation={(key, invoiceId, value) => { touch(key); setAllocationAmounts(current => ({ ...current, [key]: { ...current[key], [invoiceId]: value } })); }}
+    onUnrelated={(key, value) => {
+      touch(key); setUnrelated(current => ({ ...current, [key]: value }));
+      if (value) { setSelected(current => ({ ...current, [key]: [] })); setPartial(current => ({ ...current, [key]: false })); setAllocationAmounts(current => ({ ...current, [key]: {} })); }
+    }}
+  />;
+
   return (
     <>
-      <section className="page-panel import-panel payment-import-panel gpc-panel" aria-labelledby={preview ? "gpc-statement-title" : "gpc-import-title"}>
-        {!preview ? (
+      <section className="page-panel import-panel payment-import-panel gpc-panel" aria-labelledby="gpc-import-title">
           <div className="gpc-intro-grid">
             <div className="gpc-upload-column">
               <div className="gpc-title-row">
-                <span className="payments-section-number">01</span>
                 <div><span className="gpc-eyebrow">ZAČNĚTE VÝPISEM</span><h2 id="gpc-import-title">Nahrát bankovní výpis</h2></div>
               </div>
-              <p className="gpc-lead">Vyberte výpis z internetového bankovnictví. Příchozí platby porovnáme s otevřenými fakturami. Banku poznáme podle čísla účtu ve výpisu.</p>
+              <p className="gpc-lead">Příchozí platby z výpisu porovnáme s vašimi otevřenými fakturami a připravíme je ke kontrole.</p>
               <label className={`gpc-dropzone ${working ? "is-working" : ""}`}>
                 <input
                   type="file"
-                  aria-label="Vybrat bankovní výpis ve formátu GPC nebo CSV"
+                  aria-label={camtEnabled ? "Vybrat bankovní výpis ve formátu GPC, CSV nebo CAMT XML" : "Vybrat bankovní výpis ve formátu GPC nebo CSV"}
+                  aria-describedby="gpc-upload-formats gpc-upload-limits"
+                  aria-errormessage={error ? "gpc-upload-error" : undefined}
+                  aria-invalid={Boolean(error) || undefined}
                   multiple
                   accept={camtEnabled ? ".gpc,.csv,.xml,application/octet-stream,text/plain,text/csv,application/xml,text/xml" : ".gpc,.csv,application/octet-stream,text/plain,text/csv"}
                   disabled={!canManage || working}
@@ -654,511 +705,25 @@ export function GpcImportPanel({
                     void upload(files[0]);
                   }}
                 />
-                <span className="gpc-dropzone-icon"><Icon name="upload" /></span>
-                <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Váš výpis. Přehledné platby."}</strong>
-                <small>{canManage ? "Můžete vybrat jeden i více souborů najednou" : "Import vyžaduje roli účetní nebo administrátor"}</small>
-                <span className="gpc-select-file" aria-hidden="true">{working ? "Zpracovávám soubor…" : "Vybrat bankovní výpis"}<Icon name="arrow-right" /></span>
-                <span className="gpc-file-formats"><span>GPC</span><span>CSV</span><small>Export z vašeho bankovnictví</small></span>
+                <span className="gpc-dropzone-icon"><Icon name="document" /></span>
+                <strong>{working ? "Analyzuji výpis…" : selectedFilename || "Vyberte soubor s výpisem"}</strong>
+                {selectedFilename && fileQueue[queueIndex] && <small className="gpc-selected-size">{new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 }).format(fileQueue[queueIndex].size / 1024)} kB</small>}
+                <small id="gpc-upload-formats">{canManage ? `Podporujeme výpisy ve formátech GPC a CSV${camtEnabled ? " a CAMT XML" : ""}.` : "Import vyžaduje roli účetní nebo administrátor"}</small>
+                <span className="gpc-select-file" aria-hidden="true"><Icon name="upload"/><span className="gpc-desktop-button-label">Vybrat bankovní výpis</span><span className="gpc-mobile-button-label">Vybrat soubor</span></span>
+                <span className="gpc-file-formats"><span>GPC</span><span>CSV</span>{camtEnabled && <span>XML</span>}</span>
+                <small id="gpc-upload-limits" className="gpc-upload-limits">Můžete vybrat jeden i více souborů najednou.<br/>Nejvýše 5 MB na soubor.</small>
                 {fileQueue.length > 1 && <small className="gpc-queue-progress">Výpis {Math.min(queueIndex + 1, fileQueue.length)} z {fileQueue.length}</small>}
               </label>
               <div className="gpc-upload-note"><Icon name="check" /><span>Po nahrání uvidíte návrhy shod i položky, které potřebují vaši kontrolu.</span></div>
             </div>
-            <aside className="gpc-safety-card">
-              <span className="gpc-safety-icon"><Icon name="check" /></span>
-              <h3>Párování pod kontrolou</h3>
-              <ol>
-                <li><strong>Najdeme odpovídající faktury</strong><span>U návrhů uvidíte důvod shody. Zvládnete i chybný variabilní symbol nebo rozdělení platby.</span></li>
-                <li><strong>Vyřešíte nejasné položky</strong><span>Sporné platby čekají na ruční kontrolu. Každou úhradu zpracujeme samostatně.</span></li>
-                <li><strong>Potvrdíte zaúčtování</strong><span>V režimu kontroly se úhrady zapíší po potvrzení. Při zapnutém automatu se jednoznačné shody zpracují na pozadí.</span></li>
-              </ol>
-            </aside>
+            <BankMatchingProcessInfo/>
           </div>
-        ) : (
-          <div className="gpc-file-summary">
-            <span className="gpc-file-summary-icon"><Icon name="document" /></span>
-            <div className="gpc-file-summary-copy">
-              <strong id="gpc-statement-title">{selectedFilename}</strong>
-              <small>{["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]}{fileQueue.length > 1 ? ` · Výpis ${Math.min(queueIndex + 1, fileQueue.length)} z ${fileQueue.length}` : ""}</small>
-            </div>
-            {/* Available whenever nothing is running, not only before the first
-                commit: a statement that keeps some rows for review never reaches
-                "committed", and used to trap the user on it with no way back. */}
-            {!working && (
-              <button
-                type="button"
-                className="btn secondary gpc-change-file"
-                onClick={async () => {
-                  if (
-                    touchedEntries.current.size > 0 &&
-                    !(await confirmAction({
-                      title: "Opustit rozpracovaný výpis?",
-                      description: "Nepotvrzené změny v přiřazení faktur se zahodí. Už zaúčtované platby zůstávají.",
-                      confirmLabel: "Nahrát jiný soubor",
-                    }))
-                  )
-                    return;
-                  setFileQueue([]);
-                  setQueueIndex(0);
-                  void upload(null);
-                }}
-                disabled={working}
-              >
-                Nahrát jiný soubor
-              </button>
-            )}
-          </div>
-        )}
-        {error && <p className="form-error">{error}</p>}
-        {done && <p className="form-success" role="status">{done}</p>}
-        {(preview?.import.status === "committed" || (!preview && done)) && queueIndex + 1 < fileQueue.length && (
+        {error && <p id="gpc-upload-error" className="form-error" role="alert">{error}</p>}
+        {done && <MatchingNotice className="form-success" message={done} />}
+        {done && queueIndex + 1 < fileQueue.length && (
           <button type="button" className="btn primary gpc-queue-next" onClick={continueQueue}>
             Pokračovat dalším výpisem ({queueIndex + 2} z {fileQueue.length})
           </button>
-        )}
-        {/* A finished statement used to be a dead end: the "change file" button
-            hides once work starts, and the queue button only exists when several
-            files were picked at once. So after committing a single statement
-            there was no way back to the upload screen short of reloading. */}
-        {preview?.import.status === "committed" && queueIndex + 1 >= fileQueue.length && (
-          <button
-            type="button"
-            className="btn primary gpc-queue-next"
-            disabled={working}
-            onClick={() => {
-              setFileQueue([]);
-              setQueueIndex(0);
-              void upload(null);
-            }}
-          >
-            Nahrát další výpis
-          </button>
-        )}
-        {preview && (
-          <div className="gpc-preview">
-            {preview.import.duplicate && (
-              <p className="form-success">
-                Tento výpis už byl dříve nahraný. Zobrazujeme jeho existující náhled.
-              </p>
-            )}
-            {preview.account_mismatch && (
-              <div className="account-warning" role="alert">
-                <span className="account-warning-icon">
-                  <Icon name="alert" />
-                </span>
-                <span className="account-warning-copy">
-                  <strong>Účet ve výpisu není mezi účty firmy (Nastavení → Firma)</strong>
-                  <span className="account-warning-numbers">
-                    <span>Ve výpisu: <strong>{preview.statement_account || "neznámý"}</strong></span>
-                    <span>Nastaveno: <strong>{preview.expected_account || "neznámý"}</strong></span>
-                  </span>
-                </span>
-                <label className="account-warning-confirm">
-                  <input
-                    type="checkbox"
-                    checked={accountAck}
-                    onChange={(event) => setAccountAck(event.target.checked)}
-                  />
-                  <span className="account-warning-check" aria-hidden="true">
-                    <Icon name="check" />
-                  </span>
-                  <span className="account-warning-confirm-text">
-                    {accountAck ? "Soubor ověřen" : "Potvrdit kontrolu"}
-                  </span>
-                </label>
-              </div>
-            )}
-            {preview.statement_bank && !preview.statement_bank.verified && (
-              <p className="form-hint" role="status">
-                {preview.statement_bank.name
-                  ? `Výpis z banky ${preview.statement_bank.name} zatím nemáme ověřený na vzorku.`
-                  : "Banku výpisu se nepodařilo určit (účet ve výpisu není mezi účty firmy)."}
-                {" "}Platby párujeme jen podle variabilního symbolu a částky, ne podle čísla účtu plátce.
-              </p>
-            )}
-            <div className="payment-result">
-              <div>
-                <span>Přijaté</span>
-                <strong>{preview.totals.accepted}</strong>
-                <small>Příchozí platby připravené ke kontrole.</small>
-              </div>
-              <div>
-                <span>Ignorované</span>
-                <strong>{preview.totals.ignored}</strong>
-                <small>Odchozí, cizoměnové nebo duplicitní řádky.</small>
-              </div>
-              <div>
-                <span>Chyby</span>
-                <strong>{preview.totals.errors}</strong>
-                <small>Řádky s neplatným nebo neúplným formátem.</small>
-              </div>
-              <div>
-                <span>Celkem</span>
-                <strong>{preview.total_entries}</strong>
-                <small>Všechny nalezené řádky ve výpisu.</small>
-              </div>
-            </div>
-            <div className="gpc-review-toolbar" aria-label="Filtr položek výpisu">
-              <div>
-                <strong>Kontrola položek</strong>
-                <span>Zobrazujeme nejvýše 50 řádků na stránku.</span>
-              </div>
-              <div className="gpc-filter-chips">
-                {([
-                  ["all", "Vše"],
-                  ["accepted", "Přijaté"],
-                  ["ignored", "Ignorované"],
-                  ["error", "Chyby"],
-                  ["duplicate", "Duplicity"],
-                ] as const).map(([value, label]) => (
-                  <button key={value} type="button" className={entryFilter === value ? "active" : ""} aria-pressed={entryFilter === value} onClick={() => { setEntryFilter(value); setPreviewPage(1); }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className="invoice-search">
-              Hledat fakturu
-              <input
-                value={invoiceQuery}
-                onChange={(event) => {
-                  setInvoicePage(1);
-                  setInvoiceQuery(event.target.value);
-                }}
-                placeholder="Číslo, odběratel, IČO nebo VS"
-              />
-            </label>
-            <div className="gpc-entry-list">
-              {preview.entries.map((entry) => {
-                const info = allocationInfo(entry);
-                const persisted = loadedEntries[entry.fingerprint];
-                const isOpen = entry.disposition === "accepted" && !entry.bank_payment_id;
-                const isUnrelated = isOpen && Boolean(unrelated[entry.fingerprint]);
-                const ownTransferReason = persisted ? ownTransfers[persisted.id] : undefined;
-                const hasReviewableProposal =
-                  isOpen &&
-                  !isUnrelated &&
-                  entry.proposed_invoice_ids.length > 0 &&
-                  entry.proposal_confidence !== "safe";
-                return (
-                  <article
-                    key={`${entry.line_number}-${entry.fingerprint}`}
-                    className={`gpc-entry ${entry.disposition}${isUnrelated ? " is-unrelated" : ""}`}
-                  >
-                    <header>
-                      <strong>
-                        Řádek {entry.line_number} ·{" "}
-                        {entry.counterparty_name || "Bez názvu"}
-                      </strong>
-                      <span>
-                        {entry.amount != null && entry.currency
-                          ? money(Number(entry.amount), entry.currency)
-                          : dispositionLabels[entry.disposition]}
-                      </span>
-                    </header>
-                    <p>
-                      VS {entry.variable_symbol || "—"} ·{" "}
-                      {proposalLabel(
-                        entry.proposal_kind,
-                        entry.proposal_confidence,
-                        entry.proposed_invoice_ids.length,
-                      ) ?? entry.reason}
-                    </p>
-                    {entry.counterparty_account && (
-                      <p className={entry.counterparty_account_verified ? undefined : "gpc-account-unverified"}>
-                        Účet {entry.counterparty_account}
-                        {!entry.counterparty_account_verified && (
-                          <small> · kontrolní součet čísla účtu nesedí, ověřte ručně</small>
-                        )}
-                      </p>
-                    )}
-                    {entry.overlap_warning && !entry.overlap_acknowledged_by && isOpen && <div className="form-error" role="alert">
-                      <p>Možná duplicita z jiného formátu výpisu. Před zaúčtováním ověřte původní transakci.</p>
-                      <button type="button" className="btn secondary compact" disabled={working || !persisted} onClick={async () => {
-                        if (!persisted || !await confirmAction({ title:"Potvrdit kontrolu možné duplicity?",description:"Ověřili jste původní výpis a tato položka představuje další samostatnou platbu?",confirmLabel:"Ano, je to další platba" })) return;
-                        setWorking(true); setError("");
-                        try {
-                          const result = await apiFetch<{ revision:number }>("/api/payments/imports/overlap",{ method:"POST",headers:{ "content-type":"application/json" },body:JSON.stringify({ entry_id:persisted.id,revision:preview.import.revision }) });
-                          setPreview(current => current ? { ...current,import:{ ...current.import,revision:result.revision },entries:current.entries.map(row => row.fingerprint === entry.fingerprint ? { ...row,overlap_acknowledged_by:"confirmed" } : row) } : current);
-                        } catch (cause) { setError(cause instanceof Error ? cause.message : "Kontrolu se nepodařilo uložit."); }
-                        finally { setWorking(false); }
-                      }}>Ověřeno: jde o další platbu</button>
-                    </div>}
-                    {hasReviewableProposal ? (
-                      <div className="gpc-proposal-row">
-                        {entry.proposal_reason ? <small>{entry.proposal_reason}</small> : null}
-                        <button
-                          type="button"
-                          className="btn secondary compact gpc-proposal-button"
-                          onClick={() => {
-                            touchedEntries.current.add(entry.fingerprint);
-                            setSelected((current) => ({
-                              ...current,
-                              [entry.fingerprint]: entry.proposed_invoice_ids,
-                            }));
-                          }}
-                        >
-                          Použít navrženou kombinaci
-                        </button>
-                      </div>
-                    ) : entry.proposal_reason ? (
-                      <small>{entry.proposal_reason}</small>
-                    ) : null}
-                    {entry.bank_payment_id && (
-                      <div className="gpc-entry-booked">
-                        <p>
-                          <strong>Zaúčtováno</strong>
-                          {(selected[entry.fingerprint] ?? [])
-                            .map((invoiceId) => invoiceById.get(invoiceId))
-                            .filter((invoice): invoice is Invoice => Boolean(invoice))
-                            .map((invoice) => ` · ${invoice.invoice_number} (${invoice.counterparty_name})`)
-                            .join("")}
-                        </p>
-                        {/* Only an unattended run leaves a reason, so its presence
-                            is itself the signal that nobody reviewed this row. */}
-                        {matchReasons[entry.bank_payment_id] && (
-                          <small>Automaticky · {matchReasons[entry.bank_payment_id]}</small>
-                        )}
-                        {canManage && (
-                          <button
-                            type="button"
-                            className="btn secondary compact gpc-release-button"
-                            aria-label="Uvolnit platbu a přiřadit ji jinak"
-                            // The persisted row carries the database id; the
-                            // upload response's rows do not.
-                            disabled={working || !loadedEntries[entry.fingerprint]}
-                            onClick={() => {
-                              const persisted = loadedEntries[entry.fingerprint];
-                              if (persisted) void releaseEntry(persisted);
-                            }}
-                          >
-                            Změnit přiřazení
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {entry.processing_error && <p role="alert">{reconciliationError(entry.processing_error).error}</p>}
-                    {entry.disposition === "accepted" &&
-                      !isUnrelated &&
-                      entry.proposal_confidence === "safe" &&
-                      entry.proposed_invoice_ids.length > 0 && (
-                        <p className="gpc-entry-matched-invoice">
-                          →{" "}
-                          {entry.proposed_invoice_ids
-                            .map((id) => invoiceById.get(id))
-                            .filter((invoice): invoice is Invoice => Boolean(invoice))
-                            .map((invoice) => `${invoice.invoice_number} · ${invoice.counterparty_name}`)
-                            .join(", ")}
-                        </p>
-                      )}
-                    {isOpen && (
-                      <div className={`gpc-unrelated-row${isUnrelated ? " is-active" : ""}`}>
-                        {isUnrelated ? (
-                          <p>
-                            <strong>{ownTransferReason ? OWN_TRANSFER_LABEL : UNRELATED_LABEL}</strong>
-                            {ownTransferReason && <small>{ownTransferReason} Pokud to nesedí, vraťte řádek mezi platby.</small>}
-                          </p>
-                        ) : ownTransferReason ? (
-                          // Two sources disagree (own account vs. invoice
-                          // evidence) or the user already reverted it: say
-                          // so, decide nothing.
-                          <p><small>Vypadá jako vlastní převod: {ownTransferReason}</small></p>
-                        ) : null}
-                        {canManage && preview.import.status !== "committed" && (
-                          <button
-                            type="button"
-                            className="btn secondary compact gpc-unrelated-button"
-                            aria-pressed={isUnrelated}
-                            disabled={working || !persisted}
-                            onClick={() => {
-                              touchedEntries.current.add(entry.fingerprint);
-                              const next = !isUnrelated;
-                              setUnrelated((current) => ({ ...current, [entry.fingerprint]: next }));
-                              if (next) {
-                                // Marking a row unrelated drops its invoice
-                                // choice in the same visible step; the two
-                                // answers can never be sent together.
-                                setSelected((current) => ({ ...current, [entry.fingerprint]: [] }));
-                                setPartial((current) => ({ ...current, [entry.fingerprint]: false }));
-                                setAllocationAmounts((current) => ({ ...current, [entry.fingerprint]: {} }));
-                              }
-                            }}
-                          >
-                            {isUnrelated ? "Vrátit mezi platby" : "Nesouvisí s fakturami"}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {isOpen && !isUnrelated && (
-                      <>
-                        <details>
-                          <summary>Upravit přiřazení faktur</summary>
-                          {/* Faktura v jiné měně než platba by se nikdy nedala bezpečně zaúčtovat
-                              (commit ji stejně odmítne) — proto se nenabízí k výběru vůbec,
-                              místo aby zůstatek dole tiše sečetl nesourodé měny jako "vyrovnáno". */}
-                          <div className="invoice-choice-list">
-                            {candidateInvoices
-                              .filter((invoice) => !entry.currency || invoice.currency === entry.currency)
-                              .map((invoice) => (
-                              <label key={invoice.id}>
-                                <input
-                                  type="checkbox"
-                                  checked={(
-                                    selected[entry.fingerprint] ?? []
-                                  ).includes(invoice.id)}
-                                  onChange={(event) => {
-                                    touchedEntries.current.add(
-                                      entry.fingerprint,
-                                    );
-                                    setSelected((current) => ({
-                                      ...current,
-                                      [entry.fingerprint]: event.target.checked
-                                        ? [
-                                            ...(current[entry.fingerprint] ??
-                                              []),
-                                            invoice.id,
-                                          ]
-                                        : (
-                                            current[entry.fingerprint] ?? []
-                                          ).filter((id) => id !== invoice.id),
-                                    }));
-                                  }}
-                                />{" "}
-                                <span>
-                                  {invoice.invoice_number} ·{" "}
-                                  {invoice.counterparty_name} ·{" "}
-                                  {money(
-                                    Number(invoice.amount) -
-                                      Number(invoice.paid_amount),
-                                    invoice.currency,
-                                  )}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                          {info.values.map(invoice => <label className="gpc-allocation-field" key={`amount-${invoice.id}`}>
-                            <span>Přiřadit k faktuře {invoice.invoice_number}</span>
-                            <input type="number" min="0.01" step="0.01" max={Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))}
-                              value={allocationAmounts[entry.fingerprint]?.[invoice.id] ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))}
-                              onChange={event => {
-                                touchedEntries.current.add(entry.fingerprint);
-                                const value = Number(event.target.value);
-                                setAllocationAmounts(current => ({ ...current, [entry.fingerprint]: { ...current[entry.fingerprint], [invoice.id]: value } }));
-                              }}/>
-                          </label>)}
-                          <div className="candidate-pagination">
-                            <button
-                              type="button"
-                              disabled={invoicePage <= 1}
-                              onClick={() => setInvoicePage((page) => page - 1)}
-                            >
-                              Předchozí
-                            </button>
-                            <span>
-                              {invoicePage} /{" "}
-                              {Math.max(1, Math.ceil(candidateTotal / 25))}
-                            </span>
-                            <button
-                              type="button"
-                              disabled={invoicePage * 25 >= candidateTotal}
-                              onClick={() => setInvoicePage((page) => page + 1)}
-                            >
-                              Další
-                            </button>
-                          </div>
-                        </details>
-                        {info.values.length === 1 && info.difference > 0 && (
-                          <label className="partial-exception">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(partial[entry.fingerprint])}
-                              onChange={(event) => {
-                                touchedEntries.current.add(entry.fingerprint);
-                                setPartial((current) => ({
-                                  ...current,
-                                  [entry.fingerprint]: event.target.checked,
-                                }));
-                              }}
-                            />{" "}
-                            Povolit výslovnou částečnou úhradu této faktury
-                          </label>
-                        )}
-                        {info.values.length === 0 ? (
-                          // Nothing selected is a legitimate outcome, not an
-                          // error: the payment is kept as unmatched.
-                          <div className="allocation-balance neutral">
-                            Neodpovídá žádné faktuře – uloží se jako nespárovaná platba. Pokud s fakturami nesouvisí, označte „Nesouvisí s fakturami“.
-                          </div>
-                        ) : (
-                          <div
-                            className={`allocation-balance ${Math.abs(info.difference) < 0.005 ? "balanced" : "unbalanced"}`}
-                          >
-                            Platba{" "}
-                            {money(Number(entry.amount), entry.currency || "CZK")}{" "}
-                            · vybráno{" "}
-                            {money(info.allocated, entry.currency || "CZK")} ·
-                            rozdíl{" "}
-                            {money(info.difference, entry.currency || "CZK")}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-            {filteredEntriesTotal > 50 && (
-              <nav
-                className="candidate-pagination"
-                aria-label="Stránky náhledu výpisu"
-              >
-                <button
-                  type="button"
-                  disabled={previewPage <= 1 || working}
-                  onClick={() => setPreviewPage((page) => page - 1)}
-                >
-                  Předchozí položky
-                </button>
-                <span>
-                  Stránka {previewPage} /{" "}
-                  {Math.ceil(filteredEntriesTotal / 50)}
-                </span>
-                <button
-                  type="button"
-                  disabled={
-                    previewPage * 50 >= filteredEntriesTotal || working
-                  }
-                  onClick={() => setPreviewPage((page) => page + 1)}
-                >
-                  Další položky
-                </button>
-              </nav>
-            )}
-            {preview.import.status !== "committed" && (
-              <div className="gpc-confirm-bar">
-                <div className="gpc-confirm-copy">
-                  <span>
-                    Potvrzením se platby zapíšou k vybraným fakturám, platby bez faktury se uloží jako nespárované.
-                    Řádky označené „Nesouvisí s fakturami“ se jako platby nezapíšou.
-                  </span>
-                </div>
-                <div className="gpc-confirm-action">
-                  <button
-                    className="btn primary import-confirm"
-                    disabled={working || Boolean(confirmBlockedReason)}
-                    aria-describedby={confirmBlockedReason ? "gpc-confirm-blocked" : undefined}
-                    onClick={commit}
-                  >
-                    {working ? "Potvrzuji…" : "Uložit kontrolu a potvrdit import"}
-                  </button>
-                  {confirmBlockedReason && (
-                    <small id="gpc-confirm-blocked" className="gpc-confirm-blocked" role="status">
-                      {confirmBlockedReason}
-                    </small>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         )}
       </section>
       <section className="page-panel data-panel import-archive" id="archiv-vypisu">

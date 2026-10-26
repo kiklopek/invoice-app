@@ -89,3 +89,109 @@
   .page.page :global(.csv-dropzone) { min-height: 180px; padding: 18px; }
   .guidance { padding: 18px 24px; }
 }
+
+@media screen and (max-width:767px) {
+  .page.page .stage { display:block;min-height:0;height:auto;margin:0; }
+  .page.page .header { margin:0 0 14px; }
+  .page.page :global(.section-header) { margin:0 0 14px; }
+  .page.page :global(.section-header h1) { margin:4px 0 8px;font-size:24px;line-height:1.25;letter-spacing:-.5px; }
+  .page.page :global(.section-header > div > p) { display:none; }
+  .page.page :global(.section-header > div > span) { font-size:14px;line-height:1.5; }
+  .page.page :global(.back-link) { display:inline-flex;align-items:center;min-height:44px;gap:8px;margin:0;font-size:13px; }
+  .page.page :global(.invoice-import-tabs) { display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:0 0 12px; }
+  .page.page :global(.invoice-import-tabs button) { min-height:76px;padding:14px;gap:12px; }
+  .page.page :global(.invoice-import-tabs button strong) { font-size:15px; }
+  .page.page :global(.invoice-import-tabs button small) { font-size:12px;line-height:1.4; }
+  .page.page :global(.invoice-document-import), .page.page :global(.csv-import-panel) { border:1px solid #dce8df;border-radius:12px; }
+  .page.page :global(.invoice-document-dropzone) { min-height:0;margin:12px;padding:18px 12px;border-width:1px; }
+  .page.page :global(.large-import-icon) { width:44px;height:44px;margin-bottom:8px;border-radius:50%; }
+  .page.page :global(.invoice-document-dropzone h2) { margin:6px 0 10px;font-size:19px;line-height:1.35;letter-spacing:-.3px; }
+  .page.page :global(.invoice-document-dropzone p) { font-size:13px;line-height:1.5; }
+  .page.page :global(.import-drop-action) { display:flex;justify-content:center;align-items:center;min-height:46px;gap:8px;margin-top:16px;padding:10px 14px;font-size:14px; }
+  .page.page :global(.invoice-document-dropzone > small) { display:none; }
+  .page .formats { gap:5px;margin-top:12px; }
+  .page .formats > span { font-size:11px; }
+  .mobileGuidance { border-top:1px solid #e1e8e3; }
+  .mobileGuidance > summary { padding:12px 16px;min-height:44px;color:#22694b;font-size:13px;cursor:pointer; }
+  .page .guidance { grid-template-columns:minmax(0,1fr);gap:14px;padding:16px;background:#f0f7f2;color:#245b3e; }
+  .page .guidance small { color:#60786a; }
+  .page .guidance svg { color:#23784f; }
+  .page.page :global(.import-drop):not(:global(.invoice-document-dropzone)) { min-height:0;padding:16px 12px; }
+  .page.page :global(.import-queue-list) { max-width:100%;padding-left:18px;font-size:14px; }
+  .page.page :global(.import-queue-list li) { overflow-wrap:anywhere; }
+  .page.page :global(.import-queue-actions) { display:flex;flex-direction:column;gap:8px;margin-top:14px; }
+  .page.page :global(.import-queue-actions button) { width:100%;min-height:46px;font-size:14px;white-space:normal; }
+  .page.page :global(.csv-import-grid) { padding:16px 12px; }
+  .page.page :global(.csv-dropzone) { min-height:180px;padding:16px; }
+  .page.page :global(.csv-lead) { font-size:14px;line-height:1.5; }
+  .page.page :global(.csv-file-button) { min-height:44px;font-size:14px; }
+  .page.page :global(.invoice-import-preview) { overflow-x:auto;max-width:100%; }
+}
+
+@media screen and (max-width:767px) {
+  .page.page > :global([data-workspace-topbar]) { display:none; }
+  .page.page :global(.invoice-import-tabs button svg) { display:block; }
+  .page .header { padding-bottom:0;border:0; }
+}
+
+/* The OCR upload uses the same surface, action and guidance hierarchy as statements. */
+.page.page :global(.invoice-document-import) { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(285px, 1fr); align-items: stretch; overflow: clip; }
+.uploadColumn { display: flex; flex-direction: column; min-width: 0; padding: 28px; }
+.page.page :global(.invoice-document-dropzone) { flex: 1; margin: 0; padding: 26px 20px; min-height: 300px; border: 1.5px dashed #739580; border-radius: 16px; background: #edf4ed; }
+.page.page :global(.large-import-icon) { display: grid; place-items: center; flex: none; width: 60px; height: 60px; border-radius: 18px; background: #235c42; color: #fff; margin-bottom: 18px; box-shadow: none; }
+.page.page :global(.invoice-document-dropzone h2) { margin: 0 0 8px; font-size: 20px; line-height: 1.35; }
+.page.page :global(.invoice-document-dropzone p) { max-width: 420px; font-size: 13px; line-height: 1.6; }
+.page.page :global(.import-drop-action) { justify-content: center; gap: 10px; min-height: 48px; margin-top: 20px; padding: 12px 20px; border-radius: 10px; background: #17462f; box-shadow: none; font-size: 14px; }
+.page.page :global(.import-drop-action svg) { width: 20px; height: 20px; }
+.page .formats { gap: 8px; margin-top: 14px; }
+.page .formats > span { border-radius: 6px; padding: 4px 8px; font-size: 11px; }
+.page.page :global(.invoice-document-dropzone) > .limits { display: block; margin-top: 10px; color: #687b70; font-size: 12px; line-height: 1.6; }
+.page.page :global(.invoice-document-dropzone) > .dragHint { font-size: 11px; color: #687b70; }
+.disclosure { display: flex; align-items: center; justify-content: center; gap: 9px; width: fit-content; max-width: 100%; align-self: center; margin: 16px auto 0; color: #607168; font-size: 12px; line-height: 1.6; text-align: center; }
+.disclosure > span { min-width: 0; }
+.disclosure svg { flex: none; width: 16px; height: 16px; color: #387359; }
+.guidance.documentGuidance { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 24px; padding: 30px; background: linear-gradient(145deg, #235c42, #123c2a); }
+.guidanceTitle { display: flex; align-items: center; gap: 14px; margin: 0 0 4px; color: #fff; font-size: 22px; line-height: 1.3; letter-spacing: -.5px; }
+.guidanceTitle > span { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 13px; background: #d7e9b6; }
+.documentGuidance .guidanceTitle svg { width: 22px; height: 22px; color: #17462f; }
+.documentGuidance strong { font-size: 13px; line-height: 1.5; }
+.documentGuidance small { font-size: 12px; }
+.documentStart.start { height: auto; min-height: 100dvh; }
+.documentStart.start > .stage { height: auto; min-height: 0; margin-block: 0; }
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page.page :global(.invoice-document-import) { grid-template-columns: minmax(0, 1fr); }
+  .guidance.documentGuidance { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 22px 26px; }
+  .guidanceTitle { grid-column: 1 / -1; font-size: 20px; }
+}
+
+@media (max-width: 767px) {
+  .documentStart.start { padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)) !important; }
+  .page.page :global(.invoice-import-tabs) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border: 1px solid #dce5de; border-radius: 12px; background: #f2f7f3; }
+  .page.page :global(.invoice-import-tabs button) { min-width: 0; min-height: 56px; padding: 10px; gap: 8px; border: 0; border-radius: 9px; }
+  .page.page :global(.invoice-import-tabs button svg) { width: 18px; height: 18px; flex: none; }
+  .page.page :global(.invoice-import-tabs button strong) { font-size: 13px; line-height: 1.4; }
+  .page.page :global(.invoice-import-tabs button small) { display: none; }
+  .page.page :global(.invoice-document-import) { grid-template-columns: minmax(0, 1fr); gap: 16px; border: 0; border-radius: 0; overflow: visible; background: transparent; }
+  .uploadColumn { padding: 0; }
+  .page.page :global(.invoice-document-dropzone) { flex: none; min-height: 0; margin: 0; padding: 24px 16px; border-width: 1px; background: #eef5efb3; }
+  .page.page :global(.large-import-icon) { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; background: #e0efdb; color: #216745; }
+  .page.page :global(.large-import-icon svg) { width: 30px; height: 30px; }
+  .page.page :global(.invoice-document-dropzone h2) { margin: 0 0 8px; font-size: 18px; letter-spacing: -.3px; }
+  .page.page :global(.import-drop-action) { width: 100%; margin-top: 18px; padding: 12px 16px; font-size: 15px; }
+  .page.page :global(.invoice-document-dropzone) > .dragHint { display: none; }
+  .page .formats { margin-top: 12px; }
+  .page .formats > span { font-size: 12px; }
+  .disclosure { margin: 12px auto 0; font-size: 12px; }
+  .documentInfo { min-width: 0; border: 1px solid #dce5de; border-radius: 14px; background: #ffffffb3; }
+  .documentInfo > summary { display: flex; align-items: center; gap: 12px; padding: 16px 12px; list-style: none; }
+  .documentInfo > summary::-webkit-details-marker { display: none; }
+  .infoIcon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: #e8f3e4; color: #216745; }
+  .infoIcon svg { width: 22px; height: 22px; }
+  .documentInfo summary > span:nth-child(2) { flex: 1; min-width: 0; }
+  .documentInfo summary strong { display: block; margin-bottom: 4px; color: #173c2d; font-size: 15px; line-height: 1.4; }
+  .documentInfo summary small { display: block; color: #607168; font-size: 12px; line-height: 1.6; }
+  .documentInfo summary > svg { flex: none; width: 16px; height: 16px; color: #607168; }
+  .page .documentInfo .documentGuidance { padding: 16px; gap: 14px; background: transparent; }
+  .documentInfo .guidanceTitle { display: none; }
+}

@@ -1,0 +1,35 @@
+/* Shared geometry, independent of font metrics and text baselines. */
+.ui-chevron,
+.ui-close-icon,
+.ui-filter-icon {
+  display: block;
+  flex: none;
+  vertical-align: middle;
+  pointer-events: none;
+  transform-origin: center;
+}
+.ui-chevron {
+  transition: transform 180ms ease;
+}
+details[open] > summary .ui-chevron,
+button[aria-expanded="true"] .ui-chevron {
+  transform: rotate(180deg);
+}
+button:has(> .ui-close-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-chevron {
+    transition: none !important;
+  }
+}
+
+/* Every disclosure uses the same glyph instead of a native triangle. */
+summary:has(.ui-chevron) { list-style: none; }
+summary:has(.ui-chevron)::-webkit-details-marker { display: none; }
+summary:has(> .ui-chevron) { display: flex; align-items: center; gap: 8px; }
+summary > .ui-chevron { width: 18px; height: 18px; margin-inline-start: auto; }

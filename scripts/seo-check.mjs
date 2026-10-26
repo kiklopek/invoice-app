@@ -4,7 +4,7 @@ import { chromium } from "@playwright/test";
 
 // Read-only checks against a production build; no authenticated session needed.
 const base = process.env.SEO_CHECK_BASE_URL || "http://127.0.0.1:3100";
-const origin = new URL(process.env.APP_BASE_URL || "https://www.splatno.cz").origin;
+const origin = new URL(process.env.APP_BASE_URL || "https://www.splatno.com").origin;
 const output = ".artifacts/seo";
 await mkdir(output, { recursive: true });
 

@@ -1,0 +1,29 @@
+{
+  "before": "false",
+  "url": "/dashboard",
+  "buttons": [
+    {
+      "expanded": "true",
+      "visible": true
+    }
+  ],
+  "dialogs": [
+    {
+      "id": "esko-panel",
+      "open": true,
+      "display": "flex",
+      "rect": {
+        "x": 1044,
+        "y": 424,
+        "width": 380,
+        "height": 560,
+        "top": 424,
+        "right": 1424,
+        "bottom": 984,
+        "left": 1044
+      },
+      "text": "EskoChat k vašim fakturámS čím vám pomůžu?Zeptejte se na faktury, platby nebo upomínky. Odpovím z aktuálních dat vaší firmy.Můžete se zeptatCo mám dnes řešit?Kolik je po splatnosti?Kolik čeká na úhrad"
+    }
+  ],
+  "errors": []
+}

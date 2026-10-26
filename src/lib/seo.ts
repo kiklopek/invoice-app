@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
 
-const DEFAULT_ORIGIN = "https://www.splatno.cz";
+const DEFAULT_ORIGIN = "https://www.splatno.com";
 
 /** Use the public production origin, never the request host or a preview URL. */
 export function siteOrigin(): string {
@@ -10,9 +10,9 @@ export function siteOrigin(): string {
     const url = new URL(process.env.APP_BASE_URL || DEFAULT_ORIGIN);
     if (url.protocol !== "https:" || url.username || url.password ||
       url.hostname === "localhost" || url.hostname.endsWith(".vercel.app")) return DEFAULT_ORIGIN;
-    // Vercel permanently redirects the apex domain to www. Keep all SEO URLs
-    // aligned even when APP_BASE_URL was entered without www.
-    if (url.hostname === "splatno.cz" || url.hostname === "www.splatno.cz") return DEFAULT_ORIGIN;
+    // All owned Splatno aliases use the chosen public .com origin, even
+    // while an existing deployment still has the older APP_BASE_URL.
+    if (["splatno.cz", "www.splatno.cz", "splatno.com", "www.splatno.com"].includes(url.hostname)) return DEFAULT_ORIGIN;
     return url.origin;
   } catch {
     return DEFAULT_ORIGIN;

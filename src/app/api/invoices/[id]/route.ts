@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
+import { issuedDocument } from "@/lib/invoice-creation";
 import { parseInvoiceInput } from "@/lib/invoice-validation";
 import { initialNextReminderAt, nextFutureReminderAt, todayInTimeZone } from "@/lib/reminders";
 import { parsePaymentDate, paymentDateToTimestamp } from "@/lib/payment-validation";
@@ -71,13 +72,18 @@ export async function PATCH(request: Request, { params }: Context) {
   const existing = existingData as Invoice | null;
   if (!existing) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
 
+  const issued = issuedDocument(existing);
+  if (issued && editableFields.some(key => key in body && key !== "reminder_policy_id")) {
+    return NextResponse.json({ error: "Vystavený doklad nelze přepsat. Úhrady, stav a upomínky lze spravovat samostatně." }, { status: 409 });
+  }
   const merged = { ...existing } as Record<string, unknown>;
   for (const key of editableFields) if (key in body) merged[key] = body[key];
   if (!("money_evidence" in body) && existing.money_evidence &&
       (["amount", "amount_without_vat", "vat_rate"] as const).some(key => key in body && Number(body[key]) !== Number(existing[key]))) {
     merged.money_evidence = { ...existing.money_evidence, adjustment_confirmed: false };
   }
-  const input = parseInvoiceInput(merged);
+  const input = parseInvoiceInput(merged, { allowEmptyEmail: Boolean(issued) });
+  if (input?.money_evidence && issued) input.money_evidence.issued_document = issued;
   if (!input) return NextResponse.json({ error: "Zkontrolujte povinné údaje, částku, měnu, e-mail a data faktury." }, { status: 400 });
   const { data: issuer, error: issuerError } = await identity.service.from("organizations")
     .select("name, email").eq("id", identity.membership.organization_id).single();
@@ -279,12 +285,14 @@ export async function DELETE(request: Request, { params }: Context) {
 
   const organizationId = identity.membership.organization_id;
   const { data: existing, error: lookupError } = await identity.service.from("invoices")
-    .select("id, file_url").eq("id", id).eq("organization_id", organizationId).maybeSingle();
+    .select("id, file_url, money_evidence").eq("id", id).eq("organization_id", organizationId).maybeSingle();
   if (lookupError) {
     logError("Fakturu se nepodařilo ověřit před smazáním", lookupError, { invoice_id: id });
     return apiError(request, "Fakturu se nepodařilo ověřit.", 500, "invoice_lookup_failed");
   }
   if (!existing) return NextResponse.json({ error: "Faktura nebyla nalezena." }, { status: 404 });
+
+  if (issuedDocument(existing)) return NextResponse.json({ error: "Vystavený doklad se uchovává. Použijte storno faktury." }, { status: 409 });
 
   const { data: deleted, error: deleteError } = await identity.service.rpc("delete_invoice_safely", {
     target_org: organizationId,

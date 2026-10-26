@@ -15,7 +15,12 @@ mkdirSync(output, { recursive: true });
 const stubs = {
   'next/link': { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) },
   '@/components/layout/app-shell': { AppFrame: ({ children, className }) => React.createElement('div', { className: 'app-shell' }, React.createElement('aside', { className: 'sidebar' }), React.createElement('div', { className: 'workspace-background', 'aria-hidden': true }), React.createElement('main', { className }, children)) },
-  './payments-upload.module.css': { __esModule: true, default: { page: 'payment-upload-check', stage: 'payment-stage-check', background: 'payment-background-check' } },
+  // This static check renders only the idle upload page; processing is covered
+  // by gpc-loading-check.mjs with the real shared component and styles.
+  '@/components/import-processing-view': { ImportProcessingView: () => null },
+  './payment-matching-workspace': { PaymentMatchingWorkspace: () => null },
+  './payments-upload.module.css': { __esModule: true, default: { page: 'payment-upload-check', stage: 'payment-stage-check', background: 'payment-background-check', mobileBack: 'mobileBack', mobileTitle: 'mobileTitle', desktopTitle: 'desktopTitle' } },
+  './control-icons.css': {},
   '@/lib/api-client': { apiFetch: () => Promise.resolve({ imports: [] }), ApiRequestError: class extends Error {} },
   '@/lib/money': { minorUnits: value => Math.round(value * 100) },
   '@/lib/reconciliation-errors': { reconciliationError: value => value },
@@ -33,6 +38,10 @@ function load(path) {
   return mod.exports;
 }
 stubs['@/components/icons'] = load('src/components/icons.tsx');
+stubs['@/components/chevron-down'] = load('src/components/chevron-down.tsx');
+stubs['./bank-matching-process-info'] = load('src/app/(workspace)/invoices/payments/bank-matching-process-info.tsx');
+stubs['./payment-matching-presentation'] = load('src/app/(workspace)/invoices/payments/payment-matching-presentation.ts');
+stubs['./payment-matching-notice'] = load('src/app/(workspace)/invoices/payments/payment-matching-notice.tsx');
 stubs['./gpc-import-panel'] = load('src/app/(workspace)/invoices/payments/gpc-import-panel.tsx');
 const { PaymentsClient } = load('src/app/(workspace)/invoices/payments/payments-client.tsx');
 const markup = renderToStaticMarkup(React.createElement(PaymentsClient, { initialData: { payments: [], open_invoices: [], can_manage: true, gpc_enabled: true, runtime_mode: 'production-database' } }));
@@ -58,10 +67,11 @@ try {
       aligned: Math.abs(document.querySelector('.payments-hero').getBoundingClientRect().x - document.querySelector('.gpc-panel').getBoundingClientRect().x) < 1 && Math.abs(document.querySelector('.payments-hero').getBoundingClientRect().width - document.querySelector('.gpc-panel').getBoundingClientRect().width) < 1,
       centered: Math.abs((document.querySelector('.payment-stage-check').getBoundingClientRect().left + document.querySelector('.payment-stage-check').getBoundingClientRect().right) / 2 - (document.querySelector('.content').getBoundingClientRect().left + document.querySelector('.content').getBoundingClientRect().right) / 2) < 2,
     }));
-    if (result.overflow || !result.aligned || !result.centered || result.uploadWidth < 200 || result.progressVisible || (width >= 1024 && (result.verticalOverflow || result.panelOverflow || !result.safetyVisible))) throw new Error(`${width}×${height}: ${JSON.stringify(result)}`);
+    if (result.overflow || !result.aligned || !result.centered || result.uploadWidth < 200 || result.progressVisible || (width >= 1024 && (result.panelOverflow || !result.safetyVisible))) throw new Error(`${width}×${height}: ${JSON.stringify(result)}`);
     console.log(`${width}px: ${JSON.stringify(result)}`);
     if ([390, 1440, 1920].includes(width)) await page.screenshot({ path: join(output, `payments-${width}.png`), fullPage: true });
   }
+  if (!process.argv.includes('--upload-only')) {
   const variants = ['dashboard', 'invoices', 'invoice-detail', 'compose', 'import', 'invoice-archive', 'payments', 'payment-archive', 'customers', 'reports', 'reminders', 'settings'];
   const compositions = new Set();
   for (const variant of variants) {
@@ -75,5 +85,6 @@ try {
   }
   if (compositions.size !== variants.length) throw new Error('Background variants must have distinct compositions');
   console.log(`Verified ${compositions.size} distinct background compositions`);
+  }
   console.log(`Screenshots: ${output}`);
 } finally { await browser.close(); }

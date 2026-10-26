@@ -1,0 +1,88 @@
+{
+  "chromiumStates": 77,
+  "webkitStates": 33,
+  "scriptResults": [
+    {
+      "id": "detail",
+      "code": 1,
+      "seconds": 5,
+      "checks": 0
+    },
+    {
+      "id": "invoices",
+      "code": 1,
+      "seconds": 50,
+      "checks": 13
+    },
+    {
+      "id": "reports",
+      "code": 0,
+      "seconds": 53,
+      "checks": 30
+    },
+    {
+      "id": "payments",
+      "code": 0,
+      "seconds": 40,
+      "checks": 16
+    },
+    {
+      "id": "subscription",
+      "code": 0,
+      "seconds": 34,
+      "checks": 23
+    },
+    {
+      "id": "notifications",
+      "code": 1,
+      "seconds": 50,
+      "checks": 13
+    },
+    {
+      "id": "ocr-review",
+      "code": 0,
+      "seconds": 58,
+      "checks": 13
+    },
+    {
+      "id": "dashboard",
+      "code": 1,
+      "seconds": 83,
+      "checks": 0
+    },
+    {
+      "id": "mobile-invoices",
+      "code": 0,
+      "seconds": 134,
+      "checks": 70
+    }
+  ],
+  "contrast": [
+    {
+      "foreground": "#809086",
+      "background": "#ffffff",
+      "ratio": 3.359
+    },
+    {
+      "foreground": "#77877c",
+      "background": "#ffffff",
+      "ratio": 3.79
+    }
+  ],
+  "notes": "Only manually verified findings are conclusions. Offscreen children inside a horizontal scroller and 1px visually-hidden controls are not automatically defects.",
+  "extraChecks": {
+    "onboarding": {
+      "checked": 32,
+      "failed": 0
+    },
+    "login": {
+      "passed": 17,
+      "failed": [
+        {
+          "name": "loading and error 1555",
+          "error": "TimeoutError: locator.boundingBox: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main > div')\u001b[22m\n"
+        }
+      ]
+    }
+  }
+}

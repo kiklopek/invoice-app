@@ -17,6 +17,7 @@ import { MAX_REMINDER_CC_RECIPIENTS, parseReminderCcInput } from "@/lib/reminder
 import { detectLogoType, MAX_LOGO_BYTES, MAX_LOGO_DIMENSION } from "@/lib/company-logo-file";
 import { readLocalOnboardingDraft, writeLocalOnboardingDraft, type OnboardingDraft, type DraftLogo } from "@/lib/onboarding-draft";
 import styles from "./onboarding.module.css";
+import { OnboardingAccountSwitch } from "./onboarding-account-switch";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
 
@@ -110,11 +111,12 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
   const draftSnapshot = useRef<OnboardingDraft | null>(null);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const draftFinished = useRef(Boolean(payment));
+  const leavingAccount = useRef(false);
   const savedStep = useRef(step);
 
   const saveDraft = useCallback((draft: OnboardingDraft) => {
     saveQueue.current = saveQueue.current.catch(() => {}).then(async () => {
-      if (draftFinished.current) return;
+      if (draftFinished.current || leavingAccount.current) return;
       if (draftSnapshot.current && draft.updatedAt < draftSnapshot.current.updatedAt) return;
       try {
         const response = await fetch("/api/onboarding/draft", {
@@ -188,7 +190,7 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
   useEffect(() => {
     const flush = () => {
       const draft = draftSnapshot.current;
-      if (!draft || draftFinished.current) return;
+      if (!draft || draftFinished.current || leavingAccount.current) return;
       const body = JSON.stringify(draft);
       void fetch("/api/onboarding/draft", { method: "PUT", headers: { "content-type": "application/json" },
         body, keepalive: new Blob([body]).size < 60_000 }).catch(() => {});
@@ -612,7 +614,13 @@ export function OnboardingClient({ accountId, accountEmail, accountName, payment
     <main className={`${styles.page} ${inter.className}`}>
       <div className={styles.card}>
         <aside className={styles.rail} aria-label="Postup nastavení">
-          <Link href="/" className={styles.logo} aria-label="Splatno"><RibbonMark size={34} /><span>splatno</span></Link>
+          <div className={styles.railHeader}>
+            <Link href="/" className={styles.logo} aria-label="Splatno"><RibbonMark size={34} /><span>splatno</span></Link>
+            <OnboardingAccountSwitch
+              onBeforeSignOut={() => { leavingAccount.current = true; }}
+              onSignOutFailed={() => { leavingAccount.current = false; }}
+            />
+          </div>
           <div className={styles.mobileProgress}>
             <span>Krok {step} z 8 · <b>{STEPS[step - 1].title}</b></span>
             <span className={styles.progressBar} aria-hidden="true"><span style={{ width: `${(step / 8) * 100}%` }} /></span>

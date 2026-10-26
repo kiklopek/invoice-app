@@ -1,0 +1,16 @@
+[
+  {
+    "source": "/Users/tadeastrnka/Downloads/SPLATNO_V2_MASTER_PLAN.md",
+    "copy": "docs/redesign/00-master-plan.md",
+    "sha256": "1195632f3cba3b85213a5035096d9ce3d706178649cc541b22c37aa00d62b98d",
+    "read": true,
+    "role": "Planning reference for previously authorized P00; not approval to implement later phases."
+  },
+  {
+    "source": "/Users/tadeastrnka/Downloads/PHASE_SPEC_TEMPLATE.md",
+    "copy": "docs/redesign/prompts/phase-template.md",
+    "sha256": "bb09400dee5546e9503ec6a75599876324527ca2a1570719ea06838c2683f067",
+    "read": true,
+    "role": "Planning reference for previously authorized P00; not approval to implement later phases."
+  }
+]

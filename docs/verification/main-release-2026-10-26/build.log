@@ -1,0 +1,141 @@
+
+> invoice-reminder-app@0.1.0 build /Users/tadeastrnka/Desktop/invoice-app
+> node scripts/next-clean-env.mjs build --webpack
+
+▲ Next.js 16.4.1 (webpack)
+- Environments: .env.local
+✓ Running next.config.js took 19ms
+- Experiments (use with caution):
+  · staleTimes
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 49s
+  Running TypeScript ...
+  Finished TypeScript in 11.7s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/90) ...
+  Generating static pages using 7 workers (22/90) 
+  Generating static pages using 7 workers (44/90) 
+  Generating static pages using 7 workers (67/90) 
+✓ Generating static pages using 7 workers (90/90) in 982ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/access
+├ ƒ /api/auth/email-mfa/send
+├ ƒ /api/auth/email-mfa/verify
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/password-recovery
+├ ƒ /api/auth/register
+├ ƒ /api/auth/registration-access
+├ ƒ /api/auth/session-preference
+├ ƒ /api/billing
+├ ƒ /api/billing/activate
+├ ƒ /api/billing/setup
+├ ƒ /api/billing/stripe
+├ ƒ /api/billing/subscription
+├ ƒ /api/cron/check-due
+├ ƒ /api/cron/reconcile-payments
+├ ƒ /api/customers
+├ ƒ /api/customers/[id]
+├ ƒ /api/customers/search
+├ ƒ /api/dashboard
+├ ƒ /api/health
+├ ƒ /api/invitations/[token]
+├ ƒ /api/invoices
+├ ƒ /api/invoices/[id]
+├ ƒ /api/invoices/[id]/activity
+├ ƒ /api/invoices/[id]/assignable-payments
+├ ƒ /api/invoices/[id]/document
+├ ƒ /api/invoices/[id]/page-data
+├ ƒ /api/invoices/[id]/pdf
+├ ƒ /api/invoices/[id]/reminders
+├ ƒ /api/invoices/[id]/reminders/[reminderId]/retry
+├ ƒ /api/invoices/[id]/send
+├ ƒ /api/invoices/creation
+├ ƒ /api/invoices/creation/preview
+├ ƒ /api/invoices/extract
+├ ƒ /api/invoices/import
+├ ƒ /api/invoices/reminder-policy-preference
+├ ƒ /api/invoices/totals
+├ ƒ /api/invoices/upload
+├ ƒ /api/invoices/upload/verify
+├ ƒ /api/notifications
+├ ƒ /api/onboarding/ares
+├ ƒ /api/onboarding/draft
+├ ƒ /api/onboarding/organization
+├ ƒ /api/operator/support
+├ ƒ /api/payments
+├ ƒ /api/payments/assistance
+├ ƒ /api/payments/audit
+├ ƒ /api/payments/imports
+├ ƒ /api/payments/imports/[id]
+├ ƒ /api/payments/imports/[id]/commit
+├ ƒ /api/payments/imports/[id]/discard
+├ ƒ /api/payments/imports/[id]/release
+├ ƒ /api/payments/imports/overlap
+├ ƒ /api/payments/invoice-candidates
+├ ƒ /api/reminders
+├ ƒ /api/reminders/page-data
+├ ƒ /api/reports
+├ ƒ /api/reports/pdf
+├ ƒ /api/search
+├ ƒ /api/settings/bank-accounts
+├ ƒ /api/settings/company
+├ ƒ /api/settings/email-suppressions
+├ ƒ /api/settings/logo
+├ ƒ /api/settings/members
+├ ƒ /api/settings/members/invitation
+├ ƒ /api/settings/page-data
+├ ƒ /api/settings/reminder-policies
+├ ƒ /api/settings/reminders
+├ ƒ /api/settings/reminders/test
+├ ƒ /api/webhooks/resend
+├ ƒ /auth/callback
+├ ƒ /auth/recovery
+├ ƒ /customers
+├ ƒ /dashboard
+├ ○ /en
+├ ƒ /forgot-password
+├ ƒ /hlavica
+├ ƒ /hlavica/registrace
+├ ƒ /invoices
+├ ƒ /invoices/[id]
+├ ƒ /invoices/archive
+├ ƒ /invoices/create
+├ ƒ /invoices/import
+├ ƒ /invoices/new
+├ ƒ /invoices/payments
+├ ƒ /invoices/payments/archive
+├ ƒ /login
+├ ƒ /logo/[organizationId]
+├ ƒ /mfa
+├ ƒ /notifications
+├ ○ /ochrana-osobnich-udaju
+├   /og/[locale]
+│ ├ ● /og/cs
+│ └ ● /og/en
+├ ƒ /onboarding
+├ ○ /podminky
+├ ƒ /pozvanka/[token]
+├ ƒ /predplatne
+├ ƒ /provoz
+├ ƒ /register
+├ ƒ /reminders
+├ ƒ /reports
+├ ƒ /reset-password
+├ ○ /robots.txt
+├ ƒ /settings
+├ ƒ /settings/email-template
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

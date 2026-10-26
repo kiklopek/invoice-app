@@ -13,7 +13,7 @@ describe("role authorization", () => {
     // maintained allowlists that happened to agree by coincidence -- this
     // pins them to the SAME source so a future nav item can't silently drift
     // out of sync with what a reader is actually allowed to open.
-    expect(roleAccess).toContain('export const VIEWER_ALLOWED_PATHS = ["/dashboard", "/invoices", "/reports", "/customers"]');
+    expect(roleAccess).toContain('export const VIEWER_ALLOWED_PATHS = ["/dashboard", "/invoices", "/reports", "/customers", "/notifications"]');
     expect(sidebar).toContain("canAccessPage(role, item.href)");
     expect(sidebar).toContain("router.replace(landingPageForRole(role))");
   });
@@ -34,9 +34,12 @@ describe("role authorization", () => {
     const dashboard = source("src/app/(workspace)/dashboard/dashboard-client.tsx");
     const invoices = source("src/app/(workspace)/invoices/invoices-client.tsx");
     expect(dashboard).toContain("const canManage = canManageInvoices(role)");
-    expect(dashboard).toContain("{canManage ? <div className=\"top-actions dashboard-actions\">");
-    expect(invoices).toContain("{canManage ? <Link href=\"/invoices/import\"");
-    expect(invoices).toContain("{canManage ? <Link href=\"/invoices/new\"");
+    const topbar = source("src/components/layout/workspace-topbar.tsx");
+    expect(topbar).toContain("canManageInvoices(useAccessProfile()?.role ?? null)");
+    expect(topbar).toContain("canManage && (!mobile || dashboard)");
+    expect(topbar).toContain('href="/invoices/import"');
+    expect(topbar).toContain('href="/invoices/new"');
+    expect(invoices).toContain("canManage={canManage}");
   });
 
   it("allows read-only insights but enforces reader restrictions on operational endpoints", () => {

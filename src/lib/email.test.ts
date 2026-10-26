@@ -7,6 +7,8 @@ vi.mock("server-only", () => ({}));
 // Ověřuje se tu to, co může způsobit skutečnou škodu: odeslání z vývoje
 // na cizí adresu, dvojí doručení, a odeslání bez konfigurace.
 
+const suppression = vi.hoisted(() => ({ blocked: [] as string[], failed: false, org: "", payload: null as null | Record<string, unknown>, stageFailed: false }));
+
 const sent: Array<{ payload: Record<string, unknown>; options: Record<string, unknown> }> = [];
 
 vi.mock("resend", () => ({
@@ -22,7 +24,19 @@ vi.mock("resend", () => ({
 
 vi.mock("@/lib/supabase-server", () => ({
   createServiceClient: () => {
-    throw new Error("Nemá se volat, když je firma předaná parametrem.");
+    return { rpc: async (name: string, args: { email_payload: Record<string, unknown> }) => {
+      if (name !== "stage_invoice_email") throw new Error("Unexpected RPC");
+      if (suppression.stageFailed) return { data: null, error: { message: "db down" } };
+      suppression.payload ??= JSON.parse(JSON.stringify(args.email_payload));
+      return { data: suppression.payload, error: null };
+    }, from: (table: string) => {
+      if (table !== "email_suppressions") throw new Error("Company must be supplied by caller");
+      let recipients: string[] = [];
+      const query = { select: () => query, eq: (_key: string, value: string) => { suppression.org = value; return query; },
+        in: (_key: string, values: string[]) => { recipients = values; return query; },
+        limit: async () => ({ data: suppression.blocked.filter(email => recipients.includes(email)).map(email => ({ email })), error: suppression.failed ? { message: "db down" } : null }) };
+      return query;
+    } };
   },
 }));
 
@@ -45,6 +59,7 @@ const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   sent.length = 0;
+  suppression.blocked = []; suppression.failed = false; suppression.org = ""; suppression.payload = null; suppression.stageFailed = false;
   process.env.RESEND_API_KEY = "re_test";
   process.env.REMINDER_EMAIL_FROM = "Splatno <test@example.cz>";
   delete process.env.LOCAL_EMAIL_RECIPIENT_ALLOWLIST;
@@ -68,18 +83,46 @@ const send = async (extra: Record<string, unknown> = {}) => {
 };
 
 describe("sendReminderEmail", () => {
+  it("replays the exact persisted provider payload, including PDF bytes", async () => {
+    const delivery = { id: "delivery", leaseToken: "lease" };
+    await send({ delivery, attachment: { filename: "Faktura.pdf", content: new Uint8Array([1,2,3]) } });
+    const first = structuredClone(sent[0].payload);
+    await send({ delivery, attachment: { filename: "Faktura.pdf", content: new Uint8Array([4,5,6]) } });
+    expect(sent[1].payload).toEqual(first);
+    expect((sent[0].payload.attachments as Array<{content: string}>)[0].content).toBe("AQID");
+  });
+  it("does not contact Resend if the exact request cannot be persisted", async () => {
+    suppression.stageFailed = true;
+    await expect(send({ delivery: { id: "delivery", leaseToken: "lease" } })).rejects.toThrow("Obsah e-mailu");
+    expect(sent).toHaveLength(0);
+  });
+  it.each([undefined, "issue"] as const)("blocks suppressed recipients for purpose %s before contacting the provider", async purpose => {
+    suppression.blocked = ["odber@example.com"];
+    await expect(send({ to: " ODBER@example.com ", purpose })).rejects.toThrow("blokovaná");
+    expect(sent).toHaveLength(0);
+    expect(suppression.org).toBe("org-1");
+  });
+  it("blocks a suppressed CC and fails closed when suppression lookup fails", async () => {
+    suppression.blocked = ["copy@example.com"];
+    await expect(send({ template: { body: "Test", subject: "Test", cc: ["copy@example.com"] } })).rejects.toThrow("blokovaná");
+    suppression.failed = true;
+    await expect(send()).rejects.toThrow("nepodařilo ověřit");
+    expect(sent).toHaveLength(0);
+  });
   it("brands password recovery with the same default PNG", async () => {
     process.env.APP_BASE_URL = "https://app.example.cz";
     process.env.AUTH_EMAIL_DELIVERY_ENABLED = "true";
     const { sendPasswordRecoveryEmail } = await import("./password-recovery-server");
     await sendPasswordRecoveryEmail({ email: "user@example.com", recoveryUrl: "https://app.example.cz/reset-password", userId: "fixture" });
-    expect(sent[0].payload.html).toContain('src="https://app.example.cz/brand/splatno-mark.png"');
+    expect(sent[0].payload.html).toContain('src="https://app.example.cz/brand/splatno-auth-mark.png"');
     expect(sent[0].payload.html).toContain("https://app.example.cz/reset-password");
   });
-  it("sends the Splatno fallback logo as an absolute PNG URL", async () => {
+  it("embeds the current Splatno fallback PNG in the outgoing email", async () => {
     process.env.APP_BASE_URL = "https://app.example.cz";
     await send();
-    expect(sent[0].payload.html).toContain('src="https://app.example.cz/brand/splatno-mark.png"');
+    expect(sent[0].payload.html).toContain('src="cid:splatno-email-mark"');
+    const logo = (sent[0].payload.attachments as Array<{ contentId?: string; content: Buffer }>).find(item => item.contentId === 'splatno-email-mark');
+    expect(logo?.content.equals(await (await import('node:fs/promises')).readFile('public/brand/splatno-auth-mark.png'))).toBe(true);
     expect(sent[0].payload.html).toContain('alt="Splatno"');
     expect(sent[0].payload.subject).toContain(company.name);
   });
@@ -88,7 +131,7 @@ describe("sendReminderEmail", () => {
     process.env.APP_BASE_URL = "https://app.example.cz";
     await send({ company: { ...company, logo_path: "/logo/company?v=42" } });
     expect(sent[0].payload.html).toContain('src="https://app.example.cz/logo/company?v=42"');
-    expect(sent[0].payload.html).not.toContain("splatno-mark.png");
+    expect(sent[0].payload.html).not.toContain("splatno-auth-mark.png");
   });
   it("sends to the testing mailbox only when enabled, retaining other issuer blocks", async () => {
     const ownCompany = { ...company, email: "info@hlavica.cz" };
@@ -158,14 +201,16 @@ describe("sendReminderEmail", () => {
   it("sends no QR code when the account would not pass the checksum", async () => {
     await send({ company: { ...company, bank_account_czk: "123456789/0800" } });
     const payload = sent[0].payload as { html: string; attachments?: unknown[] };
-    expect(payload.attachments).toBeUndefined();
-    expect(payload.html).not.toContain("cid:");
+    expect(payload.attachments).toHaveLength(1);
+    expect(payload.html).not.toContain("cid:qr-platba");
+    expect(payload.html).toContain("cid:splatno-email-mark");
   });
 
   it("only sets cc when there is something to copy", async () => {
     await send();
     expect((sent[0].payload as { cc?: unknown }).cc).toBeUndefined();
     sent.length = 0;
+  suppression.blocked = []; suppression.failed = false; suppression.org = ""; suppression.payload = null; suppression.stageFailed = false;
     await send({ template: { subject: "S", body: "B", cc: ["ucetni@example.cz"] } });
     expect((sent[0].payload as { cc?: string[] }).cc).toEqual(["ucetni@example.cz"]);
   });

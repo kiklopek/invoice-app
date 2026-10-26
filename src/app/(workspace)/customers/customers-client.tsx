@@ -1,5 +1,7 @@
 "use client";
 
+import { ExactMoney } from "@/components/money-amount";
+import { CloseIcon } from "@/components/close-icon";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
@@ -10,12 +12,8 @@ import { apiFetch } from "@/lib/api-client";
 import type { CustomerSummary, CustomersPageData } from "@/lib/customers-page-data";
 import { createTextMatcher, searchFields } from "@/lib/text-search";
 
-const moneyFormatter = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
 function CustomerAmount({ value }: { value: number }) {
-  const parts = moneyFormatter.formatToParts(value);
-  const number = parts.filter((part) => part.type !== "currency").map((part) => part.value).join("").trim();
-  const currency = parts.find((part) => part.type === "currency")?.value;
-  return <span className="customer-amount"><span className="customer-amount-number">{number}</span>{" "}<span>{currency}</span></span>;
+  return <ExactMoney value={value} className="customer-amount" />;
 }
 const date = (value: string | null) =>
   value ? new Intl.DateTimeFormat("cs-CZ").format(new Date(`${value}T12:00:00`)) : "—";
@@ -185,38 +183,30 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
 
       {exportError && <p className="form-error">{exportError}</p>}
 
-      <section className="page-panel customers-toolbar" aria-label="Vyhledávání zákazníků">
-        <label>
-          <span>Vyhledat zákazníka</span>
-          <span className="customers-search-field">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Název, IČO, DIČ, kontakt, adresa nebo poznámka"
-              enterKeyHint="search"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} aria-label="Vymazat hledání">
-                ×
-              </button>
-            )}
-          </span>
-        </label>
-        <div className="customers-toolbar-meta">
-          <strong>{filtered.length}</strong>
-          <span>{filtered.length === 1 ? "nalezený zákazník" : filtered.length > 1 && filtered.length < 5 ? "nalezení zákazníci" : "nalezených zákazníků"}</span>
-        </div>
-      </section>
-
-      <section className="page-panel data-panel customers-table">
-        <header className="panel-head customers-table-head">
-          <div>
-            <small>ADRESÁŘ ODBĚRATELŮ</small>
-            <h2>Přehled zákazníků</h2>
-            <p>Řazení změníte kliknutím na název sloupce.</p>
+      <section className="page-panel data-panel customers-table" aria-label="Zákazníci">
+        <div className="customers-toolbar" role="search" aria-label="Vyhledávání zákazníků">
+          <label>
+            <span>Vyhledat zákazníka</span>
+            <span className="customers-search-field">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Název, IČO, DIČ, kontakt, adresa nebo poznámka"
+                enterKeyHint="search"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} aria-label="Vymazat hledání">
+                  <CloseIcon />
+                </button>
+              )}
+            </span>
+          </label>
+          <div className="customers-toolbar-meta">
+            <strong>{filtered.length}</strong>
+            <span>{filtered.length === 1 ? "nalezený zákazník" : filtered.length > 1 && filtered.length < 5 ? "nalezení zákazníci" : "nalezených zákazníků"}</span>
           </div>
-        </header>
+        </div>
         {filtered.length ? (
           <div className="large-table customers-list-table">
             <table>
@@ -276,7 +266,9 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                                 disabled={savingEmail}
                               />
                               <button type="submit" disabled={savingEmail} aria-label="Uložit e-mail"><Icon name="check" /></button>
-                              <button type="button" onClick={() => setEditingEmailId(null)} disabled={savingEmail} aria-label="Zrušit úpravu e-mailu">×</button>
+                              <button type="button" onClick={() => setEditingEmailId(null)} disabled={savingEmail} aria-label="Zrušit úpravu e-mailu">
+                                <CloseIcon />
+                              </button>
                             </span>
                             <small>Změní se i příjemce upomínek u neuhrazených faktur.</small>
                             {emailError && <small className="red-text" role="alert">{emailError}</small>}

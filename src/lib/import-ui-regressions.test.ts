@@ -9,6 +9,8 @@ const mfaPage = source("src/app/(auth)/mfa/page.tsx");
 const gpcImport = source(
   "src/app/(workspace)/invoices/payments/gpc-import-panel.tsx",
 );
+const matchingWorkspace = source("src/app/(workspace)/invoices/payments/payment-matching-workspace.tsx");
+const matchingCss = source("src/app/(workspace)/invoices/payments/payment-matching.module.css");
 const paymentsUploadPage = source(
   "src/app/(workspace)/invoices/payments/payments-client.tsx",
 );
@@ -28,47 +30,33 @@ describe("MFA and bank statement UI regressions", () => {
     expect(mfaPage).toContain('<p className={styles.resend}');
   });
 
-  it("explains GPC totals and names the current import stage in the file summary", () => {
-    expect(gpcImport).toContain("const activeImportStep =");
-    expect(gpcImport).toContain(
-      '["Soubor", "Náhled", "Kontrola", "Potvrzení", "Výsledek"][activeImportStep]',
-    );
-    expect(gpcImport).toContain("Příchozí platby připravené ke kontrole.");
-    expect(gpcImport).toContain("Odchozí, cizoměnové nebo duplicitní řádky.");
-    expect(gpcImport).toContain('["duplicate", "Duplicity"]');
-    expect(css).toContain(".import-steps span.current");
-    expect(gpcImport).toContain('className="account-warning-icon"');
-    expect(gpcImport).toContain("Potvrdit kontrolu");
-    expect(gpcImport).toContain('className="account-warning-check"');
-    expect(css).toContain("grid-template-columns: 40px minmax(0, 1fr) auto;");
-    expect(css).toContain(".account-warning > .account-warning-confirm");
-    expect(css).toContain(".account-warning > .account-warning-icon {");
-    expect(css).toContain("overflow: hidden;");
-    expect(css).toContain(".payments-page .gpc-safety-card li::before");
-    expect(css).toContain("grid-template-columns: 48px minmax(0, 1fr);");
-    expect(css).toContain("grid-column: 1 / -1;");
+  it("shows processing stages and separate accepted, ignored and invalid totals", () => {
+    expect(gpcImport).toContain('<ImportProcessingView kind="statement"');
+    expect(matchingWorkspace).toContain("data.preview.total_entries");
+    for (const label of ["Přijaté", "Ignorované", "Chyby", "Celkem"]) expect(matchingWorkspace).toContain(`<dt>${label}</dt>`);
+    expect(matchingWorkspace).toContain("Bankovní účet vyžaduje kontrolu");
+    expect(matchingWorkspace).toContain("Potvrdit kontrolu bankovního účtu");
+    expect(matchingWorkspace).toContain("onAccountAck(event.target.checked)");
   });
 
-  it("lays out the proposed combination action without crowding its explanation", () => {
-    expect(gpcImport).toContain('className="gpc-proposal-row"');
-    expect(gpcImport).toContain("const hasReviewableProposal =");
-    expect(css).toContain(".payments-page .gpc-proposal-row");
-    expect(css).toContain(".payments-page .gpc-proposal-button");
+  it("keeps a proposed combination in the row actions with an explicit choice", () => {
+    expect(matchingWorkspace).toContain("Použít navrženou kombinaci");
+    expect(matchingWorkspace).toContain("data.onSelected(key, entry.proposed_invoice_ids)");
+    expect(matchingWorkspace).toContain("<MatchingPopover label={`Akce platby");
   });
 
-  it("keeps the booked-payment correction available without emphasizing it", () => {
-    expect(gpcImport).toContain('className="btn secondary compact gpc-release-button"');
-    expect(gpcImport).toContain('aria-label="Uvolnit platbu a přiřadit ji jinak"');
-    expect(gpcImport).toContain("Změnit přiřazení");
-    expect(css).toContain(".payments-page .gpc-entry-booked .gpc-release-button");
-    expect(css).toContain("min-height: 40px");
+  it("keeps booked-payment correction available in the row menu", () => {
+    expect(matchingWorkspace).toContain("Uvolnit platbu a změnit přiřazení");
+    expect(matchingWorkspace).toContain("data.onRelease(entry)");
+    expect(matchingWorkspace).toContain("entry.bank_payment_id && data.canManage");
+    expect(matchingWorkspace).toContain("className={styles.rowMenu}");
   });
 
-  it("aligns the open assignment editor to one consistent content width", () => {
-    expect(gpcImport).toContain('className="gpc-allocation-field"');
-    expect(css).toContain(".payments-page .invoice-choice-list label:only-child");
-    expect(css).toContain(".payments-page .gpc-allocation-field");
-    expect(css).toContain("width: min(calc(100% - 40px), 720px)");
+  it("bounds the assignment editor to the viewport and keeps candidate scrolling inside", () => {
+    expect(matchingWorkspace).toContain("<MatchingDropdown");
+    expect(matchingCss).toMatch(/\.dropdownPanel \{[^}]*width: min\(440px, calc\(100vw - 24px\)\)/);
+    expect(matchingCss).toContain(".dropdownPanel .invoiceOptions { max-height: 180px;");
+    expect(source("src/app/(workspace)/invoices/payments/payment-matching-popover.tsx")).toContain("window.visualViewport");
   });
 
   it("lays out payment history without a wide table or visible transaction IDs", () => {

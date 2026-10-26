@@ -12,6 +12,7 @@ export type Plan = {
   name: string;
   note: string;
   monthlyCzk: number;
+  monthlyInvoiceLimit: number | null;
   featured?: boolean;
   features: string[];
 };
@@ -28,6 +29,7 @@ export const PLANS: Plan[] = [
     name: "Start",
     note: "Pro menší firmy, které začínají.",
     monthlyCzk: 790,
+    monthlyInvoiceLimit: 100,
     features: ["Až 100 faktur měsíčně", "Základní funkce", "E-mailová podpora"],
   },
   {
@@ -35,6 +37,7 @@ export const PLANS: Plan[] = [
     name: "Profi",
     note: "Pro rostoucí firmy.",
     monthlyCzk: 1590,
+    monthlyInvoiceLimit: 500,
     featured: true,
     features: ["Až 500 faktur měsíčně", "Automatické upomínky", "Pokročilé reporty", "Prioritní podpora"],
   },
@@ -43,6 +46,7 @@ export const PLANS: Plan[] = [
     name: "Business",
     note: "Pro větší firmy.",
     monthlyCzk: 2990,
+    monthlyInvoiceLimit: null,
     features: ["Neomezený počet faktur", "Všechny funkce", "Individuální nastavení", "Osobní podpora"],
   },
 ];

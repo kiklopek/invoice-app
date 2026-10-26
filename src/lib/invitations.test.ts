@@ -47,7 +47,7 @@ describe("invitation e-mail", () => {
       companyName: "Novák", companyLogo, inviterName: "Jana", role: "viewer",
       url: "https://app.example.cz/pozvanka/token", expiresAt: new Date("2026-10-14T10:00:00Z"),
     });
-    expect(email.html).toContain(`src="https://app.example.cz${companyLogo ?? "/brand/splatno-mark.png"}"`);
+    expect(email.html).toContain(`src="https://app.example.cz${companyLogo ?? "/brand/splatno-auth-mark.png"}"`);
     expect(email.html).toContain("Novák vás zve do Splatna");
   });
   it("names the company, the role and the expiry, and escapes every value", () => {

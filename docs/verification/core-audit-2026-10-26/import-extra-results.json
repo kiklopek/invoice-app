@@ -1,0 +1,41 @@
+[
+  {
+    "name": "GPC real API upload and parsing",
+    "http": 201,
+    "totals": {
+      "errors": 0,
+      "ignored": 0,
+      "accepted": 1
+    },
+    "duplicate": false,
+    "id": "1c172f09-6690-47d4-91f6-0d8e42da8e36"
+  },
+  {
+    "name": "same GPC upload returns existing import",
+    "http": 200,
+    "totals": {
+      "errors": 0,
+      "ignored": 0,
+      "accepted": 1
+    },
+    "duplicate": true,
+    "id": "1c172f09-6690-47d4-91f6-0d8e42da8e36"
+  },
+  {
+    "name": "malformed statement rejected",
+    "http": 400
+  },
+  {
+    "name": "unsupported invoice file type rejected",
+    "http": 400
+  },
+  {
+    "name": "oversized invoice file rejected",
+    "http": 400
+  },
+  {
+    "name": "actual authenticated search",
+    "http": 200,
+    "result_count": 4
+  }
+]

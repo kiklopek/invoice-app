@@ -102,7 +102,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-radius: 9px;
 }
 .login-company-logo { width: 82px; height: auto; object-fit: contain; }
-.splatno-mark { width: 40px; height: 40px; display: block; margin-bottom: 10px; border-radius: 12px; box-shadow: var(--raised-small); }
+.splatno-mark { width: 40px; height: 40px; display: block; margin-bottom: 10px; object-fit: contain; }
 .sidebar nav {
   flex: none;
   gap: 12px;
@@ -428,7 +428,9 @@ input, select, textarea,
   color: var(--ink);
   font-size: 12px;
 }
-select:not([multiple]) {
+select:not([multiple]):not([size]),
+select:not([multiple])[size="0"],
+select:not([multiple])[size="1"] {
   --select-chevron-size: 20px;
   --select-chevron-offset: 12px;
   --select-chevron-padding: calc(var(--select-chevron-offset) + var(--select-chevron-size) + 8px);
@@ -3106,10 +3108,9 @@ th,
   grid-template-columns: minmax(260px, 1fr) auto;
   align-items: end;
   gap: 18px;
-  margin-bottom: 14px;
+  margin: 0;
   padding: 15px 17px;
-  border-radius: 15px;
-  box-shadow: 0 5px 16px rgba(37, 64, 47, .035);
+  border-bottom: 1px solid var(--line);
 }
 .customers-toolbar > label { min-width: 0; }
 .search-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
@@ -3140,11 +3141,6 @@ th,
 .customers-toolbar-meta span { color: var(--muted); font-size: 14px; }
 
 .customers-table { border-radius: 17px; box-shadow: 0 8px 24px rgba(37, 64, 47, .05); }
-.customers-table-head { display: flex; align-items: center; gap: 18px; padding: 19px 21px; background: linear-gradient(90deg, #f7f9f6, #fff); }
-.customers-table-head > div { min-width: 0; }
-.customers-table-head small { display: block; margin-bottom: 6px; color: var(--green); font-size: 12px; line-height: 1.5; font-weight: 750; letter-spacing: .7px; }
-.customers-table-head h2 { margin: 0; font-size: 22px; line-height: 1.35; }
-.customers-page .customers-table-head p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .customers-list-table table { min-width: 940px; }
 .customers-list-table th { background: #fafbf9; font-size: 12px; }
 .customers-list-table th .sort-header { max-width: 100%; white-space: normal; line-height: 1.35; }
@@ -3268,7 +3264,6 @@ th,
   .customers-toolbar { grid-template-columns: 1fr; gap: 10px; }
   .customers-search-field { max-width: none; }
   .customers-toolbar-meta { padding: 0; }
-  .customers-table-head { align-items: flex-start; flex-direction: column; gap: 10px; }
   .customers-list-table { overflow: visible; padding: 10px; }
   .customers-list-table table,
   .customers-list-table tbody { display: block; width: 100%; min-width: 0; }
@@ -3572,10 +3567,35 @@ th,
    (--popup-shift-x) a u spodního okraje ho otevře nahoru (data-placement).
    `translate` se skládá s případným `transform` animace. Menu v <details> se
    ukáže až po změření, aby neproblikla poloha mimo obrazovku. */
-[data-popup] { translate: var(--popup-shift-x, 0px) 0; }
+[data-popup] {
+  translate: var(--popup-shift-x, 0px) var(--popup-shift-y, 0px);
+  box-sizing: border-box;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: min(var(--popup-max-width, calc(100dvw - 24px)), calc(100dvw - 24px)) !important;
+  max-height: min(var(--popup-max-height, calc(100dvh - 24px)), calc(100dvh - 24px)) !important;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+[data-popup] :is(input, select, button, a) { max-width: 100%; }
+[data-popup][data-popup-layer] {
+  position: fixed !important;
+  inset: var(--popup-top) auto auto var(--popup-left) !important;
+  width: var(--popup-width) !important;
+  margin: 0 !important;
+}
 [data-popup][data-placement="above"] { top: auto !important; bottom: calc(100% + 8px) !important; }
 [data-popup][data-placement="below"] { bottom: auto !important; top: calc(100% + 8px) !important; }
 details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
+
+/* Exact financial values scroll within their own cell when unusually long. */
+.customer-amount { display: inline-block; white-space: nowrap; overflow-x: auto; }
+.customer-billing-cell, .customer-outstanding-cell { min-width: 0; }
+.customer-invoices-link, .outstanding-badge { max-width: 100%; min-width: 0; }
+.payment-history-summary, .payment-history-allocations { min-width: 0; }
+.payment-history-summary > strong { min-width: 0; max-width: 100%; }
+.quick-payment-summary > strong { display: block; max-width: 100%; white-space: nowrap; overflow-x: auto; font-variant-numeric: tabular-nums; }
 
 @media print {
   html,

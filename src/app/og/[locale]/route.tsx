@@ -28,7 +28,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ loc
         <span>{landing.hero.titleLine2}</span>
       </div>
       <div style={{ display: "flex", marginTop: 30, fontSize: 32 }}>{landing.hero.lead}</div>
-      <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: "#47765b" }}>splatno.cz</div>
+      <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: "#47765b" }}>splatno.com</div>
     </div>,
     {
       width: 1200, height: 630,

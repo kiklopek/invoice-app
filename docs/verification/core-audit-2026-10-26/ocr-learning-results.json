@@ -1,0 +1,8 @@
+{
+  "status": "CONFIRMED_NO_REUSE_IN_THIS_SCENARIO",
+  "saved_review_count": 1,
+  "corrected_customer_name": "Audit odběratel B",
+  "second_ocr_customer_name": "Audit firma A Audit odběratel B",
+  "second_name_decision": "verified",
+  "model": "local-tesseract-v3-geometry"
+}

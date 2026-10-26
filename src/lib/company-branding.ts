@@ -1,6 +1,7 @@
 export const DEFAULT_COMPANY_LOGO = "/brand/splatno-mark.svg";
 // Raster asset for mail clients that do not display SVG.
-export const DEFAULT_EMAIL_LOGO = "/brand/splatno-mark.png";
+export const DEFAULT_EMAIL_LOGO = "/brand/splatno-auth-mark.png";
+export const DEFAULT_EMAIL_LOGO_CID = "splatno-email-mark";
 const DEFAULT_APP_URL = "https://www.splatno.cz";
 
 export function safeCompanyLogoSource(value: string | null | undefined): string | null {
@@ -27,9 +28,12 @@ export function companyEmailLogoSource(logoPath: string | null | undefined, base
   }
 }
 
-export function renderCompanyEmailLogo(logoPath: string | null | undefined, companyName: string, baseUrl?: string | null) {
-  const source = companyEmailLogoSource(logoPath, baseUrl);
+export function renderCompanyEmailLogo(logoPath: string | null | undefined, companyName: string, baseUrl?: string | null, inlineDefault = false) {
+  let source = companyEmailLogoSource(logoPath, baseUrl);
   const isDefault = !safeCompanyLogoSource(logoPath) || source.endsWith(DEFAULT_EMAIL_LOGO);
+  if (inlineDefault && isDefault) source = `cid:${DEFAULT_EMAIL_LOGO_CID}`;
+  const width = isDefault ? 64 : 91;
+  const height = isDefault ? 86 : 85;
   const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  return `<img src="${escape(source)}" width="91" height="85" alt="${escape(isDefault ? "Splatno" : companyName)}" style="display:block;width:91px;height:85px;border:0;outline:none;text-decoration:none;object-fit:contain;">`;
+  return `<img src="${escape(source)}" width="${width}" height="${height}" alt="${escape(isDefault ? "Splatno" : companyName)}" style="display:block;width:${width}px;height:${height}px;border:0;outline:none;text-decoration:none;object-fit:contain;">`;
 }

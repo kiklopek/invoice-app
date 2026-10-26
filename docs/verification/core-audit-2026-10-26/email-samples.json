@@ -1,0 +1,24 @@
+[
+  {
+    "kind": "issue",
+    "id": "01a17822-662d-707a-90d9-c96bc51ae444",
+    "error": null,
+    "pdf_bytes": 51710,
+    "requested_recipient": "user-authorized single recipient",
+    "at": "2026-10-26T12:14:42.917Z",
+    "provider_status": "delivered",
+    "status_check_error": null,
+    "status_checked_at": "2026-10-26T12:23:18.601Z"
+  },
+  {
+    "kind": "reminder",
+    "id": "01a17822-679c-7bff-bab8-9b6b554201d2",
+    "error": null,
+    "pdf_bytes": 0,
+    "requested_recipient": "user-authorized single recipient",
+    "at": "2026-10-26T12:14:43.181Z",
+    "provider_status": "delivered",
+    "status_check_error": null,
+    "status_checked_at": "2026-10-26T12:23:18.912Z"
+  }
+]

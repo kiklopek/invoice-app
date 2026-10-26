@@ -1,7 +1,7 @@
 import "server-only";
 
 import Stripe from "stripe";
-import { lookupKey, parseLookupKey, type BillingPeriod, type PlanId } from "@/lib/plans";
+import { lookupKey, parseLookupKey, quote, type BillingPeriod, type PlanId } from "@/lib/plans";
 
 // Stripe pro předplatné Splatna. Klíče jsou jen na serveru; bez nich je
 // předplatné vypnuté a API odpoví 503 (nic se tiše nepředstírá).
@@ -41,6 +41,9 @@ export async function priceFor(stripe: Stripe, plan: PlanId, period: BillingPeri
   const prices = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 });
   const price = prices.data[0];
   if (!price) throw new Error(`stripe_price_missing:${key}`);
+  if (price.currency !== "czk" || price.unit_amount !== quote(plan, period).netHalere || price.recurring?.interval !== (period === "yearly" ? "year" : "month") || price.recurring.interval_count !== 1) {
+    throw new Error(`stripe_price_configuration_mismatch:${key}`);
+  }
   priceCache.set(key, { id: price.id, at: Date.now() });
   return price.id;
 }

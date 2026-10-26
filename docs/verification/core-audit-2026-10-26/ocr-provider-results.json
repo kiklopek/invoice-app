@@ -1,0 +1,92 @@
+[
+  {
+    "kind": "text-pdf",
+    "status": "PASS",
+    "elapsed_ms": 1758,
+    "text_length": 652,
+    "invoice": {
+      "invoice_number": "AUDIT-20261026",
+      "counterparty_name": "Audit firma A Audit odběratel B",
+      "counterparty_ico": "87654321",
+      "counterparty_dic": "CZ87654321",
+      "counterparty_email": "firma@dodavatel.example",
+      "variable_symbol": "2026000027",
+      "amount_without_vat": 1000,
+      "vat_rate": 21,
+      "amount": 1210,
+      "money_evidence": {
+        "original_total": 1210,
+        "total_source": "read",
+        "adjustment": 0,
+        "adjustment_reason": "",
+        "adjustment_confirmed": false,
+        "initial_paid": 0,
+        "initial_paid_confirmed": false,
+        "multi_rate": false,
+        "source": {
+          "page": 1,
+          "line": 17,
+          "text": "Celkem k úhradě 1 210,00 Kč",
+          "method": "ocr",
+          "confidence": null,
+          "bounds": null
+        }
+      },
+      "currency": "CZK",
+      "issue_date": "",
+      "due_date": "",
+      "notes": "",
+      "source": "ocr",
+      "file_url": "synthetic.pdf"
+    },
+    "warning_count": 2
+  },
+  {
+    "kind": "scan-image",
+    "status": "PASS",
+    "elapsed_ms": 2957,
+    "text_length": 963,
+    "invoice": {
+      "invoice_number": "AUDIT-20261026",
+      "counterparty_name": "Audit odbératel B",
+      "counterparty_ico": "87654321",
+      "counterparty_dic": "CZ87654321",
+      "counterparty_email": "",
+      "variable_symbol": "2026000027",
+      "amount_without_vat": 1000,
+      "vat_rate": 21,
+      "amount": 1210,
+      "money_evidence": {
+        "original_total": 1210,
+        "total_source": "read",
+        "adjustment": 0,
+        "adjustment_reason": "",
+        "adjustment_confirmed": false,
+        "initial_paid": 0,
+        "initial_paid_confirmed": false,
+        "multi_rate": false,
+        "source": {
+          "page": 1,
+          "line": 63,
+          "text": "1 210,00 Kč",
+          "method": "ocr",
+          "confidence": null,
+          "bounds": null
+        }
+      },
+      "currency": "CZK",
+      "issue_date": "2026-10-25",
+      "due_date": "2026-11-08",
+      "notes": "",
+      "source": "ocr",
+      "file_url": "synthetic.pdf"
+    },
+    "warning_count": 1
+  },
+  {
+    "kind": "configured-gemini-provider",
+    "status": "FAIL",
+    "error": "GEMINI_API_KEY nemá formát platného klíče Google AI Studio (očekáváno \"AIzaSy...\", 39 znaků). Zkontrolujte konfiguraci.",
+    "code": "invalid_key_format"
+  }
+]

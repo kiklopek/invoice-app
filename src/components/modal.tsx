@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
-// Shared native-<dialog> primitive so every modal in the app gets a real
-// focus trap and native Escape handling for free from the browser, instead of
+// Shared native-<dialog> primitive. Modal dialogs default to a real
+// focus trap and native Escape handling from the browser; support chat can opt
+// into a modeless, portalled window that keeps the page usable. This avoids
 // each call site hand-rolling its own role="dialog" div + keydown listener
 // (which never actually traps focus). Mirrors the technique already used by
 // src/lib/confirm-action.ts's imperative confirm dialog.
 export function Modal({
   open,
+  modal = true,
+  id,
   onClose,
   closeDisabled = false,
   labelledBy,
@@ -16,6 +20,8 @@ export function Modal({
   children,
 }: {
   open: boolean;
+  modal?: boolean;
+  id?: string;
   onClose: () => void;
   closeDisabled?: boolean;
   labelledBy: string;
@@ -34,9 +40,10 @@ export function Modal({
     // so this only ever needs to open a not-yet-open dialog.
     if (open && ref.current && !ref.current.open) {
       opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      ref.current.showModal();
+      if (modal) ref.current.showModal();
+      else ref.current.show();
     }
-  }, [open]);
+  }, [open, modal]);
 
   useEffect(() => {
     if (open) return;
@@ -47,13 +54,32 @@ export function Modal({
     if (trigger?.isConnected) trigger.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (!open || modal) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || closeDisabled || document.querySelector("dialog:modal")) return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", dismiss);
+    return () => window.removeEventListener("keydown", dismiss);
+  }, [open, modal, closeDisabled, onClose]);
+
   if (!open) return null;
 
-  return (
+  const dialog = (
     <dialog
       ref={ref}
+      id={id}
       className={`modal ${className}`.trim()}
       aria-labelledby={labelledBy}
+      onKeyDown={(event) => {
+        if (!modal && event.key === "Escape" && !closeDisabled) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
       onCancel={(event) => {
         if (closeDisabled) event.preventDefault();
       }}
@@ -65,4 +91,6 @@ export function Modal({
       {children}
     </dialog>
   );
+  // Modeless support windows must escape clipping/stacking contexts of page shells.
+  return modal ? dialog : createPortal(dialog, document.body);
 }

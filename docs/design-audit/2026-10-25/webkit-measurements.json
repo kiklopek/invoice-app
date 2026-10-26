@@ -1,0 +1,4536 @@
+[
+  {
+    "route": "/dashboard",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 12,
+      "y": 80,
+      "w": 366,
+      "h": 44
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2606
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Celkem faktur",
+        "x": 81,
+        "y": 364,
+        "w": 98,
+        "h": 17
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 81,
+        "y": 502,
+        "w": 98,
+        "h": 17
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 269,
+        "y": 502,
+        "w": 98,
+        "h": 17
+      },
+      {
+        "label": "Faktury v čase",
+        "x": 29,
+        "y": 642,
+        "w": 122,
+        "h": 22
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 28,
+        "y": 990,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 240,
+        "y": 1428,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 42,
+        "y": 1503,
+        "w": 84,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 42,
+        "y": 1667,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 42,
+        "y": 1815,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 42,
+        "y": 1964,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 42,
+        "y": 2112,
+        "w": 87,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "10px"
+      },
+      {
+        "label": "Po splatnosti",
+        "size": "10px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "10px"
+      },
+      {
+        "label": "Splatnost",
+        "size": "10px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Čeká na úhradu",
+        "size": "10px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "10px"
+      },
+      {
+        "label": "Splatnost",
+        "size": "10px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Částečně uhrazeno",
+        "size": "10px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "10px"
+      },
+      {
+        "label": "Splatnost",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Poslední 3 měsíce\nPosledních 6 měsíců\nPosledních 12 měsíců\nZa celé období",
+        "font": "12px",
+        "x": 12,
+        "y": 273,
+        "w": 194,
+        "h": 38
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard?chart-options",
+    "w": 390,
+    "h": 844,
+    "popup": {
+      "x": 12,
+      "y": 605.859375,
+      "width": 210,
+      "height": 123
+    }
+  },
+  {
+    "route": "/dashboard",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 2165
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Celkem faktur",
+        "x": 107,
+        "y": 366,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 482,
+        "y": 366,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 107,
+        "y": 514,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 482,
+        "y": 514,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 36,
+        "y": 913,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 610,
+        "y": 1235,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 53,
+        "y": 1323,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0001",
+        "x": 706,
+        "y": 1329,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 53,
+        "y": 1374,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0002",
+        "x": 706,
+        "y": 1380,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 53,
+        "y": 1427,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0003",
+        "x": 706,
+        "y": 1433,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 53,
+        "y": 1480,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0004",
+        "x": 706,
+        "y": 1486,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 53,
+        "y": 1531,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0005",
+        "x": 706,
+        "y": 1537,
+        "w": 22,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026004",
+        "size": "11px"
+      },
+      {
+        "label": "faktury3@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026005",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      },
+      {
+        "label": "Poslední 3 měsíce\nPosledních 6 měsíců\nPosledních 12 měsíců\nZa celé období",
+        "font": "12px",
+        "x": 16,
+        "y": 278,
+        "w": 194,
+        "h": 38
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 286,
+      "y": 20,
+      "w": 1122,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 900
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 300,
+        "y": 42,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Celkem faktur",
+        "x": 377,
+        "y": 204,
+        "w": 165,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 672,
+        "y": 204,
+        "w": 145,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 947,
+        "y": 204,
+        "w": 148,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 1225,
+        "y": 204,
+        "w": 158,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 903,
+        "y": 354,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 848,
+        "y": 581,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 320,
+        "y": 669,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0001",
+        "x": 944,
+        "y": 667,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 320,
+        "y": 707,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0002",
+        "x": 944,
+        "y": 705,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 320,
+        "y": 755,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0003",
+        "x": 944,
+        "y": 752,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 320,
+        "y": 802,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0004",
+        "x": 944,
+        "y": 800,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 320,
+        "y": 840,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0005",
+        "x": 944,
+        "y": 838,
+        "w": 22,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026004",
+        "size": "11px"
+      },
+      {
+        "label": "faktury3@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 330,
+        "y": 21,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "Poslední 3 měsíce\nPosledních 6 měsíců\nPosledních 12 měsíců\nZa celé období",
+        "font": "12px",
+        "x": 1204,
+        "y": 116,
+        "w": 194,
+        "h": 38
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "Zobrazit fakturu FV-2026-0003. Ověřuji stav…",
+        "x": 1017,
+        "y": 752,
+        "w": 378,
+        "h": 67
+      },
+      {
+        "label": "Zobrazit fakturu FV-2026-0004. Ověřuji stav…",
+        "x": 1017,
+        "y": 820,
+        "w": 378,
+        "h": 67
+      }
+    ]
+  },
+  {
+    "route": "/invoices",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 1511
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "1443260143",
+        "x": 89,
+        "y": 293,
+        "w": 78,
+        "h": 17
+      },
+      {
+        "label": "260612",
+        "x": 89,
+        "y": 434,
+        "w": 47,
+        "h": 17
+      },
+      {
+        "label": "260615",
+        "x": 89,
+        "y": 576,
+        "w": 47,
+        "h": 17
+      },
+      {
+        "label": "260620",
+        "x": 89,
+        "y": 717,
+        "w": 47,
+        "h": 17
+      },
+      {
+        "label": "260617",
+        "x": 89,
+        "y": 859,
+        "w": 47,
+        "h": 17
+      },
+      {
+        "label": "260618",
+        "x": 89,
+        "y": 1000,
+        "w": 47,
+        "h": 17
+      },
+      {
+        "label": "260619",
+        "x": 89,
+        "y": 1165,
+        "w": 47,
+        "h": 17
+      },
+      {
+        "label": "260621",
+        "x": 89,
+        "y": 1306,
+        "w": 47,
+        "h": 17
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Po splatnosti",
+        "size": "11px"
+      },
+      {
+        "label": "Po splatnosti",
+        "size": "11px"
+      },
+      {
+        "label": "Po splatnosti",
+        "size": "11px"
+      },
+      {
+        "label": "Čeká na úhradu",
+        "size": "11px"
+      },
+      {
+        "label": "Čeká na úhradu",
+        "size": "11px"
+      },
+      {
+        "label": "Čeká na úhradu · Částečně uhrazeno",
+        "size": "11px"
+      },
+      {
+        "label": "Čeká na úhradu",
+        "size": "11px"
+      },
+      {
+        "label": "Zaplaceno",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Faktur na stránku",
+        "font": "14px",
+        "x": 48,
+        "y": 1451,
+        "w": 151,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/invoices",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1323
+    },
+    "overflow": [
+      {
+        "tag": "TABLE",
+        "css": "_table_1yyak_318",
+        "text": "Všechny faktury. Sloupce lze seřadit v rámci aktuální stránky.\n\tFAKTURA\tODBĚRATEL\tČÁSTKA\tSPLATNOST\tS",
+        "x": 17,
+        "y": 608,
+        "w": 1090,
+        "h": 594
+      },
+      {
+        "tag": "THEAD",
+        "css": "",
+        "text": "FAKTURA\tODBĚRATEL\tČÁSTKA\tSPLATNOST\tSTAV\tUHRAZENO\tAKCE",
+        "x": 17,
+        "y": 608,
+        "w": 1090,
+        "h": 44
+      },
+      {
+        "tag": "TR",
+        "css": "",
+        "text": "FAKTURA\tODBĚRATEL\tČÁSTKA\tSPLATNOST\tSTAV\tUHRAZENO\tAKCE",
+        "x": 17,
+        "y": 608,
+        "w": 1090,
+        "h": 44
+      },
+      {
+        "tag": "TH",
+        "css": "",
+        "text": "STAV",
+        "x": 637,
+        "y": 608,
+        "w": 158,
+        "h": 44
+      },
+      {
+        "tag": "TH",
+        "css": "",
+        "text": "UHRAZENO",
+        "x": 795,
+        "y": 608,
+        "w": 262,
+        "h": 44
+      },
+      {
+        "tag": "BUTTON",
+        "css": "",
+        "text": "Seřadit aktuální stránku: Uhrazeno",
+        "x": 805,
+        "y": 623,
+        "w": 62,
+        "h": 15
+      },
+      {
+        "tag": "TH",
+        "css": "",
+        "text": "AKCE",
+        "x": 1057,
+        "y": 608,
+        "w": 50,
+        "h": 44
+      },
+      {
+        "tag": "SPAN",
+        "css": "_srOnly_1yyak_695",
+        "text": "AKCE",
+        "x": 1066,
+        "y": 621,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "tag": "TBODY",
+        "css": "",
+        "text": "1443260143\nVS 1443260143\nWOOD & PAPER a.s.\nfaktury0@example.invalid\n266 189,00 Kč\n15. 9. 2026\nPo spl",
+        "x": 17,
+        "y": 653,
+        "w": 1090,
+        "h": 549
+      },
+      {
+        "tag": "TR",
+        "css": "",
+        "text": "1443260143\nVS 1443260143\nWOOD & PAPER a.s.\nfaktury0@example.invalid\n266 189,00 Kč\n15. 9. 2026\nPo spl",
+        "x": 17,
+        "y": 653,
+        "w": 1090,
+        "h": 77
+      },
+      {
+        "tag": "TD",
+        "css": "_statusCell_1yyak_892",
+        "text": "Po splatnosti",
+        "x": 637,
+        "y": 653,
+        "w": 158,
+        "h": 77
+      },
+      {
+        "tag": "TD",
+        "css": "_paidCell_1yyak_896",
+        "text": "0,00 Kč\n0 %",
+        "x": 795,
+        "y": 653,
+        "w": 262,
+        "h": 77
+      },
+      {
+        "tag": "DIV",
+        "css": "_paidInfo_1yyak_479",
+        "text": "0,00 Kč\n0 %",
+        "x": 805,
+        "y": 682,
+        "w": 242,
+        "h": 20
+      },
+      {
+        "tag": "SPAN",
+        "css": "",
+        "text": "0,00 Kč",
+        "x": 805,
+        "y": 682,
+        "w": 48,
+        "h": 20
+      },
+      {
+        "tag": "SPAN",
+        "css": "_progress_1yyak_494",
+        "text": "Úhrada faktury 1443260143",
+        "x": 863,
+        "y": 688,
+        "w": 139,
+        "h": 8
+      }
+    ],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Vybrat všechny faktury na stránce",
+        "x": 31,
+        "y": 623,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "Seřadit aktuální stránku: Faktura",
+        "x": 71,
+        "y": 623,
+        "w": 52,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Odběratel",
+        "x": 195,
+        "y": 623,
+        "w": 65,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Částka",
+        "x": 375,
+        "y": 623,
+        "w": 46,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Splatnost",
+        "x": 516,
+        "y": 623,
+        "w": 66,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Uhrazeno",
+        "x": 805,
+        "y": 623,
+        "w": 62,
+        "h": 15
+      },
+      {
+        "label": "Vybrat fakturu 1443260143",
+        "x": 31,
+        "y": 684,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "1443260143",
+        "x": 71,
+        "y": 672,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260612",
+        "x": 31,
+        "y": 762,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260612",
+        "x": 71,
+        "y": 750,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260615",
+        "x": 31,
+        "y": 841,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260615",
+        "x": 71,
+        "y": 829,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260620",
+        "x": 31,
+        "y": 911,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260620",
+        "x": 71,
+        "y": 899,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260617",
+        "x": 31,
+        "y": 974,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260617",
+        "x": 71,
+        "y": 962,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260618",
+        "x": 31,
+        "y": 1037,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260618",
+        "x": 71,
+        "y": 1025,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260619",
+        "x": 31,
+        "y": 1100,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260619",
+        "x": 71,
+        "y": 1088,
+        "w": 104,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260621",
+        "x": 31,
+        "y": 1163,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260621",
+        "x": 71,
+        "y": 1151,
+        "w": 104,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Seřadit aktuální stránku: Faktura",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Odběratel",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Částka",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Splatnost",
+        "size": "11px"
+      },
+      {
+        "label": "STAV",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Uhrazeno",
+        "size": "11px"
+      },
+      {
+        "label": "AKCE",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      },
+      {
+        "label": "Všechny stavy\nČeká na úhradu\nPo splatnosti\nZaplaceno\nStornováno\nUzavřené",
+        "font": "13px",
+        "x": 35,
+        "y": 395,
+        "w": 341,
+        "h": 42
+      },
+      {
+        "label": "Výchozí pořadí\nČíslo faktury ↑\nČíslo faktury ↓\nOdběratel\nČástka od nejnižší\nČástka od nejvyšší\nNejno",
+        "font": "13px",
+        "x": 392,
+        "y": 395,
+        "w": 341,
+        "h": 42
+      },
+      {
+        "label": "Vystaveno od",
+        "font": "12px",
+        "x": 42,
+        "y": 477,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Vystaveno do",
+        "font": "12px",
+        "x": 154,
+        "y": 477,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Splatnost od",
+        "font": "12px",
+        "x": 399,
+        "y": 477,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Splatnost do",
+        "font": "12px",
+        "x": 511,
+        "y": 477,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Faktur na stránku",
+        "font": "12px",
+        "x": 373,
+        "y": 1224,
+        "w": 137,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/invoices",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 286,
+      "y": 20,
+      "w": 1122,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1013
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 300,
+        "y": 42,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Vybrat všechny faktury na stránce",
+        "x": 301,
+        "y": 361,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "Seřadit aktuální stránku: Faktura",
+        "x": 342,
+        "y": 361,
+        "w": 52,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Odběratel",
+        "x": 469,
+        "y": 361,
+        "w": 65,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Částka",
+        "x": 654,
+        "y": 361,
+        "w": 46,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Splatnost",
+        "x": 800,
+        "y": 361,
+        "w": 66,
+        "h": 15
+      },
+      {
+        "label": "Seřadit aktuální stránku: Uhrazeno",
+        "x": 1097,
+        "y": 361,
+        "w": 62,
+        "h": 15
+      },
+      {
+        "label": "Vybrat fakturu 1443260143",
+        "x": 301,
+        "y": 415,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "1443260143",
+        "x": 342,
+        "y": 403,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260612",
+        "x": 301,
+        "y": 479,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260612",
+        "x": 342,
+        "y": 467,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260615",
+        "x": 301,
+        "y": 542,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260615",
+        "x": 342,
+        "y": 530,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260620",
+        "x": 301,
+        "y": 605,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260620",
+        "x": 342,
+        "y": 593,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260617",
+        "x": 301,
+        "y": 668,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260617",
+        "x": 342,
+        "y": 656,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260618",
+        "x": 301,
+        "y": 731,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260618",
+        "x": 342,
+        "y": 719,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260619",
+        "x": 301,
+        "y": 794,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260619",
+        "x": 342,
+        "y": 782,
+        "w": 108,
+        "h": 20
+      },
+      {
+        "label": "Vybrat fakturu 260621",
+        "x": 301,
+        "y": 857,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "label": "260621",
+        "x": 342,
+        "y": 845,
+        "w": 108,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Seřadit aktuální stránku: Faktura",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Odběratel",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Částka",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Splatnost",
+        "size": "11px"
+      },
+      {
+        "label": "STAV",
+        "size": "11px"
+      },
+      {
+        "label": "Seřadit aktuální stránku: Uhrazeno",
+        "size": "11px"
+      },
+      {
+        "label": "AKCE",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 330,
+        "y": 21,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "Všechny stavy\nČeká na úhradu\nPo splatnosti\nZaplaceno\nStornováno\nUzavřené",
+        "font": "13px",
+        "x": 305,
+        "y": 283,
+        "w": 156,
+        "h": 42
+      },
+      {
+        "label": "Výchozí pořadí\nČíslo faktury ↑\nČíslo faktury ↓\nOdběratel\nČástka od nejnižší\nČástka od nejvyšší\nNejno",
+        "font": "13px",
+        "x": 477,
+        "y": 283,
+        "w": 168,
+        "h": 42
+      },
+      {
+        "label": "Vystaveno od",
+        "font": "12px",
+        "x": 793,
+        "y": 284,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Vystaveno do",
+        "font": "12px",
+        "x": 905,
+        "y": 284,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Splatnost od",
+        "font": "12px",
+        "x": 1029,
+        "y": 284,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Splatnost do",
+        "font": "12px",
+        "x": 1141,
+        "y": 284,
+        "w": 94,
+        "h": 40
+      },
+      {
+        "label": "Faktur na stránku",
+        "font": "12px",
+        "x": 1029,
+        "y": 918,
+        "w": 137,
+        "h": 40
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "Akce faktury 260619",
+        "x": 1365,
+        "y": 786,
+        "w": 32,
+        "h": 32
+      },
+      {
+        "label": "Akce faktury 260621",
+        "x": 1365,
+        "y": 849,
+        "w": 32,
+        "h": 32
+      }
+    ]
+  },
+  {
+    "route": "/reports",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 1309
+    },
+    "overflow": [],
+    "tiny": [],
+    "smallText": [
+      {
+        "label": "47 faktur · s DPH · včetně storna",
+        "size": "11px"
+      },
+      {
+        "label": "K vybraným fakturám, bez storna",
+        "size": "11px"
+      },
+      {
+        "label": "Oba sloupce podle měsíce vystavení vybraných faktur.",
+        "size": "11px"
+      },
+      {
+        "label": "Fakturováno",
+        "size": "11px"
+      },
+      {
+        "label": "Evidované úhrady",
+        "size": "11px"
+      },
+      {
+        "label": "leden 26",
+        "size": "10px"
+      },
+      {
+        "label": "únor 26",
+        "size": "10px"
+      },
+      {
+        "label": "březen 26",
+        "size": "10px"
+      },
+      {
+        "label": "duben 26",
+        "size": "10px"
+      },
+      {
+        "label": "květen 26",
+        "size": "10px"
+      },
+      {
+        "label": "červen 26",
+        "size": "10px"
+      },
+      {
+        "label": "červenec 26",
+        "size": "10px"
+      },
+      {
+        "label": "srpen 26",
+        "size": "10px"
+      },
+      {
+        "label": "září 26",
+        "size": "10px"
+      },
+      {
+        "label": "říjen 26",
+        "size": "10px"
+      },
+      {
+        "label": "Top 5 · podíl na fakturaci s DPH",
+        "size": "11px"
+      },
+      {
+        "label": "58,1 %",
+        "size": "11px"
+      },
+      {
+        "label": "4 %",
+        "size": "11px"
+      },
+      {
+        "label": "4 %",
+        "size": "11px"
+      },
+      {
+        "label": "4 %",
+        "size": "11px"
+      },
+      {
+        "label": "4 %",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": [
+      {
+        "label": "WOOD & PAPER a.s.\n1 300 000,00 Kč\n58,1 %",
+        "x": 25,
+        "y": 800,
+        "w": 340,
+        "h": 76
+      }
+    ]
+  },
+  {
+    "route": "/reports",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1663
+    },
+    "overflow": [
+      {
+        "tag": "ARTICLE",
+        "css": "_metric_5gxfb_265",
+        "text": "Průměrná faktura\n47 611,81 Kč\nCelkem / 47 vybraných faktur",
+        "x": 592,
+        "y": 528,
+        "w": 180,
+        "h": 118
+      }
+    ],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Další filtry\nDatum vystavení · CZK · Všechny stavy",
+        "x": 35,
+        "y": 475,
+        "w": 698,
+        "h": 20
+      },
+      {
+        "label": "Přehled odběratelů\n→",
+        "x": 35,
+        "y": 1529,
+        "w": 125,
+        "h": 18
+      },
+      {
+        "label": "Další přehledy a metodika",
+        "x": 33,
+        "y": 1596,
+        "w": 702,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Od",
+        "size": "11px"
+      },
+      {
+        "label": "Do",
+        "size": "11px"
+      },
+      {
+        "label": "Datum vystavení · CZK · Všechny stavy",
+        "size": "11px"
+      },
+      {
+        "label": "47 faktur · s DPH · včetně storna",
+        "size": "11px"
+      },
+      {
+        "label": "K vybraným fakturám, bez storna",
+        "size": "11px"
+      },
+      {
+        "label": "Současný zůstatek · 29 faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Celkem / 47 vybraných faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Oba sloupce podle měsíce vystavení vybraných faktur.",
+        "size": "11px"
+      },
+      {
+        "label": "Fakturováno",
+        "size": "11px"
+      },
+      {
+        "label": "Evidované úhrady",
+        "size": "11px"
+      },
+      {
+        "label": "leden 26",
+        "size": "10px"
+      },
+      {
+        "label": "únor 26",
+        "size": "10px"
+      },
+      {
+        "label": "březen 26",
+        "size": "10px"
+      },
+      {
+        "label": "duben 26",
+        "size": "10px"
+      },
+      {
+        "label": "květen 26",
+        "size": "10px"
+      },
+      {
+        "label": "červen 26",
+        "size": "10px"
+      },
+      {
+        "label": "červenec 26",
+        "size": "10px"
+      },
+      {
+        "label": "srpen 26",
+        "size": "10px"
+      },
+      {
+        "label": "září 26",
+        "size": "10px"
+      },
+      {
+        "label": "říjen 26",
+        "size": "10px"
+      },
+      {
+        "label": "Úhrady jsou aktuálně evidované částky; nejde o peněžní tok během období. Fakturace zahrnuje všechny ",
+        "size": "11px"
+      },
+      {
+        "label": "Top 5 · podíl na fakturaci s DPH",
+        "size": "11px"
+      },
+      {
+        "label": "1 300 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "58,1 %",
+        "size": "10px"
+      },
+      {
+        "label": "90 000,00 Kč",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "12px",
+        "x": 71,
+        "y": 412,
+        "w": 136,
+        "h": 32
+      },
+      {
+        "label": "INPUT",
+        "font": "12px",
+        "x": 266,
+        "y": 412,
+        "w": 136,
+        "h": 32
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/reports",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1127
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Další filtry\nDatum vystavení · CZK · Všechny stavy",
+        "x": 306,
+        "y": 362,
+        "w": 1072,
+        "h": 20
+      },
+      {
+        "label": "Přehled odběratelů\n→",
+        "x": 995,
+        "y": 994,
+        "w": 125,
+        "h": 18
+      },
+      {
+        "label": "Další přehledy a metodika",
+        "x": 304,
+        "y": 1061,
+        "w": 1076,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Od",
+        "size": "11px"
+      },
+      {
+        "label": "Do",
+        "size": "11px"
+      },
+      {
+        "label": "Datum vystavení · CZK · Všechny stavy",
+        "size": "11px"
+      },
+      {
+        "label": "47 faktur · s DPH · včetně storna",
+        "size": "11px"
+      },
+      {
+        "label": "K vybraným fakturám, bez storna",
+        "size": "11px"
+      },
+      {
+        "label": "Současný zůstatek · 29 faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Celkem / 47 vybraných faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Oba sloupce podle měsíce vystavení vybraných faktur.",
+        "size": "11px"
+      },
+      {
+        "label": "Fakturováno",
+        "size": "11px"
+      },
+      {
+        "label": "Evidované úhrady",
+        "size": "11px"
+      },
+      {
+        "label": "leden 26",
+        "size": "10px"
+      },
+      {
+        "label": "únor 26",
+        "size": "10px"
+      },
+      {
+        "label": "březen 26",
+        "size": "10px"
+      },
+      {
+        "label": "duben 26",
+        "size": "10px"
+      },
+      {
+        "label": "květen 26",
+        "size": "10px"
+      },
+      {
+        "label": "červen 26",
+        "size": "10px"
+      },
+      {
+        "label": "červenec 26",
+        "size": "10px"
+      },
+      {
+        "label": "srpen 26",
+        "size": "10px"
+      },
+      {
+        "label": "září 26",
+        "size": "10px"
+      },
+      {
+        "label": "říjen 26",
+        "size": "10px"
+      },
+      {
+        "label": "Úhrady jsou aktuálně evidované částky; nejde o peněžní tok během období. Fakturace zahrnuje všechny ",
+        "size": "11px"
+      },
+      {
+        "label": "Top 5 · podíl na fakturaci s DPH",
+        "size": "11px"
+      },
+      {
+        "label": "1 300 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "58,1 %",
+        "size": "10px"
+      },
+      {
+        "label": "90 000,00 Kč",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "INPUT",
+        "font": "12px",
+        "x": 1034,
+        "y": 299,
+        "w": 136,
+        "h": 32
+      },
+      {
+        "label": "INPUT",
+        "font": "12px",
+        "x": 1228,
+        "y": 299,
+        "w": 136,
+        "h": 32
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "probautex s.r.o.\n90 000,00 Kč\n4 %",
+        "x": 995,
+        "y": 759,
+        "w": 383,
+        "h": 64
+      },
+      {
+        "label": "C.S.CARGO a.s.\n90 000,00 Kč\n4 %",
+        "x": 995,
+        "y": 822,
+        "w": 383,
+        "h": 64
+      }
+    ]
+  },
+  {
+    "route": "/customers",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2921
+    },
+    "overflow": [],
+    "tiny": [],
+    "smallText": [
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/customers?edit-email",
+    "w": 390,
+    "h": 844,
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2997
+    },
+    "overflow": [],
+    "tiny": [],
+    "smallText": [
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "E-mail zákazníka WOOD & PAPER a.s.",
+        "font": "11px",
+        "x": 36,
+        "y": 519,
+        "w": 180,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/customers",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1383
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Název",
+        "x": 45,
+        "y": 496,
+        "w": 40,
+        "h": 16
+      },
+      {
+        "label": "Fakturace",
+        "x": 316,
+        "y": 496,
+        "w": 66,
+        "h": 16
+      },
+      {
+        "label": "Neuhrazeno",
+        "x": 459,
+        "y": 496,
+        "w": 92,
+        "h": 16
+      },
+      {
+        "label": "Upomínky",
+        "x": 630,
+        "y": 496,
+        "w": 66,
+        "h": 16
+      }
+    ],
+    "smallText": [
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/customers",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1123
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Název",
+        "x": 306,
+        "y": 332,
+        "w": 40,
+        "h": 16
+      },
+      {
+        "label": "Fakturace",
+        "x": 854,
+        "y": 332,
+        "w": 66,
+        "h": 16
+      },
+      {
+        "label": "Neuhrazeno",
+        "x": 1018,
+        "y": 332,
+        "w": 92,
+        "h": 16
+      },
+      {
+        "label": "Upomínky",
+        "x": 1186,
+        "y": 332,
+        "w": 66,
+        "h": 16
+      }
+    ],
+    "smallText": [
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      },
+      {
+        "label": "IČO",
+        "size": "10px"
+      },
+      {
+        "label": "DIČ",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "Název, IČO, DIČ, kontakt, adresa nebo poznámka",
+        "font": "13px",
+        "x": 305,
+        "y": 264,
+        "w": 650,
+        "h": 40
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/reminders",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2177
+    },
+    "overflow": [],
+    "tiny": [],
+    "smallText": [
+      {
+        "label": "Automatické odesílání je zapnuté",
+        "size": "11px"
+      },
+      {
+        "label": "Název kategorie",
+        "size": "10px"
+      },
+      {
+        "label": "Výchozí",
+        "size": "9px"
+      },
+      {
+        "label": "1",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "2",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "3",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "4",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "Poslední běh automatu, naplánované upomínky a položky ke kontrole.",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "např. Klíčoví zákazníci",
+        "font": "12px",
+        "x": 29,
+        "y": 1058,
+        "w": 332,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "+ Přidat kategorii",
+        "x": 29,
+        "y": 782,
+        "w": 332,
+        "h": 44
+      }
+    ]
+  },
+  {
+    "route": "/reminders",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1971
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Automatické odesílání je zapnuté",
+        "size": "11px"
+      },
+      {
+        "label": "Název kategorie",
+        "size": "10px"
+      },
+      {
+        "label": "Výchozí",
+        "size": "9px"
+      },
+      {
+        "label": "1",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "2",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "3",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "4",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "Poslední běh automatu, naplánované upomínky a položky ke kontrole.",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      },
+      {
+        "label": "Výchozí upomínky · Výchozí",
+        "font": "13px",
+        "x": 34,
+        "y": 798,
+        "w": 542,
+        "h": 44
+      },
+      {
+        "label": "např. Klíčoví zákazníci",
+        "font": "12px",
+        "x": 37,
+        "y": 1058,
+        "w": 627,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "+ Přidat další upomínku",
+        "x": 38,
+        "y": 958,
+        "w": 692,
+        "h": 44
+      }
+    ]
+  },
+  {
+    "route": "/reminders",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1421
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Automatické odesílání je zapnuté",
+        "size": "11px"
+      },
+      {
+        "label": "Zapnuto",
+        "size": "9px"
+      },
+      {
+        "label": "Název kategorie",
+        "size": "10px"
+      },
+      {
+        "label": "Výchozí",
+        "size": "9px"
+      },
+      {
+        "label": "1",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "2",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "3",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "4",
+        "size": "10px"
+      },
+      {
+        "label": "Odeslat",
+        "size": "10px"
+      },
+      {
+        "label": "1",
+        "size": "8px"
+      },
+      {
+        "label": "2",
+        "size": "8px"
+      },
+      {
+        "label": "3",
+        "size": "8px"
+      },
+      {
+        "label": "4",
+        "size": "8px"
+      },
+      {
+        "label": "Jakmile je faktura zaplacená",
+        "size": "9px"
+      },
+      {
+        "label": "Poslední běh automatu, naplánované upomínky a položky ke kontrole.",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "Výchozí upomínky · Výchozí",
+        "font": "13px",
+        "x": 310,
+        "y": 516,
+        "w": 906,
+        "h": 40
+      },
+      {
+        "label": "např. Klíčoví zákazníci",
+        "font": "12px",
+        "x": 308,
+        "y": 718,
+        "w": 654,
+        "h": 42
+      },
+      {
+        "label": "Počet dní",
+        "font": "13px",
+        "x": 402,
+        "y": 812,
+        "w": 279,
+        "h": 40
+      },
+      {
+        "label": "Vztah ke splatnosti",
+        "font": "13px",
+        "x": 687,
+        "y": 812,
+        "w": 296,
+        "h": 40
+      },
+      {
+        "label": "Vztah ke splatnosti",
+        "font": "13px",
+        "x": 402,
+        "y": 912,
+        "w": 581,
+        "h": 40
+      },
+      {
+        "label": "Počet dní",
+        "font": "13px",
+        "x": 402,
+        "y": 1011,
+        "w": 279,
+        "h": 40
+      },
+      {
+        "label": "Vztah ke splatnosti",
+        "font": "13px",
+        "x": 687,
+        "y": 1011,
+        "w": 296,
+        "h": 40
+      },
+      {
+        "label": "Počet dní",
+        "font": "13px",
+        "x": 402,
+        "y": 1111,
+        "w": 279,
+        "h": 40
+      },
+      {
+        "label": "Vztah ke splatnosti",
+        "font": "13px",
+        "x": 687,
+        "y": 1111,
+        "w": 296,
+        "h": 40
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/settings",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2696
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "INPUT",
+        "x": 50,
+        "y": 1377,
+        "w": 18,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Administrátor",
+        "size": "11px"
+      },
+      {
+        "label": "Odebrat",
+        "size": "8px"
+      },
+      {
+        "label": "Účetní",
+        "size": "11px"
+      },
+      {
+        "label": "Odebrat",
+        "size": "8px"
+      },
+      {
+        "label": "Neměnná auditní stopa posledních administrátorských zásahů.",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": [
+      {
+        "label": "INPUT",
+        "x": 33,
+        "y": 743,
+        "w": 324,
+        "h": 46
+      }
+    ]
+  },
+  {
+    "route": "/settings",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 2475
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "INPUT",
+        "x": 57,
+        "y": 1190,
+        "w": 18,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Administrátor",
+        "size": "11px"
+      },
+      {
+        "label": "Odebrat",
+        "size": "8px"
+      },
+      {
+        "label": "Účetní",
+        "size": "11px"
+      },
+      {
+        "label": "Odebrat",
+        "size": "8px"
+      },
+      {
+        "label": "Neměnná auditní stopa posledních administrátorských zásahů.",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 40,
+        "y": 550,
+        "w": 688,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 40,
+        "y": 637,
+        "w": 336,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 392,
+        "y": 637,
+        "w": 336,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 40,
+        "y": 724,
+        "w": 688,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 40,
+        "y": 913,
+        "w": 336,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 392,
+        "y": 913,
+        "w": 336,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 40,
+        "y": 1102,
+        "w": 336,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 392,
+        "y": 1102,
+        "w": 336,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "INPUT",
+        "x": 392,
+        "y": 913,
+        "w": 336,
+        "h": 44
+      }
+    ]
+  },
+  {
+    "route": "/settings",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1848
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "INPUT",
+        "x": 631,
+        "y": 902,
+        "w": 18,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Administrátor",
+        "size": "11px"
+      },
+      {
+        "label": "Odebrat",
+        "size": "8px"
+      },
+      {
+        "label": "Účetní",
+        "size": "11px"
+      },
+      {
+        "label": "Odebrat",
+        "size": "8px"
+      },
+      {
+        "label": "Neměnná auditní stopa posledních administrátorských zásahů.",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 614,
+        "y": 388,
+        "w": 749,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 614,
+        "y": 475,
+        "w": 367,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 997,
+        "y": 475,
+        "w": 367,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 614,
+        "y": 562,
+        "w": 749,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 614,
+        "y": 688,
+        "w": 367,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 997,
+        "y": 688,
+        "w": 367,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 614,
+        "y": 814,
+        "w": 367,
+        "h": 44
+      },
+      {
+        "label": "INPUT",
+        "font": "14px",
+        "x": 997,
+        "y": 814,
+        "w": 367,
+        "h": 44
+      },
+      {
+        "label": "Role uživatele anna@example.invalid",
+        "font": "13px",
+        "x": 865,
+        "y": 1356,
+        "w": 150,
+        "h": 44
+      },
+      {
+        "label": "Role uživatele velmi.dlouhy.kontakt.ucetniho@example.invalid",
+        "font": "13px",
+        "x": 865,
+        "y": 1437,
+        "w": 150,
+        "h": 44
+      },
+      {
+        "label": "kolega@firma.cz",
+        "font": "13px",
+        "x": 312,
+        "y": 1550,
+        "w": 594,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "INPUT",
+        "x": 997,
+        "y": 814,
+        "w": 367,
+        "h": 44
+      }
+    ]
+  },
+  {
+    "route": "/settings/email-template",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 1506
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vrátit doporučený text",
+        "x": 219,
+        "y": 567,
+        "w": 144,
+        "h": 20
+      }
+    ],
+    "smallText": [],
+    "smallInputs": [],
+    "assistantOverlaps": [
+      {
+        "label": "TEXTAREA",
+        "x": 27,
+        "y": 592,
+        "w": 336,
+        "h": 220
+      }
+    ]
+  },
+  {
+    "route": "/settings/email-template",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1362
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Vrátit doporučený text",
+        "x": 587,
+        "y": 559,
+        "w": 144,
+        "h": 20
+      }
+    ],
+    "smallText": [],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      },
+      {
+        "label": "TEXTAREA",
+        "font": "14px",
+        "x": 37,
+        "y": 585,
+        "w": 694,
+        "h": 220
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "Odpovědi a kopie nepovinné",
+        "x": 38,
+        "y": 962,
+        "w": 692,
+        "h": 44
+      }
+    ]
+  },
+  {
+    "route": "/settings/email-template",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1628
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Vrátit doporučený text",
+        "x": 688,
+        "y": 443,
+        "w": 144,
+        "h": 20
+      },
+      {
+        "label": "Zkontrolovat v Nastavení",
+        "x": 940,
+        "y": 432,
+        "w": 150,
+        "h": 14
+      }
+    ],
+    "smallText": [
+      {
+        "label": "NÁHLED NA UKÁZKOVÉ FAKTUŘE",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "TEXTAREA",
+        "font": "14px",
+        "x": 308,
+        "y": 469,
+        "w": 524,
+        "h": 220
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/notifications",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 3982
+    },
+    "overflow": [],
+    "tiny": [],
+    "smallText": [
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": [
+      {
+        "label": "Faktura po splatnosti. Faktura č. 2600217 – Ukázková firma s.r.o. vyžaduje kontrolu.. Označit jako p",
+        "x": 13,
+        "y": 741,
+        "w": 364,
+        "h": 121
+      }
+    ]
+  },
+  {
+    "route": "/notifications?next-page",
+    "w": 390,
+    "h": 844,
+    "clicked": false,
+    "geometry": {
+      "rect": {
+        "x": 299.375,
+        "y": 779.4375,
+        "width": 57.625,
+        "height": 36,
+        "top": 779.4375,
+        "right": 357,
+        "bottom": 815.4375,
+        "left": 299.375
+      },
+      "hit": "<button type=\"button\" class=\"_edgeTab_1k26f_12 \" aria-label=\"Otevřít asistenta Esko\" title=\"Otevřít asistenta Esko\" aria-expanded=\"false\" aria-controls=\"esko-panel\"><img alt=\"\" width=\"640\" height=\"554\" sizes=\"(max-width: 767px) 64px, 96px\" class=\"_edgeTabImage_1k26f_28\" src=\"/landing/mascot-wave.webp\"></button>",
+      "clickable": false
+    }
+  },
+  {
+    "route": "/notifications",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 2772
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      }
+    ],
+    "smallText": [
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "Faktura po splatnosti. Faktura č. 2600217 – Ukázková firma s.r.o. vyžaduje kontrolu.. Označit jako p",
+        "x": 17,
+        "y": 884,
+        "w": 734,
+        "h": 77
+      },
+      {
+        "label": "Faktura po splatnosti. Faktura č. 2600217 – Ukázková firma s.r.o. vyžaduje kontrolu.. Označit jako p",
+        "x": 17,
+        "y": 962,
+        "w": 734,
+        "h": 77
+      }
+    ]
+  },
+  {
+    "route": "/notifications",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 2738
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      }
+    ],
+    "smallText": [
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      },
+      {
+        "label": "25. 10. 2026 11:00",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "Faktura po splatnosti. Faktura č. 2600217 – Ukázková firma s.r.o. vyžaduje kontrolu.. Označit jako p",
+        "x": 343,
+        "y": 748,
+        "w": 998,
+        "h": 77
+      },
+      {
+        "label": "Faktura po splatnosti. Faktura č. 2600217 – Ukázková firma s.r.o. vyžaduje kontrolu.. Označit jako p",
+        "x": 343,
+        "y": 826,
+        "w": 998,
+        "h": 77
+      }
+    ]
+  },
+  {
+    "route": "/invoices/archive",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 916
+    },
+    "overflow": [],
+    "tiny": [],
+    "smallText": [
+      {
+        "label": "VS 1443260143",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 266 189,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "266 189,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "VS 260612",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 15 730,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "15 730,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "VS 260615",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 0,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "0,00 Kč",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/invoices/archive",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1146
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      }
+    ],
+    "smallText": [
+      {
+        "label": "VS 1443260143",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno266 189,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "266 189,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "VS 260612",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno15 730,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "15 730,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "VS 260615",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 0,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "0,00 Kč",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/invoices/archive",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 900
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "1443260143",
+        "x": 313,
+        "y": 382,
+        "w": 219,
+        "h": 20
+      },
+      {
+        "label": "260612",
+        "x": 313,
+        "y": 505,
+        "w": 219,
+        "h": 20
+      },
+      {
+        "label": "260615",
+        "x": 313,
+        "y": 629,
+        "w": 219,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "VS 1443260143",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 266 189,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "266 189,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "VS 260612",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 15 730,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "15 730,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "VS 260615",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "Uhrazeno 0,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "0,00 Kč",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "Číslo faktury, odběratel, IČO, DIČ, e-mail, VS nebo poznámka",
+        "font": "13px",
+        "x": 303,
+        "y": 265,
+        "w": 353,
+        "h": 40
+      },
+      {
+        "label": "Celý archiv\nPouze zaplacené\nPouze stornované",
+        "font": "13px",
+        "x": 666,
+        "y": 265,
+        "w": 171,
+        "h": 40
+      },
+      {
+        "label": "Všechny měny\nCZK",
+        "font": "13px",
+        "x": 847,
+        "y": 265,
+        "w": 171,
+        "h": 40
+      },
+      {
+        "label": "INPUT",
+        "font": "13px",
+        "x": 1028,
+        "y": 265,
+        "w": 171,
+        "h": 40
+      },
+      {
+        "label": "INPUT",
+        "font": "13px",
+        "x": 1210,
+        "y": 265,
+        "w": 171,
+        "h": 40
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/invoices/payments/archive",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2053
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "INPUT",
+        "x": 44,
+        "y": 481,
+        "w": 32,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Spárováno",
+        "size": "11px"
+      },
+      {
+        "label": "Rozděleno na více faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Vyžaduje kontrolu",
+        "size": "11px"
+      },
+      {
+        "label": "Nenalezená faktura",
+        "size": "11px"
+      },
+      {
+        "label": "02",
+        "size": "10px"
+      },
+      {
+        "label": "ULOŽENÉ VÝPISY",
+        "size": "9px"
+      },
+      {
+        "label": "0 výpisů",
+        "size": "10px"
+      },
+      {
+        "label": "Po prvním nahrání zde najdete původní výpis i stav jeho zpracování.",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": [
+      {
+        "label": "Přiřadit",
+        "x": 42,
+        "y": 744,
+        "w": 306,
+        "h": 42
+      }
+    ]
+  },
+  {
+    "route": "/invoices/payments/archive",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 1784
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "INPUT",
+        "x": 54,
+        "y": 686,
+        "w": 32,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Zpět na import a kontrolu bankovního výpisu",
+        "size": "10px"
+      },
+      {
+        "label": "Spárováno",
+        "size": "11px"
+      },
+      {
+        "label": "Rozděleno na více faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Vyžaduje kontrolu",
+        "size": "11px"
+      },
+      {
+        "label": "Nenalezená faktura",
+        "size": "11px"
+      },
+      {
+        "label": "02",
+        "size": "10px"
+      },
+      {
+        "label": "ULOŽENÉ VÝPISY",
+        "size": "9px"
+      },
+      {
+        "label": "0 výpisů",
+        "size": "10px"
+      },
+      {
+        "label": "Po prvním nahrání zde najdete původní výpis i stav jeho zpracování.",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": [
+      {
+        "label": "Přiřadit",
+        "x": 639,
+        "y": 993,
+        "w": 75,
+        "h": 42
+      }
+    ]
+  },
+  {
+    "route": "/invoices/payments/archive",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 287,
+      "y": 36,
+      "w": 1110,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 1195
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 301,
+        "y": 58,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "INPUT",
+        "x": 1208,
+        "y": 282,
+        "w": 32,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "Zpět na import a kontrolu bankovního výpisu",
+        "size": "10px"
+      },
+      {
+        "label": "Spárováno",
+        "size": "11px"
+      },
+      {
+        "label": "Rozděleno na více faktur",
+        "size": "11px"
+      },
+      {
+        "label": "Vyžaduje kontrolu",
+        "size": "11px"
+      },
+      {
+        "label": "Nenalezená faktura",
+        "size": "11px"
+      },
+      {
+        "label": "02",
+        "size": "10px"
+      },
+      {
+        "label": "ULOŽENÉ VÝPISY",
+        "size": "9px"
+      },
+      {
+        "label": "0 výpisů",
+        "size": "10px"
+      },
+      {
+        "label": "Po prvním nahrání zde najdete původní výpis i stav jeho zpracování.",
+        "size": "10px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 331,
+        "y": 37,
+        "w": 334,
+        "h": 42
+      },
+      {
+        "label": "Protistrana, VS nebo číslo faktury",
+        "font": "13px",
+        "x": 312,
+        "y": 270,
+        "w": 649,
+        "h": 44
+      },
+      {
+        "label": "Stavu a data\nČástky: nejvyšší\nČástky: nejnižší\nNázvu: A–Z\nNázvu: Z–A",
+        "font": "13px",
+        "x": 973,
+        "y": 270,
+        "w": 210,
+        "h": 44
+      },
+      {
+        "label": "Vybrat fakturu pro platbu BANK-2",
+        "font": "13px",
+        "x": 973,
+        "y": 373,
+        "w": 302,
+        "h": 42
+      },
+      {
+        "label": "Vybrat fakturu pro platbu BANK-3",
+        "font": "13px",
+        "x": 973,
+        "y": 478,
+        "w": 302,
+        "h": 42
+      },
+      {
+        "label": "Vybrat fakturu pro platbu BANK-1",
+        "font": "13px",
+        "x": 973,
+        "y": 583,
+        "w": 302,
+        "h": 42
+      },
+      {
+        "label": "Vybrat fakturu pro platbu BANK-0",
+        "font": "13px",
+        "x": 973,
+        "y": 688,
+        "w": 302,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": []
+  }
+]

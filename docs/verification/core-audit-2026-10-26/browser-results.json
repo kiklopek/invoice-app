@@ -1,0 +1,18 @@
+[
+  {
+    "check": "real password login + local captured email MFA + dashboard",
+    "status": "PASS"
+  },
+  {
+    "check": "/dashboard",
+    "status": "PASS",
+    "errors": [],
+    "url": "/dashboard"
+  },
+  {
+    "check": "/invoices",
+    "status": "PASS",
+    "errors": [],
+    "url": "/invoices"
+  }
+]

@@ -1,0 +1,1696 @@
+[
+  {
+    "route": "/dashboard",
+    "w": 320,
+    "h": 568,
+    "errors": [],
+    "toolbar": {
+      "x": 12,
+      "y": 80,
+      "w": 296,
+      "h": 44
+    },
+    "viewport": {
+      "w": 320,
+      "h": 568
+    },
+    "document": {
+      "w": 320,
+      "h": 3070
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Celkem faktur",
+        "x": 81,
+        "y": 398,
+        "w": 216,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 81,
+        "y": 540,
+        "w": 216,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 81,
+        "y": 682,
+        "w": 216,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 81,
+        "y": 824,
+        "w": 216,
+        "h": 20
+      },
+      {
+        "label": "Faktury v čase",
+        "x": 29,
+        "y": 969,
+        "w": 122,
+        "h": 22
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 28,
+        "y": 1335,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 29,
+        "y": 1811,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 42,
+        "y": 1899,
+        "w": 84,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 42,
+        "y": 2080,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 42,
+        "y": 2243,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 42,
+        "y": 2406,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 42,
+        "y": 2568,
+        "w": 87,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "Ukázková firma s.r.o.",
+        "size": "11px"
+      },
+      {
+        "label": "Faktura FV-2026-0001",
+        "size": "11px"
+      },
+      {
+        "label": "18. 10. 2026",
+        "size": "11px"
+      },
+      {
+        "label": "125 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "Ateliér Sever",
+        "size": "11px"
+      },
+      {
+        "label": "Faktura FV-2026-0002",
+        "size": "11px"
+      },
+      {
+        "label": "19. 10. 2026",
+        "size": "11px"
+      },
+      {
+        "label": "127 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "Studio Zelená",
+        "size": "11px"
+      },
+      {
+        "label": "Faktura FV-2026-0003",
+        "size": "11px"
+      },
+      {
+        "label": "20. 10. 2026",
+        "size": "11px"
+      },
+      {
+        "label": "129 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "Doprava Jih",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard?chart-options",
+    "w": 320,
+    "h": 568,
+    "popup": {
+      "x": 12,
+      "y": 341.59375,
+      "width": 210,
+      "height": 123
+    }
+  },
+  {
+    "route": "/dashboard",
+    "w": 390,
+    "h": 844,
+    "errors": [],
+    "toolbar": {
+      "x": 12,
+      "y": 80,
+      "w": 366,
+      "h": 44
+    },
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "document": {
+      "w": 390,
+      "h": 2621
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Celkem faktur",
+        "x": 81,
+        "y": 368,
+        "w": 98,
+        "h": 17
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 81,
+        "y": 506,
+        "w": 98,
+        "h": 17
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 269,
+        "y": 506,
+        "w": 98,
+        "h": 17
+      },
+      {
+        "label": "Faktury v čase",
+        "x": 29,
+        "y": 646,
+        "w": 122,
+        "h": 22
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 28,
+        "y": 994,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 240,
+        "y": 1432,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 42,
+        "y": 1507,
+        "w": 84,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 42,
+        "y": 1675,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 42,
+        "y": 1825,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 42,
+        "y": 1975,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 42,
+        "y": 2125,
+        "w": 87,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "Ukázková firma s.r.o.",
+        "size": "11px"
+      },
+      {
+        "label": "Faktura FV-2026-0001",
+        "size": "11px"
+      },
+      {
+        "label": "18. 10. 2026",
+        "size": "11px"
+      },
+      {
+        "label": "125 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "Ateliér Sever",
+        "size": "11px"
+      },
+      {
+        "label": "Faktura FV-2026-0002",
+        "size": "11px"
+      },
+      {
+        "label": "19. 10. 2026",
+        "size": "11px"
+      },
+      {
+        "label": "127 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "Studio Zelená",
+        "size": "11px"
+      },
+      {
+        "label": "Faktura FV-2026-0003",
+        "size": "11px"
+      },
+      {
+        "label": "20. 10. 2026",
+        "size": "11px"
+      },
+      {
+        "label": "129 000,00 Kč",
+        "size": "11px"
+      },
+      {
+        "label": "Doprava Jih",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard?chart-options",
+    "w": 390,
+    "h": 844,
+    "popup": {
+      "x": 12,
+      "y": 609.859375,
+      "width": 210,
+      "height": 123
+    }
+  },
+  {
+    "route": "/dashboard",
+    "w": 767,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 108,
+      "w": 735,
+      "h": 44
+    },
+    "viewport": {
+      "w": 767,
+      "h": 1024
+    },
+    "document": {
+      "w": 767,
+      "h": 2549
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Celkem faktur",
+        "x": 107,
+        "y": 376,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 482,
+        "y": 376,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 107,
+        "y": 524,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 482,
+        "y": 524,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 36,
+        "y": 923,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 609,
+        "y": 1245,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 50,
+        "y": 1320,
+        "w": 84,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 50,
+        "y": 1490,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 50,
+        "y": 1642,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 50,
+        "y": 1793,
+        "w": 87,
+        "h": 18
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 50,
+        "y": 1945,
+        "w": 87,
+        "h": 18
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard?chart-options",
+    "w": 767,
+    "h": 1024,
+    "popup": {
+      "x": 522.171875,
+      "y": 707.390625,
+      "width": 210,
+      "height": 123
+    }
+  },
+  {
+    "route": "/dashboard",
+    "w": 768,
+    "h": 1024,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 736,
+      "h": 46
+    },
+    "viewport": {
+      "w": 768,
+      "h": 1024
+    },
+    "document": {
+      "w": 768,
+      "h": 2169
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 115,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Celkem faktur",
+        "x": 107,
+        "y": 370,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 482,
+        "y": 370,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 107,
+        "y": 518,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 482,
+        "y": 518,
+        "w": 245,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 36,
+        "y": 917,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 610,
+        "y": 1239,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 53,
+        "y": 1327,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0001",
+        "x": 706,
+        "y": 1333,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 53,
+        "y": 1378,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0002",
+        "x": 706,
+        "y": 1384,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 53,
+        "y": 1431,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0003",
+        "x": 706,
+        "y": 1437,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 53,
+        "y": 1484,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0004",
+        "x": 706,
+        "y": 1490,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 53,
+        "y": 1535,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0005",
+        "x": 706,
+        "y": 1541,
+        "w": 22,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026004",
+        "size": "11px"
+      },
+      {
+        "label": "faktury3@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026005",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 222,
+        "h": 44
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard",
+    "w": 1023,
+    "h": 800,
+    "errors": [],
+    "toolbar": {
+      "x": 16,
+      "y": 92,
+      "w": 991,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1023,
+      "h": 800
+    },
+    "document": {
+      "w": 1023,
+      "h": 1955
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 30,
+        "y": 114,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Celkem faktur",
+        "x": 107,
+        "y": 310,
+        "w": 373,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 610,
+        "y": 310,
+        "w": 373,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 107,
+        "y": 458,
+        "w": 373,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 610,
+        "y": 458,
+        "w": 373,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 36,
+        "y": 897,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 865,
+        "y": 987,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 77,
+        "y": 1074,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0001",
+        "x": 956,
+        "y": 1081,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 77,
+        "y": 1125,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0002",
+        "x": 956,
+        "y": 1132,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 77,
+        "y": 1176,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0003",
+        "x": 956,
+        "y": 1183,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 77,
+        "y": 1227,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0004",
+        "x": 956,
+        "y": 1234,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 77,
+        "y": 1278,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0005",
+        "x": 956,
+        "y": 1285,
+        "w": 22,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026004",
+        "size": "11px"
+      },
+      {
+        "label": "faktury3@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026005",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 60,
+        "y": 93,
+        "w": 334,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard",
+    "w": 1024,
+    "h": 768,
+    "errors": [],
+    "toolbar": {
+      "x": 252,
+      "y": 20,
+      "w": 740,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1024,
+      "h": 768
+    },
+    "document": {
+      "w": 1024,
+      "h": 1867
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 266,
+        "y": 42,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Celkem faktur",
+        "x": 343,
+        "y": 238,
+        "w": 247,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 720,
+        "y": 238,
+        "w": 247,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 343,
+        "y": 386,
+        "w": 247,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 720,
+        "y": 386,
+        "w": 247,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 272,
+        "y": 825,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 850,
+        "y": 915,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 289,
+        "y": 1002,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0001",
+        "x": 946,
+        "y": 1009,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 289,
+        "y": 1053,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0002",
+        "x": 946,
+        "y": 1060,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 289,
+        "y": 1106,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0003",
+        "x": 946,
+        "y": 1113,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 289,
+        "y": 1159,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0004",
+        "x": 946,
+        "y": 1166,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 289,
+        "y": 1210,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0005",
+        "x": 946,
+        "y": 1217,
+        "w": 22,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026004",
+        "size": "11px"
+      },
+      {
+        "label": "faktury3@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026005",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 296,
+        "y": 21,
+        "w": 226,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/dashboard",
+    "w": 1440,
+    "h": 900,
+    "errors": [],
+    "toolbar": {
+      "x": 286,
+      "y": 20,
+      "w": 1112,
+      "h": 44
+    },
+    "viewport": {
+      "w": 1440,
+      "h": 900
+    },
+    "document": {
+      "w": 1440,
+      "h": 900
+    },
+    "overflow": [],
+    "tiny": [
+      {
+        "label": "Vyhledat",
+        "x": 300,
+        "y": 42,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Celkem faktur",
+        "x": 377,
+        "y": 204,
+        "w": 163,
+        "h": 20
+      },
+      {
+        "label": "Čeká na splatnost",
+        "x": 670,
+        "y": 204,
+        "w": 143,
+        "h": 20
+      },
+      {
+        "label": "Po splatnosti",
+        "x": 942,
+        "y": 204,
+        "w": 145,
+        "h": 20
+      },
+      {
+        "label": "Zaplaceno",
+        "x": 1218,
+        "y": 204,
+        "w": 155,
+        "h": 20
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "x": 896,
+        "y": 354,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "label": "Zobrazit všechny",
+        "x": 841,
+        "y": 581,
+        "w": 121,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0001",
+        "x": 319,
+        "y": 669,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0001",
+        "x": 938,
+        "y": 667,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0002",
+        "x": 319,
+        "y": 707,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0002",
+        "x": 938,
+        "y": 705,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0003",
+        "x": 319,
+        "y": 755,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0003",
+        "x": 938,
+        "y": 752,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0004",
+        "x": 319,
+        "y": 802,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0004",
+        "x": 938,
+        "y": 800,
+        "w": 22,
+        "h": 20
+      },
+      {
+        "label": "FV-2026-0005",
+        "x": 319,
+        "y": 840,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Akce faktury FV-2026-0005",
+        "x": 938,
+        "y": 838,
+        "w": 22,
+        "h": 20
+      }
+    ],
+    "smallText": [
+      {
+        "label": "2025-11",
+        "size": "11px"
+      },
+      {
+        "label": "2025-12",
+        "size": "11px"
+      },
+      {
+        "label": "2026-01",
+        "size": "11px"
+      },
+      {
+        "label": "2026-02",
+        "size": "11px"
+      },
+      {
+        "label": "2026-03",
+        "size": "11px"
+      },
+      {
+        "label": "2026-04",
+        "size": "11px"
+      },
+      {
+        "label": "2026-05",
+        "size": "11px"
+      },
+      {
+        "label": "2026-06",
+        "size": "11px"
+      },
+      {
+        "label": "2026-07",
+        "size": "11px"
+      },
+      {
+        "label": "2026-08",
+        "size": "11px"
+      },
+      {
+        "label": "2026-09",
+        "size": "11px"
+      },
+      {
+        "label": "2026-10",
+        "size": "11px"
+      },
+      {
+        "label": "Zobrazit hodnoty grafu",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026001",
+        "size": "11px"
+      },
+      {
+        "label": "faktury0@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "2× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026002",
+        "size": "11px"
+      },
+      {
+        "label": "faktury1@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026003",
+        "size": "11px"
+      },
+      {
+        "label": "faktury2@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      },
+      {
+        "label": "VS 2026004",
+        "size": "11px"
+      },
+      {
+        "label": "faktury3@example.invalid",
+        "size": "11px"
+      },
+      {
+        "label": "0× upomínka",
+        "size": "11px"
+      }
+    ],
+    "smallInputs": [
+      {
+        "label": "Hledat fakturu, zákazníka nebo částku…",
+        "font": "12px",
+        "x": 330,
+        "y": 21,
+        "w": 334,
+        "h": 42
+      }
+    ],
+    "assistantOverlaps": []
+  },
+  {
+    "route": "/esko",
+    "role": "admin",
+    "w": 320,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "admin",
+    "w": 390,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "admin",
+    "w": 1440,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "accounting",
+    "w": 320,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "accounting",
+    "w": 390,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "accounting",
+    "w": 1440,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "viewer",
+    "w": 320,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "viewer",
+    "w": 390,
+    "passed": true
+  },
+  {
+    "route": "/esko",
+    "role": "viewer",
+    "w": 1440,
+    "passed": true
+  },
+  {
+    "route": "/esko?error",
+    "w": 390,
+    "passed": true
+  },
+  {
+    "route": "/reminders?save",
+    "w": 320,
+    "passed": true
+  },
+  {
+    "route": "/reminders?save",
+    "w": 390,
+    "passed": true
+  },
+  {
+    "route": "/reminders?save",
+    "w": 1440,
+    "passed": true
+  }
+]

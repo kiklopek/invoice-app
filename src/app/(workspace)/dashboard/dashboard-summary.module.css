@@ -1,571 +1,2722 @@
-/* Dashboard layout follows its content width, independently of the navigation. */
-@media screen {
-  .page.page {
-    container: dashboard-page / inline-size;
-    --dashboard-aside-width: 320px;
-    --dashboard-action-width: clamp(210px, 15vw, 280px);
-    display: block !important;
-    height: auto;
-    min-height: 100dvh !important;
-    overflow: visible;
-  }
-
-  .page.page :global(.dashboard-command),
-  .page.page :global(.dashboard-workspace) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-    gap: clamp(12px, 1.5vw, 20px);
-    min-width: 0;
-    min-height: 0 !important;
-    flex: none;
-    align-items: start;
-  }
-  .page.page :global(.dashboard-command) {
-    margin-bottom: 20px;
-  }
-  .page.page :global(.panel-head > div),
-  .page.page :global(.dashboard-workspace > *),
-  .page.page :global(.dashboard-timeline-item section) {
-    min-width: 0;
-  }
-  .page.page :global(.panel-head p),
-  .page.page :global(.dashboard-panel-eyebrow),
-  .page.page :global(.dashboard-timeline-item section small),
-  .page.page :global(.dashboard-timeline-item section p),
-  .page.page :global(.dashboard-timeline-item section em),
-  .page.page :global(.today-task-tag),
-  .page.page :global(.status),
-  .page.page :global(.state),
-  .page.page :global(.empty-box) {
-    font-size: 12px;
-    line-height: 1.5;
-  }
-  .page.page :global(.panel-head),
-  .page.page :global(.state),
-  .page.page :global(.empty-box),
-  .page.page :global(.dashboard-timeline-item section) {
-    overflow-wrap: anywhere;
-  }
-
-  .page.page :global(.dashboard-balance-card) {
-    container: dashboard-balance / inline-size;
-    min-width: 0;
-    min-height: 300px;
-    padding: clamp(20px, 3vw, 36px);
-    padding-inline: clamp(24px, 3cqi, 48px);
-    justify-content: flex-start;
-  }
-  .page.page :global(.dashboard-balance-topline) {
-    flex-wrap: wrap;
-    gap: 12px;
-    font-size: 12px;
-    line-height: 1.5;
-    letter-spacing: 1px;
-  }
-  .page.page :global(.dashboard-live-state) {
-    gap: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  .page.page :global(.dashboard-balance-summary) {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex: 1 0 auto;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 12px;
-    min-width: 0;
-    padding-block: 16px;
-    text-align: left;
-  }
-  .page.page :global(.dashboard-balance-summary .dashboard-currency-totals) {
-    justify-content: flex-start;
-  }
-  .page.page :global(.dashboard-balance-summary > strong) {
-    display: block;
-    max-width: 100%;
-    margin: 0;
-    font-size: clamp(30px, 7.5cqi, 72px);
-    line-height: 1.15;
-    letter-spacing: -0.035em;
-  }
-  .page.page :global(.dashboard-currency-totals) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.15em 0.35em;
-    min-width: 0;
-    max-width: 100%;
-  }
-  .page.page :global(.dashboard-currency-total) {
-    display: block;
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: normal;
-    word-break: normal;
-    font-variant-numeric: tabular-nums;
-  }
-  .page.page :global(.dashboard-balance-summary > p) {
-    margin: 0;
-    color: #d0e1d5;
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  .page.page :global(.dashboard-balance-actions) {
-    position: relative;
-    z-index: 1;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 12px 24px;
-    margin-top: 0;
-    padding-top: 16px;
-  }
-  .page.page :global(.dashboard-balance-actions a) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 52px;
-    max-width: 100%;
-    padding: 14px 20px;
-    font-size: 14px;
-    line-height: 1.4;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .page.page :global(.dashboard-balance-actions a:first-child) {
-    gap: 24px;
-    border-radius: 12px;
-  }
-  .page.page :global(.dashboard-balance-actions a:not(:first-child)) {
-    justify-content: flex-start;
-    padding-inline: 0;
-    text-align: left;
-  }
-  .page.page :global(.dashboard-balance-actions a:focus-visible) {
-    outline: 2px solid #d0e7bb;
-    outline-offset: 3px;
-  }
-
-  .side {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    min-width: 0;
-  }
-  .side.readOnly {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .page.page .side :global(.dashboard-signal-grid) {
-    container: dashboard-signals / inline-size;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(3, auto);
-    gap: 10px;
-  }
-  .page.page .side :global(.dashboard-signal) {
-    display: grid;
-    grid-template-columns: 36px minmax(0, 1fr);
-    gap: 10px;
-    padding: 12px 14px;
-    min-height: 90px;
-  }
-  .page.page .side :global(.dashboard-signal-icon) {
-    width: 36px;
-    height: 36px;
-  }
-  .page.page .side :global(.dashboard-signal > div) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-    margin: 0;
-  }
-  .page.page .side :global(.dashboard-signal small) {
-    font-size: 12px;
-    line-height: 1.4;
-    color: #171717;
-    font-weight: 600;
-  }
-  .page.page .side :global(.dashboard-signal strong) {
-    margin: 0;
-    font-size: clamp(17px, 5cqi, 25px);
-    line-height: 1.25;
-  }
-  .page.page .side :global(.dashboard-signal p) {
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-  }
-  .page.page .side :global(.dashboard-actions) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(3, minmax(52px, 1fr));
-    gap: 10px;
-    min-width: 0;
-  }
-  .page.page .side :global(.dashboard-actions .btn) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    height: auto;
-    min-height: 52px;
-    padding: 14px 16px;
-    border-radius: 15px;
-    font-size: 14px;
-    line-height: 1.4;
-    white-space: normal;
-    text-align: center;
-    overflow-wrap: anywhere;
-  }
-  .page.page .side :global(.dashboard-actions .btn svg) {
-    width: 18px;
-    flex-shrink: 0;
-  }
-  .page.page .side :global(.dashboard-actions .btn.secondary) {
-    background: #e2efe4;
-    border-color: #c6dccb;
-    color: var(--green-dark);
-  }
-  .page.page .side :global(.dashboard-actions .btn.secondary:hover) {
-    background: #d3e7d7;
-    border-color: #abcbb3;
-  }
-
-  .page.page :global(.dashboard-workspace > .invoice-panel),
-  .page.page :global(.dashboard-workspace .dashboard-attention-panel) {
-    display: flex !important;
-    flex-direction: column;
-    height: auto;
-    min-height: 0 !important;
-    min-width: 0;
-  }
-  .page.page :global(.panel-head) {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 10px 14px;
-    padding: 20px;
-  }
-  .page.page :global(.dashboard-workspace .invoice-panel > .panel-head p) {
-    font-size: 12px;
-    line-height: 1.5;
-  }
-  .page.page :global(.panel-head h2) {
-    font-size: clamp(18px, 2vw, 22px);
-    line-height: 1.3;
-  }
-  .page.page :global(.invoice-panel > .panel-head > div) {
-    flex: 1 1 180px;
-  }
-  .page.page :global(.dashboard-workspace .invoice-panel > .panel-head > a) {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    font-size: 12px;
-    white-space: normal;
-  }
-  /* Čip s trojúhelníkem u „Vyžaduje pozornost“ se řídí šířkou panelu
-   * (container query), ne oknem: v úzkém sloupci vedle tabulky je menší,
-   * v širokém panelu větší. Zůstává v toku hlavičky vedle nadpisu -- nadpis
-   * se zalomí, čip se nesmrskne a nikdy ho nepřekryje. */
-  .page.page :global(.dashboard-attention-panel) {
-    container-type: inline-size;
-  }
-  .page.page :global(.dashboard-attention-panel .panel-head) {
-    align-items: flex-start;
-  }
-  .page.page :global(.dashboard-attention-panel .panel-head > div) {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-  .page.page :global(.dashboard-attention-count) {
-    flex: 0 0 auto;
-    align-self: flex-start;
-    gap: 0.35em;
-    padding: 0.25em 0.7em;
-    font-size: clamp(11px, 3.2cqi, 14px);
-    line-height: 1.4;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
-  @supports not (container-type: inline-size) {
-    .page.page :global(.dashboard-attention-count) {
-      font-size: clamp(11px, 1vw, 12px);
-    }
-  }
-  .page.page :global(.dashboard-attention-count svg) {
-    width: 1.15em;
-    height: 1.15em;
-    flex: 0 0 auto;
-  }
-  /* Čára trojúhelníku zůstane ostrá v každé velikosti čipu. */
-  .page.page :global(.dashboard-attention-count svg *) {
-    vector-effect: non-scaling-stroke;
-  }
-  .page.page :global(.dashboard-invoice-table),
-  .page.page :global(.dashboard-attention-panel .timeline) {
-    flex: 0 1 auto;
-    min-height: 0 !important;
-    max-height: 420px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    overscroll-behavior: auto;
-    touch-action: pan-y;
-  }
-  .page.page :global(.dashboard-invoice-table > table) {
-    display: table !important;
-    width: 100%;
-    min-width: 0;
-    table-layout: fixed;
-  }
-  .page.page :global(.dashboard-invoice-table thead) {
-    display: table-header-group;
-  }
-  .page.page :global(.dashboard-invoice-table tbody) {
-    display: table-row-group;
-  }
-  .page.page :global(.dashboard-invoice-table tr) {
-    display: table-row;
-  }
-  .page.page :global(.dashboard-invoice-table th),
-  .page.page :global(.dashboard-invoice-table td) {
-    display: table-cell;
-    font-size: 12px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .page.page :global(.dashboard-invoice-table td strong),
-  .page.page :global(.dashboard-invoice-table td small) {
-    font-size: 12px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .page.page :global(.dashboard-invoice-table .status) {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .page.page :global(.dashboard-invoice-table th:nth-child(5)),
-  .page.page :global(.dashboard-invoice-table td:nth-child(5)),
-  .page.page :global(.dashboard-invoice-table th:nth-child(6)),
-  .page.page :global(.dashboard-invoice-table td:nth-child(6)) {
-    text-align: center;
-  }
-  .page.page :global(.dashboard-invoice-table td:nth-child(6) .status) {
-    justify-content: center;
-    text-align: center;
-  }
-  .page.page :global(.dashboard-invoice-compact-list) {
-    display: none;
-  }
-  .page.page :global(.dashboard-invoice-compact-row) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
-    min-width: 0;
-    padding: 16px;
-  }
-  .page.page :global(.dashboard-invoice-compact-customer strong) {
-    font-size: 14px;
-    line-height: 1.4;
-  }
-  .page.page :global(.dashboard-invoice-compact-customer small),
-  .page.page :global(.dashboard-invoice-compact-meta),
-  .page.page :global(.dashboard-invoice-compact-meta strong) {
-    font-size: 12px;
-    line-height: 1.5;
-  }
-  .page.page :global(.dashboard-invoice-compact-amount) {
-    min-width: 0;
-  }
-  .page.page :global(.dashboard-invoice-compact-amount strong) {
-    font-size: 14px;
-  }
-  .page.page :global(.dashboard-invoice-compact-amount strong),
-  .page.page :global(.dashboard-invoice-compact-meta > span),
-  .page.page :global(.dashboard-invoice-compact-meta > span > strong),
-  .page.page :global(.dashboard-invoice-compact-statuses .status) {
-    min-width: 0;
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .page.page :global(.dashboard-upcoming-disclosure .mobile-disclosure-toggle) {
-    min-height: 44px;
-    font-size: 14px;
-  }
-
-  @container dashboard-page (min-width: 600px) {
-    .side {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-  }
-  @container dashboard-page (min-width: 960px) {
-    .page.page :global(.dashboard-workspace) {
-      grid-template-columns: minmax(0, 1fr) minmax(
-          0,
-          var(--dashboard-aside-width)
-        );
-    }
-  }
-  @container dashboard-page (min-width: 1080px) {
-    .page.page :global(.dashboard-command) {
-      grid-template-columns: minmax(0, 1fr) minmax(0, min(48%, 700px));
-      align-items: stretch;
-    }
-    .page.page :global(.dashboard-balance-card) {
-      min-height: 360px;
-    }
-    .side {
-      grid-template-columns: minmax(0, 1fr) minmax(
-          0,
-          var(--dashboard-action-width)
-        );
-    }
-  }
-  @container dashboard-balance (max-width: 340px) {
-    .page.page :global(.dashboard-balance-actions) {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 8px;
-    }
-    .page.page :global(.dashboard-balance-actions a:first-child) {
-      justify-content: space-between;
-    }
-  }
-  @container dashboard-invoices (max-width: 849.99px) {
-    .page.page :global(.dashboard-invoice-table > table) {
-      display: none !important;
-    }
-    .page.page :global(.dashboard-invoice-compact-list) {
-      display: grid;
-    }
-  }
-  @container dashboard-invoices (max-width: 599.99px) {
-    .page.page :global(.dashboard-invoice-compact-row) {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "customer" "amount" "meta" "statuses";
-      gap: 9px;
-    }
-    .page.page :global(.dashboard-invoice-compact-amount),
-    .page.page :global(.dashboard-invoice-compact-statuses) {
-      text-align: left;
-      justify-content: flex-start;
-    }
-  }
-
-  /* Keep the desktop overview in one viewport; collections scroll in their panels. */
-  @media (min-width: 1181px) and (min-height: 700px) {
-    .page.page {
-      --dashboard-aside-width: clamp(220px, 18vw, 320px);
-      display: flex !important;
-      flex-direction: column;
-      height: 100dvh;
-      min-height: 0 !important;
-      padding-block: clamp(20px, 3dvh, 32px);
-      overflow: hidden;
-    }
-    .page.page :global(.dashboard-command) {
-      flex: 0 0 clamp(280px, 40dvh, 360px);
-      grid-template-columns: minmax(0, 1fr) minmax(0, min(48%, 700px));
-      grid-template-rows: minmax(0, 1fr);
-      align-items: stretch;
-      margin-bottom: 16px;
-    }
-    .page.page :global(.dashboard-balance-card) {
-      min-height: 0;
-      padding-block: clamp(20px, 2.5dvh, 32px);
-      overflow: clip;
-    }
-    .page.page :global(.dashboard-balance-summary > strong) {
-      margin-top: 0;
-      font-size: clamp(30px, 7.5cqi, 72px);
-    }
-    .page.page :global(.dashboard-balance-card > *) {
-      flex-shrink: 0;
-    }
-    .page.page :global(.dashboard-balance-summary > strong:has(.dashboard-currency-total:nth-child(2))) {
-      font-size: clamp(20px, 4cqi, 28px);
-    }
-    .page.page :global(.dashboard-balance-actions) {
-      padding-top: 16px;
-    }
-    .side {
-      min-height: 0;
-      grid-template-columns: minmax(0, 1fr) minmax(0, var(--dashboard-action-width));
-      grid-template-rows: minmax(0, 1fr);
-    }
-    .page.page .side :global(.dashboard-signal-grid) {
-      min-height: 0;
-      grid-template-rows: repeat(3, minmax(0, 1fr));
-    }
-    .page.page .side :global(.dashboard-signal) {
-      min-height: 0;
-      padding: 12px 16px;
-      overflow-y: auto;
-    }
-    .page.page :global(.dashboard-workspace) {
-      flex: 1 1 0;
-      grid-template-columns: minmax(0, 1fr) minmax(0, var(--dashboard-aside-width));
-      grid-template-rows: minmax(0, 1fr);
-      align-items: stretch;
-    }
-    .page.page :global(.dashboard-upcoming-disclosure),
-    .page.page :global(.dashboard-upcoming-disclosure > .mobile-disclosure-content),
-    .page.page :global(.dashboard-workspace > .invoice-panel),
-    .page.page :global(.dashboard-workspace .dashboard-attention-panel) {
-      height: 100%;
-      min-height: 0;
-    }
-    .page.page :global(.panel-head) {
-      flex: 0 0 auto;
-      padding: 16px;
-    }
-    .page.page :global(.dashboard-invoice-table),
-    .page.page :global(.dashboard-attention-panel .timeline) {
-      flex: 1 1 0;
-      max-height: none;
-      overscroll-behavior: contain;
-    }
-  }
-  @media (min-width: 1181px) and (min-height: 700px) and (max-height: 760px) {
-    .page.page :global(.dashboard-balance-summary) {
-      gap: 8px;
-      padding-block: 8px;
-    }
-    .page.page :global(.dashboard-balance-summary > strong) {
-      margin-top: 0;
-    }
-    .page.page :global(.dashboard-balance-summary > p) {
-      margin-top: 0;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-    .page.page :global(.dashboard-balance-actions) {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      padding-top: 12px;
-    }
-    .page.page :global(.dashboard-balance-actions a) {
-      padding: 8px 10px;
-      font-size: 12px;
-    }
-    .page.page :global(.dashboard-balance-actions a:first-child) {
-      gap: 8px;
-    }
-  }
+/* SPL-DASH-001: scoped presentation. Intrinsic content always grows the page. */
+.page.page {
+  --dash-ink: #17251f;
+  --dash-muted: #707984;
+  --dash-line: #e9eeeb;
+  --dash-brand: #216444;
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: calc(100% - 244px);
+  max-width: none;
+  min-width: 0;
+  height: auto;
+  min-height: 100dvh;
+  margin: 0 0 0 244px;
+  padding: 18px 48px 110px 41px;
+  overflow: visible;
+  color: var(--dash-ink);
+  font-family: "Splatno Dashboard Inter", Inter, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
 }
-
+.page *,
+.page *::before,
+.page *::after {
+  box-sizing: border-box;
+}
+.page svg {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+.page :is(a, button, input, select, summary):focus-visible,
+.month:focus-visible {
+  outline: 2px solid #2b7753;
+  outline-offset: 3px;
+}
 .srOnly {
   position: absolute;
   width: 1px;
   height: 1px;
-  margin: -1px;
   padding: 0;
+  margin: -1px;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-height: 44px;
+  margin-bottom: 32px;
+}
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(405px, 45%);
+  min-width: 0;
+  padding: 0 14px;
+  border: 1px solid #e1e6e3;
+  border-radius: 9px;
+  background: #ffffffdf;
+  color: #677480;
+}
+.page .search input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dash-ink);
+  font: inherit;
+  font-size: 12px;
+  box-shadow: none;
+}
+.page .search input:focus {
+  outline: none;
+}
+.search:focus-within {
+  outline: 2px solid #2b7753;
+  outline-offset: 2px;
+}
+.search .searchSubmit {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  border: 0;
+}
+.search .searchSubmit:focus-visible {
+  position: static;
+  width: 36px;
+  height: 42px;
+  min-width: 36px;
+  clip-path: none;
+  background: #edf4ef;
+  color: var(--dash-brand);
+}
+.topbar :global(.dashboard-actions) {
+  position: relative;
+  top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--dash-line);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+}
+.primaryButton {
+  color: #fff;
+  background: linear-gradient(115deg, #286e4a, #247049);
+  border-color: #276e4b;
+  box-shadow: 0 4px 12px #1e573016 !important;
+}
+.primaryButton:hover {
+  background: #1c583c;
+  color: #fff;
+}
+.secondaryButton {
+  color: #172b23;
+  background: #ffffffec;
+}
+.secondaryButton svg {
+  color: #236445;
+}
+.secondaryButton:hover {
+  background: #edf5ef;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin: 0 10px 28px 12px;
+}
+.heading > div {
+  min-width: 0;
+}
+.heading .date {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 16px;
+  color: #69747e;
+}
+.heading .date::first-letter {
+  text-transform: uppercase;
+}
+.page h1 {
+  margin: 0 0 6px;
+  font-size: 36px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  color: #101b20;
+  overflow-wrap: anywhere;
+}
+.heading p {
+  margin: 0;
+  color: #69747e;
+  font-size: 16px;
+  line-height: 24px;
+}
+.headingActions {
+  display: flex;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+.periodControl {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  color: #23312c;
+  font-size: var(--workspace-text-input, 16px);
+}
+.periodControl > svg {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+.periodControl select {
+  min-height: 38px;
+  max-width: 100%;
+  width: 194px;
+  padding: 8px 24px 8px 36px;
+  border: 1px solid var(--dash-line);
+  border-radius: 8px;
+  background: #ffffffdc;
+  color: inherit;
+  font: inherit;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.metric {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  min-width: 0;
+  min-height: 134px;
+  padding: 18px;
+  border: 1px solid var(--dash-line);
+  border-radius: 13px;
+  background: #ffffffeb;
+  box-shadow: 0 4px 22px #28493004 !important;
+}
+.metric[data-tone="waiting"] {
+  background: #fffbf7ee;
+}
+.metric[data-tone="overdue"] {
+  background: #fff7f8ed;
+}
+.metricIcon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  border-radius: 50%;
+  background: #e7f1eb;
+  color: #216245;
+}
+.metricIcon svg {
+  width: 26px;
+  height: 26px;
+}
+.metric[data-tone="waiting"] .metricIcon {
+  color: #d56a0f;
+  background: #fcf0e3;
+}
+.metric[data-tone="overdue"] .metricIcon {
+  color: #ce4343;
+  background: #fce9e9;
+}
+.metricBody {
+  min-width: 0;
+  padding-top: 4px;
+}
+.metricLabel {
+  display: block;
+  color: #15231f;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 550;
+  text-decoration: none;
+}
+.metricValue {
+  display: block;
+  min-height: 43px;
+  margin: 6px 0 2px;
+  color: #13241e;
+  font-size: 36px;
+  line-height: 43px;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.metric[data-tone="waiting"] .metricValue {
+  color: #ce5d0e;
+}
+.metric[data-tone="overdue"] .metricValue {
+  color: #c13e3f;
+}
+.metric[data-tone="paid"] .metricValue {
+  color: #155539;
+}
+.metricDetail {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.metricBody > small {
+  display: block;
+  margin-top: 5px;
+  color: #738077;
+  font-size: 12px;
+  line-height: 18px;
+}
+.currencyTotals {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.currencyTotals > div {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.metricRetry {
+  grid-column: 1 / -1;
+}
+.charts,
+.lists {
+  display: grid;
+  grid-template-columns: minmax(0, 755fr) minmax(0, 434fr);
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.card {
+  position: relative;
+  container-type: inline-size;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--dash-line);
+  border-radius: 13px;
+  background: #fffffff0;
+  box-shadow: 0 4px 22px #28493003 !important;
+}
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.cardHeader > div {
+  min-width: 0;
+}
+.page h2 {
+  margin: 0;
+  color: #14201c;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  letter-spacing: -0.5px;
+}
+.page h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.page h2 a:hover {
+  text-decoration: underline;
+}
+.cardHeader p {
+  margin: 5px 0 0;
+  color: #748078;
+  font-size: 12px;
+  line-height: 18px;
+}
+.chartControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.chartControls select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 20px 0 8px;
+  border: 1px solid var(--dash-line);
+  border-radius: 7px;
+  background: #fff;
+  color: #58665c;
+  font-size: 12px;
+}
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 0;
+  color: #6e7982;
+  font-size: 13px;
+  line-height: 18px;
+}
+.chartLegend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.chartLegend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.legendPaid {
+  background: #307951;
+}
+.legendIssued {
+  background: #b3d3bf;
+}
+.barChart {
+  display: flex;
+  gap: 12px;
+  height: 122px;
+  min-height: 118px;
+  margin: 20px 0 0;
+}
+
+.bars {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
+}
+.month {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 6px;
+  color: #7b838b;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+.barTrack {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-bottom: 1px solid #e5ebe7;
+  background: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent calc(25% - 1px),
+    #f0f3f1 calc(25% - 1px),
+    #f0f3f1 25%
+  );
+}
+.issuedBar,
+.paidBar {
+  position: absolute;
+  bottom: 0;
+  width: min(24px, 44%);
+  min-width: 1px;
+  border-radius: 3px 3px 0 0;
+}
+.issuedBar {
+  left: 5%;
+  background: linear-gradient(#b9d6c4, #a4c8b1);
+}
+.paidBar {
+  right: 5%;
+  background: linear-gradient(#39815c, #286a49);
+}
+.chartTooltip {
+  display: none;
+  position: absolute;
+  z-index: 4;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 240px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #203e2d;
+  color: #fff;
+  font-size: 12px;
+  text-align: left;
+  box-shadow: 0 4px 18px #183d2b22;
+  pointer-events: none;
+}
+.chartTooltip > span,
+.chartTooltip > strong {
+  display: block;
+  line-height: 1.6;
+}
+.month:is(:hover, :focus) .chartTooltip {
+  display: block;
+}
+.month:first-child .chartTooltip {
+  left: 0;
+  transform: none;
+}
+.month:last-child .chartTooltip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.chartTable {
+  margin: 14px 0 0;
+  font-size: 12px;
+}
+.chartTable summary {
+  width: fit-content;
+  color: #52715e;
+  cursor: pointer;
+}
+.page .chartTable table {
+  width: 100%;
+  margin-top: 12px;
+  table-layout: fixed;
+}
+.page .chartTable th,
+.page .chartTable td {
+  padding: 7px 4px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 12px;
+}
+.page .chartTable caption {
+  padding-block: 10px;
+  color: var(--dash-muted);
+  text-align: left;
+}
+.statusChart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 148px;
+}
+@container (min-width: 351px) {
+  .statusChart {
+    padding-inline-start: 32px;
+  }
+}
+.donut {
+  display: grid;
+  place-items: center;
+  width: 148px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--donut-background);
+}
+.donut > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72%;
+  height: 72%;
+  border-radius: 50%;
+  background: #fff;
+}
+.donut strong {
+  max-width: 90%;
+  color: #152320;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.donut span {
+  color: #77817e;
+  font-size: 12px;
+}
+.statusLegendWrap {
+  flex: 1;
+  min-width: 0;
+}
+.statusLegend {
+  margin: 0;
+  font-size: 13px;
+}
+@container (min-width: 351px) {
+  .statusChart .statusLegend {
+    width: fit-content;
+    max-width: 100%;
+    margin-inline-start: auto;
+  }
+  .statusChart .statusLegend > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: 16px;
+  }
+}
+.statusLegend > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+.statusLegend dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #707b83;
+  line-height: 18px;
+}
+.statusLegend dt i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+}
+.statusLegend dd {
+  display: flex;
+  flex-shrink: 0;
+  gap: 12px;
+  margin: 0;
+  color: #18271f;
+  font-variant-numeric: tabular-nums;
+}
+.statusLegend dd > span {
+  width: 34px;
+  color: #7d858d;
+  font-size: 12px;
+  text-align: right;
+}
+.chartFootnote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6e7a80;
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: none;
+}
+.statusLegendWrap .chartFootnote {
+  padding: 6px 0;
+}
+.chartFootnote strong {
+  margin-left: auto;
+  color: #233f2d;
+}
+.chartFootnote svg {
+  width: 13px;
+  height: 13px;
+}
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: #236747;
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 550;
+  text-decoration: none;
+  text-align: right;
+}
+.textLink svg {
+  width: 15px;
+  height: 15px;
+}
+.invoiceTable {
+  overflow: visible;
+}
+.page .invoiceTable table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.page .invoiceTable th,
+.page .invoiceTable td {
+  text-align: center;
+  padding: 6px 4px;
+  border-bottom: 1px solid #edf0ee;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 20px;
+}
+.page .invoiceTable th {
+  padding-block: 8px;
+  background: #fff;
+  color: #7a8389;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.page .invoiceTable th:nth-child(1) {
+  width: 20%;
+}
+.page .invoiceTable th:nth-child(2) {
+  width: 24%;
+}
+.page .invoiceTable th:nth-child(3) {
+  width: 16%;
+  text-align: center;
+}
+.page .invoiceTable th:nth-child(4) {
+  width: 17%;
+}
+.page .invoiceTable th:nth-child(5) {
+  width: 23%;
+}
+.page .invoiceTable td {
+  position: relative;
+  vertical-align: middle;
+  color: #34443c;
+}
+.page .invoiceTable tbody tr:hover {
+  background: #f5f9f6;
+  cursor: pointer;
+}
+.page .invoiceTable a {
+  color: #152b20;
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+}
+.page .invoiceTable a:hover {
+  text-decoration: underline;
+}
+.page .invoiceTable td small {
+  display: block;
+  margin-top: 2px;
+  color: #78847c;
+  font-size: 11px;
+  line-height: 16px;
+}
+.page .invoiceTable td strong {
+  font-size: 13px;
+  font-weight: 400;
+}
+.page .invoiceTable td.amount {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.page .invoiceTable td.overdueDate {
+  color: #b34d47;
+}
+.statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.status,
+.partial {
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #fff2e7;
+  color: #bd6b27;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+}
+.status[data-status="overdue"] {
+  background: #feecee;
+  color: #be3f42;
+}
+.status[data-status="paid"] {
+  background: #e9f4ed;
+  color: #246647;
+}
+.status[data-status="cancelled"] {
+  background: #edf1ee;
+  color: #66766c;
+}
+.partial {
+  background: #edf5f2;
+  color: #3a7068;
+}
+.invoiceCards {
+  display: none;
+}
+.invoiceCard {
+  min-width: 0;
+  padding-block: 16px;
+  border-top: 1px solid var(--dash-line);
+  overflow-wrap: anywhere;
+}
+.invoiceCard header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.invoiceCard header > a {
+  color: #244c35;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.invoiceCard > strong,
+.invoiceCard > span {
+  display: block;
+  font-size: 13px;
+}
+.invoiceCard > span {
+  color: #78847b;
+  font-size: 12px;
+}
+.invoiceCardAmount {
+  margin-block: 10px;
+  color: #203e2a;
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.invoiceCard footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 7px;
+  color: #768179;
+  font-size: 12px;
+}
+.invoiceCard > small {
+  color: #7e8881;
+  font-size: 12px;
+}
+.reminderHeader {
+  align-items: center;
+}
+.reminderHeader > div {
+  display: contents;
+}
+.reminderHeader p {
+  margin: 0;
+  color: #347655;
+  text-align: right;
+  font-size: 12px;
+}
+.reminderList {
+  overflow: visible;
+}
+.reminderItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  padding: 6px 8px;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--dash-line);
+}
+.reminderItem:hover {
+  background: #f6faf7;
+}
+.reminderItem[data-next="true"] {
+  border-radius: 8px;
+  background: #edf5ef;
+  border-bottom: 0;
+  margin-bottom: 5px;
+}
+.reminderItem > i {
+  display: block;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #8eb49c;
+}
+.reminderItem[data-next="true"] > i {
+  background: #26704a;
+}
+.reminderItem > div {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.reminderItem strong {
+  display: block;
+  color: #203b2b;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.reminderItem span,
+.reminderItem p,
+.reminderItem small {
+  display: block;
+  color: #77837c;
+  font-size: 12px;
+  line-height: 18px;
+  margin: 0;
+}
+.reminderMeta {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 8px;
+}
+.reminderItem > svg {
+  width: 14px;
+  height: 14px;
+  margin: 3px 0;
+  color: #799b85;
+}
+.today {
+  display: inline;
+  color: #356c47;
+  font-size: 12px;
+}
+.reminderFooter {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.reminderFooter :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 0;
+  min-height: 26px;
+  border: 0;
+  background: none;
+  color: #286a49;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+}
+.reminderFooter svg {
+  width: 14px;
+  height: 14px;
+}
+.sectionError {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid #edd5c2;
+  border-radius: 10px;
+  background: #fff9f2;
+  color: #83572f;
+}
+.sectionError p {
+  flex: 1 1 180px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.sectionError button {
+  padding: 8px 10px;
+  min-height: 36px;
+  border: 1px solid #e5cbb2;
+  border-radius: 8px;
+  background: #fff;
+  color: #83572f;
+  font-size: 12px;
+}
+.skeleton,
+.chartSkeleton {
+  display: block;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #eef3ef 30%, #f8faf8 45%, #eef3ef 65%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+.skeleton {
+  width: 72px;
+  max-width: 100%;
+  height: 34px;
+  margin-block: 4px;
+}
+.chartSkeleton {
+  min-height: 140px;
+  margin-top: 16px;
+}
+.unavailable {
+  font-size: 15px;
+  color: #8a7460;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.emptyChart,
+.emptyList {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  padding: 20px 10px;
+  color: #78857c;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.7;
+}
+.welcome {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid #d6e7da;
+  border-radius: 14px;
+  background: #f0f7f1;
+}
+.welcome > svg {
+  width: 35px;
+  height: 35px;
+  color: #2d6b49;
+}
+.welcome p {
+  margin: 7px 0 0;
+  color: #6c7d71;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@keyframes shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+@container (max-width: 609px) {
+  .invoiceTable {
+    display: none;
+  }
+  .invoiceCards {
+    display: block;
+    overflow: visible;
+  }
+  .cardHeader {
+    flex-wrap: wrap;
+  }
+}
+@container (max-width: 350px) {
+  .statusChart {
+    flex-direction: column;
+  }
+  .statusLegendWrap {
+    width: 100%;
+  }
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .page.page {
+    --height-progress: clamp(0px, calc(100dvh - 900px), 124px);
+    --chart-reduction: clamp(0px, calc((100dvh - 900px) * 0.3), 56px);
+    display: grid;
+    padding: 18px 48px 22px 41px;
+    gap: 14px;
+    grid-template-rows:
+      max-content max-content max-content
+      minmax(min-content, calc(218px + (100dvh - 900px) * 0.4 - var(--chart-reduction)))
+      minmax(min-content, 1fr);
+  }
+  .page > [data-workspace-topbar],
+  .heading,
+  .metrics,
+  .charts,
+  .lists {
+    margin-bottom: 0;
+  }
+  .topbar :global(.dashboard-actions) {
+    margin-right: 0;
+  }
+  .heading {
+    margin: calc(4px + var(--height-progress) * 0.17742 + var(--chart-reduction) / 2) 10px
+      calc(4px + var(--height-progress) * 0.09677 + var(--chart-reduction) / 2) 12px;
+  }
+  .page h1 {
+    font-size: calc(32px + var(--height-progress) * 0.03226);
+  }
+  .heading p:not(.date) {
+    font-size: calc(14px + var(--height-progress) * 0.01613);
+    line-height: calc(20px + var(--height-progress) * 0.03226);
+  }
+  .heading .date {
+    margin-bottom: calc(4px + var(--height-progress) * 0.03226);
+  }
+  .page h1 {
+    margin-bottom: calc(4px + var(--height-progress) * 0.01613);
+  }
+  .metrics {
+    grid-template-columns: 302fr 280fr 283fr 294fr;
+  }
+  .metricBody > small,
+  .charts .cardHeader p,
+  .page .invoiceTable td small,
+  .invoiceTable .partial {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .charts > .card {
+    display: flex;
+    flex-direction: column;
+  }
+  .charts .cardHeader {
+    margin-bottom: 10px;
+  }
+  .barChart {
+    flex: 1;
+    min-height: 94px;
+    height: auto;
+  }
+  .chartTable {
+    margin: 0;
+  }
+  .chartTable summary {
+    position: absolute;
+    top: 24px;
+    right: 86px;
+    font-size: 11px;
+    line-height: 18px;
+  }
+  .statusChart {
+    flex: 1;
+  }
+  .lists > .card {
+    min-height: 314px;
+  }
+  .lists > aside {
+    min-height: 322px;
+  }
+  .reminderFooter {
+    padding-right: 85px;
+  }
+  .reminderItem:last-child {
+    padding-right: 85px;
+  }
+}
+@media (min-width: 1440px) and (min-height: 900px) and (max-height: 959px) {
+  .card {
+    padding-block: 16px;
+  }
+  .metric {
+    padding-block: 16px;
+  }
+  .metricIcon {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+  .metric {
+    gap: 14px;
+  }
+  .donut {
+    width: 132px;
+  }
+  .reminderItem {
+    padding-block: 5px;
+  }
+}
+@media (max-width: 1439px) {
+  .lists {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .topbar {
+    margin-bottom: 28px;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .page.page {
+    margin-left: 220px;
+    width: calc(100% - 220px);
+    padding-inline: 24px;
+  }
+}
+@media (max-width: 1279px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .search {
+    width: min(405px, 100%);
+  }
+  .heading {
+    margin-inline: 0;
+  }
+  .page h1 {
+    font-size: 32px;
+  }
+}
+@media (max-width: 1023px) {
+  .page.page {
+    width: 100%;
+    margin: calc(72px + env(safe-area-inset-top)) 0 0;
+    padding: 24px 24px 90px;
+    min-height: calc(100dvh - 72px);
+  }
+  .search {
+    flex: 1 1 250px;
+  }
+  .reminderFooter :is(a, button) {
+    min-height: 44px;
+  }
+  .chartControls select {
+    height: 44px;
+  }
+}
+@media (max-width: 899px) {
+  .charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .statusChart {
+    max-width: 480px;
+    margin-inline: auto;
+  }
+}
+@media (max-width: 599px) {
+  .page.page {
+    padding: 20px 16px 90px;
+  }
+  .topbar {
+    gap: 12px;
+  }
+  .search {
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .topbar :global(.dashboard-actions) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+  .primaryButton,
+  .secondaryButton {
+    padding-inline: 8px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .primaryButton svg,
+  .secondaryButton svg {
+    width: 16px;
+    height: 16px;
+  }
+  .page h1 {
+    font-size: 29px;
+  }
+  .heading p {
+    font-size: 14px;
+    line-height: 22px;
+  }
+  .metric {
+    gap: 14px;
+    padding: 16px;
+  }
+  .metricIcon {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+  .metricValue {
+    font-size: 32px;
+  }
+  .card {
+    padding: 20px 16px;
+  }
+  .page h2 {
+    font-size: 18px;
+  }
+  .bars {
+    gap: 4px;
+  }
+
+  .month {
+    font-size: 11px;
+  }
+  .cardHeader {
+    flex-wrap: wrap;
+  }
+  .reminderHeader {
+    flex-wrap: nowrap;
+  }
+  .chartTooltip {
+    max-width: 210px;
+  }
+}
+@media (max-width: 429px) {
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .chartSkeleton {
+    animation: none;
+  }
+}
+@media print {
+  .page.page {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: block;
+    min-height: 0;
+  }
+  .page > [data-workspace-topbar],
+  .headingActions {
+    display: none;
+  }
+  .charts,
+  .lists {
+    display: block;
+  }
+  .card {
+    break-inside: avoid;
+    margin-bottom: 14px;
+  }
+}
+
+@media (min-width: 1440px) and (min-height: 900px) {
+  .lists {
+    align-items: start;
+  }
+}
+.issuedBar,
+.paidBar {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(24px, 76%);
+}
+/* Align the table's reading columns and period control with the reference. */
+.page .invoiceTable th:nth-child(1) {
+  width: 19.2%;
+}
+.page .invoiceTable th:nth-child(2) {
+  width: 24.2%;
+}
+.page .invoiceTable th:nth-child(3) {
+  width: 16%;
+  text-align: center;
+}
+.page .invoiceTable th:nth-child(4) {
+  width: 16%;
+}
+.page .invoiceTable th:nth-child(5) {
+  width: 24.6%;
+}
+.page .invoiceTable td.amount {
+  text-align: center;
+  font-weight: 700;
+}
+.secondaryButton {
+  padding-inline: 12px;
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .headingActions {
+    position: relative;
+    top: 12px;
+  }
+  .lists > .card {
+    padding-top: 18px;
+    padding-bottom: 16px;
+  }
+  .lists .cardHeader {
+    margin-bottom: 10px;
+  }
+  .lists .reminderHeader {
+    margin-bottom: 6px;
+  }
+  .lists > aside.card {
+    min-height: 322px;
+  }
+}
+/* Three disjoint current-state stacks; values come from existing report filters. */
+.legendPending {
+  background: #f8bd7d;
+}
+.legendOverdue {
+  background: #e66a65;
+}
+.paidBar,
+.pendingBar,
+.overdueBar {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(24px, 76%);
+  min-width: 1px;
+  border-radius: 2px 2px 0 0;
+}
+.pendingBar {
+  background: linear-gradient(#ffd1a0, #f2b773);
+}
+.overdueBar {
+  background: linear-gradient(#ed827b, #df625d);
+}
+
+/* Reference detail pass: preserve the verified grid, refine its contents. */
+.card,
+.metric {
+  border-color: #e9eeeb66;
+  background: #ffffffed;
+  box-shadow: 0 4px 24px #234d3002 !important;
+}
+.metric[data-tone="waiting"] {
+  background: linear-gradient(110deg, #fffaf5f0, #fffcf9ec);
+}
+.metric[data-tone="overdue"] {
+  background: linear-gradient(110deg, #fff6f7f0, #fff9faec);
+}
+.metric[data-tone="overdue"] .metricDetail {
+  color: #db2e2b;
+}
+.metric[data-tone="paid"] .metricDetail {
+  color: #16613c;
+}
+.searchShortcut {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid #e1e6e4;
+  border-radius: 5px;
+  color: #89929a;
+  font: inherit;
+  font-size: 12px;
+  line-height: 19px;
+  white-space: nowrap;
+}
+.page .search input {
+  min-width: 0;
+}
+.chartControls {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.chartControls > label {
+  min-width: 0;
+}
+.chartControls > label > select {
+  height: 34px;
+  color: #626d77;
+  font-size: 12px;
+  padding-inline: 12px 24px;
+  border-color: #e5eae7;
+  border-radius: 8px;
+}
+.chartOptions {
+  position: relative;
+  flex: 0 0 22px;
+}
+.chartOptions > summary,
+.invoiceActions > summary {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 28px;
+  padding: 0;
+  list-style: none;
+  color: #51616c;
+  cursor: pointer;
+}
+.chartOptions > summary::-webkit-details-marker,
+.invoiceActions > summary::-webkit-details-marker {
+  display: none;
+}
+.chartOptions > summary svg,
+.invoiceActions > summary svg {
+  width: 17px;
+  height: 17px;
+}
+.chartOptions > div,
+.invoiceActions > div {
+  position: absolute;
+  z-index: 15;
+  top: 100%;
+  right: 0;
+  width: 210px;
+  max-width: calc(100vw - 40px);
+  padding: 10px;
+  border: 1px solid #e1e9e4;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 30px #193d2920;
+}
+.chartOptions label {
+  display: block;
+  color: #5e6d63;
+  font-size: 12px;
+}
+.chartOptions select {
+  margin-top: 5px;
+}
+.chartOptions button,
+.page .invoiceActions :is(a, button) {
+  display: block;
+  width: 100%;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: #285a3c;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: normal;
+}
+.chartOptions button:hover,
+.page .invoiceActions :is(a, button):hover {
+  background: #edf5ef;
+}
+.invoiceActions {
+  position: relative;
+}
+.invoiceActions > div {
+  top: auto;
+  bottom: 100%;
+}
+.invoiceActions [role="status"] {
+  display: block;
+  padding: 4px;
+  color: #39734f;
+  font-size: 11px;
+}
+.page .invoiceTable th:nth-child(1) {
+  width: 19.5%;
+}
+.page .invoiceTable th:nth-child(2) {
+  width: 24%;
+}
+.page .invoiceTable th:nth-child(3) {
+  width: 16%;
+}
+.page .invoiceTable th:nth-child(4) {
+  width: 16.5%;
+}
+.page .invoiceTable th:nth-child(5) {
+  width: 20%;
+}
+.page .invoiceTable th:nth-child(6) {
+  width: 4%;
+}
+.page .invoiceTable td:last-child {
+  padding-inline: 0;
+}
+.lists .cardHeader {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.page h2 {
+  letter-spacing: -0.35px;
+}
+.paidBar {
+  background: linear-gradient(#2e8559, #28734e);
+}
+.pendingBar {
+  background: linear-gradient(#ffd3a2, #f7c28a);
+}
+.overdueBar {
+  background: linear-gradient(#f97972, #ed625b);
+}
+.chartLegend {
+  gap: 22px;
+}
+.chartTable:not([open]) > summary {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.chartTable[open] > summary,
+.chartTable > summary:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 4px 0;
+  overflow: visible;
+  clip-path: none;
+}
+.chartOptions[open],
+.invoiceActions[open] {
+  z-index: 20;
+}
+.sentCount {
+  flex: 0 0 auto;
+  color: #2d7850;
+  font-size: 12px;
+  line-height: 26px;
+}
+.reminderPanel {
+  display: flex;
+  flex-direction: column;
+}
+.reminderPanel .reminderHeader {
+  gap: 8px;
+  align-items: baseline;
+}
+.reminderControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 9px;
+  background: #eaf3ed;
+  color: #24553b;
+}
+.reminderControl[data-paused="true"] {
+  background: #f1f4f2;
+  color: #66756c;
+}
+.reminderBell {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #dcece0;
+}
+.reminderBell svg {
+  width: 19px;
+  height: 19px;
+}
+.reminderControl > div {
+  flex: 1;
+  min-width: 0;
+}
+.reminderControl strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 17px;
+}
+.reminderControl > div > span {
+  display: block;
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+  color: #5a7e67;
+}
+.reminderControl button {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #dce6df;
+  border-radius: 7px;
+  background: #ffffffed;
+  color: #22583b;
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.reminderControl button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.reminderTimeline {
+  margin: 0;
+  padding: 0 0 0 8px;
+  list-style: none;
+}
+.reminderTimeline > li {
+  display: flex;
+  position: relative;
+  gap: 16px;
+  min-height: 55px;
+  padding: 5px 0 5px 20px;
+  border-left: 1px solid #dce9df;
+}
+.reminderTimeline > li:last-child {
+  border-color: transparent;
+}
+.reminderTimeline > li > i {
+  position: absolute;
+  top: 10px;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #b1d3bf;
+  outline: 3px solid white;
+}
+.reminderTimeline > li[data-state="sent"] > i {
+  background: #287c51;
+}
+.reminderTimeline > li[data-state="failed"] > i {
+  background: #d16b61;
+}
+.reminderTimeline > li > div {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #edf1ee;
+}
+.reminderTimeline > li:last-child > div {
+  border: 0;
+}
+.reminderTimeline strong,
+.reminderTimeline span,
+.reminderTimeline small {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+.reminderTimeline strong {
+  color: #19251f;
+  font-weight: 550;
+}
+.reminderTimeline span,
+.reminderTimeline small {
+  color: #7b858b;
+}
+.eventMore {
+  flex: 0 0 20px;
+  color: #61706a;
+}
+.eventMore svg {
+  width: 16px;
+  height: 16px;
+}
+.reminderSelector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+.reminderSelector label {
+  flex: 1;
+  min-width: 0;
+}
+.reminderSelector select {
+  width: 100%;
+  padding: 2px 16px 2px 0;
+  border: 0;
+  background: transparent;
+  color: #698371;
+  font-size: 10px;
+  text-overflow: ellipsis;
+}
+.reminderSelector a {
+  flex: 0 0 18px;
+  color: #2b7753;
+}
+.reminderSelector svg {
+  width: 14px;
+  height: 14px;
+}
+.timelineExpand {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  color: #2b7753;
+  font-size: 11px;
+}
+.inlineError {
+  margin: 4px 0;
+  color: #b33630;
+  font-size: 12px;
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .chartLegend {
+    margin-bottom: 12px;
+  }
+  .barChart {
+    min-height: 94px;
+  }
+  .reminderTimeline {
+    flex: 1;
+  }
+  .reminderPanel .reminderHeader {
+    margin-bottom: 8px;
+  }
+}
+@media (max-width: 599px) {
+  .searchShortcut {
+    display: none;
+  }
+  .chartControls {
+    flex-wrap: wrap;
+  }
+  .reminderControl {
+    gap: 7px;
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+  .reminderControl > div {
+    flex-basis: calc(100% - 48px);
+  }
+  .reminderControl button {
+    margin-left: 39px;
+  }
+  .reminderTimeline > li {
+    min-height: 62px;
+  }
+}
+/* The profile remains in the sidebar; the real notification bell is grouped with topbar actions. */
+@media (min-width: 1440px) and (min-height: 900px) {
+  .topbar :global(.dashboard-actions) {
+    margin-right: 0;
+  }
+}
+.page .lists .cardHeader {
+  padding: 0;
+  border: 0;
+}
+.page .reminderPanel .reminderHeader {
+  margin: 0 0 8px;
+  min-height: 26px;
+}
+.page .reminderTimeline {
+  margin: 0;
+  padding: 0 0 0 8px;
+  display: block;
+}
+.page .reminderTimeline > li {
+  margin: 0;
+}
+.page .reminderSelector {
+  padding: 0;
+  border: 0;
+  margin: 4px 0 0;
+  min-height: 18px;
+}
+.page .reminderSelector label {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+.page .reminderSelector select {
+  min-height: 18px;
+  height: 18px;
+  padding: 0 14px 0 0;
+  line-height: 18px;
+}
+.page .timelineExpand {
+  min-height: 18px;
+  line-height: 18px;
+  padding: 0 2px;
+  margin: 0;
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: 10px;
+}
+.page .invoiceActions > summary {
+  min-height: 0;
+  height: 20px;
+  width: 22px;
+  margin: 0;
+  padding: 0;
+  line-height: 20px;
+}
+.page .chartControls > label > select {
+  height: 34px;
+  min-height: 34px;
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .chartLegend {
+    margin-bottom: 0;
+  }
+}
+.paymentLegendRow a {
+  color: #1b2b21;
+  font-weight: 650;
+  text-decoration: none;
+}
+.paymentLegendRow a:hover {
+  text-decoration: underline;
+}
+.paymentLegendRow dd > span {
+  color: #7c8881;
+}
+.page .reminderPanel .reminderHeader {
+  align-items: center;
+}
+.page .reminderTimeline > li {
+  padding-block: 3px;
+  gap: 10px;
+}
+.page .reminderTimeline > li > div {
+  padding-bottom: 0;
+}
+.page .reminderTimeline small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 1440px) and (min-height: 900px) and (max-height: 959px) {
+  .barChart {
+    min-height: 84px;
+  }
+}
+.page .reminderSelector > a {
+  display: grid;
+  place-items: center;
+  height: 18px;
+  line-height: 18px;
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .page .reminderTimeline > li {
+    padding-block: 2px;
+    min-height: 53px;
+  }
+}
+.page .invoiceTable th:nth-child(2) {
+  width: 21%;
+}
+.page .invoiceTable th:nth-child(5) {
+  width: 23%;
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .page .reminderPanel .reminderHeader {
+    margin-bottom: 6px;
+  }
+  .page.page {
+    padding-bottom: 16px;
+  }
+}
+.search {
+  position: relative;
+}
+.page .invoiceTable th:nth-child(1) {
+  width: 19%;
+}
+.page .invoiceTable th:nth-child(2) {
+  width: 25%;
+}
+.page .invoiceTable th:nth-child(3) {
+  width: 18%;
+}
+.page .invoiceTable th:nth-child(4) {
+  width: 16%;
+}
+.page .invoiceTable th:nth-child(5) {
+  width: 18%;
+}
+.page .invoiceTable table {
+  border-top: 0;
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .page .reminderSelector {
+    padding-right: 100px;
+  }
+  .page .reminderTimeline > li:last-child {
+    padding-right: 90px;
+  }
+}
+/* KPI details always remain real content, including compact desktop layouts. */
+.page .metricDetail {
+  display: block;
+  visibility: visible;
+  min-height: 20px;
+}
+.comparison {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.comparison strong {
+  color: #207343;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.comparison[data-direction="down"] strong {
+  color: #be4840;
+}
+.comparison small {
+  color: #7a858b;
+  font-size: 11px;
+  font-weight: 400;
+}
+.comparisonRetry {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #8c6250;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  white-space: normal;
+}
+/* The browser's available height, rather than the physical screen, controls density. */
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .page.page {
+    display: grid;
+    --chart-reduction: clamp(0px, calc((100dvh - 700px) * 0.3), 40px);
+    min-height: 100dvh;
+    height: auto;
+    padding: 10px 24px;
+    gap: 8px;
+    align-content: start;
+    grid-template-rows:
+      max-content max-content max-content
+      minmax(min-content, clamp(148px, calc(170px + (100dvh - 700px) * 0.5 - var(--chart-reduction)), 300px))
+      minmax(min-content, 1fr);
+  }
+  .page > [data-workspace-topbar],
+  .heading,
+  .metrics,
+  .charts,
+  .lists {
+    margin: 0;
+  }
+  .search,
+  .primaryButton,
+  .secondaryButton {
+    height: 38px;
+    min-height: 38px;
+  }
+  .heading {
+    align-items: center;
+    gap: 12px;
+    margin-block: calc(var(--chart-reduction) / 2);
+  }
+  .page h1 {
+    margin: 0;
+    font-size: clamp(26px, 2.2vw, 32px);
+    line-height: 34px;
+  }
+  .heading .date {
+    margin: 0 0 2px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .heading p:not(.date) {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .headingActions {
+    top: 0;
+  }
+  .metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .metric {
+    padding: 10px 12px;
+    min-height: 96px;
+    gap: 10px;
+  }
+  .metricIcon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+  .metricIcon svg {
+    width: 23px;
+    height: 23px;
+  }
+  .metricLabel {
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .metricValue {
+    font-size: 29px;
+    line-height: 34px;
+  }
+  .metricDetail {
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .metricBody > small,
+  .charts .cardHeader p,
+  .page .invoiceTable td small,
+  .invoiceTable .partial {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .card {
+    padding: 10px 12px;
+  }
+  .page h2 {
+    font-size: 17px;
+    line-height: 22px;
+  }
+  .charts,
+  .lists {
+    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
+  }
+  .charts > .card {
+    display: flex;
+    flex-direction: column;
+  }
+  .charts .cardHeader {
+    margin-bottom: 5px;
+    flex-wrap: nowrap;
+  }
+  .page .chartControls > label > select {
+    min-height: 28px;
+    height: 28px;
+    padding-inline: 8px 18px;
+    font-size: 11px;
+  }
+  .chartLegend {
+    margin: 0;
+    gap: 14px;
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .barChart {
+    flex: 1;
+    height: auto;
+    min-height: 74px;
+  }
+  .bars {
+    gap: 6px;
+  }
+  .donut {
+    width: clamp(92px, calc(100dvh * 0.14), 120px);
+  }
+  .donut strong {
+    font-size: 27px;
+  }
+  .statusChart {
+    flex: 1;
+    gap: 12px;
+  }
+  .statusLegend {
+    font-size: 12px;
+    row-gap: 5px;
+  }
+  .statusLegend dt,
+  .statusLegend dd {
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .statusLegend dd {
+    gap: 8px;
+  }
+  .statusLegend dd > span {
+    width: 30px;
+  }
+  .invoiceTable {
+    display: block;
+  }
+  .invoiceCards {
+    display: none;
+  }
+  .page .invoiceTable th {
+    padding: 5px 3px;
+    font-size: 11px;
+    line-height: 18px;
+  }
+  .page .invoiceTable td {
+    padding: 4px 3px;
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .page .invoiceTable td strong,
+  .page .invoiceTable a {
+    font-size: 12px;
+  }
+  .status {
+    font-size: 11px;
+    line-height: 18px;
+    padding: 2px 5px;
+  }
+  .page .reminderPanel .reminderHeader {
+    margin-bottom: 5px;
+    min-height: 22px;
+  }
+  .reminderControl {
+    min-height: 48px;
+    padding: 6px 8px;
+    gap: 7px;
+    margin-bottom: 4px;
+  }
+  .reminderBell {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+  .reminderControl button {
+    height: 28px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+  .reminderControl strong {
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .reminderControl > div > span {
+    font-size: 11px;
+    line-height: 15px;
+  }
+  .page .reminderTimeline > li {
+    padding-block: 1px;
+    min-height: 47px;
+  }
+  .reminderTimeline strong,
+  .reminderTimeline span,
+  .reminderTimeline small {
+    font-size: 11px;
+    line-height: 15px;
+  }
+  .page .reminderSelector {
+    padding-right: 76px;
+  }
+  .page .reminderTimeline > li:last-child {
+    padding-right: 60px;
+  }
+  .sentCount {
+    font-size: 11px;
+    line-height: 22px;
+  }
+}
+@media (min-width: 360px) and (max-width: 599px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .metric {
+    padding: 12px 10px;
+    gap: 8px;
+  }
+  .metricIcon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+  .metricIcon svg {
+    width: 21px;
+    height: 21px;
+  }
+  .metricLabel {
+    font-size: 12px;
+    line-height: 17px;
+  }
+  .metricValue {
+    font-size: 28px;
+    line-height: 34px;
+  }
+  .metricDetail {
+    font-size: 12px;
+    line-height: 18px;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .statusChart {
+    flex-direction: row;
+  }
+  .statusLegendWrap {
+    width: auto;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 759px) {
+  .page.page {
+    gap: 6px;
+    padding-block: 8px;
+  }
+  .heading .date {
+    display: none;
+  }
+  .page h1 {
+    font-size: 27px;
+    line-height: 32px;
+  }
+  .metric {
+    min-height: 90px;
+    padding-block: 8px;
+  }
+  .metricValue {
+    margin-block: 2px;
+    font-size: 28px;
+    line-height: 32px;
+  }
+  .comparison {
+    gap: 0 6px;
+  }
+  .comparison small {
+    font-size: 10px;
+  }
+  .charts {
+    min-height: 140px;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .statusChart {
+    min-height: 0;
+  }
+  .statusLegend > div {
+    padding-block: 2px;
+    gap: 4px;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 759px) {
+  .heading .date {
+    display: block;
+    font-size: 11px;
+    line-height: 14px;
+    margin: 0;
+  }
+}
+/* Give monetary details their full card width at tighter sizes. */
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px),
+  (min-width: 360px) and (max-width: 599px) {
+  .metric {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 0;
+    align-content: start;
+  }
+  .metricBody {
+    display: contents;
+  }
+  .metricIcon {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .metricLabel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .metricValue {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .page .metricDetail {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 3px;
+  }
+  .metricBody > small {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .chartTable {
+    margin: 0;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 759px) {
+  .page.page {
+    gap: 5px;
+  }
+}
+.reminderEmpty > a {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 12px;
+  color: #397050;
+  font-size: 12px;
+  text-decoration: none;
+}
+.reminderEmpty > a svg {
+  width: 15px;
+  height: 15px;
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 699px) {
+  .page.page {
+    gap: 4px;
+    padding-block: 6px;
+  }
+  .metricValue {
+    min-height: 32px;
+  }
+  .heading > div:first-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: 12px;
+  }
+  .heading h1 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .heading .date {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+  }
+  .heading p:not(.date) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+}
+.shortActionLabel {
+  display: none;
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .page .invoiceTable th:nth-child(1) {
+    width: 20%;
+  }
+  .page .invoiceTable th:nth-child(2) {
+    width: 24%;
+  }
+  .page .invoiceTable th:nth-child(3) {
+    width: 17%;
+  }
+  .page .invoiceTable th:nth-child(4) {
+    width: 16%;
+  }
+  .page .invoiceTable th:nth-child(5) {
+    width: 19%;
+  }
+  .fullActionLabel {
+    display: none;
+  }
+  .shortActionLabel {
+    display: inline;
+  }
+}
+
+/* Distribute available height between charts and lists, keeping the greeting intrinsic. */
+@media (min-width: 1180px) and (min-height: 660px) {
+  .page.page {
+    height: auto;
+    align-content: stretch;
+  }
+  .lists {
+    align-items: stretch;
+  }
+  .lists > section.card {
+    display: flex;
+    flex-direction: column;
+  }
+  .lists .invoiceTable {
+    flex: 1;
+  }
+  .page .invoiceTable table {
+    height: 100%;
+  }
+  .heading {
+    align-self: stretch;
+    align-items: center;
+  }
+}
+/* Centre the icon against the entire card; keep the text in one vertical block. */
+.page .metric {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 134px;
+  padding: 20px 24px;
+}
+.page .metricBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+}
+.page .metricIcon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  align-self: center;
+}
+.page .metricValue {
+  display: block;
+  align-self: stretch;
+  min-height: 0;
+  margin: 0;
+  line-height: 1.2;
+  transform: none;
+}
+.page .metricDetail {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+.page .metricBody > small {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.page .comparison {
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  row-gap: 0;
+}
+.page .comparison small {
+  font-size: 11px;
+  line-height: 15px;
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .page .metric {
+    min-height: 104px;
+    padding: 10px 12px;
+    gap: 12px;
+  }
+}
+@media (max-width: 599px) {
+  .page .metric {
+    min-height: 128px;
+    padding: 12px 10px;
+    gap: 10px;
+  }
+}
+
+/* Share the bell/text columns across the control, timeline and invoice selector. */
+.reminderPanel {
+  --reminder-inset: 12px;
+  --reminder-marker: 32px;
+  --reminder-gap: 10px;
+  --reminder-line: 16px;
+  --reminder-row-pad: 3px;
+}
+.page .reminderPanel .reminderHeader {
+  align-items: baseline;
+}
+.page .reminderTimeline {
+  padding-inline-start: calc(var(--reminder-inset) + var(--reminder-marker) / 2);
+}
+.page .reminderTimeline > li {
+  padding-inline-start: calc(var(--reminder-marker) / 2 + var(--reminder-gap));
+  padding-block: var(--reminder-row-pad);
+}
+.page .reminderTimeline > li > i {
+  top: calc(var(--reminder-row-pad) + (var(--reminder-line) - 9px) / 2);
+}
+.page .eventMore {
+  display: grid;
+  place-items: center;
+  align-self: flex-start;
+  min-height: var(--reminder-line);
+}
+.page .reminderSelector {
+  padding-inline-start: calc(var(--reminder-inset) + var(--reminder-marker) + var(--reminder-gap));
+}
+@media (min-width: 1440px) and (min-height: 900px) {
+  .reminderPanel {
+    --reminder-row-pad: 2px;
+  }
+}
+@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+  .reminderPanel {
+    --reminder-inset: 8px;
+    --reminder-marker: 28px;
+    --reminder-gap: 7px;
+    --reminder-line: 15px;
+    --reminder-row-pad: 1px;
+  }
+}
+@media (max-width: 599px) {
+  .reminderPanel {
+    --reminder-inset: 10px;
+    --reminder-gap: 7px;
+  }
+}
+
+/* Keep headers and values on the same column axis. */
+.page .invoiceTable .statuses {
+  justify-content: center;
+}
+.page .invoiceTable .invoiceActions > summary {
+  margin-inline: auto;
+}
+
+/* Reference reminder card: one consistent horizontal row, using live data. */
+.companyReminders { container: reminder-card / inline-size; gap: 0; padding: 0; background: #fff; border: 1px solid #e7ece8; border-radius: 18px; }
+.companyReminderContents { container-type: inline-size; display: flex; flex: 1; min-height: 0; flex-direction: column; padding: clamp(12px, 3.3cqi, 46px) clamp(12px, 2.6cqi, 36px) clamp(12px, 4cqi, 56px); }
+.page .companyReminders .reminderHeader { align-items: center; margin: 0 0 clamp(14px, 5.3cqi, 74px); gap: 12px; }
+.companyReminders .sentCount { color: #006c45; font-size: clamp(12px, 2.6cqi, 36px); line-height: 1.3; font-weight: 400; white-space: nowrap; }
+.companyReminderList { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; max-height: 340px; margin: 0; padding: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #91b3a0 #f1f6f3; list-style: none; }
+.companyReminderList::-webkit-scrollbar { width: 6px; }
+.companyReminderList::-webkit-scrollbar-track { background: #f1f6f3; border-radius: 6px; }
+.companyReminderList::-webkit-scrollbar-thumb { background: #91b3a0; border-radius: 6px; }
+.companyReminderList:focus-visible { outline: 2px solid #17613f; outline-offset: 2px; }
+.companyReminders .reminderHeader { flex-shrink: 0; }
+@media (min-width: 1180px) and (min-height: 660px) {
+  .companyReminderList { flex: 1 1 0; max-height: none; }
+}
+.companyReminderItem { display: flex; flex: 0 0 auto; min-height: clamp(68px, 12cqi, 170px); flex-direction: column; min-width: 0; border-top: 1px solid #e9eeea; }
+.companyReminderItem:first-child { border-top: 0; }
+.companyReminderRow {
+  display: grid;
+  flex: 1;
+  grid-template-columns: clamp(7px, 2.7cqi, 36px) minmax(0, 2fr) minmax(86px, 1.2fr) minmax(65px, 1.2fr) clamp(12px, 2.5cqi, 34px);
+  grid-template-areas: "dot identity date amount arrow";
+  align-items: center;
+  gap: clamp(4px, 3cqi, 42px);
+  min-height: 44px;
+  padding: clamp(5px, 2cqi, 28px) 0;
+  border-radius: 4px;
+  color: #080f14;
+  text-decoration: none;
+}
+.companyReminderRow:hover { background: #f8faf8; }
+.companyReminderRow:focus-visible { outline: 2px solid #17613f; outline-offset: -2px; }
+.companyReminderDot { grid-area: dot; position: relative; inset-inline-start: clamp(6px, .6cqi, 8px); width: clamp(7px, 2.7cqi, 36px); height: clamp(7px, 2.7cqi, 36px); border-radius: 50%; background: #2b7753; }
+.companyReminderIdentity { grid-area: identity; min-width: 0; padding-inline-start: calc(clamp(0px, .6cqi, 8px) + clamp(6px, .6cqi, 8px)); }
+.companyReminderIdentity strong { display: block; color: #080f14; font-size: clamp(11px, 2.9cqi, 40px); line-height: 1.25; font-weight: 650; }
+.companyReminderIdentity > span { display: block; margin-top: clamp(2px, .5cqi, 7px); color: #697d8e; font-size: clamp(11px, 2.45cqi, 34px); line-height: 1.25; }
+.companyReminderIdentity strong, .companyReminderIdentity > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.companyReminderDate { grid-area: date; display: flex; align-items: center; justify-content: center; min-width: 0; gap: clamp(3px, 1.5cqi, 20px); color: #697d8e; font-size: clamp(11px, 2.45cqi, 34px); line-height: 1.3; }
+.companyReminderDate svg { width: clamp(10px, 2.5cqi, 34px); height: clamp(10px, 2.5cqi, 34px); flex-shrink: 0; }
+.companyReminderDate time { white-space: nowrap; }
+.companyReminderAmount { grid-area: amount; justify-self: end; min-width: 0; color: #080f14; font-size: clamp(11px, 2.9cqi, 40px); line-height: 1.25; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.companyReminderRow .companyReminderArrow { grid-area: arrow; width: clamp(12px, 2.5cqi, 34px); height: clamp(12px, 2.5cqi, 34px); color: #006c45; }
+.companyReminderRow[data-tone="today"] .companyReminderDot,
+.companyReminderRow[data-tone="attention"] .companyReminderDot { background: #edbe83; }
+.companyReminderRow[data-tone="overdue"] .companyReminderDot { background: #d87570; }
+.companyReminderRow[data-tone="unknown"] .companyReminderDot { background: #a4afa8; }
+.companyReminderRetry, .companyReminderNotice button { padding: 0; border: 0; background: transparent; font: inherit; font-size: 11px; color: #006c45; text-decoration: underline; }
+.companyReminderRetry { align-self: flex-start; margin: 0 0 4px 16px; }
+.companyReminderNotice { margin: 0 0 8px; font-size: 12px; color: #8a6427; }
+.companyReminderEmpty { flex: 1; margin: 12px 0; color: #697d8e; font-size: 13px; line-height: 20px; }
+@media (min-width: 1180px) and (max-height: 959px) {
+  .page .companyReminders .reminderHeader { margin-bottom: 12px; }
+  .companyReminderRow { padding-block: 2px; }
+}
+@container (max-width: 340px) {
+  .companyReminderRow { grid-template-columns: 7px minmax(0, 1fr) minmax(0, 1fr) 12px; grid-template-areas: "dot identity amount arrow" ". date amount arrow"; gap: 4px; }
+  .companyReminderDate { justify-content: start; }
+}
+
+@media (min-width: 1180px) and (max-height: 759px) {
+  .page .companyReminders .reminderHeader { margin-bottom: 6px; }
+  .companyReminderRow { padding-block: 2px; row-gap: 0; }
+}
+.page .companyReminders { padding: 0; }
+
+/* Compact selectors still reserve a visible, centered dropdown indicator. */
+.chartControls select { --select-chevron-size: 16px; --select-chevron-offset: 6px; }
+.reminderSelector select { --select-chevron-size: 14px; --select-chevron-offset: 0px; }
+
+.currencyTotals strong[data-money-main] { font-size: inherit; font-weight: inherit; }
+
+@media screen and (max-width: 1023px) {
+  .page.page {
+    margin-top: 0;
+    padding-top: calc(var(--mobile-navigation-height, 72px) + 20px + env(safe-area-inset-top));
+    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+  }
+}
+@media screen and (max-width: 479px) {
+  .page.page {
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+}
+/* Recover the taller shared toolbar's space on the shortest dashboard layout. */
+@media screen and (min-width: 1180px) and (min-height: 660px) and (max-height: 699px) {
+  .page.page { gap: 3px; }
+  .page .metric { min-height: 96px; padding-block: 8px; }
+  .page .charts > .card { padding-block: 6px; }
+}
+
+/* Mobile invoice previews: identity first, money and deadline side by side. */
+@media screen and (max-width: 767px) {
+  .page .invoiceTable { display: none; }
+  .page .invoiceCards { display: grid; gap: 10px; }
+  .page .invoiceCard { display: grid; grid-template-columns: minmax(0,1fr) minmax(90px,auto); grid-template-areas: "customer side" "number side" "amount side" "email side" "reminders side"; align-items: center; gap: 4px 10px; padding: 12px; border: 1px solid #e2ebe5; border-radius: 12px; background: #fff; }
+  .page .invoiceCard header, .page .invoiceCard footer { display: contents; }
+  .page .invoiceCard > strong { grid-area: customer; min-width: 0; font-size: 14px; line-height: 1.4; color: #203c2b; }
+  .page .invoiceCard header > a { grid-area: number; justify-self: start; min-width: 0; font-size: 12px; line-height: 1.5; font-weight: 500; color: #6a7c70; overflow-wrap: anywhere; }
+  .page .invoiceCardSide { grid-area: side; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; min-width: 0; gap: 8px; }
+  .page .invoiceCardSide > .statuses { max-width: 120px; }
+  .page .invoiceCard .status { padding: 4px 7px; font-size: var(--workspace-text-meta, 12px); line-height: 1.4; text-align: center; }
+  .page .invoiceCardSide > small { overflow-wrap: anywhere; min-width: 0; font-size: var(--workspace-text-meta, 12px); line-height: 1.5; text-align: right; color: var(--workspace-text-secondary, #526b5b); }
+  .page .invoiceCardAmount { grid-area: amount; min-width: 0; margin: 6px 0; font-size: clamp(18px,5.6vw,23px); line-height: 1.4; }
+  .page .invoiceCardDue { display: grid; gap: 2px; justify-items: end; color: #526b5b; font-size: 12px; line-height: 1.4; }
+  .invoiceCardDue > span { color: var(--workspace-text-secondary, #526b5b); font-size: var(--workspace-text-meta, 12px); }
+  .invoiceCardDue time { white-space: nowrap; }
+  .page .invoiceCard > span { grid-area: email; min-width: 0; font-size: var(--workspace-text-meta, 12px); line-height: 1.5; color: var(--workspace-text-secondary, #526b5b); overflow-wrap: anywhere; }
+  .page .invoiceCardReminders { grid-area: reminders; justify-self: start; font-size: var(--workspace-text-meta, 12px); line-height: 1.5; color: var(--workspace-text-secondary, #526b5b); }
+}
+
+@media screen and (max-width: 767px) {
+  .page .invoiceCard .status[data-status="pending"], .page .invoiceCard .status[data-status="partial"] { color: #7b4c12; background: #fff4df; }
+  .page .invoiceCard .status[data-status="overdue"] { color: #a52232; background: #fff0f0; }
+  .page .invoiceCard .status[data-status="paid"] { color: #17613f; background: #e5f2ea; }
+  .page .invoiceCard .status[data-status="cancelled"] { color: #526b5b; background: #edf0ee; }
 }

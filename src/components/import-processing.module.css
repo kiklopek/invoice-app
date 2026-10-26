@@ -1,0 +1,46 @@
+.card { position: relative; width: 100%; min-width: 0; box-sizing: border-box; padding: 48px 28px 20px; border: 1px solid #e7ece8; border-radius: 16px; background: #ffffffed; color: #0c171d; }
+.stop { position: absolute; top: 16px; right: 20px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: #617080; font: inherit; font-size: 12px; cursor: pointer; }
+.stop:hover { background: #edf6f0; color: #17613f; }
+.content { width: min(100%, 736px); margin-inline: auto; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.progressRow { display: flex; align-items: center; gap: 14px; margin-top: 0; }
+.progress { flex: 1; min-width: 0; height: 10px; overflow: hidden; border-radius: 20px; background: #edf0ef; }
+.progress > span { display: block; width: 38%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2b9663, #208454); animation: processingSweep 1.8s ease-in-out infinite; }
+@keyframes processingSweep { from { transform: translateX(-105%); } to { transform: translateX(365%); } }
+.count { flex: none; color: #708092; font-size: 12px; font-variant-numeric: tabular-nums; }
+.stages { list-style: none; padding: 0 20px; margin: 18px 0 12px; }
+.stages li { position: relative; display: flex; align-items: flex-start; gap: 25px; padding-bottom: 16px; color: #44515a; min-height: 49px; }
+.stages li:last-child { padding-bottom: 0; }
+.stages li:not(:last-child)::before { content: ""; position: absolute; top: 25px; left: 13px; bottom: -1px; width: 2px; background: #e5ebe7; }
+.stages li.done::before { background: #a9d5bc; }
+.stageIcon { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 3px solid #e3e9e6; background: #fff; }
+.stageIcon svg { display: block; width: 18px; height: 18px; flex: none; }
+.done .stageIcon { background: #238c57; color: #fff; border: 0; }
+.done .stageIcon svg { stroke-width: 2.5; }
+.active .stageIcon { border-color: #238c57; }
+.active .stageIcon::after { content: ""; width: 16px; height: 16px; border-radius: 50%; background: #238c57; animation: processingPulse 1.5s ease-in-out infinite alternate; }
+@keyframes processingPulse { to { opacity: .45; } }
+.stages strong { display: block; padding-top: 4px; font-size: 14px; font-weight: 500; line-height: 20px; }
+.active strong, .done strong { color: #0c171d; }
+.stages p { margin: 2px 0 0; color: #8795a4; font-size: 13px; line-height: 1.5; }
+.stages small { margin-left: auto; padding-top: 5px; color: #788b9d; font-size: 12px; white-space: nowrap; }
+.notice { display: flex; align-items: center; gap: 14px; margin: 0; padding: 14px 20px; border-radius: 9px; background: #f0f7ff; color: #527ca9; font-size: 12px; line-height: 1.5; }
+.notice > span { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border: 1.8px solid #1682ff; border-radius: 50%; color: #1682ff; font-size: 12px; font-weight: 700; }
+.stopNote { text-align: center; margin: 9px 0 0; color: #7d8990; font-size: 11px; line-height: 1.5; }
+.card :focus-visible { outline: 2px solid #278955; outline-offset: 3px; }
+@media (max-width: 700px) {
+  .card { padding: 46px 18px 20px; }
+  .progressRow { flex-wrap: wrap; gap: 8px; }
+  .progress { flex-basis: 100%; }
+  .count { margin-left: auto; }
+  .stages { padding: 0; }
+  .stages li { gap: 13px; }
+  .stages strong { font-size: 13px; }
+  .stages p { font-size: 12px; }
+  .stages small { display: none; }
+  .notice { padding: 12px; gap: 10px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress > span, .active .stageIcon::after { animation: none; }
+  .progress > span { width: 100%; opacity: .6; background: repeating-linear-gradient(110deg, #26885b 0 10px, #e4eee7 10px 20px); }
+}

@@ -1,0 +1,52 @@
+.manual-invoice-back {
+  display: none;
+}
+@media screen and (max-width: 767px) {
+  .manual-invoice-page {
+    min-width: 0;
+  }
+  .manual-invoice-page > .section-header {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    margin: 0 0 16px;
+  }
+  .manual-invoice-page > .section-header h1 {
+    margin: 0;
+    font:
+      650 23px/1.25 Inter,
+      sans-serif;
+    letter-spacing: -0.5px;
+  }
+  .manual-invoice-page > .section-header > div > p,
+  .manual-invoice-page > .section-header > div > span {
+    display: none;
+  }
+  .manual-invoice-page > .section-header > .btn {
+    grid-column: 1 / -1;
+    min-height: 44px;
+    margin: 0;
+    font-size: 13px;
+  }
+  .manual-invoice-back {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #e1e8e3;
+    border-radius: 9px;
+    background: #fff;
+    color: #657784;
+  }
+  .manual-invoice-back svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .app-shell > main:has(> .manual-invoice-page) > [data-workspace-topbar] {
+    display: none;
+  }
+}

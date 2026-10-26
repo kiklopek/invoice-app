@@ -9,6 +9,9 @@ const db = new PGlite({ extensions: { pg_trgm } });
 try {
   await replayMigrations((sql) => db.exec(sql), true);
   await db.exec((await readFile("supabase/tests/stripe_billing.sql", "utf8")).replace(/^\\.*$/gm, ""));
+  await db.exec(await readFile("supabase/tests/subscription_monthly_usage.sql", "utf8"));
+  await db.exec((await readFile("supabase/tests/billing_exempt.sql", "utf8")).replace(/^\\.*$/gm, ""));
+  console.log("Passed monthly usage counters, paid limits and billing exemption.");
   console.log("Passed Stripe subscriptions, trial limit and trial abuse rules.");
 } catch (error) {
   console.error(error.message, error.detail ?? "", error.where ?? "");

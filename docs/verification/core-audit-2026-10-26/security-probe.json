@@ -1,0 +1,38 @@
+[
+  {
+    "role": "admin",
+    "company": "A",
+    "password_only_no_app_mfa": true,
+    "own_invoice_count": 2,
+    "own_read_error": null,
+    "foreign_invoice_count": 0,
+    "foreign_read_error": null
+  },
+  {
+    "role": "accounting",
+    "company": "A",
+    "password_only_no_app_mfa": true,
+    "own_invoice_count": 2,
+    "own_read_error": null,
+    "foreign_invoice_count": 0,
+    "foreign_read_error": null
+  },
+  {
+    "role": "viewer",
+    "company": "A",
+    "password_only_no_app_mfa": true,
+    "own_invoice_count": 2,
+    "own_read_error": null,
+    "foreign_invoice_count": 0,
+    "foreign_read_error": null
+  },
+  {
+    "role": "admin",
+    "company": "B",
+    "password_only_no_app_mfa": true,
+    "own_invoice_count": 0,
+    "own_read_error": null,
+    "foreign_invoice_count": 0,
+    "foreign_read_error": null
+  }
+]

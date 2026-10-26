@@ -169,7 +169,8 @@ describe("chybný dokument v OCR frontě není slepá ulička", () => {
 
   it("can stop a long batch instead of forcing a tab close", () => {
     expect(importPage()).toContain("AbortController");
-    expect(importPage()).toContain("Zastavit zpracování");
+    expect(importPage()).toContain("onStop={cancelProcessing}");
+    expect(read("src/components/import-processing-view.tsx")).toContain("Zastavit zpracování");
   });
 });
 

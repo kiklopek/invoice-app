@@ -1,0 +1,17 @@
+PASS signed upload, storage and signature verification
+PASS actual OCR API, hybrid fallback and stored proposal
+FAIL correct OCR, persist invoice, review audit and duplicate request expect(received).toBe(expected) // Object.is equality
+
+Expected: 409
+Received: 400
+FAIL CSV upload, proposed match, commit and paid invoice apiRequestContext.get: read ECONNRESET
+Call log:
+  - → GET http://127.0.0.1:3006/api/payments/imports/2de28e7d-6b20-4918-8231-9b45ef461dee
+    - user-agent: Playwright/1.62.1 (arm64; macOS 15.3) node/22.19
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - origin: http://127.0.0.1:3006
+[request credential redacted]
+
+PASS issued invoice, server exact custom VAT, idempotent issue and PDF
+PASS report PDF from real database snapshot

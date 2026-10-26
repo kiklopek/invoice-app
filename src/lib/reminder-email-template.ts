@@ -27,10 +27,12 @@ export function reminderLogoUrl(logoPath: string | null | undefined, baseUrl: st
 type RenderReminderEmailParams = {
   company: ReminderEmailCompany;
   stage: ReminderStage;
+  purpose?: "issue";
   subject: string;
   message: string;
   values: ReminderTemplateValues;
   logoUrl?: string | null;
+  inlineDefaultLogo?: boolean;
   replyTo?: string | null;
   // Zdroj obrázku QR platby: "cid:…" v odeslaném e-mailu (inline příloha),
   // "data:image/png;base64,…" v náhledu v aplikaci. Bez něj blok s QR není.
@@ -123,7 +125,7 @@ function companyContactLines(company: ReminderEmailCompany) {
 }
 
 export function renderReminderEmail(params: RenderReminderEmailParams) {
-  const presentation = stagePresentation[params.stage];
+  const presentation = params.purpose === "issue" ? { eyebrow: "NOVÁ FAKTURA", title: "Zasíláme vám fakturu", preheader: "Vystavenou fakturu a údaje k úhradě najdete v příloze.", accent: "#2f7650", soft: "#edf7f0" } : stagePresentation[params.stage];
   const companyName = params.company.name.trim();
   // A missing company name used to silently fall back to "R. Hlavica
   // s.r.o." -- harmless while this is the only organization, but the moment
@@ -158,7 +160,7 @@ export function renderReminderEmail(params: RenderReminderEmailParams) {
   const replyHref = replyAddress
     ? `mailto:${replyAddress}?subject=${encodeURIComponent(`Faktura ${params.values.invoice_number}`)}`
     : null;
-  const logo = renderCompanyEmailLogo(params.logoUrl ?? params.company.logo_path, companyName);
+  const logo = renderCompanyEmailLogo(params.logoUrl ?? params.company.logo_path, companyName, undefined, params.inlineDefaultLogo);
   const cta = replyHref ? `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0;">
       <tr><td>

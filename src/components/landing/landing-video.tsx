@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseIcon } from "@/components/close-icon";
 import { useState } from "react";
 import { Modal } from "@/components/modal";
 import { useI18n } from "@/i18n/client";
@@ -36,7 +37,9 @@ export function LandingVideo() {
       <Modal open={open} onClose={() => setOpen(false)} labelledBy="landing-video-title" className={styles.dialog}>
         <header>
           <h2 id="landing-video-title" className={styles.title}>{copy.title}</h2>
-          <button type="button" aria-label={copy.close} onClick={() => setOpen(false)}>×</button>
+          <button type="button" aria-label={copy.close} onClick={() => setOpen(false)}>
+            <CloseIcon />
+          </button>
         </header>
         <video
           className={styles.video}

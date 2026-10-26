@@ -36,7 +36,7 @@ export function canManageMembers(role: AccessRole | null) {
 // maintained lists that happened to agree by coincidence, which is exactly
 // the kind of thing that silently drifts apart the next time someone adds a
 // nav item without touching this file (or vice versa).
-export const VIEWER_ALLOWED_PATHS = ["/dashboard", "/invoices", "/reports", "/customers"] as const;
+export const VIEWER_ALLOWED_PATHS = ["/dashboard", "/invoices", "/reports", "/customers", "/notifications"] as const;
 
 export function canAccessPage(role: AccessRole | null, pathname: string) {
   if (role === "accounting" || role === "admin") return true;

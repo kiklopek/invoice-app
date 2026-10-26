@@ -1,0 +1,163 @@
+{
+  "scope": "SPL-DASH-001",
+  "branch": "design-rebuild",
+  "baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+  "source_state": "uncommitted working tree; not deployed",
+  "reference_zip": {
+    "source": "/Users/tadeastrnka/Desktop/Mockupy/SPL-DASH-001-CODEX-PACK.zip",
+    "sha256": "7431884136f8699831ea9bc88210f6e698f7b48fceba0e2a53307bf6774e2923"
+  },
+  "sources": [
+    {
+      "source": "scripts/dashboard-design-check.mjs",
+      "sha256": "09ed7f5497d22e852f8004410b108b72cf9fd14ad9ad1c34a0629069e8f850c2"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-client.test.tsx",
+      "sha256": "408799970c065d5ab79ba91010af19d2cf2c38165d5c1ff4b8cae94bbd80ad79"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-client.tsx",
+      "sha256": "d432f1f8bb6972b25a55352c638f53b1844167b0b1d31569207848a6df8482cf"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-presentation.test.ts",
+      "sha256": "460dc8f75ca1884d0d25ce136e44424aabf301b1cb3faefaed5a4b660c44b23f"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-presentation.ts",
+      "sha256": "c668484fcf25b74a99bdcd13bdef371a9567e93891d358abc677cc006b2ff602"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-summary.module.css",
+      "sha256": "57762a6537c1667db621b0e6f0d24e9e4032ae0a567ff0aa5e8ef54fd87c76b6"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/dashboard-widgets.tsx",
+      "sha256": "c7fe0e2cee82fcfc17664515e6819b2933da8a7157dddc768dde0bea82b37515"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/loading.tsx",
+      "sha256": "1521ab0edf68ab5eead1da49a0ea527586af0358204fbb6869ca5739ed4526e7"
+    },
+    {
+      "source": "src/app/(workspace)/dashboard/page.tsx",
+      "sha256": "fe274564e88a89a0b9faaa2f35e11c891cb0988652fe3cf37a71f455a2b39d19"
+    },
+    {
+      "source": "src/components/icons.tsx",
+      "sha256": "766a516195c9090829af0c6811b0be60876488092fcac166b194d1568418d232"
+    },
+    {
+      "source": "src/components/layout/app-shell.tsx",
+      "sha256": "b1cd3516b49fdb08d61c3a0624aff1bc1db18902c2fd371e30a77aaa63cbef8d"
+    },
+    {
+      "source": "src/components/layout/dashboard-shell.module.css",
+      "sha256": "46d905140f1d91776733c46445e7d21a212610897487c2cc6c755d74b04376c1"
+    },
+    {
+      "source": "src/lib/dashboard-action-items.test.ts",
+      "sha256": "7838fe1646659be172d2302f02d87dc464df3f0d066f09e11cdca8ceedaa2735"
+    },
+    {
+      "source": "src/lib/mobile-responsive.test.ts",
+      "sha256": "c326cecf9138a9d6f92af01d4a81807f21129fc6e34d0f15a8f10da81005ce40"
+    },
+    {
+      "source": "src/lib/role-authorization.test.ts",
+      "sha256": "750adbf2576cf4b6b087434f77ca48b0c759a3904e7c07c2e31c73877a95f43b"
+    }
+  ],
+  "browser": {
+    "chromium": {
+      "passed": 32,
+      "results": "artifacts/dashboard-design/after-chromium/results.json",
+      "screenshots_status": "implemented-fixture, awaiting user visual review",
+      "scenarios": [
+        "chart-error",
+        "empty",
+        "normal",
+        "stress",
+        "viewer"
+      ],
+      "widths": [
+        320,
+        375,
+        390,
+        430,
+        599,
+        600,
+        767,
+        768,
+        820,
+        844,
+        899,
+        900,
+        1023,
+        1024,
+        1199,
+        1200,
+        1279,
+        1280,
+        1440,
+        1600
+      ]
+    },
+    "webkit": {
+      "passed": 32,
+      "results": "artifacts/dashboard-design/after-webkit/results.json",
+      "screenshots_status": "implemented-fixture, awaiting user visual review",
+      "scenarios": [
+        "chart-error",
+        "empty",
+        "normal",
+        "stress",
+        "viewer"
+      ],
+      "widths": [
+        320,
+        375,
+        390,
+        430,
+        599,
+        600,
+        767,
+        768,
+        820,
+        844,
+        899,
+        900,
+        1023,
+        1024,
+        1199,
+        1200,
+        1279,
+        1280,
+        1440,
+        1600
+      ]
+    }
+  },
+  "tests": {
+    "files": 200,
+    "passed": 1714
+  },
+  "build": {
+    "result": "passed",
+    "configuration": "synthetic release-audit env",
+    "snapshot": "/private/tmp/splatno-dashboard-build-20261017"
+  },
+  "limits": [
+    "Browser fixtures render real UI/CSS but adapt Next routing/images; not authenticated Next/Supabase E2E.",
+    "No production writes, real email or charges.",
+    "Full WCAG/screen-reader/200% browser zoom audit not claimed."
+  ],
+  "additional_verification": {
+    "final_targeted_lint": "passed: AppShell and browser runner",
+    "final_focused_tests": "26 tests / 4 files passed",
+    "backend_diff": "No changes to API, Supabase schema/RLS, auth, dashboard summary, report loader or role-access source."
+  },
+  "historical_initial_implementation": true,
+  "superseded_by": "refinement-verification.json"
+}

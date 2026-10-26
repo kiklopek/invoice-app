@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { OcrDocumentLayout } from "./invoice-ocr";
 import { organizationAccounts } from "./bank-accounts";
 import { czechAccountToIban } from "./czech-payment";
 import { accountsInText, checkDocumentPaymentAccount } from "./invoice-payment-account";
@@ -33,6 +34,49 @@ describe("účty v textu faktury", () => {
   it("neplete si datum nebo číslo dokladu s účtem (bez slova účet poblíž)", () => {
     expect(accountsInText("Datum vystavení 03/2026\nFaktura 2026/0100\nObjednávka 6786420257/0100")).toEqual([]);
   });
+
+  it.each([
+    "Dodavatel: ACME\nÚčet: 19-2000145399/0800\nOdběratel: My\nÚčet: 6786420257/0100",
+    "Odběratel: My\nÚčet: 6786420257/0100\nDodavatel: ACME\nÚčet: 19-2000145399/0800",
+    "Účet dodavatele: 19-2000145399/0800 Účet odběratele: 6786420257/0100",
+  ])("porovnává dodavatele, i když odběratel má účet z Nastavení: %s", text => {
+    const accounts = accountsInText(text);
+    expect(accounts).toEqual(["19-2000145399/0800"]);
+    const result = checkDocumentPaymentAccount({ qr: [], isdoc: [], text: accounts }, company, "CZK");
+    expect(result.paymentAccount).toBeNull();
+    expect(result.warnings[0]).toContain("19-2000145399/0800 není mezi vašimi");
+  });
+
+  it("účet odběratele nevytváří falešnou nejednoznačnost mezi vlastními účty", () => {
+    const text = accountsInText("Dodavatel\nÚčet: 6844160247/0100\nOdběratel\nÚčet: 6786420257/0100");
+    expect(checkDocumentPaymentAccount({ qr: [], isdoc: [], text }, company, "CZK"))
+      .toEqual({ paymentAccount: "6844160247/0100", warnings: [] });
+  });
+
+  it("samotný účet odběratele nepoužije ani jako IBAN", () => {
+    expect(accountsInText(`Customer\nIBAN: ${czechAccountToIban("6786420257/0100")}`)).toEqual([]);
+  });
+
+  it("samostatné platební údaje po odběrateli zůstávají podporované", () => {
+    expect(accountsInText("Odběratel\nÚčet: 6786420257/0100\nPlatební údaje\nÚčet: 6844160247/0100"))
+      .toEqual(["6844160247/0100"]);
+  });
+
+  it.each([false, true])("rozliší účty ve dvou sloupcích i v obráceném pořadí (reverse=%s)", reverse => {
+    const supplierX = reverse ? 0.6 : 0.05;
+    const customerX = reverse ? 0.05 : 0.6;
+    const rows = [
+      [{ text: "Dodavatel", x: supplierX }, { text: "Odběratel", x: customerX }],
+      [{ text: "Účet: 19-2000145399/0800", x: supplierX }, { text: "Účet: 6786420257/0100", x: customerX }],
+    ];
+    const lines = rows.map((row, index) => {
+      const blocks = row.sort((a, b) => a.x - b.x).map(block => ({ ...block, y: 0.1 + index * 0.03, width: 0.3, height: 0.02, confidence: null }));
+      return { page: 1, line: index + 1, text: blocks.map(b => b.text).join(" "), source: "pdf_text" as const, bounds: null, confidence: null, blocks };
+    });
+    const layout: OcrDocumentLayout = { pages: [{ page: 1, width: 600, height: 800, lines }] };
+    expect(accountsInText(lines.map(line => line.text).join("\n"), layout)).toEqual(["19-2000145399/0800"]);
+  });
+
 });
 
 describe("porovnání s účty firmy", () => {
@@ -81,11 +125,12 @@ describe("zapojení", () => {
     const route = source("src/app/api/invoices/extract/route.ts");
     expect(route).toContain("bank_accounts:organization_bank_accounts(account, currency)");
     expect(route).toContain("checkDocumentPaymentAccount(");
+    expect(route).toContain("accountsInText(documentText.text, documentText.layout)");
     expect(route).toContain("payment_account:");
   });
 
   it("nová faktura uloží jen účet firmy v měně faktury", () => {
     const route = source("src/app/api/invoices/route.ts");
-    expect(route).toContain("ownInvoiceAccount(body?.payment_account, input.currency");
+    expect(route).toContain("ownInvoiceAccount(creation ? creation.payment_account : body?.payment_account, input.currency");
   });
 });

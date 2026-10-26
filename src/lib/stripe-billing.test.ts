@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { clearPriceCache } from "@/lib/stripe";
+import { parseLookupKey, quote } from "@/lib/plans";
 import {
   activateFromSetupSession,
   BillingError,
   changePlan,
   mirrorPayload,
   previewChange,
+  previewTrialEnd,
   startCardSetup,
   startPaidSubscription,
   type BillingDeps,
@@ -76,13 +78,18 @@ function fakeStripe(overrides: Record<string, unknown> = {}) {
     splatno_profi_yearly: "price_profi_yearly",
   };
   return {
-    prices: { list: vi.fn(async ({ lookup_keys }: { lookup_keys: string[] }) => ({ data: [{ id: prices[lookup_keys[0]] }] })) },
+    prices: { list: vi.fn(async ({ lookup_keys }: { lookup_keys: string[] }) => {
+      const choice = parseLookupKey(lookup_keys[0])!;
+      return { data: [{ id: prices[lookup_keys[0]], currency: "czk", unit_amount: quote(choice.plan, choice.period).netHalere, recurring: { interval: choice.period === "yearly" ? "year" : "month", interval_count: 1 } }] };
+    }) },
     customers: {
+      create: vi.fn(async () => ({ id: "cus_1" })),
       update: vi.fn(async () => ({})),
       retrieve: vi.fn(async () => ({ deleted: false, invoice_settings: { default_payment_method: "pm_1" } })),
     },
     checkout: {
       sessions: {
+        create: vi.fn(async () => ({ url: "https://checkout.stripe.com/fixture" })),
         retrieve: vi.fn(async () => ({
           id: "cs_test_1",
           mode: "setup",
@@ -103,7 +110,12 @@ function fakeStripe(overrides: Record<string, unknown> = {}) {
       update: vi.fn(async () => ({})),
       release: vi.fn(async () => ({})),
     },
-    invoices: { createPreview: vi.fn(async () => ({ amount_due: 169400 })) },
+    invoices: { createPreview: vi.fn(async (input: { subscription_details?: { items?: { price: string }[]; proration_behavior?: string } }) => {
+      const item = input.subscription_details?.items?.[0];
+      const choice = item ? parseLookupKey(item.price.replace("price_", "splatno_")) : null;
+      const total = choice ? quote(choice.plan, choice.period).grossHalere : 169400;
+      return { amount_due: input.subscription_details?.proration_behavior === "always_invoice" ? 169400 : total, total };
+    }) },
     ...overrides,
   };
 }
@@ -127,7 +139,7 @@ describe("aktivace po uložení karty", () => {
     expect(stripe.customers.update).toHaveBeenCalledWith("cus_1", { invoice_settings: { default_payment_method: "pm_1" } });
     expect(stripe.subscriptions.create).toHaveBeenCalledWith(
       expect.objectContaining({ customer: "cus_1", trial_period_days: 14, default_payment_method: "pm_1", items: [{ price: "price_profi_monthly" }], default_tax_rates: ["txr_1"] }),
-      { idempotencyKey: `splatno-trial-${ORG}-cs_test_1` },
+      { idempotencyKey: `splatno-trial-${ORG}` },
     );
     expect(row.status).toBe("trialing");
   });
@@ -223,7 +235,15 @@ describe("změna tarifu", () => {
     const stripe = fakeStripe();
     const preview = await previewChange(deps(stripe, fakeService({ ...live })), ORG, { plan: "start", period: "monthly" });
     expect(preview).toMatchObject({ kind: "downgrade", dueNowHalere: 0, effectiveAt: "2026-11-01T00:00:00.000Z" });
-    expect(stripe.invoices.createPreview).not.toHaveBeenCalled();
+    expect(stripe.invoices.createPreview).toHaveBeenCalledWith(expect.objectContaining({ subscription_details: expect.objectContaining({ proration_behavior: "none" }) }));
+    expect(stripe.subscriptions.update).not.toHaveBeenCalled();
+  });
+  it("uses a provider estimate with discounts instead of replacing the next charge with a catalog price", async () => {
+    const stripe = fakeStripe();
+    stripe.invoices.createPreview.mockResolvedValue({ amount_due: 50000, total: 50000 });
+    const preview = await previewChange(deps(stripe, fakeService({ ...live })), ORG, { plan: "start", period: "monthly" });
+    expect(preview).toMatchObject({ dueNowHalere: 0, nextChargeHalere: 50000 });
+    expect(stripe.subscriptions.update).not.toHaveBeenCalled();
   });
 
   it("upgrades now with proration and leaves the plan unchanged when payment fails", async () => {
@@ -232,14 +252,14 @@ describe("změna tarifu", () => {
     const result = await changePlan(deps(stripe, fakeService({ ...live })), ORG, { plan: "business", period: "monthly" }, 1_790_000_000);
     expect(stripe.subscriptions.update).toHaveBeenCalledWith("sub_1", expect.objectContaining({
       proration_behavior: "always_invoice", proration_date: 1_790_000_000, payment_behavior: "pending_if_incomplete",
-    }));
+    }), undefined);
     expect(result).toEqual({ status: "payment_required", kind: "upgrade", url: "https://invoice.stripe.com/i/2" });
   });
 
   it("schedules a downgrade for the next period and keeps the current price until then", async () => {
     const stripe = fakeStripe();
     const result = await changePlan(deps(stripe, fakeService({ ...live })), ORG, { plan: "start", period: "monthly" }, 0);
-    expect(stripe.subscriptionSchedules.create).toHaveBeenCalledWith({ from_subscription: "sub_1" });
+    expect(stripe.subscriptionSchedules.create).toHaveBeenCalledWith({ from_subscription: "sub_1" }, undefined);
     const [, params] = stripe.subscriptionSchedules.update.mock.calls[0] as unknown as [string, { phases: { items: { price: string }[]; end_date?: number }[]; metadata: Row; end_behavior: string }];
     expect(params.metadata).toEqual({ plan: "start", period: "monthly" });
     expect(params.end_behavior).toBe("release");
@@ -267,5 +287,46 @@ describe("zrcadlení stavu", () => {
       current_period_end: "2026-11-01T00:00:00.000Z", customer_id: "cus_1", subscription_id: "sub_1",
     });
     expect(mirrorPayload(scheduled as never, new Date("2026-11-02T00:00:00Z"))).toMatchObject({ scheduled_plan: null, scheduled_at: null });
+  });
+});
+
+describe("subscription management guards", () => {
+  const row = { status: "active", stripe_customer_id: "cus_1", stripe_subscription_id: "sub_1", plan: "profi", period: "monthly" };
+  it("rejects a provider price that disagrees with the configured currency or amount before any mutation", async () => {
+    const stripe = fakeStripe();
+    stripe.prices.list.mockResolvedValue({ data: [{ id: "price_wrong", currency: "usd", unit_amount: 1, recurring: { interval: "month", interval_count: 1 } }] });
+    await expect(changePlan(deps(stripe, fakeService({ ...row })), ORG, { plan: "business", period: "monthly" }, 1790000000)).rejects.toThrow("stripe_price_configuration_mismatch");
+    expect(stripe.subscriptions.update).not.toHaveBeenCalled();
+  });
+  it("rejects a stored subscription that belongs to another customer", async () => {
+    const stripe = fakeStripe(); stripe.subscriptions.retrieve.mockResolvedValue(subscription({ customer: "cus_other" }) as never);
+    await expect(previewChange(deps(stripe, fakeService({ ...row })), ORG, { plan: "start", period: "monthly" })).rejects.toMatchObject({ code: "subscription_mismatch" });
+    expect(stripe.subscriptions.update).not.toHaveBeenCalled();
+  });
+  it("uses the provider for the actual trial-ending charge", async () => {
+    const stripe = fakeStripe(); stripe.subscriptions.retrieve.mockResolvedValue(subscription({ status: "trialing" }) as never);
+    expect(await previewTrialEnd(deps(stripe, fakeService({ ...row, status: "trialing" })), ORG)).toMatchObject({ dueNowHalere: 169400 });
+    expect(stripe.invoices.createPreview).toHaveBeenCalledWith({ subscription: "sub_1", subscription_details: { trial_end: "now", proration_behavior: "none" } });
+    expect(stripe.subscriptions.update).not.toHaveBeenCalled();
+  });
+  it("passes the caller's idempotency key through to the provider mutation", async () => {
+    const stripe = fakeStripe();
+    await changePlan({ ...deps(stripe, fakeService({ ...row })), idempotencyKey: "operation-123" }, ORG, { plan: "business", period: "monthly" }, 1790000000);
+    expect(stripe.subscriptions.update).toHaveBeenCalledWith("sub_1", expect.anything(), { idempotencyKey: "operation-123-upgrade" });
+  });
+  it("recovers a missing subscription row through the existing card setup flow without replacing another row", async () => {
+    const stripe = fakeStripe();
+    const backing = fakeService({ status: "incomplete", plan: "start", period: "monthly" });
+    let missing = true;
+    const upsert = vi.fn(async () => { missing = false; return { error: null }; });
+    const service = { ...backing, from: (table: string) => {
+      const query = backing.from(table);
+      if (table !== "subscriptions") return query;
+      return { ...query, upsert, select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: missing ? null : { status: "incomplete", plan: "start", period: "monthly", stripe_customer_id: null, stripe_subscription_id: null }, error: null }) }) }) };
+    } };
+    const url = await startCardSetup({ ...deps(stripe, backing), service: service as never }, { organizationId: ORG, choice: { plan: "start", period: "monthly" }, ipHash: null, returnBase: "https://app.example", returnPath: "/predplatne" });
+    expect(url).toContain("checkout.stripe.com");
+    expect(upsert).toHaveBeenCalledWith({ organization_id: ORG, status: "incomplete", plan: "start", period: "monthly" }, { onConflict: "organization_id", ignoreDuplicates: true });
+    expect(stripe.subscriptions.create).not.toHaveBeenCalled();
   });
 });

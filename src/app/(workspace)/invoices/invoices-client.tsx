@@ -1,5 +1,8 @@
 "use client";
 
+import { SummaryMoney, ExactMoney } from "@/components/money-amount";
+import { ChevronDown } from "@/components/chevron-down";
+import { CloseIcon } from "@/components/close-icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +10,7 @@ import useSWR from "swr";
 import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
-import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { MobileInvoiceFilters } from "./mobile-invoice-filters";
 import { Modal } from "@/components/modal";
 import { OptionalPaymentAssignment } from "@/components/optional-payment-assignment";
 import { assignBankPaymentToInvoice } from "@/lib/assignable-bank-payment";
@@ -17,20 +20,22 @@ import type { Invoice, InvoiceStatus } from "@/types/invoice";
 import type { InvoiceListPageData } from "@/lib/invoice-list-page-data";
 import type { InvoiceListQuery } from "@/lib/invoice-list-query";
 import { useToast } from "@/components/toast";
+import { invoiceTotalsKey } from "@/lib/invoice-totals-key";
+import { InvoiceListTable } from "./invoice-list-table";
+import { InvoiceListSkeleton } from "./invoice-list-skeleton";
+import {
+  invoicePageNumbers,
+  invoiceSortOptions,
+  type InvoiceSortOrder,
+} from "./invoice-list-presentation";
+import styles from "./invoices.module.css";
+import {
+  DEFAULT_INVOICE_PAGE_SIZE,
+  INVOICE_PAGE_SIZES,
+  parseInvoicePageSize,
+  saveInvoicePageSize,
+} from "@/lib/invoice-page-size";
 
-const PAGE_SIZE = 25;
-const money = (value: number, currency: string) =>
-  new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
-const cardMoney = (value: number, currency: string) =>
-  money(value, currency).replace(/[\u00a0\u202f]/g, " ");
-const date = (value: string) =>
-  new Intl.DateTimeFormat("cs-CZ").format(new Date(value));
-const reminderCount = (count: number) =>
-  `${count} ${count === 1 ? "upomínka" : count < 5 ? "upomínky" : "upomínek"}`;
 const labels: Record<InvoiceStatus, string> = {
   pending: "Čeká na úhradu",
   overdue: "Po splatnosti",
@@ -42,12 +47,32 @@ export function InvoicesClient({
   initialData,
   initialQuery,
   initialKey,
+  initialNow,
+  initialTotals,
 }: {
   initialData: InvoiceListPageData;
   initialQuery: InvoiceListQuery;
   initialKey: string;
+  initialNow?: string;
+  initialTotals?: Record<string, number>;
 }) {
   const router = useRouter();
+  const [sortOrder, setSortOrder] = useState<InvoiceSortOrder>({
+    field: "default",
+    direction: "asc",
+  });
+  const [today] = useState(() =>
+    todayInTimeZone(initialNow ? new Date(initialNow) : new Date()),
+  );
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(
+      initialQuery.query ||
+      initialQuery.amountMin !== null ||
+      initialQuery.amountMax !== null ||
+      initialQuery.paymentState ||
+      initialQuery.bankMatch,
+    ),
+  );
   const { showToast } = useToast();
   const invalidateWorkspaceData = useInvalidateWorkspaceData();
   const [invoices, setInvoices] = useState<Invoice[]>(initialData.invoices);
@@ -59,14 +84,13 @@ export function InvoicesClient({
   );
   const [paymentDate, setPaymentDate] = useState(todayInTimeZone());
   const [selectedBankPaymentId, setSelectedBankPaymentId] = useState("");
-  const [confirmWithoutBankPayment, setConfirmWithoutBankPayment] = useState(false);
+  const [confirmWithoutBankPayment, setConfirmWithoutBankPayment] =
+    useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [query, setQuery] = useState(initialQuery.query);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery.query);
-  const [status, setStatus] = useState<"all" | InvoiceStatus>(
-    initialQuery.status && initialQuery.status !== "closed"
-      ? initialQuery.status
-      : "all",
+  const [status, setStatus] = useState<"all" | "closed" | InvoiceStatus>(
+    initialQuery.status ?? "all",
   );
   const [currency, setCurrency] = useState(initialQuery.currency ?? "all");
   const [from, setFrom] = useState(initialQuery.from ?? "");
@@ -84,6 +108,10 @@ export function InvoicesClient({
   );
   const [bankMatch, setBankMatch] = useState(initialQuery.bankMatch ?? "all");
   const [page, setPage] = useState(initialQuery.page);
+  const [pageSize, setPageSize] = useState(
+    () =>
+      parseInvoicePageSize(initialData.page_size) ?? DEFAULT_INVOICE_PAGE_SIZE,
+  );
   const [total, setTotal] = useState(initialData.total);
   const [totalPages, setTotalPages] = useState(initialData.total_pages);
   const [currencies, setCurrencies] = useState<string[]>(
@@ -101,6 +129,8 @@ export function InvoicesClient({
       paged: "1",
       page: String(requestedPage),
     });
+    if (pageSize !== DEFAULT_INVOICE_PAGE_SIZE)
+      params.set("page_size", String(pageSize));
     if (searchQuery.trim()) params.set("q", searchQuery.trim());
     if (status !== "all") params.set("status", status);
     if (currency !== "all") params.set("currency", currency);
@@ -149,9 +179,24 @@ export function InvoicesClient({
     data: loadedData,
     error: loadError,
     isLoading,
+    mutate,
   } = useSWR<InvoiceListPageData>(listKey, {
     fallbackData: listKey === initialKey ? initialData : undefined,
-    revalidateOnMount: revalidateOnRevisit,
+    revalidateOnMount: listKey !== initialKey || revalidateOnRevisit,
+    keepPreviousData: false,
+  });
+  const totalsKey = invoiceTotalsKey(listKey);
+  const initialTotalsKey = invoiceTotalsKey(initialKey);
+  const totalsRevisit = useRevalidateOnRevisit(totalsKey);
+  const {
+    data: totals,
+    error: totalsError,
+    mutate: retryTotals,
+  } = useSWR<Record<string, number>>(totalsKey, {
+    fallbackData: totalsKey === initialTotalsKey ? initialTotals : undefined,
+    revalidateOnMount:
+      !initialTotals || totalsKey !== initialTotalsKey || totalsRevisit,
+    keepPreviousData: false,
   });
   const loading = isLoading && !loadedData;
 
@@ -178,17 +223,31 @@ export function InvoicesClient({
   // rozlišení hláška nové organizaci tvrdila, že nic neodpovídá filtru,
   // který vůbec nebyl nastavený.
   const hasActiveFilter =
-    Boolean(query.trim()) || status !== "all" || currency !== "all" ||
-    Boolean(from) || Boolean(to) || Boolean(dueFrom) || Boolean(dueTo) ||
-    Boolean(amountMin) || Boolean(amountMax) ||
-    paymentState !== "all" || bankMatch !== "all";
+    Boolean(query.trim()) ||
+    status !== "all" ||
+    currency !== "all" ||
+    Boolean(from) ||
+    Boolean(to) ||
+    Boolean(dueFrom) ||
+    Boolean(dueTo) ||
+    Boolean(amountMin) ||
+    Boolean(amountMax) ||
+    paymentState !== "all" ||
+    bankMatch !== "all";
 
   function clearFilters() {
     changeFilter(() => {
-      setQuery(""); setStatus("all"); setCurrency("all");
-      setFrom(""); setTo(""); setDueFrom(""); setDueTo("");
-      setAmountMin(""); setAmountMax("");
-      setPaymentState("all"); setBankMatch("all");
+      setQuery("");
+      setStatus("all");
+      setCurrency("all");
+      setFrom("");
+      setTo("");
+      setDueFrom("");
+      setDueTo("");
+      setAmountMin("");
+      setAmountMax("");
+      setPaymentState("all");
+      setBankMatch("all");
     });
   }
 
@@ -204,12 +263,16 @@ export function InvoicesClient({
   function prefetchInvoice(id: string) {
     router.prefetch(`/invoices/${id}`);
   }
-  async function exportExcel() {
+  async function exportExcel(selectedIds?: string[]) {
     setExporting(true);
     try {
-      const response = await fetch(
-        `/api/invoices?${requestParams(1, "xlsx").toString()}`,
-      );
+      // Selection belongs to the displayed page and its applied filters.
+      const params = selectedIds?.length
+        ? new URLSearchParams(listKey.slice(listKey.indexOf("?") + 1))
+        : requestParams(1, "xlsx");
+      params.set("format", "xlsx");
+      if (selectedIds?.length) params.set("selected_ids", selectedIds.join(","));
+      const response = await fetch(`/api/invoices?${params.toString()}`);
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         throw new Error(data?.error || "Export se nepodařilo připravit.");
@@ -217,13 +280,16 @@ export function InvoicesClient({
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `faktury-${from || "zacatek"}-${to || "dnes"}.xlsx`;
+      link.download = selectedIds?.length ? "vybrane-faktury.xlsx" : `faktury-${from || "zacatek"}-${to || "dnes"}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
       showToast({
         variant: "error",
-        message: cause instanceof Error ? cause.message : "Export se nepodařilo připravit.",
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Export se nepodařilo připravit.",
       });
     } finally {
       setExporting(false);
@@ -237,19 +303,33 @@ export function InvoicesClient({
     try {
       let data: { invoice?: Invoice; error?: string } = {};
       if (selectedBankPaymentId) {
-        const assignment = await assignBankPaymentToInvoice(selectedBankPaymentId, paymentCandidate.id);
+        const assignment = await assignBankPaymentToInvoice(
+          selectedBankPaymentId,
+          paymentCandidate.id,
+        );
         if (assignment.settlement === "partial") {
-          setInvoices((current) => current.map((item) => item.id === paymentCandidate.id ? {
-            ...item,
-            paid_amount: assignment.paid_amount ?? item.paid_amount,
-            status: assignment.invoice_status ?? item.status,
-          } : item));
-          setNotice(`Bankovní platba byla přiřazena k faktuře ${paymentCandidate.invoice_number} jako částečná úhrada. Faktura zůstává otevřená.`);
+          setInvoices((current) =>
+            current.map((item) =>
+              item.id === paymentCandidate.id
+                ? {
+                    ...item,
+                    paid_amount: assignment.paid_amount ?? item.paid_amount,
+                    status: assignment.invoice_status ?? item.status,
+                  }
+                : item,
+            ),
+          );
+          setNotice(
+            `Bankovní platba byla přiřazena k faktuře ${paymentCandidate.invoice_number} jako částečná úhrada. Faktura zůstává otevřená.`,
+          );
           setPaymentCandidate(null);
           void invalidateWorkspaceData();
           return;
         }
-        if (assignment.invoice_status !== "paid") throw new Error("Platba byla přiřazena, ale nepokryla celý zbývající zůstatek faktury.");
+        if (assignment.invoice_status !== "paid")
+          throw new Error(
+            "Platba byla přiřazena, ale nepokryla celý zbývající zůstatek faktury.",
+          );
       } else {
         if (!confirmWithoutBankPayment) return;
         const response = await fetch(`/api/invoices/${paymentCandidate.id}`, {
@@ -258,7 +338,8 @@ export function InvoicesClient({
           body: JSON.stringify({ status: "paid", paid_on: paymentDate }),
         });
         data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
+        if (!response.ok)
+          throw new Error(data.error || "Úhradu se nepodařilo potvrdit.");
       }
 
       setInvoices((current) =>
@@ -266,13 +347,17 @@ export function InvoicesClient({
           ? current.filter((item) => item.id !== paymentCandidate.id)
           : selectedBankPaymentId
             ? current
-            : current.map((item) => item.id === paymentCandidate.id && data.invoice ? data.invoice : item),
+            : current.map((item) =>
+                item.id === paymentCandidate.id && data.invoice
+                  ? data.invoice
+                  : item,
+              ),
       );
       setActiveCount((current) => Math.max(0, current - 1));
       if (status === "pending" || status === "overdue") {
         const nextTotal = Math.max(0, total - 1);
         setTotal(nextTotal);
-        setTotalPages(Math.max(1, Math.ceil(nextTotal / PAGE_SIZE)));
+        setTotalPages(Math.max(1, Math.ceil(nextTotal / pageSize)));
       }
       setNotice(
         `Úhrada faktury ${paymentCandidate.invoice_number} byla potvrzena.`,
@@ -283,7 +368,10 @@ export function InvoicesClient({
     } catch (cause) {
       showToast({
         variant: "error",
-        message: cause instanceof Error ? cause.message : "Úhradu se nepodařilo potvrdit.",
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Úhradu se nepodařilo potvrdit.",
       });
     } finally {
       setConfirmingPayment(false);
@@ -291,333 +379,488 @@ export function InvoicesClient({
   }
 
   return (
-    <AppFrame invoiceCount={loading ? undefined : activeCount}>
-      <header className="section-header invoice-list-header">
+    <AppFrame
+      invoiceCount={loading ? undefined : activeCount}
+      className={`content section-page ${styles.page}`}
+    >
+      <header className={styles.pageHeader}>
         <div>
-          <p>POHLEDÁVKY</p>
-          <h1>Faktury</h1>
-          <span>
-            Všechny vydané faktury, které čekají nebo čekaly na zaplacení.
+          <p>FAKTURY</p>
+          <h1>Všechny faktury</h1>
+          <span className={styles.subtitle}>
+            Přehled všech vydaných faktur, jejich stav a platby.
           </span>
         </div>
-        <div className="section-actions invoice-list-actions">
-          {canManage ? <Link href="/invoices/payments" className="btn secondary">
-              <Icon name="bank" />
-              Bankovní platby
-            </Link> : null}
-          <Link href="/invoices/archive" className="btn secondary">
-            <Icon name="document" />
-            Archiv
-          </Link>
-          {canManage ? <Link href="/invoices/import" className="btn secondary">
-              <Icon name="upload" />
-              Importovat
-            </Link> : null}
-          {canManage ? <Link href="/invoices/new" className="btn primary">
-              <Icon name="plus" />
-              Nová faktura
-            </Link> : null}
-        </div>
-      </header>
-      {notice && <p className="form-success">{notice}</p>}
-      <MobileDisclosure
-        label="Filtry a export"
-        className="mobile-filter-disclosure invoice-list-filter-disclosure"
-      >
-        <section className="page-panel filter-panel invoice-list-filter-panel">
-          <div className="filter-row">
-            <label className="grow">
-              <span>Hledat</span>
-              <input
-                value={query}
-                maxLength={100}
-                onChange={(e) => changeFilter(() => setQuery(e.target.value))}
-                placeholder="Číslo faktury, odběratel, IČO, DIČ, e-mail, VS nebo poznámka"
-                aria-describedby="invoice-search-hint"
-              />
-            </label>
-            <label>
-              <span>Stav</span>
-              <select
-                value={status}
-                onChange={(e) =>
-                  changeFilter(() => setStatus(e.target.value as typeof status))
-                }
-              >
-                <option value="all">Všechny stavy</option>
-                {Object.entries(labels).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Měna</span>
-              <select
-                value={currency}
-                onChange={(e) =>
-                  changeFilter(() => setCurrency(e.target.value))
-                }
-              >
-                <option value="all">Všechny měny</option>
-                {currencies.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Vystaveno od</span>
-              <input
-                type="date"
-                value={from}
-                max={to || undefined}
-                onChange={(e) => changeFilter(() => setFrom(e.target.value))}
-              />
-            </label>
-            <label>
-              <span>Vystaveno do</span>
-              <input
-                type="date"
-                value={to}
-                min={from || undefined}
-                onChange={(e) => changeFilter(() => setTo(e.target.value))}
-              />
-            </label>
-            <label>
-              <span>Splatnost od</span>
-              <input
-                type="date"
-                value={dueFrom}
-                max={dueTo || undefined}
-                onChange={(e) => changeFilter(() => setDueFrom(e.target.value))}
-              />
-            </label>
-            <label>
-              <span>Splatnost do</span>
-              <input
-                type="date"
-                value={dueTo}
-                min={dueFrom || undefined}
-                onChange={(e) => changeFilter(() => setDueTo(e.target.value))}
-              />
-            </label>
-            <label>
-              <span>Částka od</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={amountMin}
-                onChange={(e) =>
-                  changeFilter(() => setAmountMin(e.target.value))
-                }
-              />
-            </label>
-            <label>
-              <span>Částka do</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={amountMax}
-                onChange={(e) =>
-                  changeFilter(() => setAmountMax(e.target.value))
-                }
-              />
-            </label>
-            <label>
-              <span>Stav úhrady</span>
-              <select
-                value={paymentState}
-                onChange={(e) =>
-                  changeFilter(() =>
-                    setPaymentState(e.target.value as typeof paymentState),
-                  )
-                }
-              >
-                <option value="all">Všechny</option>
-                <option value="unpaid">Bez úhrady</option>
-                <option value="partial">Částečně uhrazené</option>
-                <option value="paid">Plně uhrazené</option>
-              </select>
-            </label>
-            <label>
-              <span>Bankovní párování</span>
-              <select
-                value={bankMatch}
-                onChange={(e) =>
-                  changeFilter(() =>
-                    setBankMatch(e.target.value as typeof bankMatch),
-                  )
-                }
-              >
-                <option value="all">Všechny</option>
-                <option value="matched">Má bankovní vazbu</option>
-                <option value="unmatched">Bez bankovní vazby</option>
-              </select>
-            </label>
-            <button
-              className="btn secondary export-button"
-              onClick={exportExcel}
-              disabled={!total || exporting}
-            >
-              <Icon name="download" />
-              {exporting ? "Připravuji…" : "Export do Excelu"}
-            </button>
+        <section
+          className={styles.summary}
+          data-invoice-summary
+          aria-label="Součet faktur podle filtrů"
+          aria-live="polite"
+          aria-busy={!totals && !totalsError}
+        >
+          <Icon name="invoice" className={styles.summaryIcon} />
+          <span className={styles.mobileMoneyIcon}><Icon name="banknote" /></span>
+          <div className={styles.summaryAmounts}>
+            <span className={styles.mobileSummaryLabel}>Součet ve výběru</span>
+            {totalsError ? (
+              <div className={styles.summaryError}>
+                <span>Součet se nepodařilo načíst.</span>
+                <button type="button" onClick={() => void retryTotals()}>
+                  Zkusit znovu
+                </button>
+              </div>
+            ) : !totals ? (
+              <span className={styles.summaryLoading}>Počítám…</span>
+            ) : Object.keys(totals).length ? (
+              Object.entries(totals).map(([code, value]) => (
+                <div key={code}><SummaryMoney value={value} currency={code} /></div>
+              ))
+            ) : (
+              <SummaryMoney value={0} currency={currency === "all" ? "CZK" : currency} />
+            )}
           </div>
-          <small id="invoice-search-hint" className="search-hint">Bez diakritiky, i podle více slov v libovolném pořadí.</small>
         </section>
-      </MobileDisclosure>
-      <section className="page-panel data-panel">
-        {loading ? (
-          <p className="page-state">Načítám faktury…</p>
-        ) : !invoices.length ? (
-          /* Nová organizace dřív dostala "Tomuto filtru neodpovídá žádná
-             faktura", i když žádný filtr nastavený nebyl -- hláška tedy
-             lhala a navíc neřekla, co dělat dál. Prázdná data a prázdný
-             výsledek filtru jsou dva různé stavy. */
-          hasActiveFilter ? (
-            <div className="payments-empty-state">
-              <strong>Tomuto filtru neodpovídá žádná faktura</strong>
-              <p>Zkuste rozšířit období nebo zrušit některý z filtrů.</p>
-              <button type="button" className="btn secondary" onClick={clearFilters}>Zrušit filtry</button>
-            </div>
-          ) : (
-            <div className="payments-empty-state">
-              <strong>Zatím tu není žádná faktura</strong>
-              <p>Vystavte první fakturu ručně, nebo ji načtěte z PDF či fotografie.</p>
-              {canManage && (
-                <div className="invoice-empty-actions">
-                  <Link className="btn primary" href="/invoices/new">Přidat fakturu</Link>
-                  <Link className="btn secondary" href="/invoices/import">Importovat ze souboru</Link>
-                </div>
-              )}
-            </div>
-          )
-        ) : (
-          <ul className="invoice-card-list" aria-label="Faktury">
-            {invoices.map((invoice) => {
-              const isOpen = invoice.status === "pending" || invoice.status === "overdue";
-              const isPartial = isOpen && Number(invoice.paid_amount) > 0;
-              const canConfirm = canManage && isOpen;
-              return (
-                <li
-                  key={invoice.id}
-                  onMouseEnter={() => prefetchInvoice(invoice.id)}
-                  onTouchStart={() => prefetchInvoice(invoice.id)}
-                  className={`invoice-row invoice-card${invoice.status === "paid" ? " is-paid" : ""}${canConfirm ? " has-action" : ""}`}
-                  onClick={(event) => {
-                    const target = event.target;
-                    if (
-                      target instanceof HTMLElement &&
-                      target.closest("a, button, input, select, textarea")
+      </header>
+      {notice && (
+        <p className="form-success" role="status">
+          {notice}
+        </p>
+      )}
+      <section
+        className={styles.panel}
+        aria-label="Přehled faktur"
+        aria-busy={loading}
+      >
+        <MobileInvoiceFilters
+          label={hasActiveFilter ? "Filtry · aktivní" : "Filtry"}
+          className={styles.disclosure}
+          query={query} onQuery={value=>changeFilter(()=>setQuery(value))}
+          status={status} onStatus={value=>changeFilter(()=>setStatus(value))}
+          active={hasActiveFilter} onReset={clearFilters}
+        >
+          <section
+            className={styles.filters}
+            data-invoice-filters
+            aria-label="Filtry faktur"
+          >
+            <div className={styles.filterGrid}>
+              <label>
+                <span>Stav</span>
+                <select
+                  value={status}
+                  onChange={(e) =>
+                    changeFilter(() =>
+                      setStatus(e.target.value as typeof status),
                     )
-                      return;
-                    router.push(`/invoices/${invoice.id}`);
+                  }
+                >
+                  <option value="all">Všechny stavy</option>
+                  {Object.entries(labels).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                  <option value="closed">Uzavřené</option>
+                </select>
+              </label>
+              <label>
+                <span>Seřadit podle</span>
+                <select
+                  value={`${sortOrder.field}:${sortOrder.direction}`}
+                  aria-describedby="invoice-sort-scope"
+                  onChange={(event) => {
+                    const option = invoiceSortOptions.find(
+                      (option) =>
+                        `${option.field}:${option.direction}` ===
+                        event.target.value,
+                    );
+                    if (option)
+                      setSortOrder({
+                        field: option.field,
+                        direction: option.direction,
+                      });
                   }}
                 >
-                  <div className="invoice-card-number">
-                    <Link
-                      href={`/invoices/${invoice.id}`}
-                      onFocus={() => prefetchInvoice(invoice.id)}
+                  {invoiceSortOptions.map((option) => (
+                    <option
+                      key={`${option.field}:${option.direction}`}
+                      value={`${option.field}:${option.direction}`}
                     >
-                      {invoice.invoice_number}
-                    </Link>
-                    <small>VS {invoice.variable_symbol || "—"}</small>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span id="invoice-sort-scope" className={styles.srOnly}>
+                Řazení se vztahuje na aktuální stránku faktur.
+              </span>
+              <div
+                className={styles.range}
+                role="group"
+                aria-label="Datum vystavení"
+              >
+                <span>Datum vystavení</span>
+                <div className={styles.dateRange}>
+                  <div className={styles.dateInput}>
+                    <input
+                      type="date"
+                      aria-label="Vystaveno od"
+                      value={from}
+                      max={to || undefined}
+                      onChange={(e) =>
+                        changeFilter(() => setFrom(e.target.value))
+                      }
+                    />
+                    <Icon name="calendar" />
                   </div>
-                  <div className="invoice-card-customer">
-                    <strong>{invoice.counterparty_name}</strong>
-                    <small>{invoice.counterparty_email}</small>
+                  <span aria-hidden="true">–</span>
+                  <div className={styles.dateInput}>
+                    <input
+                      type="date"
+                      aria-label="Vystaveno do"
+                      value={to}
+                      min={from || undefined}
+                      onChange={(e) =>
+                        changeFilter(() => setTo(e.target.value))
+                      }
+                    />
+                    <Icon name="calendar" />
                   </div>
-                  <div className="invoice-card-issued">
-                    <span className="invoice-card-label">Vystaveno</span>
-                    <span className="invoice-card-value">{date(invoice.issue_date)}</span>
+                </div>
+              </div>
+              <div
+                className={styles.range}
+                role="group"
+                aria-label="Datum splatnosti"
+              >
+                <span>Datum splatnosti</span>
+                <div className={styles.dateRange}>
+                  <div className={styles.dateInput}>
+                    <input
+                      type="date"
+                      aria-label="Splatnost od"
+                      value={dueFrom}
+                      max={dueTo || undefined}
+                      onChange={(e) =>
+                        changeFilter(() => setDueFrom(e.target.value))
+                      }
+                    />
+                    <Icon name="calendar" />
                   </div>
-                  <div className={`invoice-card-due${invoice.status === "overdue" ? " is-overdue" : ""}`}>
-                    <span className="invoice-card-label">Splatnost</span>
-                    <span className="invoice-card-value">{date(invoice.due_date)}</span>
+                  <span aria-hidden="true">–</span>
+                  <div className={styles.dateInput}>
+                    <input
+                      type="date"
+                      aria-label="Splatnost do"
+                      value={dueTo}
+                      min={dueFrom || undefined}
+                      onChange={(e) =>
+                        changeFilter(() => setDueTo(e.target.value))
+                      }
+                    />
+                    <Icon name="calendar" />
                   </div>
-                  <div className="invoice-card-amount">
-                    <span className="invoice-card-label">Částka</span>
-                    <span className="invoice-card-total">
-                      <strong>{cardMoney(Number(invoice.amount), invoice.currency)}</strong>
-                      {Number(invoice.paid_amount) > 0 &&
-                      invoice.status !== "cancelled" ? (
-                        <small>
-                          Zbývá{" "}
-                          {cardMoney(
-                            Math.max(
-                              0,
-                              Number(invoice.amount) -
-                                Number(invoice.paid_amount),
-                            ),
-                            invoice.currency,
-                          )}
-                        </small>
-                      ) : null}
-                    </span>
-                  </div>
-                  {/* Na telefonu patička karty, na širších kartách display: contents. */}
-                  <div className="invoice-card-footer">
-                    <div className="invoice-card-meta">
-                      {invoice.reminders_sent > 0 ? (
-                        <span className="invoice-card-reminders" title="Odeslané upomínky">
-                          <Icon name="mail" />
-                          {reminderCount(invoice.reminders_sent)}
-                        </span>
-                      ) : null}
-                      <span className={`status ${invoice.status}`}>
-                        {labels[invoice.status]}
-                      </span>
-                      {isPartial ? (
-                        <span className="status partial">Částečně uhrazeno</span>
-                      ) : null}
-                    </div>
-                    {canConfirm ? (
-                      <div className="invoice-card-action">
-                        <button
-                          type="button"
-                          className="btn primary quick-payment-button"
-                          onClick={() => {
-                            setPaymentDate(todayInTimeZone());
-                            setSelectedBankPaymentId("");
-                            setConfirmWithoutBankPayment(false);
-                            setPaymentCandidate(invoice);
-                          }}
-                        >
-                          Potvrdit úhradu
-                        </button>
-                      </div>
+                </div>
+              </div>
+              <div className={styles.filterActions}>
+                <button
+                  type="button"
+                  aria-expanded={advancedOpen}
+                  aria-controls="invoice-advanced-filters"
+                  onClick={() => setAdvancedOpen((value) => !value)}
+                >
+                  Další filtry{" "}
+                  <ChevronDown />
+                </button>
+                <details className={styles.pageMenu}>
+                  <summary aria-label="Další akce faktur">
+                    <Icon name="more" />
+                  </summary>
+                  <div data-popup>
+                    {canManage ? (
+                      <Link href="/invoices/payments">Bankovní platby</Link>
                     ) : null}
+                    <Link href="/invoices/archive">Archiv faktur</Link>
+                    <button
+                      type="button"
+                      onClick={() => void exportExcel()}
+                      disabled={!total || exporting}
+                    >
+                      {exporting ? "Připravuji…" : "Export do Excelu"}
+                    </button>
                   </div>
-                </li>
-              );
-            })}
-          </ul>
+                </details>
+              </div>
+            </div>
+            <div id="invoice-advanced-filters" hidden={!advancedOpen}>
+              <div className={styles.advanced}>
+                <label className={styles.localSearch}>
+                  <span>Hledat v tabulce</span>
+                  <input
+                    type="search"
+                    value={query}
+                    maxLength={100}
+                    onChange={(e) =>
+                      changeFilter(() => setQuery(e.target.value))
+                    }
+                    placeholder="Číslo faktury, odběratel, IČO, DIČ, e-mail, VS nebo poznámka"
+                    aria-describedby="invoice-search-hint"
+                  />
+                  <small id="invoice-search-hint">
+                    Bez diakritiky, i podle více slov v libovolném pořadí.
+                  </small>
+                </label>
+                <label>
+                  <span>Měna</span>
+                  <select
+                    value={currency}
+                    onChange={(e) =>
+                      changeFilter(() => setCurrency(e.target.value))
+                    }
+                  >
+                    <option value="all">Všechny měny</option>
+                    {currencies.map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Částka od</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={amountMin}
+                    onChange={(e) =>
+                      changeFilter(() => setAmountMin(e.target.value))
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Částka do</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={amountMax}
+                    onChange={(e) =>
+                      changeFilter(() => setAmountMax(e.target.value))
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Stav úhrady</span>
+                  <select
+                    value={paymentState}
+                    onChange={(e) =>
+                      changeFilter(() =>
+                        setPaymentState(e.target.value as typeof paymentState),
+                      )
+                    }
+                  >
+                    <option value="all">Všechny</option>
+                    <option value="unpaid">Bez úhrady</option>
+                    <option value="partial">Částečně uhrazené</option>
+                    <option value="paid">Plně uhrazené</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Bankovní párování</span>
+                  <select
+                    value={bankMatch}
+                    onChange={(e) =>
+                      changeFilter(() =>
+                        setBankMatch(e.target.value as typeof bankMatch),
+                      )
+                    }
+                  >
+                    <option value="all">Všechny</option>
+                    <option value="matched">Má bankovní vazbu</option>
+                    <option value="unmatched">Bez bankovní vazby</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            {hasActiveFilter ? (
+              <div className={styles.activeFilters} aria-label="Aktivní filtry">
+                {query.trim() ? <span>Hledat: {query}</span> : null}
+                {status !== "all" ? (
+                  <span>
+                    {status === "closed" ? "Uzavřené" : labels[status]}
+                  </span>
+                ) : null}
+                {currency !== "all" ? <span>{currency}</span> : null}
+                {from || to ? (
+                  <span>
+                    Vystavení: {from || "…"} – {to || "…"}
+                  </span>
+                ) : null}
+                {dueFrom || dueTo ? (
+                  <span>
+                    Splatnost: {dueFrom || "…"} – {dueTo || "…"}
+                  </span>
+                ) : null}
+                {amountMin || amountMax ? (
+                  <span>
+                    Částka: {amountMin || "0"} – {amountMax || "…"}
+                  </span>
+                ) : null}
+                {paymentState !== "all" ? (
+                  <span>
+                    Úhrada:{" "}
+                    {paymentState === "partial"
+                      ? "částečná"
+                      : paymentState === "paid"
+                        ? "plná"
+                        : "bez úhrady"}
+                  </span>
+                ) : null}
+                {bankMatch !== "all" ? (
+                  <span>
+                    {bankMatch === "matched"
+                      ? "S bankovní vazbou"
+                      : "Bez bankovní vazby"}
+                  </span>
+                ) : null}
+                <button type="button" onClick={clearFilters}>
+                  Vymazat filtry
+                </button>
+              </div>
+            ) : null}
+          </section>
+        </MobileInvoiceFilters>
+        {loadError ? (
+          <div role="alert" className={styles.error}>
+            <span>
+              Faktury se nepodařilo načíst. Již načtené údaje mohou být
+              neaktuální.
+            </span>
+            <button type="button" onClick={() => void mutate()}>
+              Zkusit znovu
+            </button>
+          </div>
+        ) : null}
+        {loading ? (
+          <InvoiceListSkeleton />
+        ) : !invoices.length && loadError ? null : !invoices.length ? (
+          <div className={styles.empty}>
+            {hasActiveFilter ? (
+              <>
+                <strong>Žádné faktury neodpovídají zadaným filtrům.</strong>
+                <p>Zkuste rozšířit období nebo zrušit některý filtr.</p>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={clearFilters}
+                >
+                  Vymazat filtry
+                </button>
+              </>
+            ) : (
+              <>
+                <strong>Zatím nemáte žádné faktury.</strong>
+                <p>Přidejte již vystavenou fakturu do evidence Splatna.</p>
+                {canManage ? (
+                  <div className={styles.emptyActions}>
+                    <Link href="/invoices/import" className="btn primary">
+                      Importovat fakturu
+                    </Link>
+                    <Link href="/invoices/new" className="btn secondary">
+                      Přidat ručně
+                    </Link>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : (
+          <InvoiceListTable
+            key={listKey}
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            invoices={invoices}
+            onExportSelected={ids => void exportExcel(ids)}
+            exporting={exporting}
+            canManage={canManage}
+            today={today}
+            onPrefetch={prefetchInvoice}
+            onOpen={(id) => router.push(`/invoices/${id}`)}
+            onConfirm={(invoice) => {
+              setPaymentDate(todayInTimeZone());
+              setSelectedBankPaymentId("");
+              setConfirmWithoutBankPayment(false);
+              setPaymentCandidate(invoice);
+            }}
+          />
         )}
-      </section>
-      {totalPages > 1 && (
-        <nav className="invoice-pagination" aria-label="Stránkování faktur">
-          <button
-            className="btn secondary"
-            disabled={loading || page <= 1}
-            onClick={() => changePage(Math.max(1, page - 1))}
-          >
-            ← Předchozí
-          </button>
-          <span>
-            Strana <strong>{page}</strong> z {totalPages}
+        <nav
+          className={styles.pagination}
+          data-invoice-pagination
+          aria-label="Stránkování faktur"
+        >
+          <span aria-live="polite">
+            Zobrazuji {total ? (page - 1) * pageSize + 1 : 0}–
+            {total ? (page - 1) * pageSize + invoices.length : 0} z {total}{" "}
+            faktur
           </span>
-          <button
-            className="btn secondary"
-            disabled={loading || page >= totalPages}
-            onClick={() => changePage(Math.min(totalPages, page + 1))}
-          >
-            Další →
-          </button>
+          <div className={styles.paginationControls}>
+            <select
+              className={styles.pageSize}
+              aria-label="Faktur na stránku"
+              value={pageSize}
+              disabled={loading}
+              onChange={(event) => {
+                const size = parseInvoicePageSize(event.target.value);
+                if (!size || size === pageSize) return;
+                shouldSyncUrl.current = true;
+                setPage(1);
+                setPageSize(size);
+                saveInvoicePageSize(size);
+              }}
+            >
+              {INVOICE_PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size} na stránku
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              aria-label="Předchozí stránka"
+              disabled={loading || page <= 1}
+              onClick={() => changePage(page - 1)}
+            >
+              <Icon name="arrow-left" />
+            </button>
+            {invoicePageNumbers(page, totalPages).map(
+              (number, index, numbers) => (
+                <span key={number} style={{ display: "contents" }}>
+                  {index > 0 && number > numbers[index - 1] + 1 ? (
+                    <span aria-hidden="true">…</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label={`Stránka ${number}`}
+                    aria-current={page === number ? "page" : undefined}
+                    disabled={loading}
+                    onClick={() => changePage(number)}
+                  >
+                    {number}
+                  </button>
+                </span>
+              ),
+            )}
+            <button
+              type="button"
+              aria-label="Další stránka"
+              disabled={loading || page >= totalPages}
+              onClick={() => changePage(page + 1)}
+            >
+              <Icon name="arrow-right" />
+            </button>
+          </div>
         </nav>
-      )}
+      </section>
       <Modal
         open={Boolean(paymentCandidate)}
         onClose={() => setPaymentCandidate(null)}
@@ -646,7 +889,7 @@ export function InvoicesClient({
                 disabled={confirmingPayment}
                 onClick={() => setPaymentCandidate(null)}
               >
-                ×
+                <CloseIcon />
               </button>
             </header>
             <div className="payment-confirm-content">
@@ -655,10 +898,7 @@ export function InvoicesClient({
                 <strong>{paymentCandidate.counterparty_name}</strong>
                 <span>Částka</span>
                 <strong>
-                  {money(
-                    Number(paymentCandidate.amount),
-                    paymentCandidate.currency,
-                  )}
+                  <ExactMoney value={Number(paymentCandidate.amount)} currency={paymentCandidate.currency} />
                 </strong>
               </div>
               <OptionalPaymentAssignment
@@ -669,16 +909,18 @@ export function InvoicesClient({
                 onSelectPayment={setSelectedBankPaymentId}
                 onConfirmWithoutPayment={setConfirmWithoutBankPayment}
               />
-              {!selectedBankPaymentId && <label className="quick-payment-date">
-                <span>Datum úhrady</span>
-                <input
-                  type="date"
-                  value={paymentDate}
-                  max={todayInTimeZone()}
-                  onChange={(event) => setPaymentDate(event.target.value)}
-                />
-                <small>Zadejte skutečný den, kdy byla částka připsána.</small>
-              </label>}
+              {!selectedBankPaymentId && (
+                <label className="quick-payment-date">
+                  <span>Datum úhrady</span>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    max={todayInTimeZone()}
+                    onChange={(event) => setPaymentDate(event.target.value)}
+                  />
+                  <small>Zadejte skutečný den, kdy byla částka připsána.</small>
+                </label>
+              )}
             </div>
             <footer className="payment-confirm-actions">
               <button
@@ -692,7 +934,11 @@ export function InvoicesClient({
               <button
                 type="button"
                 className="btn primary"
-                disabled={confirmingPayment || (!selectedBankPaymentId && (!paymentDate || !confirmWithoutBankPayment))}
+                disabled={
+                  confirmingPayment ||
+                  (!selectedBankPaymentId &&
+                    (!paymentDate || !confirmWithoutBankPayment))
+                }
                 onClick={confirmPayment}
               >
                 {confirmingPayment

@@ -109,7 +109,8 @@ describe("authentication flow", () => {
     const compactLogin = login.replace(/\s+/g, " ");
     expect(compactLogin).toMatch(/access\.mfaBypassed \? returnTo : withEntry\(`\/mfa\?returnTo=/);
     expect(login).toContain("safeReturnPath(");
-    expect(login).toContain('fetch("/api/auth/session-preference"');
+    expect(login).not.toContain('fetch("/api/auth/session-preference"');
+    expect(login).toContain("body: JSON.stringify({ remember })");
     expect(login).toContain("copy.remember");
     expect(cs.auth.login.remember).toBe("Zapamatovat si mě");
     expect(accessRoute).toContain("mfa_bypassed");
@@ -124,11 +125,12 @@ describe("authentication flow", () => {
     expect(source("src/app/api/auth/email-mfa/verify/route.ts")).toContain('logError("Email MFA challenge verification failed"');
   });
 
-  it("checks access and stores the session preference in parallel after the password", () => {
-    // Oba kroky potřebují jen token a nezávisí na sobě; za sebou stály jeden
-    // celý požadavek prohlížeč -> server navíc.
-    const login = source("src/components/auth/login-form.tsx").replace(/\s+/g, " ");
-    expect(login).toContain("await Promise.all([ verifyApplicationAccess(accessToken), saveSessionPreference(accessToken), ])");
+  it("bootstraps password login with one verified request", () => {
+    const login = source("src/components/auth/login-form.tsx");
+    expect(login).toContain('fetch("/api/auth/access"');
+    expect(login).not.toContain('fetch("/api/auth/session-preference"');
+    const route = source("src/app/api/auth/access/route.ts");
+    expect(route.indexOf("await setLoginSessionPreference(")).toBeLessThan(route.indexOf("await trustDeviceSession("));
   });
 
   it("requires an explicit current or remembered login session", () => {

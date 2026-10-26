@@ -1,10 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="512" height="512" viewBox="0 0 200 200">
-  <title>Splatno</title>
-  <desc>Zelený znak Splatno na bílém podkladu.</desc>
-  <rect width="200" height="200" fill="#FFFFFF"/>
-  <g transform="translate(50 33)">
-    <path d="M7 64C38 44 78 50 93 72C62 92 24 88 7 64Z" fill="#B9DBA0"/>
-    <path d="M7 64C-1 26 40 3 93 3C99 40 66 58 7 64Z" fill="#1F5E43"/>
-    <path d="M93 72C101 110 60 131 7 131C1 94 34 78 93 72Z" fill="#12372A"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="512" height="512" viewBox="0 0 512 512"><title>Splatno</title><rect width="512" height="512" rx="0" fill="#ffffff"/><g transform="translate(122.26865671641792 76.80000000000001) scale(2.6746268656716414)"><path d="M7 64C38 44 78 50 93 72C62 92 24 88 7 64Z" fill="#B9DBA0"/><path d="M7 64C-1 26 40 3 93 3C99 40 66 58 7 64Z" fill="#1F5E43"/><path d="M93 72C101 110 60 131 7 131C1 94 34 78 93 72Z" fill="#12372A"/></g></svg>

@@ -7,12 +7,16 @@ const page = () => read("src/app/(workspace)/invoices/import/page.tsx");
 const form = () => read("src/components/invoice-form.tsx");
 const preview = () => read("src/components/document-preview.tsx");
 const css = () => read("src/app/minimal.css");
-const responsiveCss = () => read("src/app/styles/responsive.css");
+const workspace = () => read("src/app/(workspace)/invoices/import/ocr-review-workspace.tsx");
+const reviewCss = () => read("src/app/(workspace)/invoices/import/ocr-review.module.css");
 
 describe("import faktury: údaje vlevo, náhled dokladu vpravo", () => {
   it("rozdělí obrazovku u načteného dokumentu a zachová formulář i bez OCR", () => {
     const source = page();
-    expect(source).toContain("invoice-import-split");
+    expect(source).toContain("<OcrReviewWorkspace");
+    expect(workspace()).toContain("data-ocr-workspace");
+    expect(workspace()).toContain("data-ocr-form-panel");
+    expect(workspace()).toContain("data-ocr-document-panel");
     expect(source).toContain("<DocumentPreview");
     expect(source).toContain("file={active.file}");
     // beze změny: kotva a id, na které se váží styly a odkaz „Vyplnit ručně“
@@ -29,7 +33,7 @@ describe("import faktury: údaje vlevo, náhled dokladu vpravo", () => {
   });
 
   it("na úzké obrazovce nabízí přepínač Údaje / Doklad a cestu zpět", () => {
-    const source = page();
+    const source = workspace();
     expect(source).toContain('role="tablist"');
     expect(source).toContain('aria-label="Údaje nebo doklad"');
     expect(source).toContain(">Údaje<");
@@ -38,13 +42,14 @@ describe("import faktury: údaje vlevo, náhled dokladu vpravo", () => {
   });
 
   it("CSS: přehledný formulář vedle dokladu a přepínač na užším displeji", () => {
-    const styles = css();
-    const responsive = responsiveCss();
-    expect(styles).toContain(".invoice-import-split {");
-    expect(styles).toMatch(/\.invoice-import-preview-column\s*\{[^}]*position:\s*sticky/);
-    expect(responsive).toContain("minmax(0, 0.9fr) minmax(0, 1.1fr)");
-    expect(responsive).toContain("@media screen and (max-width: 1350px)");
-    expect(styles).toContain(".document-preview-highlight");
+    const styles = reviewCss();
+    expect(styles).toMatch(/\.workspacePage\s*\{[^}]*flex-direction:\s*column/);
+    expect(styles).toContain("minmax(0, 1.16fr) minmax(0, 1fr)");
+    expect(styles).toMatch(/\.formPanel\s*\{[^}]*overflow:\s*visible/);
+    expect(styles).toMatch(/\.documentPanel\s*\{[^}]*position:\s*sticky/);
+    expect(styles).toContain('.workspace[data-view="document"] .formPanel');
+    expect(styles).toContain('.workspace[data-view="data"] .documentPanel');
+    expect(css()).toContain(".document-preview-highlight");
   });
 });
 

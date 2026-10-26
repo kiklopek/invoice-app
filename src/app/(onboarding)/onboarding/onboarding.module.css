@@ -1004,3 +1004,35 @@
   .actions { padding-top: 8px; padding-bottom: 8px; }
   .primary, .back { height: 44px; }
 }
+
+/* Available on every step, including mobile and unfinished payment. */
+.railHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.accountSwitch { min-width: 0; max-width: 100%; }
+.accountSwitch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ledger);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.accountSwitch button:disabled { opacity: 0.65; cursor: wait; }
+.accountSwitch button:focus-visible { outline: 2px solid var(--cta); outline-offset: 3px; border-radius: 4px; }
+.accountSwitch p { margin: 4px 0 0; color: #a53b3b; font-size: 12px; overflow-wrap: anywhere; }
+
+.accountSwitch button > svg { width: 16px; height: 16px; flex: 0 0 16px; }
