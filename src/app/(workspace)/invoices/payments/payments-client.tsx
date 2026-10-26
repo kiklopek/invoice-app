@@ -23,11 +23,12 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData 
   return (
     <AppFrame className={`content section-page payments-page payments-upload-page ${styles.page}${reviewActive ? ` ${styles.reviewPage}` : ""}`}>
       <div className={styles.stage}>
+      {!reviewActive && <Link href="/invoices/payments/archive" className={styles.mobileBack}><Icon name="arrow-left"/>Zpět na platby</Link>}
       {!reviewActive && <header className="section-header payments-hero">
         <div className="payments-hero-copy">
           <p>BANKOVNÍ PÁROVÁNÍ</p>
-          <h1>Spárujte platby s fakturami</h1>
-          <span>Od bankovního výpisu k uhrazeným fakturám. Nahrajte soubor a projděte navržené shody.</span>
+          <h1><span className={styles.desktopTitle}>Spárujte platby s fakturami</span><span className={styles.mobileTitle}>Nahrát bankovní výpis</span></h1>
+          <span>Nahrajte výpis z internetového bankovnictví a spárujte platby s vašimi fakturami.</span>
         </div>
         <div className="payments-hero-side">
           <Link href="/invoices/payments/archive" className="payments-switch payments-switch-archive">

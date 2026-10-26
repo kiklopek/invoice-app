@@ -13,10 +13,16 @@ describe("dashboard action counts", () => {
     expect(client()).not.toContain("Upomínky k odeslání");
   });
 
-  it("keeps the main dashboard content directly below the summary", () => {
+  it("keeps the dashboard charts and working lists after the KPI summary", () => {
     const dashboard = client();
-    expect(dashboard).toContain('className="dashboard-command"');
-    expect(dashboard).toContain('className="workspace-grid dashboard-workspace"');
+    const summary = dashboard.indexOf("<DashboardKpiGrid");
+    const charts = dashboard.indexOf('className={styles.charts}');
+    const lists = dashboard.indexOf('className={styles.lists}');
+    expect(summary).toBeGreaterThan(0);
+    expect(charts).toBeGreaterThan(summary);
+    expect(lists).toBeGreaterThan(charts);
+    expect(dashboard).toContain("summary.recent");
+    expect(source("src/app/(workspace)/dashboard/dashboard-reminders.tsx")).toContain("summary.upcoming");
     expect(dashboard).not.toContain('aria-label="Co dělat dnes"');
   });
 

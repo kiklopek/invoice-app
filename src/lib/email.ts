@@ -1,8 +1,11 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import QRCode from "qrcode";
 import { Resend } from "resend";
 import { invoiceSpayd } from "@/lib/czech-payment";
+import type { Json } from "@/types/database";
 import type { Invoice, ReminderStage } from "@/types/invoice";
 import { interpolateReminderTemplate, reminderTemplateValues } from "@/lib/reminder-template";
 import { defaultReminderTemplates } from "@/lib/reminder-defaults";
@@ -11,6 +14,9 @@ import { reminderLogoUrl, renderReminderEmail, type ReminderEmailCompany } from 
 import { createServiceClient } from "@/lib/supabase-server";
 import { assertLocalEmailRecipientsAllowed } from "@/lib/local-email-allowlist";
 import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
+import { DEFAULT_EMAIL_LOGO, DEFAULT_EMAIL_LOGO_CID, safeCompanyLogoSource } from "@/lib/company-branding";
+
+import { assertEmailRecipientsNotSuppressed } from "@/lib/email-suppression";
 
 const QR_CONTENT_ID = "qr-platba";
 
@@ -28,7 +34,9 @@ export async function sendReminderEmail(params: {
   to: string;
   invoice: Invoice;
   stage: ReminderStage;
+  purpose?: "issue";
   idempotencyKey: string;
+  delivery?: { id: string; leaseToken: string };
   template?: { subject: string; body: string; reply_to?: string | null; cc?: string[] | null } | null;
   company?: ReminderEmailCompany;
   attachment?: { filename: string; content: Uint8Array } | null;
@@ -55,6 +63,14 @@ export async function sendReminderEmail(params: {
   const subject = reminderEmailSubject(company.name, params.invoice.invoice_number);
   const message = interpolateReminderTemplate(template.body, params.invoice);
   const replyTo = params.template?.reply_to ?? company.email ?? undefined;
+  const inlineDefaultLogo = !safeCompanyLogoSource(company.logo_path);
+  // Bundle the current fallback mark, independent of deployment/Gmail image caches.
+  const logoAttachment = inlineDefaultLogo ? {
+    filename: "splatno.png",
+    content: await readFile(join(process.cwd(), "public", DEFAULT_EMAIL_LOGO)),
+    contentId: DEFAULT_EMAIL_LOGO_CID,
+    contentType: "image/png",
+  } : null;
   // QR platba přímo v těle: dlužník ji načte v bance a VS se vyplní sám.
   // Inline příloha (cid:), protože data: URI Gmail blokuje. Bez platného
   // účtu QR není -- nejistý kód by poslal peníze jinam.
@@ -70,22 +86,24 @@ export async function sendReminderEmail(params: {
   const rendered = renderReminderEmail({
     company: company as ReminderEmailCompany,
     stage: params.stage,
+    purpose: params.purpose,
     subject,
     message,
     values: reminderTemplateValues(params.invoice),
     logoUrl: reminderLogoUrl((company as ReminderEmailCompany).logo_path, appBaseUrl()),
+    inlineDefaultLogo,
     replyTo,
     qrSrc: qrPng ? `cid:${QR_CONTENT_ID}` : null,
     payment,
     paymentAccount: params.invoice.payment_account ?? null,
   });
 
-  const attachments = [
+  const attachments: { filename: string; content: Buffer | string; contentId?: string; contentType?: string }[] = [
     ...(params.attachment ? [{ filename: params.attachment.filename, content: Buffer.from(params.attachment.content) }] : []),
     ...(qrPng ? [{ filename: "qr-platba.png", content: qrPng, contentId: QR_CONTENT_ID }] : []),
+    ...(logoAttachment ? [logoAttachment] : []),
   ];
-  const resend = new Resend(key);
-  return resend.emails.send({
+  let payload = {
     from: senderAs(company.name, from),
     to: params.to,
     cc: params.template?.cc?.length ? params.template.cc : undefined,
@@ -94,7 +112,20 @@ export async function sendReminderEmail(params: {
     html: rendered.html,
     text: rendered.text,
     attachments: attachments.length ? attachments : undefined,
-  }, { idempotencyKey: params.idempotencyKey });
+  };
+  if (params.delivery) {
+    // JSON-safe base64 preserves the exact attachment bytes for provider retry.
+    const prepared = { ...payload, attachments: payload.attachments?.map(attachment => ({ ...attachment, content: typeof attachment.content === "string" ? attachment.content : attachment.content.toString("base64") })) };
+    const { data, error } = await createServiceClient().rpc("stage_invoice_email", {
+      target_org: params.invoice.organization_id, delivery_id: params.delivery.id,
+      claim_token: params.delivery.leaseToken, email_payload: prepared as unknown as Json,
+    });
+    if (error || !data) throw new Error("Obsah e-mailu se nepodařilo připravit pro odeslání.");
+    payload = data as unknown as typeof payload;
+  }
+  await assertEmailRecipientsNotSuppressed(params.invoice.organization_id, [payload.to, ...(payload.cc ?? [])]);
+  const resend = new Resend(key);
+  return resend.emails.send(payload, { idempotencyKey: params.idempotencyKey });
 }
 
 /**

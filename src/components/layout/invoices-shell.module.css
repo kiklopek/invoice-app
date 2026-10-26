@@ -1,0 +1,54 @@
+.shell > :global(button[aria-controls="esko-panel"]) {
+  right: 12px;
+  bottom: 16px;
+  width: 88px;
+  height: 88px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none !important;
+  overflow: visible;
+}
+.shell > :global(button[aria-controls="esko-panel"] img) {
+  inset: 0;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.shell > :global(button[data-esko-dismiss]) {
+  right: 12px;
+  bottom: 94px;
+}
+.shell :global(#esko-panel) {
+  right: 16px;
+  bottom: 120px;
+  max-height: calc(100dvh - 144px);
+}
+@media (max-width: 767px) {
+  .shell > :global(button[aria-controls="esko-panel"]) {
+    width: 64px;
+    height: 64px;
+    right: 10px;
+    bottom: 12px;
+  }
+  .shell > :global(button[aria-controls="esko-panel"] img) {
+    width: 64px;
+    height: 64px;
+  }
+  .shell > :global(button[data-esko-dismiss]) {
+    bottom: 68px;
+  }
+  .shell :global(#esko-panel) {
+    bottom: 96px;
+  }
+}
+.shell:has(:global(.mobile-navigation-panel))
+  > :global(button[aria-controls="esko-panel"]),
+.shell:has(:global(.mobile-navigation-panel))
+  > :global(button[data-esko-dismiss]),
+.shell:has(:global(.mobile-navigation-panel))
+  > :global(button[aria-label="Zobrazit asistenta Esko"]),
+.shell:has(:global(.mobile-navigation-panel)) :global(#esko-panel) {
+  visibility: hidden;
+}

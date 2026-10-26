@@ -1,0 +1,218 @@
+[
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "path": "/dashboard",
+    "status": 200,
+    "url": "/dashboard",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "path": "/invoices/create",
+    "status": 200,
+    "url": "/invoices/create",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "path": "/invoices/import",
+    "status": 200,
+    "url": "/invoices/import",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "path": "/invoices/payments",
+    "status": 200,
+    "url": "/invoices/payments",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "path": "/reports",
+    "status": 200,
+    "url": "/reports",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "path": "/notifications",
+    "status": 200,
+    "url": "/notifications",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "path": "/dashboard",
+    "status": 200,
+    "url": "/dashboard",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "path": "/invoices/create",
+    "status": 200,
+    "url": "/invoices/create",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "path": "/invoices/import",
+    "status": 200,
+    "url": "/invoices/import",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "path": "/invoices/payments",
+    "status": 200,
+    "url": "/invoices/payments",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "path": "/reports",
+    "status": 200,
+    "url": "/reports",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "path": "/notifications",
+    "status": 200,
+    "url": "/notifications",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/dashboard",
+    "status": 200,
+    "url": "/dashboard",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/invoices/create",
+    "error": "page.goto: Navigation to \"http://127.0.0.1:3006/invoices/create\" is interrupted by another navigation to \"http://127.0.0.1:3006/dashboard\"\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3006/invoices/create\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/invoices/import",
+    "status": 200,
+    "url": "/invoices/import",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/invoices/payments",
+    "error": "page.goto: Navigation to \"http://127.0.0.1:3006/invoices/payments\" is interrupted by another navigation to \"http://127.0.0.1:3006/invoices/import\"\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3006/invoices/payments\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/reports",
+    "status": 200,
+    "url": "/reports",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/notifications",
+    "status": 200,
+    "url": "/notifications",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "path": "/notifications",
+    "error": "page.screenshot: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/dashboard",
+    "status": 200,
+    "url": "/dashboard",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/dashboard",
+    "error": "page.screenshot: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/invoices/create",
+    "status": 200,
+    "url": "/invoices/create",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/invoices/import",
+    "error": "page.goto: Navigation to \"http://127.0.0.1:3006/invoices/import\" is interrupted by another navigation to \"http://127.0.0.1:3006/invoices/create\"\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3006/invoices/import\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/invoices/payments",
+    "status": 200,
+    "url": "/invoices/payments",
+    "failed_api": [],
+    "overflow": false
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/reports",
+    "error": "page.goto: Navigation to \"http://127.0.0.1:3006/reports\" is interrupted by another navigation to \"http://127.0.0.1:3006/invoices/payments\"\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3006/reports\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "path": "/notifications",
+    "status": 200,
+    "url": "/notifications",
+    "failed_api": [],
+    "overflow": false
+  }
+]

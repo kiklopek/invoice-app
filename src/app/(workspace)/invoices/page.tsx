@@ -1,4 +1,11 @@
+import { cookies } from "next/headers";
+import {
+  DEFAULT_INVOICE_PAGE_SIZE,
+  INVOICE_PAGE_SIZE_COOKIE,
+  parseInvoicePageSize,
+} from "@/lib/invoice-page-size";
 import { getCachedRequestIdentity } from "@/lib/auth";
+import { loadInvoiceListTotals } from "@/lib/invoice-list-totals";
 import { loadInvoiceListPageData } from "@/lib/invoice-list-page-data";
 import { parseInvoiceListQuery } from "@/lib/invoice-list-query";
 import { InvoicesClient } from "./invoices-client";
@@ -18,6 +25,11 @@ export default async function InvoicesPage({
       for (const item of value) params.append(key, item);
   }
   params.set("paged", "1");
+  const savedSize = parseInvoicePageSize(
+    (await cookies()).get(INVOICE_PAGE_SIZE_COOKIE)?.value,
+  );
+  if (!params.has("page_size") && savedSize)
+    params.set("page_size", String(savedSize));
   const query = parseInvoiceListQuery(params) ?? {
     query: "",
     status: null,
@@ -31,11 +43,14 @@ export default async function InvoicesPage({
     paymentState: null,
     bankMatch: null,
     page: 1,
+    pageSize: savedSize ?? DEFAULT_INVOICE_PAGE_SIZE,
   };
   const normalized = new URLSearchParams({
     paged: "1",
     page: String(query.page),
   });
+  if (query.pageSize !== DEFAULT_INVOICE_PAGE_SIZE)
+    normalized.set("page_size", String(query.pageSize));
   if (query.query) normalized.set("q", query.query);
   if (query.status) normalized.set("status", query.status);
   if (query.currency) normalized.set("currency", query.currency);
@@ -50,10 +65,15 @@ export default async function InvoicesPage({
   if (query.paymentState) normalized.set("payment", query.paymentState);
   if (query.bankMatch) normalized.set("bank_match", query.bankMatch);
   const identity = await getCachedRequestIdentity();
-  const initialData = await loadInvoiceListPageData(identity, query);
+  const [initialData, initialTotals] = await Promise.all([
+    loadInvoiceListPageData(identity, query),
+    loadInvoiceListTotals(identity, query).catch(() => undefined),
+  ]);
   return (
     <InvoicesClient
+      initialNow={new Date().toISOString()}
       initialData={initialData}
+      initialTotals={initialTotals}
       initialQuery={query}
       initialKey={`/api/invoices?${normalized.toString()}`}
     />

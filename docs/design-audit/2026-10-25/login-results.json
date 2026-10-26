@@ -1,0 +1,433 @@
+{
+  "scope": "Real login UI; synthetic Supabase client and API responses. No live accounts, cookies or company data tested.",
+  "results": [
+    {
+      "name": "loading and error 1555",
+      "passed": false,
+      "error": "TimeoutError: locator.boundingBox: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main > div')\u001b[22m\n"
+    },
+    {
+      "name": "loading and error 768",
+      "passed": true,
+      "requests": {
+        "accessCount": 2,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 5
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 84.89999997615814
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 13.099999964237213
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 96,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "loading and error 390",
+      "passed": true,
+      "requests": {
+        "accessCount": 2,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 3.899999976158142
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 64.10000002384186
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 14.799999952316284
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 93.5,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "loading and error 320",
+      "passed": true,
+      "requests": {
+        "accessCount": 2,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 5.200000047683716
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 60.10000002384186
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 14
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 131.19999998807907,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "MFA retains returnTo",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 3.199999988079071
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 11.200000047683716
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 122.30000001192093,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "founder onboarding",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.699999988079071
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 5.300000011920929
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 92.10000002384186,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "invalid credentials stay in form",
+      "passed": true,
+      "requests": {
+        "accessCount": 0,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 3.699999988079071
+        }
+      ]
+    },
+    {
+      "name": "access 401",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 1
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 3.099999964237213
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 5.200000047683716
+        }
+      ]
+    },
+    {
+      "name": "access 403",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 1
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.199999988079071
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 3.300000011920929
+        }
+      ]
+    },
+    {
+      "name": "access 500",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.600000023841858
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 3.400000035762787
+        }
+      ]
+    },
+    {
+      "name": "access 422",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.399999976158142
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 2.199999988079071
+        }
+      ]
+    },
+    {
+      "name": "server error retry never resends credentials",
+      "passed": true,
+      "requests": {
+        "accessCount": 2,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 3
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 5.700000047683716
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 13.5
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 71.79999995231628,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "remember preference uses the single bootstrap",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 1.9000000357627869
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 3.300000011920929
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 70.29999995231628,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "rapid retry clicks stay serial and failed retry updates error",
+      "passed": true,
+      "requests": {
+        "accessCount": 3,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.899999976158142
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 3.599999964237213
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 6
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 15.899999976158142
+        },
+        {
+          "name": "splatno:login:redirect",
+          "duration": 0
+        },
+        {
+          "name": "destination-navigation",
+          "duration": 73.5,
+          "serverTiming": []
+        }
+      ]
+    },
+    {
+      "name": "unknown",
+      "passed": true,
+      "requests": {
+        "accessCount": 0,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.199999988079071
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 0.5
+        }
+      ]
+    },
+    {
+      "name": "abort",
+      "passed": true,
+      "requests": {
+        "accessCount": 0,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 2.300000011920929
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 1
+        }
+      ]
+    },
+    {
+      "name": "slow credentials do not simulate progress or permit overlapping retry",
+      "passed": true,
+      "requests": {
+        "accessCount": 1,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": []
+    },
+    {
+      "name": "request timeout becomes recoverable error",
+      "passed": true,
+      "requests": {
+        "accessCount": 0,
+        "credentialCount": 1,
+        "sessionCount": 0,
+        "signoutCount": 0
+      },
+      "timings": [
+        {
+          "name": "splatno:login:credentials",
+          "duration": 1.899999976158142
+        },
+        {
+          "name": "splatno:login:environment",
+          "duration": 30003.700000047684
+        }
+      ]
+    }
+  ]
+}

@@ -39,7 +39,7 @@ export function AuthShell({
   claim: ReactNode;
   claimSub?: ReactNode;
   brand?: AuthBrand;
-  layout?: "default" | "registration";
+  layout?: "default" | "registration" | "progress";
   children: ReactNode;
 }) {
   const image = ART[art];
@@ -50,6 +50,7 @@ export function AuthShell({
   return (
     <main className={`${styles.page} ${inter.className}`} data-layout={layout}>
       <div className={styles.card}>
+        {layout === "progress" ? children : <>
         <section className={styles.formSide}>
           <div className={styles.brandRow}>
             {isCustomEntryBrand(brand) ? (
@@ -100,6 +101,7 @@ export function AuthShell({
             {claimSub ? <p className={styles.claimSub}>{claimSub}</p> : null}
           </div>
         </aside>
+        </>}
       </div>
     </main>
   );

@@ -1,99 +1,155 @@
 "use client";
 
+import { CloseIcon } from "@/components/close-icon";
+import { Icon } from "@/components/icons";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import useSWR from "swr";
 import type { DashboardData } from "@/lib/dashboard-summary";
 import { apiFetch } from "@/lib/api-client";
-import { eskoAnswer, eskoCustomerDebtAnswer, eskoHelpAnswer, eskoIntent, eskoInvoiceSearchAnswer, ESKO_QUESTIONS, type EskoAnswer, type EskoQuestionId } from "@/lib/esko";
+import {
+  eskoAnswer,
+  eskoCustomerDebtAnswer,
+  eskoHelpAnswer,
+  eskoIntent,
+  eskoInvoiceSearchAnswer,
+  ESKO_QUESTIONS,
+  type EskoAnswer,
+  type EskoQuestionId,
+} from "@/lib/esko";
 import { useAccessProfile } from "@/lib/use-access-role";
 import type { Invoice } from "@/types/invoice";
 import styles from "./esko-assistant.module.css";
+import { Modal } from "@/components/modal";
+import { useEskoAssistant } from "./esko-context";
 
 type Message =
-  | { from: "user"; text: string }
-  | { from: "esko"; answer: EskoAnswer };
+  { from: "user"; text: string } | { from: "esko"; answer: EskoAnswer };
 
-type Pending = { kind: "question"; id: EskoQuestionId } | { kind: "invoice_search" | "customer_debt"; query: string };
-type SearchResult = { invoices: Invoice[]; total: number; open_totals: Record<string, number> };
+type Pending =
+  | { kind: "question"; id: EskoQuestionId }
+  | { kind: "invoice_search" | "customer_debt"; query: string };
+type SearchResult = {
+  invoices: Invoice[];
+  total: number;
+  open_totals: Record<string, number>;
+};
 
-// Asistent na všech stránkách aplikace. Normálně je to jen jazýček s hlavou
-// maskota u pravého okraje, který nic nepřekrývá; kliknutím se rovnou otevře
-// panel s chatem. Data si načte až po otevření, aby neprodlužoval běžné
-// načítání stránek.
+// Navigation owns visibility; conversation stays mounted across dialog closes.
 export function EskoAssistant() {
   const profile = useAccessProfile();
-  const [open, setOpen] = useState(false);
+  const { open, closeAssistant: close } = useEskoAssistant();
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
   const [draft, setDraft] = useState("");
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const tabRef = useRef<HTMLButtonElement>(null);
   const { data, error } = useSWR<DashboardData>(open ? "/api/dashboard" : null);
-
-  // Po zavření se fokus vrátí na jazýček, ať se klávesnice neztratí.
-  function close() {
-    setOpen(false);
-    tabRef.current?.focus();
-  }
 
   // Otázka položená před načtením dat se zodpoví, jakmile data dorazí.
   useEffect(() => {
     if (pending?.kind !== "question" || !data) return;
-    setMessages((current) => [...current, { from: "esko", answer: eskoAnswer(pending.id, data, profile?.role ?? null) }]);
+    setMessages((current) => [
+      ...current,
+      {
+        from: "esko",
+        answer: eskoAnswer(pending.id, data, profile?.role ?? null),
+      },
+    ]);
     setPending(null);
   }, [pending, data, profile?.role]);
 
   // Bez dat Esko neodpoví vymyšleným číslem; řekne to a otázku pustí.
   useEffect(() => {
     if (pending?.kind !== "question" || !error || data) return;
-    setMessages((current) => [...current, { from: "esko", answer: { text: "Čísla se teď nepodařilo načíst. Zkuste to prosím za chvíli.", lines: [] } }]);
+    setMessages((current) => [
+      ...current,
+      {
+        from: "esko",
+        answer: {
+          text: "Čísla se teď nepodařilo načíst. Zkuste to prosím za chvíli.",
+          lines: [],
+        },
+      },
+    ]);
     setPending(null);
   }, [pending, error, data]);
 
   useEffect(() => {
-    if (pending?.kind !== "invoice_search" && pending?.kind !== "customer_debt") return;
+    if (pending?.kind !== "invoice_search" && pending?.kind !== "customer_debt")
+      return;
     const controller = new AbortController();
     const query = pending.query;
     const kind = pending.kind;
-    void apiFetch<SearchResult>(`/api/invoices?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+    void apiFetch<SearchResult>(
+      `/api/invoices?q=${encodeURIComponent(query)}`,
+      { signal: controller.signal },
+    )
       .then((result) => {
-        const answer = kind === "customer_debt"
-          ? eskoCustomerDebtAnswer(query, result.total, result.open_totals, profile?.role ?? null)
-          : eskoInvoiceSearchAnswer(query, result.invoices, result.total, profile?.role ?? null);
+        const answer =
+          kind === "customer_debt"
+            ? eskoCustomerDebtAnswer(
+                query,
+                result.total,
+                result.open_totals,
+                profile?.role ?? null,
+              )
+            : eskoInvoiceSearchAnswer(
+                query,
+                result.invoices,
+                result.total,
+                profile?.role ?? null,
+              );
         setMessages((current) => [...current, { from: "esko", answer }]);
         setPending(null);
       })
       .catch(() => {
         if (controller.signal.aborted) return;
-        setMessages((current) => [...current, { from: "esko", answer: { text: "Faktury se teď nepodařilo prohledat. Zkuste to prosím znovu.", lines: [] } }]);
+        setMessages((current) => [
+          ...current,
+          {
+            from: "esko",
+            answer: {
+              text: "Faktury se teď nepodařilo prohledat. Zkuste to prosím znovu.",
+              lines: [],
+            },
+          },
+        ]);
         setPending(null);
       });
     return () => controller.abort();
   }, [pending, profile?.role]);
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [messages, pending]);
+    listRef.current?.scrollTo({ top: messages.length || pending ? listRef.current.scrollHeight : 0 });
+  }, [messages, pending, open]);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        tabRef.current?.focus();
-      }
+    if (!open || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      const panel = document.getElementById("esko-panel");
+      panel?.style.setProperty("--esko-viewport-height", `${viewport.height}px`);
+      panel?.style.setProperty("--esko-viewport-top", `${viewport.offsetTop}px`);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
   }, [open]);
 
   function ask(id: EskoQuestionId) {
     if (pending) return;
     const question = ESKO_QUESTIONS.find((item) => item.id === id);
     if (!question) return;
-    setMessages((current) => [...current, { from: "user", text: question.label }]);
+    setMessages((current) => [
+      ...current,
+      { from: "user", text: question.label },
+    ]);
     setPending({ kind: "question", id });
   }
 
@@ -105,45 +161,50 @@ export function EskoAssistant() {
     setMessages((current) => [...current, { from: "user", text }]);
     const intent = eskoIntent(text);
     if (intent.kind === "help") {
-      setMessages((current) => [...current, { from: "esko", answer: eskoHelpAnswer() }]);
+      setMessages((current) => [
+        ...current,
+        { from: "esko", answer: eskoHelpAnswer() },
+      ]);
     } else {
       setPending(intent);
     }
   }
 
   return (
-    <>
-      <button
-        ref={tabRef}
-        type="button"
-        className={styles.edgeTab}
-        aria-label={open ? "Zavřít asistenta Esko" : "Otevřít asistenta Esko"}
-        title={open ? "Zavřít asistenta Esko" : "Otevřít asistenta Esko"}
-        aria-expanded={open}
-        aria-controls="esko-panel"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="40px" className={styles.edgeTabImage} />
-      </button>
-
-      {open ? (
-        <section id="esko-panel" className={styles.panel} role="dialog" aria-label="Asistent Esko">
+    <Modal id="esko-panel" modal={false} open={open} onClose={close} labelledBy="esko-heading" className={styles.panel}>
           <header className={styles.head}>
-            <Image src="/brand/mascot/esko-support.webp" alt="" width={336} height={420} sizes="42px" className={styles.avatar} />
+            <Image
+              src="/brand/mascot/esko-support.webp"
+              alt=""
+              width={336}
+              height={420}
+              sizes="42px"
+              className={styles.avatar}
+            />
             <span>
-              <b>Esko · asistent</b>
-              <small>Hlídá vaše faktury</small>
+              <b id="esko-heading">Esko</b>
+              <small>Chat k vašim fakturám</small>
             </span>
-            <button type="button" className={styles.close} aria-label="Zavřít" onClick={close}>×</button>
+            <button
+              type="button"
+              className={styles.close}
+              aria-label="Zavřít chat Esko"
+              onClick={close}
+            >
+              <CloseIcon />
+            </button>
           </header>
 
           <div className={styles.messages} ref={listRef} aria-live="polite">
-            <p className={`${styles.msg} ${styles.esko}`}>
-              Ahoj, tady Esko. Zeptejte se mě vlastními slovy na faktury, platby nebo upomínky. Odpovídám z aktuálních dat vaší firmy.
-            </p>
+            <div className={styles.greeting}>
+              <strong>S čím vám pomůžu?</strong>
+              <p>Zeptejte se na faktury, platby nebo upomínky. Odpovím z aktuálních dat vaší firmy.</p>
+            </div>
             {messages.map((message, index) =>
               message.from === "user" ? (
-                <p key={index} className={`${styles.msg} ${styles.user}`}>{message.text}</p>
+                <p key={index} className={`${styles.msg} ${styles.user}`}>
+                  {message.text}
+                </p>
               ) : (
                 <div key={index} className={`${styles.msg} ${styles.esko}`}>
                   <p>{message.answer.text}</p>
@@ -152,8 +213,15 @@ export function EskoAssistant() {
                       {message.answer.lines.map((line) => (
                         <li key={line.text}>
                           {line.href ? (
-                            <Link href={line.href} onClick={() => setOpen(false)}>{line.text}</Link>
-                          ) : line.text}
+                            <Link
+                              href={line.href}
+                              onClick={close}
+                            >
+                              {line.text}
+                            </Link>
+                          ) : (
+                            line.text
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -166,26 +234,50 @@ export function EskoAssistant() {
                 Dívám se do faktur…
               </p>
             ) : null}
-          </div>
 
-          {/* Návrhy jen pro začátek: jakmile člověk píše nebo se už ptal, ustoupí konverzaci. */}
-          {messages.length === 0 && !draft.trim() ? (
-            <div className={styles.chips}>
-              {ESKO_QUESTIONS.map((question) => (
-                <button key={question.id} type="button" disabled={Boolean(pending)} onClick={() => ask(question.id)}>
-                  {question.label}
+            {/* Návrhy jen pro začátek: jakmile člověk píše nebo se už ptal, ustoupí konverzaci. */}
+            {messages.length === 0 && !draft.trim() ? (
+              <div className={styles.suggestions}>
+                <p className={styles.suggestionsLabel}>Můžete se zeptat</p>
+                <div className={styles.chips}>
+                  {ESKO_QUESTIONS.slice(0, showAllQuestions ? ESKO_QUESTIONS.length : 4).map((question) => (
+                    <button
+                      key={question.id}
+                      type="button"
+                      disabled={Boolean(pending)}
+                      onClick={() => ask(question.id)}
+                    >
+                      <span>{question.label}</span><Icon name="arrow-right" />
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className={styles.moreQuestions} aria-expanded={showAllQuestions}
+                  onClick={() => setShowAllQuestions(current => !current)}>
+                  {showAllQuestions ? "Méně otázek" : "Další otázky"}<Icon name="chevron-down" />
                 </button>
-              ))}
-            </div>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
           <form className={styles.askForm} onSubmit={askText}>
-            <label className={styles.srOnly} htmlFor="esko-question">Otázka pro Eska</label>
-            <input id="esko-question" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={100} placeholder="Např. najdi fakturu 1443260157" disabled={Boolean(pending)} />
-            <button type="submit" disabled={Boolean(pending) || !draft.trim()}>Zeptat se</button>
+            <label className={styles.srOnly} htmlFor="esko-question">
+              Otázka pro Eska
+            </label>
+            <input
+              id="esko-question"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              maxLength={100}
+              placeholder="Zeptejte se Eska…"
+              disabled={Boolean(pending)}
+            />
+            <button type="submit" disabled={Boolean(pending) || !draft.trim()}>
+              <span className={styles.srOnly}>Zeptat se</span><Icon name="arrow-right" />
+            </button>
           </form>
-          <p className={styles.footnote}>Esko odpovídá z dat vaší firmy. Platby, faktury ani upomínky samo nemění.</p>
-        </section>
-      ) : null}
-    </>
+          <p className={styles.footnote}>
+            Esko odpovídá z dat vaší firmy. Platby, faktury ani upomínky samo
+            nemění.
+          </p>
+    </Modal>
   );
 }

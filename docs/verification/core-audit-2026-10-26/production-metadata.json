@@ -1,0 +1,475 @@
+{
+  "scope": "read-only production metadata; no customer records",
+  "project_ref": "liczsygjiuaobdzytyea",
+  "migrations": [
+    {
+      "version": "20260808000000",
+      "name": "baseline_schema"
+    },
+    {
+      "version": "20260915095449",
+      "name": "add_bank_statement_imports"
+    },
+    {
+      "version": "20260915095546",
+      "name": "index_bank_statement_foreign_keys"
+    },
+    {
+      "version": "20260916000000",
+      "name": "unify_payment_ledger"
+    },
+    {
+      "version": "20260916010000",
+      "name": "remember_reminder_policy_for_all_sources"
+    },
+    {
+      "version": "20260917000000",
+      "name": "customers_registry"
+    },
+    {
+      "version": "20260917010000",
+      "name": "fix_reminder_settings_expected_event_default"
+    },
+    {
+      "version": "20260917020000",
+      "name": "payment_reconciliation_summary"
+    },
+    {
+      "version": "20260918111705",
+      "name": "robust_reconciliation"
+    },
+    {
+      "version": "20260918150000",
+      "name": "learn_statement_account_identity"
+    },
+    {
+      "version": "20260918160000",
+      "name": "automation_after_acknowledged_mismatch"
+    },
+    {
+      "version": "20260918170000",
+      "name": "phase1_matching_rules"
+    },
+    {
+      "version": "20260918180000",
+      "name": "name_amount_auto_match"
+    },
+    {
+      "version": "20260918200000",
+      "name": "mismatch_stops_blocking_automation"
+    },
+    {
+      "version": "20260918210000",
+      "name": "name_combination_auto_match"
+    },
+    {
+      "version": "20260918220000",
+      "name": "single_engine_version"
+    },
+    {
+      "version": "20260918230000",
+      "name": "release_statement_entry"
+    },
+    {
+      "version": "20260919094355",
+      "name": "expand_dashboard_scroll_lists"
+    },
+    {
+      "version": "20260919124500",
+      "name": "customer_registry_no_duplicates"
+    },
+    {
+      "version": "20260919133000",
+      "name": "reconciliation_integrity_guards"
+    },
+    {
+      "version": "20260919140000",
+      "name": "dashboard_action_items"
+    },
+    {
+      "version": "20260919150000",
+      "name": "organization_ico_format"
+    },
+    {
+      "version": "20260920090000",
+      "name": "tolerate_rounding_adjustment"
+    },
+    {
+      "version": "20260920121948",
+      "name": "report_vat_dso_yoy_breakdown"
+    },
+    {
+      "version": "20260920140111",
+      "name": "gpc_account_checksum_unverified"
+    },
+    {
+      "version": "20260920140127",
+      "name": "reconciliation_mismatch_visibility"
+    },
+    {
+      "version": "20260922175732",
+      "name": "invoice_emailed_event"
+    },
+    {
+      "version": "20260922175746",
+      "name": "discard_bank_statement_import"
+    },
+    {
+      "version": "20260924102621",
+      "name": "contextual_invoice_ocr"
+    },
+    {
+      "version": "20260930195017",
+      "name": "gpc_unrelated_rows"
+    },
+    {
+      "version": "20261001235711",
+      "name": "customer_ares_address_contact_guard"
+    },
+    {
+      "version": "20261003101756",
+      "name": "payment_assistance"
+    },
+    {
+      "version": "20261003103140",
+      "name": "camt_statement_evidence"
+    },
+    {
+      "version": "20261003152613",
+      "name": "release_security_permissions"
+    },
+    {
+      "version": "20261005103634",
+      "name": "customer_email_edit"
+    },
+    {
+      "version": "20261005113440",
+      "name": "accept_invoice_total_without_adjustment_confirmation"
+    },
+    {
+      "version": "20261007124800",
+      "name": "organization_onboarding"
+    },
+    {
+      "version": "20261007125359",
+      "name": "billing_and_verification"
+    },
+    {
+      "version": "20261007125410",
+      "name": "company_logos"
+    },
+    {
+      "version": "20261007132631",
+      "name": "auth_rate_limit_actions"
+    },
+    {
+      "version": "20261009120000",
+      "name": "stripe_subscriptions"
+    },
+    {
+      "version": "20261010120000",
+      "name": "tenant_isolation_guards"
+    },
+    {
+      "version": "20261010121000",
+      "name": "billing_exempt"
+    },
+    {
+      "version": "20261010122000",
+      "name": "auto_booking_per_organization"
+    },
+    {
+      "version": "20261010123000",
+      "name": "organization_bank_accounts"
+    },
+    {
+      "version": "20261010124000",
+      "name": "statement_bank_dialect"
+    },
+    {
+      "version": "20261010125000",
+      "name": "support_sessions"
+    },
+    {
+      "version": "20261010126000",
+      "name": "fair_reminder_queue"
+    },
+    {
+      "version": "20261010127000",
+      "name": "vat_payer"
+    },
+    {
+      "version": "20261012120000",
+      "name": "invoice_payment_account"
+    },
+    {
+      "version": "20261012233239",
+      "name": "comprehensive_search"
+    },
+    {
+      "version": "20261015142246",
+      "name": "registration_otp_rate_limits"
+    },
+    {
+      "version": "20261015181557",
+      "name": "onboarding_drafts"
+    },
+    {
+      "version": "20261025141958",
+      "name": "dashboard_snapshot"
+    },
+    {
+      "version": "20261026101041",
+      "name": "financial_report_snapshot"
+    }
+  ],
+  "security_advisors": {
+    "result": {
+      "lints": [
+        {
+          "name": "rls_enabled_no_policy",
+          "title": "RLS Enabled No Policy",
+          "level": "INFO",
+          "facing": "EXTERNAL",
+          "categories": [
+            "SECURITY"
+          ],
+          "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+          "count": 20,
+          "findings": [
+            {
+              "detail": "Table \\`public.auth_request_events\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "auth_request_events",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.company_registry_cache\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "company_registry_cache",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.counterparty_reminder_preferences\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "counterparty_reminder_preferences",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.customers\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "customers",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.email_mfa_challenges\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "email_mfa_challenges",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.invoice_money_events\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "invoice_money_events",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.invoice_ocr_keyword_suggestions\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "invoice_ocr_keyword_suggestions",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.invoice_ocr_reviews\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "invoice_ocr_reviews",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.onboarding_drafts\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "onboarding_drafts",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.operator_actions\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "operator_actions",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.organization_verifications\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "organization_verifications",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.payment_allocation_events\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "payment_allocation_events",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.payment_assistance_events\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "payment_assistance_events",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.payment_assistance_jobs\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "payment_assistance_jobs",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.payment_assistance_proposals\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "payment_assistance_proposals",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.payment_assistance_settings\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "payment_assistance_settings",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.payment_payer_memory\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "payment_payer_memory",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.provider_webhook_events\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "provider_webhook_events",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.stripe_events\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "stripe_events",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            },
+            {
+              "detail": "Table \\`public.trial_claims\\` has RLS enabled, but no policies exist",
+              "metadata": {
+                "name": "trial_claims",
+                "type": "table",
+                "schema": "public"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            }
+          ]
+        },
+        {
+          "name": "function_search_path_mutable",
+          "title": "Function Search Path Mutable",
+          "level": "WARN",
+          "facing": "EXTERNAL",
+          "categories": [
+            "SECURITY"
+          ],
+          "description": "Detects functions where the search_path parameter is not set.",
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+          "count": 1,
+          "findings": [
+            {
+              "detail": "Function \\`private.assistance_normalize_account\\` has a role mutable search_path",
+              "metadata": {
+                "name": "assistance_normalize_account",
+                "type": "function",
+                "schema": "private"
+              },
+              "observed_at": "2026-10-26T12:09:26.246Z"
+            }
+          ]
+        },
+        {
+          "name": "auth_leaked_password_protection",
+          "title": "Leaked Password Protection Disabled",
+          "level": "WARN",
+          "facing": "EXTERNAL",
+          "categories": [
+            "SECURITY"
+          ],
+          "description": "Leaked password protection is currently disabled.",
+          "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+          "count": 1,
+          "findings": [
+            {
+              "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+              "metadata": {
+                "type": "auth",
+                "entity": "Auth"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "unapplied_local_migrations": [
+    "20261022221912_subscription_monthly_usage.sql",
+    "20261023210625_notification_system.sql",
+    "20261025194356_invoice_creation_document.sql"
+  ]
+}

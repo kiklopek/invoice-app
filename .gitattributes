@@ -1,1 +1,5 @@
 patches/*.patch text eol=lf
+
+# Markdown uses trailing spaces for explicit line breaks; retain raw audit logs.
+*.md whitespace=-blank-at-eol
+docs/verification/**/*.log -whitespace

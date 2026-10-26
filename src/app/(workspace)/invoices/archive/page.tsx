@@ -1,5 +1,8 @@
 "use client";
 
+import { formatCzechDate } from "@/lib/display-date";
+import { ExactMoney } from "@/components/money-amount";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
@@ -17,12 +20,7 @@ type ArchivePageData = {
   active_count: number;
 };
 
-const money = (value: number, currency: string) => new Intl.NumberFormat("cs-CZ", {
-  style: "currency", currency, maximumFractionDigits: 0,
-}).format(value);
-const date = (value: string | null) => value
-  ? new Intl.DateTimeFormat("cs-CZ").format(new Date(value))
-  : "—";
+const date = formatCzechDate;
 
 export default function InvoiceArchivePage() {
   const router = useRouter();
@@ -149,7 +147,7 @@ export default function InvoiceArchivePage() {
                 <thead>
                   <tr>
                     <th>Faktura</th><th>Odběratel</th><th>Částka</th><th>Vystavení</th>
-                    <th>Splatnost</th><th>Datum úhrady</th>
+                    <th>Splatnost</th><th>Datum úhrady</th><th>Stav</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -172,10 +170,11 @@ export default function InvoiceArchivePage() {
                           zůstává jako vylepšení pro myš. */}
                       <td data-label="Faktura" className="archive-invoice-number"><Link href={`/invoices/${invoice.id}`}><strong>{invoice.invoice_number}</strong></Link><small>VS {invoice.variable_symbol || "—"}</small></td>
                       <td data-label="Odběratel" className="archive-invoice-customer">{invoice.customer_id ? <Link href={`/customers?highlight=${invoice.customer_id}`} className="archive-customer-link"><strong>{invoice.counterparty_name}</strong></Link> : <strong>{invoice.counterparty_name}</strong>}<small>{invoice.counterparty_email}</small></td>
-                      <td data-label="Částka" className="archive-invoice-amount"><strong>{money(Number(invoice.amount), invoice.currency)}</strong><small>Uhrazeno {money(Number(invoice.paid_amount), invoice.currency)}</small></td>
+                      <td data-label="Částka" className="archive-invoice-amount"><strong><ExactMoney value={Number(invoice.amount)} currency={invoice.currency} /></strong><small>Uhrazeno <ExactMoney value={Number(invoice.paid_amount)} currency={invoice.currency} /></small></td>
                       <td data-label="Vystavení" className="archive-invoice-issued">{date(invoice.issue_date)}</td>
                       <td data-label="Splatnost" className="archive-invoice-due">{date(invoice.due_date)}</td>
                       <td data-label="Datum úhrady" className="archive-invoice-paid-at">{invoice.status === "paid" ? date(invoice.paid_at) : "—"}</td>
+                      <td data-label="Stav" className="archive-invoice-status">{invoice.status === "paid" ? <span className="sr-only">Zaplaceno</span> : <span className="status cancelled">Stornováno</span>}</td>
                     </tr>
                   ))}
                 </tbody>

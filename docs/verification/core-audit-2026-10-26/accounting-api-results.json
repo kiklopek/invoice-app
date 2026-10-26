@@ -1,0 +1,9 @@
+{
+  "role": "accounting",
+  "company": "A",
+  "login_and_mfa": "PASS via password SDK + real app MFA APIs; UI timeout recorded separately",
+  "invoice_read": 200,
+  "upload": 201,
+  "logout": 200,
+  "after_logout": 401
+}

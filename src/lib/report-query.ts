@@ -1,3 +1,4 @@
+import { issuedDocument } from "./invoice-creation";
 import { isIsoDate } from "./invoice-validation";
 import { calendarDaysBetween } from "./reporting";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
@@ -85,10 +86,14 @@ export function buildInvoiceReport(invoices: Invoice[], currency: string, today:
   }
   const vatMap = new Map<number, { vat_rate: number; base: number; tax: number; gross: number; count: number }>();
   for (const invoice of invoices) {
-    const rate = Number(invoice.vat_rate);
-    const row = vatMap.get(rate) ?? { vat_rate: rate, base: 0, tax: 0, gross: 0, count: 0 };
-    row.base += Number(invoice.amount_without_vat); row.tax += Number(invoice.amount) - Number(invoice.amount_without_vat);
-    row.gross += Number(invoice.amount); row.count++; vatMap.set(rate, row);
+    const snapshot = issuedDocument(invoice);
+    const groups = snapshot?.totals.breakdown ?? [{ rate: Number(invoice.vat_rate), net: Number(invoice.amount_without_vat), tax: Number(invoice.amount) - Number(invoice.amount_without_vat), gross: Number(invoice.amount) }];
+    for (const group of groups) {
+      const rate = group.rate ?? 0;
+      const row = vatMap.get(rate) ?? { vat_rate: rate, base: 0, tax: 0, gross: 0, count: 0 };
+      row.base += group.net; row.tax += group.tax; row.gross += group.gross; row.count++;
+      vatMap.set(rate, row);
+    }
   }
   // DSO only counts invoices actually settled in full (status "paid"), not
   // partial payments -- paid_at is only ever set once an invoice reaches

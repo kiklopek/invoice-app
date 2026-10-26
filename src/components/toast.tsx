@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseIcon } from "@/components/close-icon";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 // Proc tohle existuje: deset klientu melo vlastni stav `error`/`notice`/
@@ -116,7 +117,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
         {toast.detail && <small>{toast.detail}</small>}
       </div>
       <button type="button" className="toast-close" onClick={() => onDismiss(toast.id)} aria-label="Zavřít oznámení">
-        ×
+        <CloseIcon />
       </button>
     </div>
   );

@@ -1,0 +1,21 @@
+
+> invoice-reminder-app@0.1.0 test /Users/tadeastrnka/Desktop/invoice-app
+> vitest run src
+
+
+ RUN  v4.1.11 /Users/tadeastrnka/Desktop/invoice-app
+
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+
+ Test Files  249 passed (249)
+      Tests  2181 passed (2181)
+   Start at  17:09:40
+   Duration  33.10s (transform 8.31s, setup 0ms, import 35.02s, tests 95.33s, environment 31.99s)
+

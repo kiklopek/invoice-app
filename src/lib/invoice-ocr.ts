@@ -777,6 +777,30 @@ function findHeadingBlockX(layout: OcrDocumentLayout | undefined, heading: RegEx
   return null;
 }
 
+// Project party sections from original PDF tokens / OCR words, rather than
+// reading a visual row spanning both parties as a single company name.
+function partyColumnSection(layout: OcrDocumentLayout | undefined, role: "issuer" | "counterparty"): string[] | null {
+  if (!layout) return null;
+  for (const page of layout.pages) {
+    const blocks = page.lines.flatMap(line => line.blocks);
+    const issuer = blocks.find(block => ISSUER_HEADING.test(stripDiacritics(block.text)));
+    const customer = blocks.find(block => COUNTERPARTY_HEADING.test(stripDiacritics(block.text)));
+    if (!issuer || !customer || Math.abs(issuer.x - customer.x) <= 0.15 || Math.abs(issuer.y - customer.y) > 0.08) continue;
+    const heading = role === "issuer" ? issuer : customer;
+    const other = role === "issuer" ? customer : issuer;
+    const boundary = (issuer.x + customer.x) / 2;
+    const onLeft = heading.x < other.x;
+    const projected = page.lines.flatMap(line => {
+      const selected = line.blocks.filter(block => block.y >= heading.y - 0.005
+        && (onLeft ? block.x < boundary : block.x >= boundary));
+      return selected.length ? [selected.sort((a,b) => a.x-b.x).map(block => block.text).join(" ")] : [];
+    });
+    return findSection(projected, projected.map(stripDiacritics), role === "issuer" ? ISSUER_HEADING : COUNTERPARTY_HEADING,
+      role === "issuer" ? ISSUER_SECTION_STOP : SECTION_STOP, role);
+  }
+  return null;
+}
+
 function valueColumnRole(layout: OcrDocumentLayout | undefined, value: string): "issuer" | "counterparty" | "ambiguous" | null {
   if (!layout || !value) return null;
   const compact = value.replace(/[\s-]/g, "").toUpperCase();
@@ -855,7 +879,8 @@ function findCounterparty(
   const detailLines = detailStart >= 0 ? lines.slice(detailStart + 1) : [];
   const detailStrippedLines = detailStart >= 0 ? strippedLines.slice(detailStart + 1) : [];
   const detailSection = detailLines.length ? findSection(detailLines, detailStrippedLines, COUNTERPARTY_HEADING, SECTION_STOP, "counterparty") : [];
-  const section = detailSection.length ? detailSection : findSection(lines, strippedLines, COUNTERPARTY_HEADING, SECTION_STOP, "counterparty");
+  const columnSection = partyColumnSection(layout, "counterparty");
+  const section = columnSection ?? (detailSection.length ? detailSection : findSection(lines, strippedLines, COUNTERPARTY_HEADING, SECTION_STOP, "counterparty"));
   const sectionText = section.join("\n");
   const organizationIco = digits(organization.ico);
   const organizationDic = normalizeComparable(organization.dic).toUpperCase();
@@ -988,6 +1013,11 @@ function findCounterparty(
     dic: boundedText(dicCandidates[0], 24),
     email: boundedText(email, 254),
     emailFromSelfBilledFooter,
+    ambiguousName: Boolean(name && (
+      (columnSection === null && strippedLines.some(line => ISSUER_HEADING.test(line) && COUNTERPARTY_HEADING.test(line)))
+      || [organization.name, ...issuerSection.filter(line => !IGNORED_NAME_LINE.test(stripDiacritics(line)) && !/[@0-9]/.test(line))]
+        .some(issuerName => { const own = normalizeComparable(issuerName); return own.length >= 5 && normalizeComparable(name).includes(own); })
+    )),
     icoCandidates,
     dicCandidates,
     ambiguousIcoCandidates: structuralIcoCandidates.filter(value => valueColumnRole(layout, value) === "ambiguous"),
@@ -1631,7 +1661,7 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
     warnings.push("Celková částka nebyla jednoznačně nalezena. Byla použita částka bez DPH.");
   }
 
-  const issuerSection = findIssuerSection(lines, strippedLines);
+  const issuerSection = partyColumnSection(documentLayout, "issuer") ?? findIssuerSection(lines, strippedLines);
   const counterparty = findCounterparty(lines, strippedLines, text, organization, issuerSection, documentLayout);
   const grossCurrencyEvidence = gross ? currencyEvidenceNearAmount(documentLayout, gross.value) : null;
   const netCurrencyEvidence = net ? currencyEvidenceNearAmount(documentLayout, net.value) : null;
@@ -1770,13 +1800,29 @@ export function parseInvoiceText({ text: sourceText, fileUrl, organization, ocrC
       needs_confirmation: true,
     };
   }
+  if (counterparty.ambiguousName && fieldDecisions.counterparty_name) {
+    const reason = "Název odběratele může obsahovat údaje dodavatele nebo obou sloupců. Ověřte jej podle dokumentu.";
+    uniqueWarnings.unshift(reason);
+    fieldDecisions.counterparty_name = {
+      ...fieldDecisions.counterparty_name, status: "review", confidence: 0.35,
+      needs_confirmation: false, reasons: [...fieldDecisions.counterparty_name.reasons, reason],
+      candidates: fieldDecisions.counterparty_name.candidates.map(candidate => ({ ...candidate, role: "unknown" })),
+    };
+    invoice.counterparty_name = "";
+    delete fieldSources.counterparty_name;
+  } else if (fieldSources.counterparty_name?.method === "ocr" && fieldDecisions.counterparty_name) {
+    fieldDecisions.counterparty_name = {
+      ...fieldDecisions.counterparty_name, status: "review", confidence: Math.min(fieldDecisions.counterparty_name.confidence, 0.59),
+      needs_confirmation: true, reasons: [...fieldDecisions.counterparty_name.reasons, "Název byl přečten z obrázku. Potvrďte jeho přesné znění podle dokladu."],
+    };
+  }
   if (damagedTextLayer && invoice.counterparty_name && fieldDecisions.counterparty_name) {
     fieldDecisions.counterparty_name = {
       ...fieldDecisions.counterparty_name,
       status: "review",
       confidence: Math.min(fieldDecisions.counterparty_name.confidence, 0.59),
       reasons: [...new Set([...fieldDecisions.counterparty_name.reasons, DAMAGED_NAME_REASON])],
-      needs_confirmation: fieldDecisions.counterparty_name.status === "verified" ? true : fieldDecisions.counterparty_name.needs_confirmation,
+      needs_confirmation: counterparty.ambiguousName ? false : fieldDecisions.counterparty_name.status === "verified" ? true : fieldDecisions.counterparty_name.needs_confirmation,
     };
   }
   const attachIdentityCandidates = (field: "counterparty_ico" | "counterparty_dic", candidates: string[], ambiguous: string[]) => {

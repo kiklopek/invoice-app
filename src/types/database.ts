@@ -1553,6 +1553,8 @@ export type Database = {
           trial_invoices_used: number
           trial_denied_reason: string | null
           billing_exempt: boolean
+          invoice_month_start: string | null
+          invoice_month_used: number
           cancel_at_period_end: boolean
           scheduled_plan: string | null
           scheduled_period: string | null
@@ -1574,6 +1576,8 @@ export type Database = {
           trial_invoices_used?: number
           trial_denied_reason?: string | null
           billing_exempt?: boolean
+          invoice_month_start?: string | null
+          invoice_month_used?: number
           cancel_at_period_end?: boolean
           scheduled_plan?: string | null
           scheduled_period?: string | null
@@ -1595,6 +1599,8 @@ export type Database = {
           trial_invoices_used?: number
           trial_denied_reason?: string | null
           billing_exempt?: boolean
+          invoice_month_start?: string | null
+          invoice_month_used?: number
           cancel_at_period_end?: boolean
           scheduled_plan?: string | null
           scheduled_period?: string | null
@@ -1924,6 +1930,27 @@ export type Database = {
       }
     }
     Functions: {
+      claim_invoice_email: {
+        Args: { target_org: string; actor_user: string; target_invoice: string; send_purpose: string; action_id: string | null; payload_hash: string }
+        Returns: Json
+      }
+      stage_invoice_email: {
+        Args: { target_org: string; delivery_id: string; claim_token: string; email_payload: Json }
+        Returns: Json
+      }
+      finish_invoice_email: {
+        Args: { target_org: string; delivery_id: string; claim_token: string; accepted_provider_id?: string | null }
+        Returns: boolean
+      }
+      notification_feed: {
+        Args: { target_org: string; actor_user: string; only_unread?: boolean; page_size?: number; before_time?: string | null; before_id?: string | null }
+        Returns: Json
+      }
+      read_notifications: {
+        Args: { target_org: string; actor_user: string; event_ids?: string[] | null; through_time?: string | null }
+        Returns: number
+      }
+
       cleanup_expired_support_sessions: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -2118,6 +2145,10 @@ export type Database = {
         }
         Returns: string
       }
+      dashboard_snapshot: {
+        Args: { actor_user: string; target_org: string; period_from: string | null; period_to: string }
+        Returns: Json
+      }
       dashboard_summary: {
         Args: { actor_user: string; target_org: string }
         Returns: Json
@@ -2142,6 +2173,10 @@ export type Database = {
       }
       import_and_reconcile_bank_payments: {
         Args: { actor_user: string; payment_rows: Json; target_org: string }
+        Returns: Json
+      }
+      financial_report_snapshot: {
+        Args: { target_org: string; actor_user: string; report_from: string; report_to: string; date_basis: string; currency_filter: string; status_filter?: string; customer_filter?: string }
         Returns: Json
       }
       invoice_report_rows_page: {

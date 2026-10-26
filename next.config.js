@@ -34,6 +34,7 @@ const ocrRuntimeFiles = [
 const invoicePdfFonts = [
   "./assets/fonts/LiberationSans-Regular.ttf",
   "./assets/fonts/LiberationSans-Bold.ttf",
+  "./public/brand/*",
 ];
 
 /** @type {import('next').NextConfig} */
@@ -55,6 +56,8 @@ const nextConfig = {
     "/og/[locale]": ["./assets/fonts/LiberationSans-Bold.ttf"],
     "/api/invoices/extract": ocrRuntimeFiles,
     "/api/invoices/[id]/pdf": invoicePdfFonts,
+    "/api/invoices/creation/preview": invoicePdfFonts,
+    "/api/reports/pdf": invoicePdfFonts,
     "/api/invoices/[id]/send": invoicePdfFonts,
     "/api/invoices/[id]/reminders/[reminderId]/retry": invoicePdfFonts,
     "/api/cron/check-due": invoicePdfFonts,
@@ -62,12 +65,12 @@ const nextConfig = {
   async redirects() {
     // Fallback for hosts serving the app without Vercel's domain redirect.
     // A 308 preserves the request method, path and query (including auth links).
-    return [{
+    return ["splatno.cz", "www.splatno.cz", "splatno.com"].map((host) => ({
       source: "/:path*",
-      has: [{ type: "host", value: "splatno.cz" }],
-      destination: "https://www.splatno.cz/:path*",
+      has: [{ type: "host", value: host }],
+      destination: "https://www.splatno.com/:path*",
       permanent: true,
-    }];
+    }));
   },
   async headers() {
     return [{

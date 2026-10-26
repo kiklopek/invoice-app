@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { OcrBoundingBox } from "@/lib/invoice-ocr";
 import { boundsToPercentStyle, locateValueInLayout, textItemBounds, type DocumentHighlight, type LayoutTextItem } from "@/lib/document-locate";
 
@@ -104,7 +104,7 @@ function PdfPage({ pdf, pageNumber, size, cssWidth, highlight, scroller }: {
   </div>;
 }
 
-export function DocumentPreview({ file, highlight }: { file: File; highlight?: DocumentHighlight | null }) {
+export function DocumentPreview({ file, highlight, kind = "original" }: { file: File; highlight?: DocumentHighlight | null; kind?: "original" | "report" | "invoice" }) {
   const pdfFile = isPdf(file);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
@@ -120,6 +120,14 @@ export function DocumentPreview({ file, highlight }: { file: File; highlight?: D
   const [located, setLocated] = useState<Located>(null);
   const highlightKey = highlight ? JSON.stringify(highlight) : "";
   const textCache = useRef(new Map<number, LayoutTextItem[]>());
+  const zoomAnchor = useRef<{ top: number; left: number; ratio: number } | null>(null);
+  useLayoutEffect(() => {
+    const node = scrollerRef.current;
+    const anchor = zoomAnchor.current;
+    if (!node || !anchor) return;
+    node.scrollTo({ top: anchor.top * anchor.ratio, left: anchor.left * anchor.ratio, behavior: "instant" });
+    zoomAnchor.current = null;
+  }, [zoom]);
 
   const setScrollerNode = useCallback((node: HTMLDivElement | null) => { scrollerRef.current = node; setScroller(node); }, []);
 
@@ -264,18 +272,34 @@ export function DocumentPreview({ file, highlight }: { file: File; highlight?: D
 
   const outsideRenderedPages = Boolean(highlight?.bounds && pdfFile && status === "ready" && highlight.page > pageSizes.length);
   const notFound = Boolean(highlight && !effective && ((located?.key === highlightKey && "notfound" in located) || outsideRenderedPages));
-  const changeZoom = (delta: number) => setZoom(current => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((current + delta) * 100) / 100)));
+  const setDocumentZoom = (nextZoom: number) => {
+    const node = scrollerRef.current;
+    if (node) zoomAnchor.current = { top: node.scrollTop, left: node.scrollLeft, ratio: nextZoom / zoom };
+    setZoom(nextZoom);
+  };
+  const changeZoom = (delta: number) => setDocumentZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((zoom + delta) * 100) / 100)));
+  const goToPage = (page: number) => {
+    const node = scrollerRef.current;
+    const target = node?.querySelector<HTMLElement>(`[data-page="${page}"]`);
+    if (!node || !target) return;
+    node.scrollTo({ top: node.scrollTop + target.getBoundingClientRect().top - node.getBoundingClientRect().top, behavior: "instant" });
+    setCurrentPage(page);
+  };
   const highlightLabel = highlight?.text ?? (highlight?.value !== undefined ? String(highlight.value) : undefined);
 
   return <div className="document-preview">
     <div className="document-preview-toolbar" role="toolbar" aria-label="Ovládání náhledu dokladu">
-      <div className="document-preview-title"><span className="document-preview-eyebrow">Původní doklad</span><strong title={file.name}>{file.name}</strong></div>
-      {pdfFile && status === "ready" && totalPages > 0 && <span className="document-preview-pages" aria-live="polite">Strana {currentPage} / {totalPages}</span>}
+      <div className="document-preview-title"><strong title={file.name}>{file.name}</strong><span className="document-preview-eyebrow">{kind === "report" ? "Vygenerovaný report" : kind === "invoice" ? "PDF faktury" : "Původní doklad"} · {new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 }).format(file.size / 1024)} kB</span></div>
+      {pdfFile && status === "ready" && totalPages > 0 && <div className="document-preview-pagination">
+        <button type="button" className="btn secondary compact" aria-label="Předchozí strana" disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>‹</button>
+        <span className="document-preview-pages" aria-live="polite">Strana {currentPage} / {totalPages}</span>
+        <button type="button" className="btn secondary compact" aria-label="Další strana" disabled={currentPage >= totalPages} onClick={() => goToPage(currentPage + 1)}>›</button>
+      </div>}
       <div className="document-preview-zoom">
         <button type="button" className="btn secondary compact" onClick={() => changeZoom(-ZOOM_STEP)} disabled={zoom <= MIN_ZOOM} aria-label="Oddálit">−</button>
         <span aria-live="polite">{Math.round(zoom * 100)} %</span>
         <button type="button" className="btn secondary compact" onClick={() => changeZoom(ZOOM_STEP)} disabled={zoom >= MAX_ZOOM} aria-label="Přiblížit">+</button>
-        <button type="button" className="btn secondary compact" onClick={() => setZoom(1)} disabled={zoom === 1}>Přizpůsobit šířce</button>
+        <button type="button" className="btn secondary compact" aria-label="Přizpůsobit šířce" title="Přizpůsobit šířce" onClick={() => setDocumentZoom(1)} disabled={zoom === 1}>⤢</button>
       </div>
     </div>
     {notFound && <p className="document-preview-note" role="status">Místo v dokladu se nepodařilo dohledat jednoznačně. Zkontrolujte hodnotu ručně.</p>}
@@ -283,7 +307,7 @@ export function DocumentPreview({ file, highlight }: { file: File; highlight?: D
     <div className="document-preview-scroller" ref={setScrollerNode} onScroll={onScroll} tabIndex={0} aria-label="Náhled dokladu">
       {pdfFile && status === "loading" && <p className="document-preview-state" role="status">Načítám náhled dokladu…</p>}
       {status === "error" && <div className="document-preview-state document-preview-error" role="alert">
-        <p>Náhled dokumentu se nepodařilo zobrazit. Údaje vlevo můžete zkontrolovat i bez něj.</p>
+        <p>{kind !== "original" ? "Náhled PDF se nepodařilo zobrazit. Stejný PDF soubor můžete stáhnout nebo otevřít samostatně." : "Náhled dokumentu se nepodařilo zobrazit. Údaje vlevo můžete zkontrolovat i bez něj."}</p>
         {downloadUrl && <a className="btn secondary compact" href={downloadUrl} download={file.name}>Stáhnout dokument</a>}
       </div>}
       {pdfFile && status === "ready" && pdf && <div className="document-preview-pages-list" style={{ gap: PAGE_GAP }}>
@@ -304,4 +328,45 @@ export function DocumentPreview({ file, highlight }: { file: File; highlight?: D
       </div>}
     </div>
   </div>;
+}
+
+/** A real first-page thumbnail using the same PDF renderer as the full preview. */
+export function DocumentThumbnail({ file }: { file: File }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    let task: PdfLoadingTask | null = null;
+    let render: { cancel(): void; promise: Promise<unknown> } | null = null;
+    let imageUrl: string | null = null;
+    setFailed(false); setReady(false);
+    if (!isPdf(file)) {
+      if (!file.type.startsWith("image/")) { setFailed(true); return; }
+      imageUrl = URL.createObjectURL(file); setImage(imageUrl);
+      return () => { if (imageUrl) URL.revokeObjectURL(imageUrl); };
+    }
+    setImage(null);
+    void (async () => {
+      const [pdfjs, buffer] = await Promise.all([loadPdfJs(), file.arrayBuffer()]);
+      if (cancelled) return;
+      task = pdfjs.getDocument({ data: new Uint8Array(buffer) });
+      const pdf = await task.promise;
+      const page = await pdf.getPage(1);
+      if (cancelled || !canvas.current) return;
+      const size = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: 320 / size.width });
+      canvas.current.width = Math.ceil(viewport.width); canvas.current.height = Math.ceil(viewport.height);
+      render = page.render({ canvas: canvas.current, viewport });
+      await render.promise;
+      if (!cancelled) setReady(true);
+    })().catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; render?.cancel(); void task?.destroy(); };
+  }, [file]);
+  if (failed) return <span>Náhled není dostupný. Otevřít dokument.</span>;
+  // A private blob URL is used only for the authenticated original image.
+  // eslint-disable-next-line @next/next/no-img-element
+  if (image) return <img src={image} alt="Originální dokument faktury" onError={() => setFailed(true)} />;
+  return <><canvas ref={canvas} role="img" aria-label="První strana originální faktury" data-ready={ready} style={{ display: ready ? undefined : "none" }} />{!ready && <span role="status">Načítání náhledu…</span>}</>;
 }

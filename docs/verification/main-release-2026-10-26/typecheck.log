@@ -1,0 +1,4 @@
+
+> invoice-reminder-app@0.1.0 typecheck /Users/tadeastrnka/Desktop/invoice-app
+> tsc --noEmit
+

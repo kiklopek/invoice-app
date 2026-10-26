@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSmallMobile } from "@/components/layout/mobile-header-slot";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppFrame } from "@/components/layout/app-shell";
@@ -9,12 +10,18 @@ import type { InvoiceInput } from "@/types/invoice";
 import { createClient } from "@/lib/supabase-browser";
 import { hasExpectedDocumentSignature, validateDocumentMetadata } from "@/lib/document-validation";
 import { Icon } from "@/components/icons";
+import { ChevronDown } from "@/components/chevron-down";
 import { useInvalidateWorkspaceData } from "@/lib/workspace-cache";
 import { DocumentPreview } from "@/components/document-preview";
 import { documentHighlightFor, type DocumentHighlight } from "@/lib/document-locate";
 import type { InvoiceOcrResult, OcrFieldCandidate, OcrFieldName } from "@/lib/invoice-ocr";
 import { DEFAULT_VAT_RATE, grossFromNet, netFromGross } from "@/lib/vat";
 import styles from "./invoice-import.module.css";
+import reviewStyles from "./ocr-review.module.css";
+import { OcrReviewHeader } from "./ocr-review-header";
+import { OcrReviewWorkspace } from "./ocr-review-workspace";
+import { OcrDocumentPicker } from "./ocr-document-picker";
+import { OcrProcessingView, type DocumentStage } from "./ocr-processing-view";
 
 // Mirrors the server-side OCR_PROVIDER switch (extract/route.ts). Next.js
 // only exposes env vars prefixed NEXT_PUBLIC_ to client code, and this is a
@@ -27,8 +34,6 @@ import styles from "./invoice-import.module.css";
 // says "may", never a flat yes/no.
 const OCR_EXTERNAL_AI_DISCLOSURE: "always" | "never" | "maybe" =
   process.env.NEXT_PUBLIC_OCR_PROVIDER === "gemini" ? "always" : process.env.NEXT_PUBLIC_OCR_PROVIDER === "hybrid" ? "maybe" : "never";
-
-type DocumentStage = "idle" | "uploading" | "verifying" | "reading" | "recognizing" | "prefilling";
 
 const documentStageLabel: Record<DocumentStage, string> = {
   idle: "",
@@ -93,6 +98,7 @@ export default function ImportInvoicesPage() {
   const [rows, setRows] = useState<InvoiceInput[]>([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [working, setWorking] = useState(false);
+  const [processingCanStop, setProcessingCanStop] = useState(false);
   const [documentStage, setDocumentStage] = useState<DocumentStage>("idle");
   const [message, setMessage] = useState("");
   // Pole, na které se uživatel právě soustředí; náhled dokladu ukazuje, odkud
@@ -100,6 +106,8 @@ export default function ImportInvoicesPage() {
   // dokumentu ve frontě (nebo odebrání jiného) neplatí.
   const [activeField, setActiveField] = useState<{ file: File; field: OcrFieldName; candidate?: OcrFieldCandidate; value?: string | number } | null>(null);
   const [mobileView, setMobileView] = useState<"data" | "document">("data");
+  const [reviewHidden, setReviewHidden] = useState(false);
+  const [reviewActionTarget, setReviewActionTarget] = useState<HTMLElement | null>(null);
   // Fronta se cte i z asynchronnich callbacku, ktere drzi closure ze
   // starsiho renderu. Driv kvuli tomu create() hledal dalsi nepotvrzenou
   // fakturu ve zastaralem poli: mohl ji nenajit, odejit na /invoices
@@ -115,7 +123,7 @@ export default function ImportInvoicesPage() {
   const uploaded = active?.invoice ?? null;
   const ocrInfo = active?.ocrInfo ?? null;
   // The original document remains available for manual review even if OCR fails.
-  const splitMode = mode === "document" && Boolean(uploaded) && active?.status !== "error" && active?.status !== "processing" && active?.status !== "pending";
+  const splitMode = !reviewHidden && mode === "document" && Boolean(uploaded) && active?.status !== "error" && active?.status !== "processing" && active?.status !== "pending";
   const documentHighlight = useMemo<DocumentHighlight | null>(() => {
     if (!splitMode || !active || !uploaded || !activeField || activeField.file !== active.file) return null;
     const { field, candidate } = activeField;
@@ -159,6 +167,10 @@ export default function ImportInvoicesPage() {
       window.clearTimeout(recognitionTimer);
     }
   }
+  function openProcessedDocument(index: number) {
+    // Open the first reviewable file, then keep the user's current document.
+    setActiveIndex(current => queueRef.current[current]?.invoice ? current : index);
+  }
   async function processOne(file: File, index: number) {
     setQueue(current => current.map((item, i) => i === index ? { ...item, status: "processing" } : item));
     setDocumentStage("uploading");
@@ -177,9 +189,11 @@ export default function ImportInvoicesPage() {
       try {
         const extraction = await requestDocumentExtraction(data.path);
         setQueue(current => current.map((item, i) => i === index ? { ...item, status: "ready", invoice: extraction.invoice, ocrInfo: extraction } : item));
+        openProcessedDocument(index);
       } catch (cause) {
         const detail = `${cause instanceof Error ? cause.message : "OCR se nezdařilo"} Dokument je bezpečně uložený; údaje můžete doplnit ručně nebo OCR zkusit znovu.`;
         setQueue(current => current.map((item, i) => i === index ? { ...item, status: "ready", invoice: baseInvoice, ocrInfo: null, error: detail } : item));
+        openProcessedDocument(index);
       }
     } catch (cause) {
       const detail = cause instanceof Error ? cause.message : "Dokument se nepodařilo nahrát.";
@@ -190,6 +204,7 @@ export default function ImportInvoicesPage() {
     if (!queue.length) return;
     const controller = new AbortController();
     cancelRef.current = controller;
+    setProcessingCanStop(true);
     setWorking(true); setMessage("");
     // Processed one at a time on purpose: OCR runs locally (CPU-bound Tesseract),
     // so racing several documents at once would just slow each of them down.
@@ -198,6 +213,7 @@ export default function ImportInvoicesPage() {
       await processOne(queue[index].file, index);
     }
     cancelRef.current = null;
+    setProcessingCanStop(false);
     setDocumentStage("idle"); setWorking(false);
     if (controller.signal.aborted) {
       // Uz zpracovane dokumenty zustavaji -- zrusit znamena "dal uz nepokracuj",
@@ -205,7 +221,6 @@ export default function ImportInvoicesPage() {
       const pending = queueRef.current.filter(item => item.status === "pending").length;
       setMessage(pending ? `Zpracování zastaveno, ${pending} dokument(ů) zůstalo nenačtených.` : "Zpracování zastaveno.");
     }
-    setActiveIndex(0);
   }
 
   function cancelProcessing() {
@@ -286,67 +301,7 @@ export default function ImportInvoicesPage() {
   async function loadCsv(selected: File | null) { if (!selected) return; setCsvFile(selected); setMessage(""); try { setRows(parseCsv(await selected.text())); } catch (cause) { setRows([]); setMessage(cause instanceof Error ? cause.message : "CSV se nepodařilo načíst."); } }
   async function importCsv() { setWorking(true); setMessage(""); try { const response = await fetch("/api/invoices/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invoices: rows }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); void invalidateWorkspaceData(); router.push("/invoices"); router.refresh(); } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Import se nepodařilo uložit."); } finally { setWorking(false); } }
 
-  const isStart = mode === "document" ? queue.length === 0 : !csvFile;
-
-  return <AppFrame className={`content section-page ${styles.page} ${isStart ? styles.start : ""}`}>
-    <div className={styles.stage}>
-    <div className={styles.header}>
-    <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
-    <div className="page-tabs invoice-import-tabs" aria-label="Způsob importu"><button type="button" aria-pressed={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}><Icon name="document"/><span><strong>Dokumenty faktur</strong><small>PDF, fotografie nebo sken</small></span></button><button type="button" aria-pressed={mode === "csv"} className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}><Icon name="statement"/><span><strong>Hromadný import</strong><small>Více faktur ze souboru CSV</small></span></button></div>
-    </div>
-    <div className={`invoice-import-workspace${splitMode ? " is-split" : ""}`}>
-    {working && documentStage !== "idle" && <div className="import-progress" role="status" aria-live="polite"><span className="import-progress-spinner" aria-hidden="true"/><strong>{documentStageLabel[documentStage]}</strong>{queue.length > 1 && <button type="button" className="btn secondary compact import-cancel" onClick={cancelProcessing}>Zastavit zpracování</button>}</div>}
-    {mode === "document" ? (
-      queue.length === 0 ? (
-        <section className="page-panel import-panel invoice-document-import">
-          <label
-            className={`import-drop invoice-document-dropzone${dragActive ? " is-dragging" : ""}`}
-            onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={(event) => acceptDroppedFiles(event, (files) => {
-              setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" })));
-              setActiveIndex(0);
-              setMessage("");
-            })}
-          >
-            <input type="file" aria-label="Vybrat dokumenty faktur" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
-            <span className="large-import-icon"><Icon name="document"/></span>
-            <h2>Vyberte dokumenty faktur</h2>
-            <p>
-              Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP do velikosti 10 MB na soubor. Vybrat lze i více souborů najednou.{" "}
-              {OCR_EXTERNAL_AI_DISCLOSURE === "always"
-                ? "Údaje rozpozná externí AI služba -- dokument se jí kvůli tomu odešle."
-                : OCR_EXTERNAL_AI_DISCLOSURE === "maybe"
-                  ? "Údaje rozpozná lokální OCR; pokud si nebude jistý, dokument navíc pošleme ke kontrole externí AI službě."
-                  : "Údaje rozpozná lokální OCR bez odesílání do externí AI služby."}
-            </p>
-            <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
-            <small>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
-            <span className={styles.formats}><span>PDF</span><span>JPG</span><span>PNG</span><span>WEBP</span><span>Do 10 MB / soubor</span></span>
-          </label>
-          <ImportGuidance mode="document" />
-        </section>
-      ) : !queue.some(item => item.status !== "pending") ? (
-        <section className="page-panel import-panel">
-          <div className="import-drop">
-            <h2>{queue.length === 1 ? "1 vybraný dokument" : `${queue.length} vybraných dokumentů`}</h2>
-            <ul className="import-queue-list">
-              {queue.map((item, index) => <li key={index}>{item.file.name} · {(item.file.size / 1024 / 1024).toFixed(2)} MB</li>)}
-            </ul>
-            <div className="import-queue-actions">
-              <button type="button" className="btn secondary" disabled={working} onClick={() => { setQueue([]); setActiveIndex(0); }}>Zrušit výběr</button>
-              <button className="btn primary" disabled={working} onClick={uploadQueue}>{working ? documentStageLabel[documentStage] : <><Icon name="upload"/>{queue.length === 1 ? "Nahrát a načíst údaje" : `Nahrát a načíst ${queue.length} dokumentů`}</>}</button>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <div className={splitMode ? "invoice-import-split" : "invoice-import-flow"} data-view={splitMode ? mobileView : undefined}>
-          {splitMode && <div className="invoice-import-view-tabs" role="tablist" aria-label="Údaje nebo doklad">
-            <button type="button" role="tab" aria-selected={mobileView === "data"} className={mobileView === "data" ? "active" : ""} onClick={() => setMobileView("data")}>Údaje</button>
-            <button type="button" role="tab" aria-selected={mobileView === "document"} className={mobileView === "document" ? "active" : ""} onClick={() => setMobileView("document")}>Doklad</button>
-          </div>}
-          <div className={splitMode ? "invoice-import-data-column" : "invoice-import-flow"}>
-          {queue.length > 1 && (
+  const queueControls = queue.length > 1 && (
             <>
               <div className="import-queue-summary" role="status" aria-live="polite">
                 <strong>Potvrzeno {savedInvoiceCount}/{queue.length} faktur</strong>
@@ -378,7 +333,101 @@ export default function ImportInvoicesPage() {
                 ))}
               </div>
             </>
-          )}
+          );
+
+  const processingDocuments = mode === "document" && working;
+
+  if (splitMode && active && uploaded) return <AppFrame className={`content ${reviewStyles.page}`}>
+    <OcrReviewWorkspace
+      header={<OcrReviewHeader onBack={() => setReviewHidden(true)} savedCount={savedInvoiceCount} totalCount={queue.length} picker={<OcrDocumentPicker documents={queue.map(item => ({ name: item.file.name, label: item.invoice?.invoice_number ? `${item.invoice.invoice_number} · ${item.invoice.counterparty_name}` : undefined, status: item.status }))} activeIndex={activeIndex} onStop={processingCanStop && working ? cancelProcessing : undefined} onSelect={index => { setActiveIndex(index); setActiveField(null); setMobileView("data"); }}/>}/>}
+      view={mobileView}
+      onViewChange={setMobileView}
+      footerRef={setReviewActionTarget}
+      form={<>
+        {working && !processingCanStop && documentStage !== "idle" && <p className={reviewStyles.processing} role="status">{documentStageLabel[documentStage]}</p>}
+        {!ocrInfo && <div className={reviewStyles.recovery} role="status">
+          <strong>Automatické načtení se nezdařilo</strong>
+          <p>{active.error ?? "Dokument je bezpečně uložený. Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</p>
+          <button type="button" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button>
+          <a href="#manual-invoice-form">Vyplnit ručně</a>
+        </div>}
+        <div id="manual-invoice-form"><InvoiceForm
+          key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`}
+          initial={uploaded}
+          policyAssignment={ocrInfo?.reminder_policy_assignment}
+          ocrFieldSources={ocrInfo?.field_sources}
+          ocrFieldDecisions={ocrInfo?.field_decisions}
+          ocrWarnings={ocrInfo?.warnings}
+          ocrConfidence={ocrInfo?.confidence}
+          onActiveFieldChange={handleActiveFieldChange}
+          submitLabel="Uložit fakturu do Splatna"
+          reviewActions={{ target: reviewActionTarget, onSkip: () => skipDocument(activeIndex), onShowData: () => setMobileView("data"), disabled: working || active.status === "saved" }}
+          onSubmit={create}
+        /></div>
+        {message && <p className="form-error" role="alert">{message}</p>}
+      </>}
+      document={<DocumentPreview file={active.file} highlight={documentHighlight}/>}
+    />
+  </AppFrame>;
+
+  const isStart = mode === "document" ? queue.length === 0 : !csvFile;
+
+  return <AppFrame className={`content section-page ${styles.page} ${isStart ? styles.start : ""} ${isStart && mode === "document" ? styles.documentStart : ""}`}>
+    <div className={styles.stage}>
+    <div className={styles.header}>
+    <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
+    <div className="page-tabs invoice-import-tabs" aria-label="Způsob importu"><button type="button" aria-pressed={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}><Icon name="document"/><span><strong>Dokumenty faktur</strong><small>PDF, fotografie nebo sken</small></span></button><button type="button" aria-pressed={mode === "csv"} className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}><Icon name="statement"/><span><strong>Hromadný import</strong><small>Více faktur ze souboru CSV</small></span></button></div>
+    </div>
+    <div className="invoice-import-workspace">
+    {processingDocuments ? <OcrProcessingView stage={documentStage} documents={queue} canStop={processingCanStop} onStop={cancelProcessing}/>
+    : mode === "document" ? (
+      queue.length === 0 || reviewHidden ? (
+        <section className="page-panel import-panel invoice-document-import">
+          <div className={styles.uploadColumn}>
+          <label
+            className={`import-drop invoice-document-dropzone${dragActive ? " is-dragging" : ""}`}
+            onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(event) => acceptDroppedFiles(event, (files) => {
+              setReviewHidden(false); setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" })));
+              setActiveIndex(0);
+              setMessage("");
+            })}
+          >
+            <input type="file" aria-label="Vybrat dokumenty faktur" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={event => { const files = Array.from(event.target.files ?? []); if (files.length) { setReviewHidden(false); setQueue(files.map(selectedFile => ({ file: selectedFile, status: "pending" }))); setActiveIndex(0); setMessage(""); } }}/>
+            <span className="large-import-icon"><Icon name="document"/></span>
+            <h2>Vyberte dokumenty faktur</h2>
+            <p>Podporujeme textová i naskenovaná PDF, JPG, PNG a WEBP.</p>
+            <span className="import-drop-action"><Icon name="upload"/>Vybrat dokumenty</span>
+            <small className={styles.dragHint}>Klikněte kamkoliv do plochy nebo sem soubory přetáhněte</small>
+            <span className={styles.formats}><span>PDF</span><span>JPG</span><span>PNG</span><span>WEBP</span></span>
+            <small className={styles.limits}>Můžete vybrat jeden i více souborů najednou.<br/>Nejvýše 10 MB na soubor.</small>
+          </label>
+          <p className={styles.disclosure}><span>{OCR_EXTERNAL_AI_DISCLOSURE === "always"
+                ? "Údaje rozpozná externí AI služba -- dokument se jí kvůli tomu odešle."
+                : OCR_EXTERNAL_AI_DISCLOSURE === "maybe"
+                  ? "Údaje rozpozná lokální OCR; pokud si nebude jistý, dokument navíc pošleme ke kontrole externí AI službě."
+                  : "Údaje rozpozná lokální OCR bez odesílání do externí AI služby."}</span></p>
+          </div>
+          <ImportGuidance mode="document" />
+        </section>
+      ) : !queue.some(item => item.status !== "pending") ? (
+        <section className="page-panel import-panel">
+          <div className="import-drop">
+            <h2>{queue.length === 1 ? "1 vybraný dokument" : `${queue.length} vybraných dokumentů`}</h2>
+            <ul className="import-queue-list">
+              {queue.map((item, index) => <li key={index}>{item.file.name} · {(item.file.size / 1024 / 1024).toFixed(2)} MB</li>)}
+            </ul>
+            <div className="import-queue-actions">
+              <button type="button" className="btn secondary" disabled={working} onClick={() => { setQueue([]); setActiveIndex(0); }}>Zrušit výběr</button>
+              <button className="btn primary" disabled={working} onClick={uploadQueue}>{working ? documentStageLabel[documentStage] : <><Icon name="upload"/>{queue.length === 1 ? "Nahrát a načíst údaje" : `Nahrát a načíst ${queue.length} dokumentů`}</>}</button>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <div className="invoice-import-flow">
+          <div className="invoice-import-flow">
+          {queueControls}
           {active?.status === "error" ? (
             /* Dřív tu byla jen chybová věta a nic víc -- slepá ulička, ze
                které se u jednoho souboru dalo dostat jen reloadem stránky.
@@ -399,18 +448,8 @@ export default function ImportInvoicesPage() {
             </section>
           ) : active?.status === "processing" || active?.status === "pending" ? (
             <section className="page-panel"><p className="page-state">{documentStageLabel[documentStage] || "Čeká na zpracování…"}</p></section>
-          ) : uploaded ? <>
-            <div className={`import-step-note ${ocrInfo ? "ocr-complete" : "ocr-manual"}`}>
-              <div><strong>{ocrInfo ? "Dokument načten" : "Automatické načtení se nezdařilo"}</strong><span>{ocrInfo ? `OCR ${Math.round(ocrInfo.confidence * 100)} % · údaje před uložením zkontrolujte.` : active.error ?? "Dokument je bezpečně uložený. Údaje doplňte ručně, nebo zkuste automatické načtení znovu."}</span></div>
-              {!ocrInfo && <div className="ocr-manual-actions"><button type="button" className="btn secondary compact" disabled={working} onClick={retryOcr}>{working ? documentStageLabel[documentStage] : "Zkusit OCR znovu"}</button><a className="btn secondary compact" href="#manual-invoice-form">Vyplnit ručně</a></div>}
-            </div>
-            <div id="manual-invoice-form"><InvoiceForm onActiveFieldChange={splitMode ? handleActiveFieldChange : undefined} key={`${uploaded.file_url}-${ocrInfo ? "ocr" : "manual"}`} initial={uploaded} policyAssignment={ocrInfo?.reminder_policy_assignment} ocrFieldSources={ocrInfo?.field_sources} ocrFieldDecisions={ocrInfo?.field_decisions} ocrWarnings={ocrInfo?.warnings} submitLabel="Potvrdit a uložit fakturu" onSubmit={create}/></div>
-          </> : null}
+          ) : null}
           </div>
-          {splitMode && active && <aside className="invoice-import-preview-column" aria-label="Náhled dokladu">
-            <button type="button" className="btn secondary compact invoice-import-back-to-data" onClick={() => setMobileView("data")}>Zpět k údajům</button>
-            <DocumentPreview file={active.file} highlight={documentHighlight}/>
-          </aside>}
         </div>
       )
     ) : <section className="page-panel import-panel csv-import-panel">
@@ -443,9 +482,12 @@ export default function ImportInvoicesPage() {
 }
 
 function ImportGuidance({ mode }: { mode: "document" | "csv" }) {
-  return <aside className={styles.guidance} aria-label="Jak import probíhá">
+  const mobile = useSmallMobile();
+  const content = <aside className={`${styles.guidance} ${mode === "document" ? styles.documentGuidance : ""}`} aria-label="Jak import probíhá">
+    {mode === "document" && <h2 className={styles.guidanceTitle}><span><Icon name="check"/></span>Rozpoznání pod kontrolou</h2>}
     <div><Icon name="upload"/><span><strong>{mode === "document" ? "Jeden dokument i celá dávka" : "Faktury v jednom souboru"}</strong><small>{mode === "document" ? "Vyberte více souborů najednou." : "Nahrajte export ve formátu CSV."}</small></span></div>
     <div><Icon name="document"/><span><strong>{mode === "document" ? "Údaje načteme za vás" : "Nejprve přehledný náhled"}</strong><small>{mode === "document" ? "Předvyplněnou fakturu zkontrolujete." : "Před uložením uvidíte načtené faktury."}</small></span></div>
     <div><Icon name="check"/><span><strong>Uložení pod vaší kontrolou</strong><small>{mode === "document" ? "Každou fakturu výslovně potvrdíte." : "Import uložíte až po potvrzení."}</small></span></div>
   </aside>;
+  return mobile ? <details className={`${styles.mobileGuidance} ${mode === "document" ? styles.documentInfo : ""}`}><summary>{mode === "document" ? <><span className={styles.infoIcon}><Icon name="document"/></span><span><strong>Rozpoznání pod kontrolou</strong><small>Načtené údaje zkontrolujete a každou fakturu potvrdíte.</small></span><ChevronDown/></> : <>Jak import probíhá<ChevronDown /></>}</summary>{content}</details> : content;
 }

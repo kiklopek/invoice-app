@@ -60,7 +60,7 @@ body.mobile-navigation-lock { overflow: hidden; }
     background: rgb(255 255 255 / 9%);
     color: #dcebbd;
   }
-  .mobile-navigation-current svg { width: 18px; height: 18px; }
+  .mobile-navigation-current svg { width: 26px; height: 26px; }
   .mobile-navigation-current > div { min-width: 0; }
   .mobile-navigation-current small { display: none; }
   .mobile-navigation-current strong { display: block; overflow: hidden; color: #fff; font-size: 18px; font-weight: 750; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
@@ -145,7 +145,7 @@ body.mobile-navigation-lock { overflow: hidden; }
     grid-template-columns: 38px minmax(0, 1fr) auto;
     width: 100%;
     min-width: 0;
-    height: 56px;
+    height: auto;
     min-height: 56px;
     align-items: center;
     gap: 9px;
@@ -154,7 +154,7 @@ body.mobile-navigation-lock { overflow: hidden; }
     border-radius: 12px;
     background: transparent;
     color: #35483c;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 700;
     line-height: 1.2;
     text-align: left;
@@ -184,12 +184,12 @@ body.mobile-navigation-lock { overflow: hidden; }
     min-height: 48px;
     align-items: center;
     justify-content: center;
-    padding: 0 12px;
+    padding: 8px 12px;
     border: 0;
     border-radius: 8px;
     background: transparent;
     color: #4a5c50;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 650;
     line-height: 1.25;
     text-align: center;
@@ -213,8 +213,8 @@ body.mobile-navigation-lock { overflow: hidden; }
     background: #e8f0ea;
     color: #286344;
   }
-  .sidebar .mobile-navigation-links .nav-symbol svg { width: 18px; height: 18px; }
-  .sidebar .mobile-navigation-links a > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar .mobile-navigation-links .nav-symbol svg { width: 26px; height: 26px; }
+  .sidebar .mobile-navigation-links a > span:nth-child(2) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .sidebar .mobile-navigation-links a em {
     display: grid;
     min-width: 22px;
@@ -224,7 +224,7 @@ body.mobile-navigation-lock { overflow: hidden; }
     border-radius: 999px;
     background: #dce9df;
     color: #22553a;
-    font-size: 12px;
+    font-size: 14px;
     font-style: normal;
   }
 

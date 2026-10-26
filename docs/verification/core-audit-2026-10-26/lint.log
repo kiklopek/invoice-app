@@ -1,0 +1,4 @@
+
+> invoice-reminder-app@0.1.0 lint /Users/tadeastrnka/Desktop/invoice-app
+> eslint . --max-warnings 0
+

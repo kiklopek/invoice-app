@@ -1,0 +1,359 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid #dce6df;
+  border-radius: 9px;
+  background: #fff;
+  color: #173f2b;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.trigger svg {
+  width: 17px;
+  height: 17px;
+}
+.dialog.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1240px, calc(100vw - 32px)) !important;
+  margin: auto;
+  max-width: none;
+  height: min(920px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid #dce6df;
+  border-radius: 16px;
+  background: #fff;
+  color: #172b22;
+}
+.dialog .header {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e3ebe6;
+}
+.dialog .header h2 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.3;
+}
+.dialog .header p {
+  margin: 5px 0 0;
+  color: #526b5b;
+  font-size: 13px;
+}
+.dialog .close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #dce6df;
+  border-radius: 9px;
+  background: #fff;
+  color: #526b5b;
+  cursor: pointer;
+}
+.dialog .close svg {
+  width: 19px;
+  height: 19px;
+}
+.body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: 330px minmax(0, 1fr);
+}
+.dialog .settings {
+  min-width: 0;
+  overflow: auto;
+  padding: 22px;
+  border-right: 1px solid #e3ebe6;
+}
+.dialog .settings fieldset {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 22px;
+  padding: 0;
+  border: 0;
+}
+.dialog .settings legend {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dialog .settings label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  color: #344f40;
+}
+.dialog .settings :is(input[type="date"], select) {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 8px;
+  border: 1px solid #dce6df;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+.dialog .settings :is(input, select, button):focus-visible {
+  outline: 2px solid #267a52;
+  outline-offset: 2px;
+}
+.dialog .settings input:is([type="radio"], [type="checkbox"]) {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  accent-color: #17613f;
+  margin: 2px 0 0;
+}
+.modes {
+  display: grid;
+  gap: 10px;
+}
+.dialog .settings .modes label,
+.dialog .settings .checks label {
+  display: flex;
+  flex-direction: row;
+  gap: 9px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.dialog .settings .checks label {
+  min-height: 28px;
+  align-items: center;
+}
+.modes small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #526b5b;
+  line-height: 1.45;
+}
+.checks {
+  display: grid;
+  gap: 10px;
+}
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.note {
+  display: block;
+  color: #526b5b;
+  font-size: 12px;
+  line-height: 1.55;
+  margin-block: 12px;
+}
+.dialog .settings > :global(.btn) {
+  width: 100%;
+  font-size: 14px;
+  min-height: 44px;
+}
+.excel {
+  display: block;
+  width: 100%;
+  padding: 12px 0 0;
+  border: 0;
+  background: transparent;
+  color: #17613f;
+  font-size: 13px;
+  cursor: pointer;
+}
+.preview {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px;
+  background: #f3f6f3;
+}
+.preview > :global(.document-preview) {
+  flex: 1;
+  min-height: 0;
+}
+.meta {
+  padding-bottom: 10px;
+  color: #526b5b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+  padding: 30px;
+  text-align: center;
+  color: #526b5b;
+}
+.empty svg {
+  width: 46px;
+  height: 46px;
+  color: #267a52;
+}
+.empty h3,
+.empty strong {
+  margin: 0;
+  color: #173f2b;
+  font-size: 18px;
+}
+.empty p {
+  max-width: 340px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.error,
+.notice {
+  padding: 12px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid #e3d6bf;
+  background: #fff8ea;
+  color: #705121;
+  border-radius: 8px;
+}
+.error {
+  border-color: #efd1d5;
+  background: #fff1f3;
+  color: #9f2635;
+}
+.dialog .footer {
+  margin: 0;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #e3ebe6;
+}
+.dialog .footer > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dialog .footer :global(.btn) {
+  min-height: 42px;
+  font-size: 14px;
+}
+.dialog .footer svg {
+  width: 17px;
+  height: 17px;
+}
+.dialog .footer a {
+  color: #17613f;
+  font-size: 12px;
+}
+.dialog .footer p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: #526b5b;
+}
+.printFrame {
+  position: fixed;
+  bottom: 0;
+  left: -10px;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-width: 767px) {
+  .dialog.dialog {
+    width: calc(100vw - 16px) !important;
+    margin: auto;
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 12px;
+  }
+  .dialog .header {
+    padding: 16px;
+  }
+  .dialog .header h2 {
+    font-size: 18px;
+  }
+  .body {
+    display: block;
+    overflow: auto;
+  }
+  .dialog .settings {
+    border-right: 0;
+    border-bottom: 1px solid #e3ebe6;
+    padding: 16px;
+    overflow: visible;
+  }
+  .dialog .settings :is(input[type="date"], select) {
+    font-size: 16px;
+  }
+  .preview {
+    min-height: 520px;
+    height: 65dvh;
+    padding: 12px;
+  }
+  .dialog .footer {
+    padding: 12px;
+    gap: 8px;
+  }
+  .dialog .footer > div {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .dialog .footer :global(.btn) {
+    font-size: 12px;
+    padding: 8px;
+  }
+  .dialog .footer a {
+    flex-basis: 100%;
+    text-align: right;
+  }
+  .trigger {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 767px) {
+  .dialog .footer > button {
+    display: none;
+  }
+  .dialog .footer > div {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dialog .footer > div > button:first-child,
+  .dialog .footer a {
+    grid-column: 1 / -1;
+  }
+  .dialog .footer a {
+    text-align: center;
+  }
+}

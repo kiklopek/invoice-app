@@ -6,7 +6,13 @@ import type { InvoiceListQuery } from "@/lib/invoice-list-query";
 import type { Invoice } from "@/types/invoice";
 import { PageDataError } from "@/lib/dashboard-page-data";
 
-export const INVOICE_LIST_PAGE_SIZE = 25;
+import { invoiceListRpcParams } from "./invoice-list-rpc-params";
+import {
+  DEFAULT_INVOICE_PAGE_SIZE,
+  parseInvoicePageSize,
+} from "./invoice-page-size";
+
+export const INVOICE_LIST_PAGE_SIZE = DEFAULT_INVOICE_PAGE_SIZE;
 
 export type InvoiceListPageData = {
   invoices: Invoice[];
@@ -26,25 +32,17 @@ export async function loadInvoiceListPageData(
 ): Promise<InvoiceListPageData> {
   if (!identity) throw new PageDataError("Nejste přihlášený uživatel.", 401);
 
+  const pageSize =
+    parseInvoicePageSize(query.pageSize) ?? INVOICE_LIST_PAGE_SIZE;
   const { data, error } = await identity.service.rpc(
     "list_invoices_page_filtered",
-    {
-      target_org: identity.membership.organization_id,
-      actor_user: identity.user.id,
-      search_query: query.query || undefined,
-      status_filter: query.status ?? undefined,
-      currency_filter: query.currency ?? undefined,
-      issue_from: query.from ?? undefined,
-      issue_to: query.to ?? undefined,
-      due_from: query.dueFrom ?? undefined,
-      due_to: query.dueTo ?? undefined,
-      amount_min: query.amountMin ?? undefined,
-      amount_max: query.amountMax ?? undefined,
-      payment_state: query.paymentState ?? undefined,
-      bank_match_state: query.bankMatch ?? undefined,
-      page_number: query.page,
-      page_size: INVOICE_LIST_PAGE_SIZE,
-    },
+    invoiceListRpcParams(
+      identity.membership.organization_id,
+      identity.user.id,
+      query,
+      query.page,
+      pageSize,
+    ),
   );
   const result = data as Omit<
     InvoiceListPageData,
@@ -59,7 +57,7 @@ export async function loadInvoiceListPageData(
     ...result,
     can_manage: canManageInvoices(identity.membership.role),
     page: query.page,
-    page_size: INVOICE_LIST_PAGE_SIZE,
-    total_pages: Math.max(1, Math.ceil(result.total / INVOICE_LIST_PAGE_SIZE)),
+    page_size: pageSize,
+    total_pages: Math.max(1, Math.ceil(result.total / pageSize)),
   };
 }

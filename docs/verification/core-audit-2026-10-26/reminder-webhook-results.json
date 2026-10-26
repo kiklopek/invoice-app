@@ -1,0 +1,62 @@
+[
+  {
+    "name": "unpaid invoice -> planner -> queue -> local mail provider -> sent log",
+    "status": "PASS",
+    "evidence": {
+      "automation": {
+        "checked": 1,
+        "queued": 1,
+        "processed": 1,
+        "remaining": 0,
+        "planner_duration_ms": 2005,
+        "worker_duration_ms": 5165,
+        "sent": 1,
+        "failed": 0,
+        "skipped": 0,
+        "disabled": 0,
+        "paused": 0,
+        "suppressed": 0,
+        "exhausted": 0,
+        "busy_organizations": 0
+      },
+      "log": {
+        "status": "sent",
+        "delivery_status": "accepted",
+        "attempt_count": 1,
+        "provider_message_present": true
+      }
+    }
+  },
+  {
+    "name": "email.delivered signature, update and replay deduplication",
+    "status": "PASS",
+    "evidence": {
+      "delivery_status": "delivered",
+      "event_count": 1
+    }
+  },
+  {
+    "name": "email.bounced signature, update and replay deduplication",
+    "status": "PASS",
+    "evidence": {
+      "delivery_status": "bounced",
+      "event_count": 1
+    }
+  },
+  {
+    "name": "email.complained signature, update and replay deduplication",
+    "status": "PASS",
+    "evidence": {
+      "delivery_status": "complained",
+      "event_count": 1
+    }
+  },
+  {
+    "name": "bounce/complaint suppression isolated to origin company",
+    "status": "PASS",
+    "evidence": {
+      "reason": "complained",
+      "foreign_suppressions": 0
+    }
+  }
+]

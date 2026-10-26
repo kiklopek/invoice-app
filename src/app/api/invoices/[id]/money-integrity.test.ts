@@ -1,3 +1,5 @@
+import { creationDocument, creationInput } from "@/lib/invoice-creation";
+import { fixture, supplier } from "@/test/invoice-creation-fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeChain, fakeIdentity, fakeRequest, SOME_UUID } from "../../payments/__test-helpers__";
 
@@ -6,7 +8,7 @@ vi.mock("@/lib/auth", async () => ({
   getRequestIdentity: mocks.getRequestIdentity,
   canManageInvoices: (await import("@/lib/role-access")).canManageInvoices,
 }));
-const { PATCH } = await import("./route");
+const { PATCH, DELETE } = await import("./route");
 const invoice = {
   id: SOME_UUID, invoice_number: "9001", counterparty_name: "Test",
   counterparty_email: "test@example.cz", amount: 100, amount_without_vat: 100,
@@ -23,6 +25,11 @@ describe("invoice edit monetary guards", () => {
     mocks.getRequestIdentity.mockResolvedValue(fakeIdentity({ service: {
       from: () => fakeChain({ data: invoice, error: null }),
     } }));
+  });
+  it("keeps an issued document instead of deleting its history", async () => {
+    mocks.getRequestIdentity.mockResolvedValue(fakeIdentity({ service: { from: () => fakeChain({ data: { id: SOME_UUID, ...creationInput(creationDocument(fixture(), supplier)) }, error: null }), rpc: () => { throw new Error("Issued documents must not reach deletion"); } } }));
+    const response = await DELETE(fakeRequest(`https://app.splatno.cz/api/invoices/${SOME_UUID}`, { method: "DELETE" }), { params: Promise.resolve({ id: SOME_UUID }) });
+    expect(response.status).toBe(409);
   });
   it("cannot invent another payment when increasing an already paid total", async () => {
     const response = await patch({ amount: 200, amount_without_vat: 200 });

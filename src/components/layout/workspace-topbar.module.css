@@ -1,0 +1,435 @@
+.topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-height: 44px;
+  margin-bottom: 32px;
+  font-family: "Splatno Dashboard Inter", Inter, sans-serif;
+}
+.search {
+  flex: 1 1 180px;
+  max-width: 438px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(438px, 46%);
+  min-width: 0;
+  padding: 0 14px;
+  border: 1px solid #e1e6e3;
+  border-radius: 10px;
+  background: #ffffffed;
+  color: #677480;
+}
+.search > svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+}
+.search:focus-within {
+  outline: 2px solid #2b7753;
+  outline-offset: 2px;
+}
+.search input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: #17251f;
+  box-shadow: none;
+}
+.search input:focus {
+  outline: none;
+}
+.actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  .actionGroup {
+    display: contents;
+  }
+}
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 1px solid #e1e8e3;
+  border-radius: 10px;
+  background: #fff;
+  color: #17251f;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.primary {
+  border-color: #23744c;
+  background: linear-gradient(120deg, #247b51, #206b46);
+  color: #fff;
+}
+.primary svg,
+.secondary svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+.secondary svg {
+  color: #216444;
+}
+.primary:hover {
+  background: #195e3d;
+}
+.secondary:hover {
+  background: #f5f9f6;
+}
+.topbar :is(a, button):focus-visible {
+  outline: 2px solid #2b7753;
+  outline-offset: 3px;
+}
+@media (max-width: 767px) {
+  .topbar {
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .topbar .search {
+    display: none;
+    width: 100%;
+    flex: 0 0 100%;
+    max-width: none;
+  }
+  .actions {
+    width: 100%;
+    gap: 8px;
+  }
+  .actions a {
+    flex: 1;
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+}
+@media print {
+  .topbar {
+    display: none;
+  }
+}
+/* Legacy workspace forms have a bottom margin; the shared search is a toolbar control. */
+.topbar .search {
+  margin: 0;
+}
+
+.notificationDot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ef3737;
+  box-sizing: content-box;
+}
+.notificationPanel > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 17px 20px;
+  border-bottom: 1px solid #edf0f2;
+}
+.notificationScroll {
+  max-height: min(440px, calc(100dvh - 250px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.notificationPanel > footer {
+  border-top: 1px solid #edf0f2;
+  padding: 16px 20px;
+}
+.notificationPanel > footer a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: #147747;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.notificationPanel > footer svg {
+  width: 16px;
+  height: 16px;
+}
+.notificationPanel > footer a:focus-visible {
+  outline: 2px solid #26764e;
+  outline-offset: 4px;
+}
+.notifications {
+  position: relative;
+  flex: 0 0 var(--workspace-notification-size, 44px);
+  margin: 0;
+}
+.notificationButton {
+  display: grid;
+  place-items: center;
+  position: relative;
+  box-sizing: border-box;
+  width: var(--workspace-notification-size, 44px);
+  height: var(--workspace-notification-size, 44px);
+  padding: 0;
+  border: 1px solid #e1e8e3;
+  border-radius: 50%;
+  background: #ffffffed;
+  color: #657584;
+  cursor: pointer;
+  list-style: none;
+}
+.notificationButton::-webkit-details-marker {
+  display: none;
+}
+.notificationButton > svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+.notificationButton:hover,
+.notifications[open] > .notificationButton {
+  background: #f3f8f5;
+}
+.notificationButton:focus-visible {
+  outline: 2px solid #2b7753;
+  outline-offset: 3px;
+}
+.notificationPanel {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 12px);
+  right: 0;
+  box-sizing: border-box;
+  width: min(410px, calc(100vw - 24px));
+  padding: 0;
+  border: 1px solid #e1e8e3;
+  border-radius: 15px;
+  background: #fff;
+  color: #17251f;
+  box-shadow: 0 12px 32px #173e2c14;
+}
+.notificationPanel::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 15px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-top: 1px solid #e1e8e3;
+  border-left: 1px solid #e1e8e3;
+  transform: rotate(45deg);
+}
+.notificationPanel > header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+@media (max-width: 767px) {
+  .notifications {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}
+
+.notificationPanel {
+  display: flex;
+  flex-direction: column;
+}
+.notificationPanel > header,
+.notificationPanel > footer {
+  flex: none;
+}
+.notificationScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  border-radius: 0;
+}
+.notificationPanel > footer a {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.notificationPanel > footer {
+  border-radius: 0 0 15px 15px;
+  background: #fff;
+}
+
+.notificationCount,
+.notificationClose,
+.notificationBackdrop {
+  display: none;
+}
+@media (max-width: 767px) {
+  .mobileNotifications {
+    position: relative;
+    top: auto;
+    right: auto;
+    --workspace-notification-size: var(--mobile-control-size, 44px);
+  }
+  .mobileNotifications .notificationButton {
+    border: 0;
+    background: transparent;
+  }
+  .mobileNotifications .notificationButton > svg {
+    width: var(--mobile-header-icon-size, 22px);
+    height: var(--mobile-header-icon-size, 22px);
+  }
+  .mobileNotifications .notificationDot {
+    display: none;
+  }
+  .mobileNotifications .notificationCount {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    right: 3px;
+    top: 1px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border: 1px solid #fff;
+    border-radius: 20px;
+    background: #ef3737;
+    color: #fff;
+    font:
+      600 9px/1 Inter,
+      sans-serif;
+  }
+  .mobileNotifications .notificationPanel {
+    position: fixed;
+    z-index: 56;
+    top: calc(var(--mobile-navigation-height, 60px) + 8px + env(safe-area-inset-top));
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(
+      100dvh - var(--mobile-navigation-height, 60px) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    ) !important;
+    border-radius: 15px;
+  }
+  .mobileNotifications .notificationPanel::before {
+    right: calc(
+      max(var(--mobile-header-inline-padding, 12px), env(safe-area-inset-right)) +
+      1.5 * var(--mobile-control-size, 44px) + var(--mobile-header-gap, 2px) - 14px
+    );
+  }
+  .mobileNotifications .notificationPanel > header {
+    padding: 10px 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .mobileNotifications .notificationPanel > header h2 {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+  }
+  .mobileNotifications .notificationPanel > header > button {
+    font-size: 10px;
+    min-height: 44px;
+  }
+  .mobileNotifications .notificationClose {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    flex: 0 0 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #657584;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .mobileNotifications .notificationScroll {
+    max-height: none;
+  }
+  .mobileNotifications .notificationBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #132b2440;
+    cursor: default;
+  }
+}
+@media (max-width: 767px) {
+  /* The bell moves into the sidebar's header; navigation link rules must not
+     turn notification rows into fixed-height navigation buttons. */
+  .mobileNotifications .notificationScroll a {
+    height: auto;
+    min-height: 0;
+    display: grid;
+    align-items: start;
+    gap: 12px;
+    padding: 17px 20px;
+    border-radius: 0;
+    color: #17212c;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    transform: none;
+    box-shadow: none;
+  }
+  .mobileNotifications .notificationScroll a:hover {
+    background: #f5f9f6;
+    color: #17212c;
+    transform: none;
+  }
+  .mobileNotifications .notificationPanel > footer a {
+    height: auto;
+    min-height: 44px;
+    padding: 0;
+    background: transparent;
+    color: #147747;
+    transform: none;
+  }
+  @media (max-width: 480px) {
+    .mobileNotifications .notificationScroll a {
+      gap: 8px 10px;
+      padding: 16px;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .topbar:not(:has(.actions)) { display: none; }
+  .actions:not(.dashboardActions) { display: none; }
+  .topbar:not(:has(.dashboardActions)) { display: none; }
+}

@@ -1,0 +1,15 @@
+
+> invoice-reminder-app@0.1.0 audit:ci /Users/tadeastrnka/Desktop/invoice-app
+> corepack pnpm exec vitest run src/lib/braces-security.test.ts && corepack pnpm audit --audit-level high
+
+
+ RUN  v4.1.12 /Users/tadeastrnka/Desktop/invoice-app
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  17:53:48
+   Duration  392ms (transform 46ms, setup 0ms, import 126ms, tests 44ms, environment 0ms)
+
+1 vulnerabilities found
+Severity: 1 moderate

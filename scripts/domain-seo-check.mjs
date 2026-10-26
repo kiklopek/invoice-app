@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 
-const canonicalOrigin = "https://www.splatno.cz";
+const canonicalOrigin = "https://www.splatno.com";
 const results = [];
 async function follow(url, userAgent = "Splatno-Domain-Check/1.0") {
   const chain = [];
@@ -18,7 +18,7 @@ async function follow(url, userAgent = "Splatno-Domain-Check/1.0") {
   throw new Error(`Too many redirects: ${url}`);
 }
 
-for (const origin of ["https://splatno.cz", canonicalOrigin, "http://splatno.cz", "http://www.splatno.cz"]) {
+for (const origin of ["https://splatno.cz", "https://www.splatno.cz", "https://splatno.com", canonicalOrigin, "http://splatno.cz", "http://www.splatno.cz", "http://splatno.com", "http://www.splatno.com"]) {
   for (const path of ["/", "/en?utm_source=domain-check", "/robots.txt", "/sitemap.xml"]) {
     const { response, chain } = await follow(`${origin}${path}`);
     assert.equal(response.status, 200, `${origin}${path}`);
@@ -45,10 +45,10 @@ for (const path of ["/", "/en"]) {
   assert.ok(!response.headers.get("x-robots-tag")?.includes("noindex"));
   assert.ok((await response.text()).includes('name="robots" content="index, follow'));
 }
-for (const host of ["splatno.cz", "www.splatno.cz"]) {
+for (const host of ["splatno.cz", "www.splatno.cz", "splatno.com", "www.splatno.com"]) {
   const { response } = await follow(`https://${host}/login`);
   assert.ok(response.headers.get("x-robots-tag")?.includes("noindex"));
 }
 await mkdir(".artifacts/seo", { recursive: true });
 await writeFile(".artifacts/seo/domain-check.json", JSON.stringify({ checkedAt: new Date().toISOString(), canonicalOrigin, results }, null, 2));
-console.log("DOMAIN SEO PASS: both hosts over HTTP/HTTPS, permanent redirects, preserved paths/queries, canonical URLs, robots, sitemap, Googlebot and private login.");
+console.log("DOMAIN SEO PASS: all .cz/.com aliases over HTTP/HTTPS, permanent redirects, preserved paths/queries, canonical URLs, robots, sitemap, Googlebot and private login.");

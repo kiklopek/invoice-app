@@ -180,7 +180,19 @@ export async function proxy(request: NextRequest) {
   }
 
   const decision = routeFor(state, pathname, request.nextUrl.search);
-  if (decision.signOut) await signOutEverywhere(supabase, response);
+  // Prefetch and RSC refreshes can race with signInWithPassword: the JWT
+  // cookie already exists, but /api/auth/access has not set the app-session
+  // cookie yet. Revoking that session here makes the bootstrap's getUser
+  // fail with session_not_found. Keep the same access decision, but only an
+  // actual page visit may revoke/clear cookies; background reads never do.
+  // Next strips internal Flight headers in Proxy, so also use browser fetch
+  // metadata rather than relying only on next-router-prefetch.
+  const backgroundRead = request.method === "HEAD"
+    || request.headers.get("sec-fetch-dest") === "empty"
+    || request.headers.has("next-router-prefetch")
+    || request.headers.get("purpose") === "prefetch"
+    || request.nextUrl.searchParams.has("_rsc");
+  if (decision.signOut && !backgroundRead) await signOutEverywhere(supabase, response);
   return finishProxy(respond(decision, request, response), startedAt);
 }
 
@@ -207,6 +219,7 @@ export const config = {
     "/predplatne/:path*",
     "/reminders/:path*",
     "/reports/:path*",
+    "/notifications/:path*",
     "/settings/:path*",
     "/onboarding",
     "/provoz",

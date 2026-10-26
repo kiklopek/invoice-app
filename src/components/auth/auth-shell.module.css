@@ -792,3 +792,31 @@
   .page[data-layout="registration"] .check { font-size: 13px; }
   .page[data-layout="registration"] .foot { margin-top: 12px; font-size: 14px; }
 }
+
+/* Stejná karta jako login, s jediným vycentrovaným obsahem bez maskota. */
+.page[data-layout="progress"] {
+  background: radial-gradient(ellipse at 90% 5%, #edf9f2, transparent 55%), #f7fcf9;
+}
+.page[data-layout="progress"]::before { opacity: .24; }
+.page[data-layout="progress"] .card {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 0 0 1px rgba(19, 35, 27, .04), 0 12px 40px -24px rgba(19, 35, 27, .15) !important;
+}
+.page[data-layout="progress"] .card::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: -92%;
+  left: -38%;
+  width: 155%;
+  height: 175%;
+  border: 70px solid rgba(207, 237, 220, .18);
+  border-radius: 50%;
+  transform: rotate(-25deg);
+  opacity: .45;
+}
+@media (max-width: 900px) {
+  .page[data-layout="progress"] .card { min-height: 100dvh; }
+}

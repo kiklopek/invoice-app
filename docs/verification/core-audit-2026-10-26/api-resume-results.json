@@ -1,0 +1,75 @@
+[
+  {
+    "name": "OCR correction saved exactly once and review recorded",
+    "status": "PASS",
+    "evidence": {
+      "invoice_count": 1,
+      "amount": 1210,
+      "review": [
+        {
+          "corrected_fields": [
+            "invoice_number",
+            "variable_symbol",
+            "issue_date",
+            "due_date",
+            "counterparty_name",
+            "counterparty_ico",
+            "counterparty_dic",
+            "counterparty_email"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "commit actual uploaded CSV, paid state and stopped reminders",
+    "status": "PASS",
+    "evidence": {
+      "commit": {
+        "errors": [],
+        "status": "committed",
+        "matched": 0,
+        "imported": 0,
+        "revision": 2,
+        "idempotent": true
+      },
+      "invoice": {
+        "status": "paid",
+        "amount": 1210,
+        "paid_amount": 1210,
+        "next_reminder_at": null
+      },
+      "bank_payment_count": 1
+    }
+  },
+  {
+    "name": "invalid webhook signature denied",
+    "status": "PASS",
+    "evidence": {
+      "http_status": 400
+    }
+  },
+  {
+    "name": "manual reminder automation on isolated org only",
+    "status": "PASS",
+    "evidence": {
+      "status": 200,
+      "body": {
+        "checked": 0,
+        "queued": 0,
+        "processed": 0,
+        "remaining": 0,
+        "planner_duration_ms": 671,
+        "worker_duration_ms": 125,
+        "sent": 0,
+        "failed": 0,
+        "skipped": 0,
+        "disabled": 0,
+        "paused": 0,
+        "suppressed": 0,
+        "exhausted": 0,
+        "busy_organizations": 0
+      }
+    }
+  }
+]

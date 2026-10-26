@@ -2,9 +2,7 @@ import type { ReactNode, SVGProps } from "react";
 
 export { ChevronDown } from "@/components/chevron-down";
 
-// Marketingový znak podle brand boardu (stuha do tvaru S). Aplikace zatím
-// používá starší znak dokumentu v public/brand/ — landing page jde podle
-// schváleného směru z docs „Splatno – Marketingová část“.
+// Current Splatno ribbon, matching the canonical public/brand/splatno-mark.svg.
 export function RibbonMark({ size = 32, className }: { size?: number; className?: string }) {
   return (
     <svg

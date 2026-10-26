@@ -1,4 +1,6 @@
 import "server-only";
+import { issuedDocument } from "./invoice-creation";
+import { generateIssuedInvoicePdf } from "./issued-invoice-pdf";
 
 import { invoicePaymentAccount } from "@/lib/bank-accounts";
 import { readFileSync } from "node:fs";
@@ -130,6 +132,8 @@ function drawKeyValueRow(cursor: Cursor, label: string, value: string, x: number
 }
 
 export async function generateInvoicePdf(invoice: Invoice, company: InvoicePdfCompany): Promise<Uint8Array> {
+  const issued = issuedDocument(invoice);
+  if (issued) return generateIssuedInvoicePdf(issued);
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   doc.setTitle(`Faktura ${invoice.invoice_number}`);

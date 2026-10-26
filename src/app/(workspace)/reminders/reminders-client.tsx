@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ExactMoney } from "@/components/money-amount";
+import { CloseIcon } from "@/components/close-icon";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { AppFrame } from "@/components/layout/app-shell";
 import { MobileDisclosure } from "@/components/mobile-disclosure";
 import { ChevronDown } from "@/components/chevron-down";
-import { EmailSuppressionsPanel } from "./email-suppressions-panel";
 import { EmailTemplatesSection } from "./email-templates-section";
 import { Icon } from "@/components/icons";
 import { isAutomationRunStale } from "@/lib/automation-run";
@@ -52,12 +53,6 @@ const formatDateTime = (value: string | null) =>
         minute: "2-digit",
       }).format(new Date(value))
     : "—";
-const formatMoney = (value: number, currency: string) =>
-  new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
 
 function toRules(days: number[]): Rule[] {
   return days.map((day, index) => ({
@@ -103,6 +98,7 @@ export function RemindersClient({
   );
   const [creatingPolicy, setCreatingPolicy] = useState(false);
   const [policyDirty, setPolicyDirty] = useState(false);
+  const policyDirtyRef = useRef(false);
   const [globalDirty, setGlobalDirty] = useState(false);
   const [templates, setTemplates] = useState<Record<
     ReminderStage,
@@ -198,6 +194,7 @@ export function RemindersClient({
           setPolicyName(draft.policyName);
           setSelectedPolicyId(draft.selectedPolicyId);
           setAutomationActive(draft.automationActive);
+          policyDirtyRef.current = true;
           setPolicyDirty(true);
         }
         setGlobalDirty(true);
@@ -250,7 +247,7 @@ export function RemindersClient({
     showToast({ variant: "error", message: loadError.message });
   }, [loadError, showToast]);
   useEffect(() => {
-    if (!refreshedData || policyDirty || globalDirty || creatingPolicy) return;
+    if (!refreshedData || policyDirty || policyDirtyRef.current || globalDirty || creatingPolicy) return;
     const refreshedPolicy =
       refreshedData.policies.find((policy) => policy.id === selectedPolicyId) ??
       refreshedData.policies.find(
@@ -305,12 +302,14 @@ export function RemindersClient({
     );
   }
   function update(id: string, patch: Partial<Rule>) {
+    policyDirtyRef.current = true;
     setPolicyDirty(true);
     setRules((current) =>
       current.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)),
     );
   }
   function add() {
+    policyDirtyRef.current = true;
     setPolicyDirty(true);
     setRules((current) =>
       current.length >= 10
@@ -335,6 +334,7 @@ export function RemindersClient({
     setSelectedPolicyId(id);
     setPolicyName(policy.name);
     setRules(toRules(policy.days_from_due));
+    policyDirtyRef.current = false;
     setPolicyDirty(false);
     setMessage("");
   }
@@ -346,6 +346,7 @@ export function RemindersClient({
     setSelectedPolicyId("");
     setPolicyName("");
     setRules(toRules(source?.days_from_due ?? [-3, 0, 7, 14]));
+    policyDirtyRef.current = true;
     setPolicyDirty(true);
     setMessage("");
   }
@@ -375,12 +376,15 @@ export function RemindersClient({
       return "Každý termín může být v kategorii jen jednou.";
     return null;
   }
+  const categorySaveInFlight = useRef(false);
   async function saveCategory(makeDefault = false) {
+    if (categorySaveInFlight.current || !operations.can_run) return;
     const validation = validateCategory();
     if (validation) {
       setMessage(validation);
       return;
     }
+    categorySaveInFlight.current = true;
     setSaving(true);
     setMessage("");
     try {
@@ -419,6 +423,7 @@ export function RemindersClient({
       setPolicyName(saved.name);
       setRules(toRules(saved.days_from_due));
       setCreatingPolicy(false);
+      policyDirtyRef.current = false;
       setPolicyDirty(false);
       setMessage("Kategorie upomínek je uložená.");
       void refreshPage();
@@ -429,6 +434,7 @@ export function RemindersClient({
           : "Kategorii se nepodařilo uložit.",
       );
     } finally {
+      categorySaveInFlight.current = false;
       setSaving(false);
     }
   }
@@ -462,6 +468,7 @@ export function RemindersClient({
       setSelectedPolicyId(next?.id ?? "");
       setPolicyName(next?.name ?? "");
       setRules(toRules(next?.days_from_due ?? [-3, 0, 7, 14]));
+      policyDirtyRef.current = false;
       setPolicyDirty(false);
       setMessage("Kategorie byla smazána.");
       void refreshPage();
@@ -791,6 +798,10 @@ export function RemindersClient({
                 svůj plán.
               </p>
             </div>
+            <div className="category-header-actions">
+              <button type="button" className="btn primary" disabled={!operations.can_run || saving || !policyDirty} onClick={() => void saveCategory()}>
+                {saving ? "Ukládám…" : "Uložit kategorii"}
+              </button>
             <button
               className="btn secondary"
               disabled={!operations.can_run || rules.length >= 10}
@@ -798,6 +809,7 @@ export function RemindersClient({
             >
               + Přidat další upomínku
             </button>
+            </div>
           </header>
           {loading ? (
             <p className="page-state">Načítám pravidla…</p>
@@ -813,6 +825,7 @@ export function RemindersClient({
                     placeholder="např. Klíčoví zákazníci"
                     onChange={(event) => {
                       setPolicyName(event.target.value);
+                      policyDirtyRef.current = true;
                       setPolicyDirty(true);
                     }}
                   />
@@ -865,6 +878,7 @@ export function RemindersClient({
                       className="remove-rule"
                       disabled={!operations.can_run || rules.length === 1}
                       onClick={() => {
+                        policyDirtyRef.current = true;
                         setPolicyDirty(true);
                         setRules((current) =>
                           current.filter((item) => item.id !== rule.id),
@@ -872,7 +886,7 @@ export function RemindersClient({
                       }}
                       aria-label="Odstranit pravidlo"
                     >
-                      ×
+                      <CloseIcon />
                     </button>
                   </article>
                 ))}
@@ -1066,7 +1080,7 @@ export function RemindersClient({
                     </span>
                     <span>
                       <strong>{formatDate(item.next_reminder_at)}</strong>
-                      <small>{formatMoney(item.amount, item.currency)}</small>
+                      <small><ExactMoney value={item.amount} currency={item.currency} /></small>
                     </span>
                   </Link>
                 ))}
@@ -1121,7 +1135,6 @@ export function RemindersClient({
           </div>
         </div>
       </details>
-      <EmailSuppressionsPanel />
       </>}
     </AppFrame>
   );

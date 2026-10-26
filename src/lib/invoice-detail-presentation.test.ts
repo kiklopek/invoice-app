@@ -1,58 +1,23 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
-const page = readFileSync(
-  join(process.cwd(), "src", "app", "(workspace)", "invoices", "[id]", "invoice-detail-client.tsx"),
-  "utf8",
-);
-const css = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
-const layoutCss = readFileSync(join(process.cwd(), "src", "app", "minimal.css"), "utf8").replace(/\r\n/g,"\n");
-
-describe("invoice detail amount summary", () => {
-  it("shows the net amount as the primary value and gross amount as secondary", () => {
-    expect(page).toContain("Částka faktury bez DPH");
-    expect(page).toContain("money(Number(invoice.amount_without_vat), invoice.currency)");
-    expect(page).toContain('className="invoice-hero-gross"');
-    expect(page).toContain("Částka s DPH:");
-    expect(page).toContain("money(Number(invoice.amount), invoice.currency)");
-    expect(css).toContain(".invoice-hero-gross");
-    expect(css).toContain("color:#000");
+import { invoiceDetailView } from "@/app/(workspace)/invoices/[id]/invoice-detail-view";
+import type { Invoice } from "@/types/invoice";
+const invoice = { amount: 266189, amount_without_vat: 219990.91, paid_amount: 0, status: "pending", reminders_paused: false } as Invoice;
+describe("invoice detail financial presentation", () => {
+  it("keeps gross total distinct from net and computes the displayed VAT difference in cents", () => {
+    expect(invoiceDetailView(invoice)).toMatchObject({ remaining: 266189, vatAmount: 46198.09, label: "Čeká na úhradu" });
+    expect(invoice.amount).toBe(266189);
   });
-
-  it("keeps payment and deletion visible while grouping secondary actions", () => {
-    expect(page).toContain('className="section-actions invoice-detail-actions"');
-    expect(page).toContain('aria-label="Další akce s fakturou"');
-    expect(page).toContain('className="invoice-actions-menu-popover"');
-    expect(layoutCss).toContain(".invoice-actions-menu-popover");
-    expect(layoutCss).toContain(".invoice-actions-menu > summary:focus-visible");
-    expect(layoutCss).toContain("top: calc(100% + 8px);\n  right: 0;");
-    // Na mobilu je tlačítko u pravého okraje: menu se otvírá od něj doleva
-    // (dřív left: 0 -> vyjelo mimo obrazovku) a PopupFitter ho drží uvnitř.
-    expect(layoutCss).not.toContain(".invoice-actions-menu-popover { right: auto; left: 0; }");
-    expect(page).toContain('className="invoice-actions-menu-popover" data-popup');
+  it("shows partial settlement without hiding the actual overdue state in the model", () => {
+    expect(invoiceDetailView({ ...invoice, status: "overdue", paid_amount: 120000.01 })).toMatchObject({ partial: true, remaining: 146188.99, label: "Částečně uhrazeno", remindersActive: true });
   });
-});
-
-describe("otevření přiloženého dokumentu faktury", () => {
-  const pageData = readFileSync(join(process.cwd(), "src", "lib", "invoice-detail-page-data.ts"), "utf8");
-
-  it("odkazuje na stabilní routu, ne na podepsanou URL vloženou do stránky", () => {
-    // Ta URL platila 300 s a razila se při renderu, takže komu detail faktury
-    // chvíli ležel otevřený, ten klikal na mrtvý odkaz. Odkaz teď nevyprší.
-    expect(page).toContain("href={`/api/invoices/${id}/document`}");
-    expect(page).not.toContain("href={documentUrl}");
+  it.each(["paid", "cancelled"] as const)("never offers an active reminder for %s invoices", status => {
+    expect(invoiceDetailView({ ...invoice, status, next_reminder_at: "2026-11-01" })).toMatchObject({ open: false, remindersActive: false });
   });
-
-  it("vykreslí tlačítko vždy, když je dokument přiložený", () => {
-    // Dřív viselo na documentUrl: když podpis selhal, tlačítko se nevykreslilo
-    // vůbec a vypadalo to, že faktura žádný dokument nemá.
-    expect(page).toContain("Otevřít dokument");
-    expect(page).not.toContain("documentUrl");
+  it("respects paused reminders and does not reinterpret a cancelled partial balance", () => {
+    expect(invoiceDetailView({ ...invoice, reminders_paused: true }).remindersActive).toBe(false);
+    expect(invoiceDetailView({ ...invoice, status: "cancelled", paid_amount: 100 }).label).toBe("Stornováno");
   });
-
-  it("nerazí podepsanou URL při načítání detailu, kterou nikdo nepoužije", () => {
-    expect(pageData).not.toContain("createSignedUrl");
-    expect(pageData).not.toContain("document_url");
+  it("avoids binary rounding loss for exact partial balances", () => {
+    expect(invoiceDetailView({ ...invoice, amount: .3, amount_without_vat: .1, paid_amount: .1 })).toMatchObject({ remaining: .2, vatAmount: .2 });
   });
 });

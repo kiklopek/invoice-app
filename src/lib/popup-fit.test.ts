@@ -44,13 +44,24 @@ describe("všechna otevírací okna jsou hlídaná", () => {
     const detail = source("src/app/(workspace)/invoices/[id]/invoice-detail-client.tsx");
     expect(detail).toMatch(/className="invoice-actions-menu-popover" data-popup/);
     const form = source("src/components/invoice-form.tsx");
-    expect(form).toMatch(/className="ocr-field-tooltip"[^>]*data-popup/);
-    expect(form).toMatch(/data-popup-anchor/);
+    const note = source("src/components/ocr-source-note.tsx");
+    expect(note).toMatch(/className="ocr-field-tooltip"[^>]*data-popup/);
+    expect(note).toMatch(/data-popup-anchor/);
     expect(form).toMatch(/className="customer-search-results"[^>]*data-popup/);
     expect(source("src/components/layout/app-shell.tsx")).toContain("<PopupFitter />");
   });
 
   it("menu pod třemi tečkami se na mobilu neotvírá doprava od tlačítka u pravého okraje", () => {
     expect(source("src/app/minimal.css")).not.toContain(".invoice-actions-menu-popover { right: auto; left: 0; }");
+  });
+
+  it("nastavení grafu a další kontextové nabídky používají společnou ochranu okrajů", () => {
+    expect(source("src/app/(workspace)/dashboard/dashboard-widgets.tsx")).toMatch(/<div data-popup>\s*<label>\s*Měna grafu/);
+    expect(source("src/app/(workspace)/dashboard/dashboard-client.tsx")).toMatch(/<div data-popup>\s*<Link href=\{`\/invoices\/\$\{id\}`\}/);
+    expect(source("src/app/(workspace)/invoices/invoices-client.tsx")).toMatch(/<div data-popup>\s*\{canManage/);
+    expect(source("src/app/(workspace)/reports/reports-client.tsx")).toContain("<FinancialReportExport");
+    expect(source("src/components/financial-report/financial-report-export.tsx")).toContain("<Modal");
+    expect(source("src/app/(workspace)/invoices/import/ocr-document-picker.tsx")).toMatch(/className=\{styles.pickerPanel\} data-popup/);
+    expect(source("src/app/(workspace)/predplatne/subscription-client.tsx")).toMatch(/aria-label="Možnosti předplatného"[^\n]*<div data-popup>/);
   });
 });

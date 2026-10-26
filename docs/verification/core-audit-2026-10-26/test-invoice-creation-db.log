@@ -1,0 +1,1 @@
+PASS invoice creation: migration replay, mixed VAT, snapshot immutability, no-email reminders, unique numbering, tenant customer guards and existing dashboard

@@ -1,3 +1,4 @@
+import { DEFAULT_INVOICE_PAGE_SIZE, parseInvoicePageSize, type InvoicePageSize } from "./invoice-page-size";
 import { isIsoDate } from "./invoice-validation";
 import type { InvoiceStatus } from "@/types/invoice";
 
@@ -14,6 +15,7 @@ export type InvoiceListQuery = {
   paymentState: "unpaid" | "partial" | "paid" | null;
   bankMatch: "matched" | "unmatched" | null;
   page: number;
+  pageSize?: InvoicePageSize;
 };
 
 const statuses: Array<InvoiceStatus | "closed"> = [
@@ -44,6 +46,8 @@ export function parseInvoiceListQuery(
   const bankMatch = params.get("bank_match") as InvoiceListQuery["bankMatch"];
   const rawPage = params.get("page") ?? "1";
   const page = Number(rawPage);
+  const pageSize = params.has("page_size") ? parseInvoicePageSize(params.get("page_size")) : DEFAULT_INVOICE_PAGE_SIZE;
+  if (pageSize === null) return null;
 
   if (query.length > 100 || /[\u0000-\u001f\u007f]/.test(query)) return null;
   if (rawStatus && !statuses.includes(rawStatus as InvoiceStatus | "closed"))
@@ -84,5 +88,6 @@ export function parseInvoiceListQuery(
     paymentState: paymentState || null,
     bankMatch: bankMatch || null,
     page,
+    pageSize,
   };
 }

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
-const detail = () => source("src/app/(workspace)/invoices/[id]/invoice-detail-client.tsx");
+const detail = () => source("src/app/(workspace)/invoices/[id]/invoice-detail-workspace.tsx");
 const customers = () => source("src/app/(workspace)/customers/customers-client.tsx");
 
 // "Odběratel" (who pays THIS invoice) and "Zákazník" (the durable directory

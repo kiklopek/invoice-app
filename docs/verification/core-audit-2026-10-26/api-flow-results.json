@@ -1,0 +1,273 @@
+[
+  {
+    "name": "signed upload, storage and signature verification",
+    "status": "PASS",
+    "evidence": {
+      "verified": true,
+      "bytes": 49458
+    }
+  },
+  {
+    "name": "actual OCR API, hybrid fallback and stored proposal",
+    "status": "PASS",
+    "evidence": {
+      "model": "local-tesseract-v3-geometry",
+      "warnings": [
+        "E-mail odběratele nebyl rozpoznán a je nutné jej doplnit.",
+        "Datum vystavení nebylo rozpoznáno.",
+        "Datum splatnosti nebylo rozpoznáno."
+      ],
+      "stored_status": "succeeded",
+      "field_decisions": {
+        "invoice_number": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": "AUDIT-20261026",
+              "page": 1,
+              "text": "Faktura č. AUDIT-20261026",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "document",
+              "bounds": {
+                "x": 0.07055503292568203,
+                "y": 0.1475727232773878,
+                "width": 0.2521003771334498,
+                "height": 0.014253643587642084
+              }
+            }
+          ]
+        },
+        "variable_symbol": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": "2026000027",
+              "page": 1,
+              "text": "Variabilní symbol: 2026000027",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "document",
+              "bounds": {
+                "x": 0.09407337723424271,
+                "y": 0.7666559764339758,
+                "width": 0.23067204193824759,
+                "height": 0.01187803632303508
+              }
+            }
+          ]
+        },
+        "issue_date": {
+          "status": "missing",
+          "confidence": 0,
+          "reasons": [
+            "Datum vystavení nebylo rozpoznáno."
+          ],
+          "candidates": []
+        },
+        "due_date": {
+          "status": "missing",
+          "confidence": 0,
+          "reasons": [
+            "Datum splatnosti nebylo rozpoznáno."
+          ],
+          "candidates": []
+        },
+        "counterparty_name": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": "Audit firma A Audit odběratel B",
+              "page": 1,
+              "text": "Audit firma A Audit odběratel B",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "counterparty",
+              "bounds": {
+                "x": 0.07055503292568203,
+                "y": 0.30727292164059433,
+                "width": 0.6215595234595485,
+                "height": 0.014253643587642084
+              }
+            }
+          ]
+        },
+        "counterparty_ico": {
+          "status": "review",
+          "confidence": 0.49,
+          "reasons": [
+            "IČO neprošlo kontrolním součtem pro české nebo slovenské subjekty.",
+            "IČO 87654321 nemá 8 číslic nebo neprošlo kontrolním součtem."
+          ],
+          "candidates": [
+            {
+              "value": "87654321",
+              "page": 1,
+              "text": "IČO: 12345678 IČO: 87654321",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "counterparty",
+              "bounds": {
+                "x": 0.524123101733638,
+                "y": 0.35585409020180775,
+                "width": 0.10254742909849147,
+                "height": 0.010690232690731568
+              }
+            }
+          ]
+        },
+        "counterparty_dic": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": "CZ87654321",
+              "page": 1,
+              "text": "DIČ: CZ12345678 DIČ: CZ87654321",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "counterparty",
+              "bounds": {
+                "x": 0.524123101733638,
+                "y": 0.37135492760336847,
+                "width": 0.12185950702820522,
+                "height": 0.010690232690731568
+              }
+            }
+          ]
+        },
+        "counterparty_email": {
+          "status": "missing",
+          "confidence": 0,
+          "reasons": [
+            "E-mail odběratele nebyl rozpoznán a je nutné jej doplnit."
+          ],
+          "candidates": []
+        },
+        "amount_without_vat": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": 1000,
+              "page": 1,
+              "text": "Celkem bez DPH 1 000,00 Kč",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "document",
+              "bounds": {
+                "x": 0.39645208977288,
+                "y": 0.5545142477045694,
+                "width": 0.5123639295793576,
+                "height": 0.01187803632303508
+              }
+            }
+          ]
+        },
+        "vat_rate": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": 21,
+              "page": 1,
+              "text": "DPH 21 %",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "document",
+              "bounds": {
+                "x": 0.07055503292568203,
+                "y": 0.49916259843922584,
+                "width": 0.06273964562894772,
+                "height": 0.009502429058428019
+              }
+            }
+          ]
+        },
+        "amount": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": 1210,
+              "page": 1,
+              "text": "Celkem k úhradě 1 210,00 Kč",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "document",
+              "bounds": {
+                "x": 0.41661067060878915,
+                "y": 0.6222190547458694,
+                "width": 0.4922053487434485,
+                "height": 0.02019266174915968
+              }
+            }
+          ]
+        },
+        "currency": {
+          "status": "verified",
+          "confidence": 0.96,
+          "reasons": [],
+          "candidates": [
+            {
+              "value": "CZK",
+              "page": 1,
+              "text": "Poradenství 1 ks 1 000,00 Kč 1 210,00 Kč",
+              "method": "pdf_text",
+              "confidence": null,
+              "role": "document",
+              "bounds": {
+                "x": 0.07055503292568203,
+                "y": 0.47718823124161097,
+                "width": 0.8584195672624648,
+                "height": 0.01187803632303508
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "correct OCR, persist invoice, review audit and duplicate request",
+    "status": "FAIL",
+    "error": "expect(received).toBe(expected) // Object.is equality\n\nExpected: 409\nReceived: 400"
+  },
+  {
+    "name": "CSV upload, proposed match, commit and paid invoice",
+    "status": "FAIL",
+    "error": "apiRequestContext.get: read ECONNRESET"
+  },
+  {
+    "name": "issued invoice, server exact custom VAT, idempotent issue and PDF",
+    "status": "PASS",
+    "evidence": {
+      "amount": 107.55,
+      "pdf_bytes": 50030,
+      "email_local_stub": {
+        "ok": true
+      },
+      "duplicate_send": {
+        "ok": true,
+        "already_sent": true
+      }
+    }
+  },
+  {
+    "name": "report PDF from real database snapshot",
+    "status": "PASS",
+    "evidence": {
+      "bytes": 65836
+    }
+  }
+]

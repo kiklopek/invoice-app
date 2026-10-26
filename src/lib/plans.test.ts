@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { PLANS, TRIAL_DAYS, TRIAL_INVOICE_LIMIT, changeKind, findPlan, lookupKey, monthlyPrice, parseLookupKey, quote } from "./plans";
 
 describe("tarify", () => {
+  it("keeps database enforcement aligned with the configured monthly limits", () => {
+    const sql = readFileSync("supabase/migrations/20261022221912_subscription_monthly_usage.sql", "utf8");
+    for (const plan of PLANS) if (plan.monthlyInvoiceLimit != null) expect(sql).toContain(`when '${plan.id}' then ${plan.monthlyInvoiceLimit}`);
+  });
   it("keeps the prices shown on the landing page", () => {
     expect(PLANS.map((plan) => [plan.id, plan.monthlyCzk])).toEqual([["start", 790], ["profi", 1590], ["business", 2990]]);
   });

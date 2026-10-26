@@ -19,10 +19,10 @@ import { useSWRConfig } from "swr";
 // stavu, zaznamenání úhrady. Obnoví data na aktuálně připojených stránkách
 // a zahodí cache těch nepřipojených, takže příští návštěva natáhne čerstvá
 // data místo starého fallbacku.
-export function useInvalidateWorkspaceData() {
+export function useInvalidateWorkspaceData(excludeKeys: readonly string[] = []) {
   const { mutate } = useSWRConfig();
   return () => mutate(
-    (key) => typeof key === "string" && key.startsWith("/api/"),
+    (key) => typeof key === "string" && key.startsWith("/api/") && !excludeKeys.includes(key),
     undefined,
     { revalidate: true },
   );

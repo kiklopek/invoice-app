@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     documentAccounts = {
       qr: (documentText.qrCodes ?? []).map(code => parseSpayd(code)?.iban).filter((iban): iban is string => Boolean(iban)),
       isdoc: parsedIsdoc?.paymentAccounts ?? [],
-      text: accountsInText(documentText.text),
+      text: accountsInText(documentText.text, documentText.layout),
     };
     if (documentText.isdoc && !parsedIsdoc) documentText.warnings.push("PDF obsahuje přílohu ISDOC, kterou se nepodařilo přečíst. Údaje byly vytěženy z obsahu dokumentu.");
     return parseInvoiceText({

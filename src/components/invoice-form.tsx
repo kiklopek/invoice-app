@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ChevronDown } from "./chevron-down";
+import { Icon } from "@/components/icons";
+import { InvoiceFormSection } from "./invoice-form-section";
+import { OcrSourceNote } from "./ocr-source-note";
+import { useSmallMobile } from "./layout/mobile-header-slot";
+import mobileStyles from "./mobile-invoice-form.module.css";
+import reviewStyles from "./invoice-review-form.module.css";
 import { usePathname } from "next/navigation";
 import { clearInvoiceDraft, readInvoiceDraft, saveInvoiceDraft } from "@/lib/invoice-drafts";
 import type { InvoiceInput } from "@/types/invoice";
@@ -11,7 +19,7 @@ import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 import type { ReminderPolicySummary } from "@/lib/reminder-policies";
 import { relevantOcrWarnings, type OcrFieldCandidate, type OcrFieldDecision, type OcrFieldName, type OcrFieldSource, type OcrReminderPolicyAssignment } from "@/lib/invoice-ocr";
 import { normalizeCounterpartyIco } from "@/lib/counterparty-reminder-preferences";
-import { alternativeOcrCandidates, backfillOcrDraft, ocrSourceLabel } from "@/lib/ocr-field-review";
+import { alternativeOcrCandidates, backfillOcrDraft } from "@/lib/ocr-field-review";
 import { INVOICE_CURRENCIES, normalizeInvoiceCurrency, unambiguousCurrency } from "@/lib/invoice-currency";
 import { useAccessProfile } from "@/lib/use-access-role";
 
@@ -34,30 +42,6 @@ export const createEmptyInvoice = (): InvoiceInput => ({
 
 type CustomerSearchResult = { id: string; name: string; ico: string | null; dic: string | null; email: string | null };
 
-function OcrSourceNote({ source, decision, ico }: { source?: OcrFieldSource; decision?: OcrFieldDecision; ico?: string }) {
-  if (!source && !decision) return null;
-  const method = source ? ocrSourceLabel(source.method) : "";
-  const documentSource = source && source.page > 0 && source.method !== "ares" && source.method !== "customer";
-  const aresUrl = source?.method === "ares" && /^\d{8}$/.test(ico ?? "")
-    ? `https://ares.gov.cz/ekonomicke-subjekty/res/${ico}` : null;
-  const status = decision?.status ?? "review";
-  const label = status === "verified" ? "Ověřeno" : status === "missing" ? "Doplnit" : "Zkontrolovat";
-  const candidates = decision?.candidates ?? [];
-  const accessibleDetails = [
-    source ? `Zdroj: ${documentSource ? `strana ${source.page}${source.line ? `, řádek ${source.line}` : ""}, ` : ""}${method}. ${source.text}` : "",
-    ...(decision?.reasons ?? []),
-  ].filter(Boolean).join(" ");
-  return <span className={`ocr-field-meta ${status}`} data-popup-anchor tabIndex={0} role="note" aria-label={`${label}. ${accessibleDetails}`}>
-    <span className="ocr-field-status">{label}</span>
-    {source && <span className="ocr-field-origin">{source.method === "pdf_text" || source.method === "ocr" ? "Faktura" : method}</span>}
-    <span className="ocr-field-tooltip" role="tooltip" data-popup>
-      {source ? <span className="ocr-tooltip-section"><strong>Zdroj</strong><span>{documentSource ? `Strana ${source.page}${source.line ? `, řádek ${source.line}` : ""} · ` : ""}{method}</span><q>{source.text}</q>{aresUrl && <a href={aresUrl} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>Otevřít záznam v ARES ↗</a>}</span> : null}
-      {decision?.reasons.length ? <span className="ocr-tooltip-section"><strong>Proč zkontrolovat</strong><span>{decision.reasons.join(" ")}</span></span> : null}
-      {candidates.length > 1 || (!source && candidates.length > 0) ? <span className="ocr-tooltip-section"><strong>Nalezené možnosti</strong>{candidates.map((candidate, index) => <span className="ocr-field-candidate" key={`${candidate.method}-${candidate.page}-${candidate.value}-${index}`}><b>{candidate.value}</b><small>Strana {candidate.page} · {ocrSourceLabel(candidate.method)}</small><q>{candidate.text}</q></span>)}</span> : null}
-      {!source && !decision?.reasons.length && !candidates.length ? <span>OCR k tomuto poli nemá další podrobnosti.</span> : null}
-    </span>
-  </span>;
-}
 
 export function InvoiceForm({
   initial,
@@ -68,6 +52,8 @@ export function InvoiceForm({
   onActiveFieldChange,
   submitLabel = "Uložit fakturu",
   editing = false,
+  reviewActions,
+  ocrConfidence,
   onSubmit,
 }: {
   initial?: InvoiceInput;
@@ -82,9 +68,17 @@ export function InvoiceForm({
   onActiveFieldChange?: (field: OcrFieldName | null, candidate?: OcrFieldCandidate, options?: { value?: string | number }) => void;
   submitLabel?: string;
   editing?: boolean;
+  ocrConfidence?: number;
+  reviewActions?: { target: HTMLElement | null; onSkip?: () => void; onShowData?: () => void; disabled?: boolean };
   onSubmit: (value: InvoiceInput) => Promise<void>;
 }) {
   const pathname = usePathname();
+  const mobile = useSmallMobile();
+  const mobileSteps = mobile && pathname === "/invoices/new" && !editing && !reviewActions;
+  const [mobileStep, setMobileStep] = useState(1);
+
+  const formId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
   const profile = useAccessProfile();
   const draftKey = JSON.stringify([pathname, initial?.file_url ?? "", initial?.invoice_number ?? ""]);
   const [form, setForm] = useState<InvoiceInput>(() => {
@@ -111,6 +105,9 @@ export function InvoiceForm({
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [dirty, setDirty] = useState(() => Boolean(readInvoiceDraft(draftKey)));
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (error) formRef.current?.querySelector<HTMLElement>("[data-save-error]")?.focus();
+  }, [error]);
   const [policies, setPolicies] = useState<ReminderPolicySummary[]>([]);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const [policiesError, setPoliciesError] = useState("");
@@ -282,14 +279,14 @@ export function InvoiceForm({
     else field(fieldName, value);
   };
   const fieldHooks = (fieldName: OcrFieldName) => onActiveFieldChange
-    ? { onFocusCapture: () => onActiveFieldChange(fieldName, undefined, { value: formValues[fieldName] as string | number }), onMouseEnter: () => onActiveFieldChange(fieldName, undefined, { value: formValues[fieldName] as string | number }), onMouseLeave: (event: React.MouseEvent<HTMLLabelElement>) => { if (!event.currentTarget.contains(document.activeElement)) onActiveFieldChange(null); } }
+    ? { "data-ocr-field": fieldName, onFocusCapture: () => onActiveFieldChange(fieldName, undefined, { value: formValues[fieldName] as string | number }), onMouseEnter: () => onActiveFieldChange(fieldName, undefined, { value: formValues[fieldName] as string | number }), onMouseLeave: (event: React.MouseEvent<HTMLLabelElement>) => { if (!event.currentTarget.contains(document.activeElement)) onActiveFieldChange(null); } }
     : {};
   const ocrMeta = (fieldName: OcrFieldName) => {
     const choices = alternativeOcrCandidates(decision(fieldName), formValues[fieldName]);
     const candidateFor = (value: string | number) => decision(fieldName)?.candidates.find(candidate => String(candidate.value) === String(value));
     const optionalMissing = decision(fieldName)?.status === "missing" && ["variable_symbol", "counterparty_ico", "counterparty_dic", "currency"].includes(fieldName);
     return <>
-      {!optionalMissing && <OcrSourceNote source={source(fieldName)} decision={decision(fieldName)} ico={form.counterparty_ico}/>}
+      {(!optionalMissing || Boolean(reviewActions)) && <OcrSourceNote source={source(fieldName)} decision={decision(fieldName)} ico={form.counterparty_ico} review={Boolean(reviewActions)}/>}
       {choices.length > 0 && <span className="ocr-field-choices" role="group" aria-label="Návrhy hodnot z dokumentu">
         {choices.map(choice => <button type="button" className="btn secondary compact" key={`${fieldName}-${choice.value}`} onClick={() => applyCandidate(fieldName, choice.value)} onMouseEnter={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))} onFocus={() => onActiveFieldChange?.(fieldName, candidateFor(choice.value))}>Použít {choice.value} <small>({choice.sources.join(", ")})</small></button>)}
       </span>}
@@ -322,6 +319,18 @@ export function InvoiceForm({
   // relevantOcrWarnings for which warnings this applies to.
   const visibleWarnings = ocrWarnings ? relevantOcrWarnings(ocrWarnings, form) : [];
   const hasOcrReview = Boolean(ocrFieldSources || ocrFieldDecisions || ocrWarnings);
+  const fieldsToReview = Object.entries(ocrFieldDecisions ?? {})
+    .filter(([, result]) => result && result.status !== "verified")
+    .map(([name]) => name);
+  const nextReviewFieldRef = useRef(0);
+  const focusNextReviewField = () => {
+    const fields = Array.from(formRef.current?.querySelectorAll<HTMLElement>("[data-ocr-field]") ?? [])
+      .filter(node => fieldsToReview.includes(node.dataset.ocrField ?? ""));
+    const control = fields[nextReviewFieldRef.current % fields.length]?.querySelector<HTMLElement>("input, select");
+    control?.focus();
+    control?.scrollIntoView({ block: "center", behavior: "instant" });
+    nextReviewFieldRef.current += 1;
+  };
   const canCopyInvoiceNumberToVariableSymbol = !editing
     && form.source === "ocr"
     && Boolean(form.file_url)
@@ -334,12 +343,16 @@ export function InvoiceForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (saving || reviewActions?.disabled) return;
     setSubmitAttempted(true);
     // Only surfaced once the accountant actually tries to save -- showing
     // this checklist proactively while they're still in the middle of
     // filling the form in would just be noise about fields they haven't
     // gotten to yet.
-    if (submitBlockers.length) return;
+    if (submitBlockers.length) {
+      window.requestAnimationFrame(() => formRef.current?.querySelector(".form-submit-blockers")?.scrollIntoView({ block: "nearest" }));
+      return;
+    }
     setSaving(true); setError("");
     try {
       setDirty(false); await onSubmit(form); clearInvoiceDraft(draftKey);
@@ -348,17 +361,53 @@ export function InvoiceForm({
     finally { setSaving(false); }
   }
 
-  return <form className="standalone-form" onSubmit={submit}>
+  function showMobileStep(step: number) {
+    setMobileStep(step);
+    requestAnimationFrame(() => {
+      const section = formRef.current?.querySelector<HTMLElement>(`[data-invoice-form-section="${step}"]`);
+      section?.scrollIntoView({ block: "start", behavior: "instant" });
+      section?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+    });
+  }
+  function nextMobileStep() {
+    const section = formRef.current?.querySelector(`[data-invoice-form-section="${mobileStep}"]`);
+    const fields = section?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input,select,textarea") ?? [];
+    for (const input of fields) if (!input.reportValidity()) return;
+    showMobileStep(Math.min(3, mobileStep + 1));
+  }
+
+  const submitActions = <div className="form-submit">
+    {mobileSteps && mobileStep > 1 && <button type="button" className="btn secondary" disabled={saving} onClick={() => showMobileStep(mobileStep - 1)}><Icon name="arrow-left"/>Zpět</button>}
+    {reviewActions && <p className="review-save-note"><Icon name={mobile ? "invoice" : "alert"}/><span><strong className={reviewStyles.saveNoteTitle}>Před uložením</strong>Zkontrolujte zejména číslo faktury, odběratele, částku a datum splatnosti. Nejisté údaje jsou zvýrazněné.</span></p>}
+    {reviewActions?.onSkip && <button type="button" className="btn secondary" disabled={saving || reviewActions.disabled} onClick={reviewActions.onSkip}>Přeskočit</button>}
+    {mobileSteps && mobileStep < 3 ? <button key="continue" type="button" className="btn primary" onClick={event => { event.preventDefault(); nextMobileStep(); }}>Pokračovat <Icon name="arrow-right"/></button> : <button key="save" type="submit" form={formId} className="btn primary" onClick={reviewActions?.onShowData} disabled={saving || reviewActions?.disabled}>{reviewActions && <Icon name="check"/>}{saving ? "Ukládám…" : submitLabel}</button>}
+  </div>;
+  return <form ref={formRef} id={formId} className={`${reviewActions ? reviewStyles.form : "standalone-form"}${pathname === "/invoices/new" || reviewActions ? ` ${mobileStyles.form}` : ""}`} onSubmit={submit}
+    onKeyDown={event => { if (mobileSteps && mobileStep < 3 && event.key === "Enter" && (event.target as HTMLElement).tagName === "INPUT") { event.preventDefault(); nextMobileStep(); } }}
+    onInvalidCapture={event => {
+      if (mobileSteps) {
+        const invalid = formRef.current?.querySelector<HTMLElement>("input:invalid,select:invalid,textarea:invalid") ?? event.target as HTMLElement;
+        const step = Number(invalid.closest("[data-invoice-form-section]")?.getAttribute("data-invoice-form-section"));
+        if (step) setMobileStep(step);
+        requestAnimationFrame(() => { invalid.focus(); invalid.scrollIntoView({ block:"center" }); });
+      } else if (reviewActions) {
+        reviewActions.onShowData?.();
+        const control = event.target as HTMLElement;
+        requestAnimationFrame(() => { control.focus(); control.scrollIntoView({ block:"center" }); });
+      }
+    }}>
+    {mobileSteps && <ol className={mobileStyles.stepper} aria-label="Kroky zadání faktury">{["Faktura","Odběratel","Částka"].map((label,index)=><li key={label}><button type="button" aria-current={mobileStep === index+1 ? "step" : undefined} disabled={index+1 > mobileStep} data-complete={index+1 < mobileStep || undefined} onClick={() => showMobileStep(index+1)}><span>{index+1 < mobileStep ? <Icon name="check"/> : index+1}</span>{label}</button></li>)}</ol>}
+    {reviewActions && fieldsToReview.length > 0 && <button type="button" className="ocr-review-summary" onClick={focusNextReviewField}><Icon name="alert"/>{fieldsToReview.length} {fieldsToReview.length === 1 ? "údaj vyžaduje" : fieldsToReview.length <= 4 ? "údaje vyžadují" : "údajů vyžaduje"} kontrolu <span>Zkontrolovat →</span></button>}
     {form.file_url && !hasOcrReview && <div className="form-document-note"><strong>Dokument je přiložen</strong><span>Údaje před uložením pečlivě zkontrolujte.</span></div>}
     {visibleWarnings.length > 0 && <details className="ocr-warnings">
-      <summary><strong>{warningSummary}</strong><span>Zobrazit podrobnosti</span></summary>
+      <summary><strong>{reviewActions ? `Upozornění z dokumentu (${visibleWarnings.length})` : warningSummary}</strong>{!reviewActions && <span>Zobrazit podrobnosti</span>}<ChevronDown /></summary>
       <ul>{visibleWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>
     </details>}
-    <section className="form-section"><div className="form-section-title"><span>1</span><div><h2>Identifikace faktury</h2><p>Čísla, podle kterých fakturu dohledáte v účetnictví.</p></div></div><div className="form-grid">
+    <InvoiceFormSection hidden={mobileSteps && mobileStep !== 1} number={1} title="Identifikace faktury" description="Čísla, podle kterých fakturu dohledáte v účetnictví." review={Boolean(reviewActions)} badge={hasOcrReview ? <span className={reviewStyles.ocrBadge} title={ocrConfidence !== undefined ? `Spolehlivost OCR ${Math.round(ocrConfidence * 100)} %` : undefined}><Icon name="sparkles" />Rozpoznáno pomocí OCR{ocrConfidence !== undefined ? ` · ${Math.round(ocrConfidence * 100)} %` : ""}</span> : undefined}>
       <label {...fieldHooks("invoice_number")}><span>Číslo faktury *</span><input required value={form.invoice_number} onChange={e => field("invoice_number", e.target.value)} placeholder="např. FV-2026-001" autoCapitalize="off" spellCheck={false} enterKeyHint="next"/>{ocrMeta("invoice_number")}</label>
       <div className="variable-symbol-field">
         <label {...fieldHooks("variable_symbol")}><span>Variabilní symbol</span><input value={form.variable_symbol} onChange={e => field("variable_symbol", e.target.value)} placeholder="např. 2026001" inputMode="numeric" pattern="[0-9]*" maxLength={10} enterKeyHint="next"/>{ocrMeta("variable_symbol")}</label>
-        {canCopyInvoiceNumberToVariableSymbol && <button type="button" className="btn secondary variable-symbol-copy" onClick={() => field("variable_symbol", form.invoice_number.trim())}>Použít číslo faktury jako variabilní symbol</button>}
+        {canCopyInvoiceNumberToVariableSymbol && <button type="button" className={reviewActions ? reviewStyles.copy : "btn secondary variable-symbol-copy"} aria-label="Použít číslo faktury jako variabilní symbol" onClick={() => field("variable_symbol", form.invoice_number.trim())}>{reviewActions ? "Použít číslo faktury" : "Použít číslo faktury jako variabilní symbol"}</button>}
       </div>
       <label {...fieldHooks("issue_date")}><span>Datum vystavení *</span><input type="date" required value={form.issue_date} onChange={e => field("issue_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("issue_date")}</label>
       <label {...fieldHooks("due_date")}><span>Datum splatnosti *</span><input type="date" required min={form.issue_date} value={form.due_date} onChange={e => field("due_date", e.target.value)} enterKeyHint="next"/>{ocrMeta("due_date")}</label>
@@ -391,8 +440,8 @@ export function InvoiceForm({
         {policyChanged && !ocrPolicyAssignment && <span className="field-warning">Po uložení se budoucí plán této faktury nahradí vybranou kategorií. Zmeškané termíny se zpětně neodešlou.</span>}
         {policiesError && <span className="field-error">{policiesError} <button type="button" onClick={loadPolicies}>Zkusit znovu</button></span>}
       </label>
-    </div></section>
-    <section className="form-section"><div className="form-section-title"><span>2</span><div><h2>Odběratel</h2><p>Firma, která má fakturu uhradit.</p></div></div><div className="form-grid">
+    </InvoiceFormSection>
+    <InvoiceFormSection hidden={mobileSteps && mobileStep !== 2} number={2} title="Odběratel" description="Firma, která má fakturu uhradit." review={Boolean(reviewActions)}>
       <label {...fieldHooks("counterparty_name")} className="wide customer-name-field">
         <span>Název odběratele *</span>
         <input
@@ -422,8 +471,8 @@ export function InvoiceForm({
       <label {...fieldHooks("counterparty_ico")}><span>IČO</span><input value={form.counterparty_ico} onChange={e => field("counterparty_ico", e.target.value)} inputMode="numeric" pattern="[0-9]*" maxLength={8} enterKeyHint="next" placeholder="12345678"/>{ocrMeta("counterparty_ico")}</label>
       <label {...fieldHooks("counterparty_dic")}><span>DIČ</span><input value={form.counterparty_dic} onChange={e => field("counterparty_dic", e.target.value)} autoCapitalize="characters" enterKeyHint="next" placeholder="CZ12345678"/>{ocrMeta("counterparty_dic")}</label>
       <label {...fieldHooks("counterparty_email")} className="wide"><span>E-mail pro upomínky *</span><input type="email" required value={form.counterparty_email} onChange={e => field("counterparty_email", e.target.value)} autoComplete="off" enterKeyHint="next" placeholder="fakturace@odberatel.cz"/><small>Na tuto adresu budou chodit automatické upomínky.</small>{ocrMeta("counterparty_email")}</label>
-    </div></section>
-    <section className="form-section"><div className="form-section-title"><span>3</span><div><h2>Částka a poznámka</h2><p>Hodnota pohledávky a interní informace.</p></div></div><div className="form-grid">
+    </InvoiceFormSection>
+    <InvoiceFormSection hidden={mobileSteps && mobileStep !== 3} number={3} title="Částka a poznámka" description="Hodnota pohledávky a interní informace." review={Boolean(reviewActions)}>
       <label {...fieldHooks("amount_without_vat")}><span>Částka bez DPH *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount_without_vat || ""} onChange={e => setNetAmount(Number(e.target.value))} placeholder="0,00"/>{ocrMeta("amount_without_vat")}</label>
       <label {...fieldHooks("vat_rate")}><span>Sazba DPH (%) *</span><input type="number" required min="0" max="100" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.vat_rate} onChange={e => setVatRate(Number(e.target.value))} placeholder="21"/><small>Běžná sazba je předvyplněna na 21 %, lze zadat i 0 % nebo jinou sazbu.</small>{ocrMeta("vat_rate")}</label>
       <label {...fieldHooks("amount")}><span>Celková hodnota faktury *</span><input type="number" required min="0.01" step="0.01" inputMode="decimal" enterKeyHint="next" value={form.amount || ""} onChange={e => setGrossAmount(Number(e.target.value))} placeholder="0,00"/><small>{form.file_url || form.source === "ocr" ? "Částka z dokumentu se při změně základu nebo DPH nepřepočítává." : "Po změně se automaticky dopočítá částka bez DPH."}</small>{ocrMeta("amount")}</label>
@@ -440,9 +489,9 @@ export function InvoiceForm({
           uloží jen v měně faktury. */}
       {form.payment_account ? <p className="invoice-payment-account" role="note">Platba na účet: <strong>{form.payment_account}</strong> <small>(nalezený na faktuře)</small></p> : null}
       <label className="wide"><span>Interní poznámka</span><textarea value={form.notes} onChange={e => field("notes", e.target.value)} enterKeyHint="done" placeholder="Volitelná poznámka pro účetní oddělení"/></label>
-    </div></section>
+    </InvoiceFormSection>
     {submitAttempted && submitBlockers.length > 0 && <div className="form-error form-submit-blockers"><strong>Než fakturu uložíte, opravte prosím:</strong><ul>{submitBlockers.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
-    {error && <p className="form-error">{error}</p>}
-    <div className="form-submit"><button className="btn primary" disabled={saving}>{saving ? "Ukládám…" : submitLabel}</button></div>
+    {error && <p className="form-error" role="alert" data-save-error tabIndex={-1}>{error}</p>}
+    {reviewActions?.target ? createPortal(submitActions, reviewActions.target) : submitActions}
   </form>;
 }

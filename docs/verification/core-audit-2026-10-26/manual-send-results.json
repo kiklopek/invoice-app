@@ -1,0 +1,11 @@
+{
+  "scope": "local provider stub only; no real emails",
+  "suppression_reason": "complained",
+  "response_statuses": [
+    200,
+    200
+  ],
+  "new_provider_messages": 2,
+  "duplicate_manual_send": true,
+  "suppression_not_honored": true
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "detail",
+    "code": 1,
+    "seconds": 5,
+    "checks": 0
+  },
+  {
+    "id": "invoices",
+    "code": 1,
+    "seconds": 50,
+    "checks": 13
+  },
+  {
+    "id": "reports",
+    "code": 0,
+    "seconds": 53,
+    "checks": 30
+  },
+  {
+    "id": "payments",
+    "code": 0,
+    "seconds": 40,
+    "checks": 16
+  },
+  {
+    "id": "subscription",
+    "code": 0,
+    "seconds": 34,
+    "checks": 23
+  },
+  {
+    "id": "notifications",
+    "code": 1,
+    "seconds": 50,
+    "checks": 13
+  },
+  {
+    "id": "ocr-review",
+    "code": 0,
+    "seconds": 58,
+    "checks": 13
+  },
+  {
+    "id": "dashboard",
+    "code": 1,
+    "seconds": 83,
+    "checks": 0
+  },
+  {
+    "id": "mobile-invoices",
+    "code": 0,
+    "seconds": 134,
+    "checks": 70
+  }
+]

@@ -80,7 +80,7 @@ describe("čerstvá data po vytvoření faktury", () => {
       read("app", "(workspace)", "customers", "customers-client.tsx"),
     ]) {
       expect(page).toContain("useRevalidateOnRevisit(");
-      expect(page).toContain("revalidateOnMount: revalidateOnRevisit");
+      expect(page).toMatch(/revalidateOnMount: (?:(?:listKey !== initialKey|!fallback) \|\| )?revalidateOnRevisit/);
       expect(page).not.toContain("revalidateOnMount: false");
       expect(page).not.toContain("revalidateOnMount: true");
     }

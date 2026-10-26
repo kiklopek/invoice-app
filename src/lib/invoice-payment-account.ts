@@ -1,6 +1,8 @@
 import { canonicalAccount, matchOrganizationAccount, type OrganizationAccount } from "./bank-accounts";
+import type { OcrDocumentLayout } from "./invoice-ocr";
+import { conceptAlternation } from "./invoice-ocr-vocabulary";
 
-// Účet na faktuře čtené z PDF porovnaný se VŠEMI účty firmy (hlavní CZK/EUR
+// Účet DODAVATELE na faktuře čtené z PDF porovnaný se VŠEMI účty firmy (hlavní CZK/EUR
 // i organization_bank_accounts). Shoda v měně faktury = faktura si účet
 // uloží a PDF, QR i upomínky platí na něj. Cizí účet, účet v jiné měně nebo
 // víc různých účtů firmy = viditelné varování, nic se nerozhodne potichu.
@@ -33,29 +35,80 @@ function validIban(candidate: string) {
   return canonicalAccount(compact) ? compact : null;
 }
 
-/**
- * Bankovní účty v textu faktury. Český tvar `předčíslí-číslo/kód` jen v řádku
- * se slovem „účet“, „bankovní spojení“ apod. (nebo hned pod ním) -- jinak by
- * se za účet mohlo vzít datum nebo číslo dokladu. IBAN se pozná kdekoli.
- */
-export function accountsInText(text: string): string[] {
-  const lines = text.split(/\r?\n/);
-  const found: string[] = [];
-  lines.forEach((line, index) => {
-    const context = `${lines[index - 1] ?? ""} ${line}`;
+type AccountRole = "issuer" | "counterparty" | "unknown";
+type AccountOccurrence = { account: string; role: AccountRole };
+const ISSUER = new RegExp(`\\b(?:${conceptAlternation("issuer")}|dodavatele|vystavitele|prodavajiciho)\\b`, "i");
+const CUSTOMER = new RegExp(`\\b(?:${conceptAlternation("counterparty")}|odberatele|zakaznika|kupujiciho)\\b`, "i");
+const PAYMENT_SECTION = /^(?:platebni udaje|udaje pro platbu|platebni instrukce|payment details|payment instructions)\b/i;
+const normalized = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function accountOccurrences(lines: string[], initialRole: AccountRole = "unknown"): AccountOccurrence[] {
+  const found: AccountOccurrence[] = [];
+  let role = initialRole;
+  let previous = "";
+  for (const line of lines) {
+    const plain = normalized(line);
+    // Process headings in reading order, including explicitly labelled accounts
+    // on one line ("Účet dodavatele ... Účet odběratele ...").
+    const headings = [...plain.matchAll(new RegExp(`(${ISSUER.source})|(${CUSTOMER.source})`, "gi"))];
+    if (PAYMENT_SECTION.test(plain.trim())) role = "unknown";
+    const roleAt = (index: number): AccountRole => {
+      const heading = headings.findLast(match => match.index! <= index);
+      return heading ? heading[1] ? "issuer" : "counterparty" : role;
+    };
+    const context = headings.length ? line : `${previous} ${line}`;
     if (ACCOUNT_CONTEXT.test(context)) {
       for (const match of line.matchAll(CZECH_ACCOUNT)) {
         const [, prefix, number, bank] = match;
         const account = `${prefix ? `${prefix}-` : ""}${number}/${bank}`;
-        if (canonicalAccount(account)) found.push(account);
+        if (canonicalAccount(account)) found.push({ account, role: roleAt(match.index!) });
       }
     }
     for (const match of line.matchAll(IBAN_START)) {
-      const iban = validIban(match[0]);
-      if (iban) found.push(iban);
+      const account = validIban(match[0]);
+      if (account) found.push({ account, role: roleAt(match.index!) });
     }
-  });
-  return unique(found);
+    if (headings.length) role = headings[headings.length - 1][1] ? "issuer" : "counterparty";
+    previous = line;
+  }
+  return found;
+}
+
+/** Payment accounts of the supplier, never accounts of the invoice recipient.
+ * Geometry disambiguates two-column PDFs whose plain text interleaves parties.
+ * Unlabelled payment details remain supported; checksums are always required.
+ */
+export function accountsInText(text: string, layout?: OcrDocumentLayout): string[] {
+  const occurrences = accountOccurrences(text.split(/\r?\n/));
+  const positioned: AccountOccurrence[] = [];
+  for (const page of layout?.pages ?? []) {
+    const blocks = page.lines.flatMap(line => line.blocks);
+    const issuer = blocks.find(block => ISSUER.test(normalized(block.text)));
+    const customer = blocks.find(block => CUSTOMER.test(normalized(block.text)));
+    if (!issuer || !customer || Math.abs(issuer.x - customer.x) <= 0.15) continue;
+    const middle = (issuer.x + customer.x) / 2;
+    // A separate full-width payment section is not part of either party box.
+    const paymentStart = page.lines.findIndex(line => PAYMENT_SECTION.test(normalized(line.text).trim()));
+    const partyLines = paymentStart < 0 ? page.lines : page.lines.slice(0, paymentStart);
+    for (const party of [issuer, customer]) {
+      const column = partyLines.map(line => line.blocks
+        .filter(block => (block.x < middle) === (party.x < middle))
+        .sort((a, b) => a.x - b.x)
+        .map(block => block.text).join(" ")).filter(Boolean);
+      positioned.push(...accountOccurrences(column, party === issuer ? "issuer" : "counterparty"));
+    }
+  }
+  const positionedRoles = new Map<string, Set<AccountRole>>();
+  for (const item of positioned) {
+    const key = canonicalAccount(item.account)!;
+    const roles = positionedRoles.get(key) ?? new Set<AccountRole>();
+    roles.add(item.role);
+    positionedRoles.set(key, roles);
+  }
+  return unique([...occurrences, ...positioned].filter(item => {
+    const roles = positionedRoles.get(canonicalAccount(item.account)!);
+    return roles ? roles.has("issuer") || roles.has("unknown") : item.role !== "counterparty";
+  }).map(item => item.account));
 }
 
 export type DocumentAccounts = { qr: string[]; isdoc: string[]; text: string[] };

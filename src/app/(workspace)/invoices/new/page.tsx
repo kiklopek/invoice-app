@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import "./mobile-create.css";
+import { useSmallMobile } from "@/components/layout/mobile-header-slot";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/layout/app-shell";
 import { InvoiceForm } from "@/components/invoice-form";
@@ -10,6 +12,7 @@ import type { InvoiceInput } from "@/types/invoice";
 
 export default function NewInvoicePage() {
   const router = useRouter();
+  const mobile = useSmallMobile();
   const invalidateWorkspaceData = useInvalidateWorkspaceData();
   async function create(input: InvoiceInput) {
     const response = await fetch("/api/invoices", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
@@ -20,5 +23,5 @@ export default function NewInvoicePage() {
     router.push(`/invoices/${data.invoice.id}`);
     router.refresh();
   }
-  return <AppFrame><div className="manual-invoice-page"><header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>RUČNÍ ZADÁNÍ</p><h1>Nová vydaná faktura</h1><span>Zapište fakturu, jejíž úhradu má firma sledovat.</span></div><Link href="/invoices/import" className="btn secondary"><Icon name="upload"/>Raději importovat dokument</Link></header><InvoiceForm onSubmit={create}/></div></AppFrame>;
+  return <AppFrame><div className="manual-invoice-page"><header className="section-header">{mobile && <Link href="/invoices" className="manual-invoice-back" aria-label="Zpět na faktury"><Icon name="arrow-left"/></Link>}<div><p>RUČNÍ ZADÁNÍ</p><h1>Nová vydaná faktura</h1><span>Zapište fakturu, jejíž úhradu má firma sledovat.</span></div><Link href="/invoices/import" className="btn secondary"><Icon name="upload"/>Raději importovat dokument</Link></header><InvoiceForm onSubmit={create}/></div></AppFrame>;
 }

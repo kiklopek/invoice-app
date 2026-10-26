@@ -59,8 +59,10 @@ describe("workspace navigation performance", () => {
     expect(source("src/app/(workspace)/invoices/[id]/loading.tsx")).toContain("PageSkeleton");
     const invoices = source("src/app/(workspace)/invoices/invoices-client.tsx");
     expect(invoices).toContain("router.prefetch(`/invoices/${id}`)");
-    expect(invoices).toContain("onMouseEnter={() => prefetchInvoice(invoice.id)}");
-    expect(invoices).toContain("onFocus={() => prefetchInvoice(invoice.id)}");
+    expect(invoices).toContain("onPrefetch={prefetchInvoice}");
+    const table = source("src/app/(workspace)/invoices/invoice-list-table.tsx");
+    expect(table).toContain("onMouseEnter={() => onPrefetch(invoice.id)}");
+    expect(table).toContain("onFocus={() => onPrefetch(invoice.id)}");
   });
 
   // getRequestIdentity() běží před každým požadavkem na všech routách i ve

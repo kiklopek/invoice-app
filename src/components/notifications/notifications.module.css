@@ -1,0 +1,59 @@
+.list { min-width: 0; max-width: 100%; list-style: none; padding: 0; margin: 0; }
+.list li { margin: 0; min-width: 0; max-width: 100%; }
+.list li + li { border-top: 1px solid #edf0f2; }
+.row { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: start; gap: 12px; width: 100%; box-sizing: border-box; padding: 17px 20px; border: 0; background: #fff; color: #17212c; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.row:hover { background: #f5f9f6; }
+.row:focus-visible { outline: 2px solid #26764e; outline-offset: -3px; }
+.row[aria-disabled=true], .row:disabled { cursor: wait; }
+.icon { display: grid; place-items: center; position: relative; width: 40px; height: 40px; border-radius: 50%; background: #edf0f3; color: #62717e; }
+.icon svg { display: block; width: 20px; height: 20px; }
+.icon[data-tone=danger] { background: #fff0f0; color: #d44343; }
+.icon[data-tone=success] { background: #e9f5ee; color: #168358; }
+.icon[data-tone=warning] { background: #fff4df; color: #d69514; }
+.rowDot { position: absolute; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; top: 0; right: 0; background: #e53b3b; box-sizing: content-box; }
+.body { min-width: 0; max-width: 100%; white-space: normal; grid-template-columns: minmax(0, 1fr); display: grid; gap: 4px; }
+.title { min-width: 0; white-space: normal; font-size: 13px; line-height: 1.5; font-weight: 500; overflow-wrap: anywhere; }
+li[data-unread] .title { font-weight: 650; }
+li[data-unread] .row { background: #fcfefd; }
+.message { min-width: 0; white-space: normal; color: #687587; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.row time { font-size: 11px; line-height: 1.7; color: #718092; max-width: 110px; white-space: normal; overflow-wrap: anywhere; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.state { padding: 28px 22px; text-align: center; color: #64758a; font-size: 13px; line-height: 1.7; }
+.state strong { color: #263e31; font-weight: 550; }
+.state p { margin: 8px 0; }
+.state button, .textButton { padding: 4px 0; border: 0; background: none; color: #147747; cursor: pointer; font: inherit; font-size: 12px; line-height: 1.5; }
+.textButton:disabled { opacity: .5; cursor: default; }
+.state button:focus-visible, .textButton:focus-visible { outline: 2px solid #26764e; outline-offset: 3px; }
+.actionError { padding: 10px 20px; margin: 0; background: #fff7ee; color: #925a28; font-size: 12px; line-height: 1.6; }
+.skeleton { padding: 18px 20px; }
+.skeleton > div { display: grid; grid-template-columns: 40px 1fr; gap: 8px 12px; margin: 12px 0 22px; }
+.skeleton i { grid-row: span 2; border-radius: 50%; height: 40px; background: #eef2ef; }
+.skeleton span { background: #eef2ef; border-radius: 4px; height: 12px; }
+.skeleton span:last-child { width: 85%; }
+.history { max-width: 1000px; width: 100%; margin-inline: auto; min-width: 0; color: #172820; }
+.heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin: 12px 0 24px; }
+.heading h1 { margin: 0 0 8px; font-size: 32px; }
+.heading p { margin: 0; color: #6c7c71; }
+.panel { border: 1px solid #e1e8e3; border-radius: 14px; background: #fff; overflow: hidden; }
+.filters { display: flex; align-items: center; gap: 8px; padding: 14px 20px; border-bottom: 1px solid #edf0f2; }
+.filters button { padding: 8px 12px; border: 1px solid transparent; border-radius: 7px; background: #f5f8f6; color: #62766b; font: inherit; font-size: 13px; cursor: pointer; }
+.filters button[aria-pressed=true] { color: #fff; background: #20784e; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 20px; border-top: 1px solid #edf0f2; color: #687587; font-size: 12px; }
+.pagination button { padding: 8px 14px; border: 1px solid #dfe7e2; background: #fff; border-radius: 7px; color: #284a37; cursor: pointer; }
+.pagination button:disabled { opacity: .5; cursor: default; }
+@media(max-width:480px) {
+  .row { grid-template-columns: 36px minmax(0,1fr); gap: 8px 10px; padding: 16px; }
+  .icon { width: 36px; height: 36px; grid-row: span 2; }
+  .row time { grid-column: 2; white-space: normal; }
+  .heading h1 { font-size: 28px; }
+  .filters { padding-inline: 16px; }
+}
+
+.previewNote {
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--muted, #687a70);
+  background: #f5f8f6;
+  font-size: 12px;
+  line-height: 1.5;
+}

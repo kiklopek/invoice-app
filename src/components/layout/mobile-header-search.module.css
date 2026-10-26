@@ -1,0 +1,90 @@
+.dialog.dialog {
+  position: fixed;
+  inset: calc(var(--mobile-navigation-height, 60px) + 8px + env(safe-area-inset-top)) 8px auto;
+  /* Existing mobile dialogs force width:100%; keep this panel inside its insets. */
+  width: min(560px, calc(100vw - 16px)) !important;
+  min-width: 0;
+  box-sizing: border-box;
+  max-width: 560px;
+  max-height: calc(
+    100dvh - var(--mobile-navigation-height, 60px) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  margin: 0 auto;
+  padding: 12px;
+  border: 1px solid #e1e8e3;
+  border-radius: 14px;
+  background: #fff;
+  color: #17251f;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-family: "Splatno Dashboard Inter", Inter, sans-serif;
+}
+.dialog::backdrop {
+  background: #132b2440;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.dialog .heading h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.dialog .heading button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #657584;
+  cursor: pointer;
+}
+.search.search {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid #e1e6e3;
+  border-radius: 10px;
+  background: #fff;
+  color: #677480;
+}
+.search > svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+}
+.search > input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #17251f;
+  font: inherit;
+  font-size: 14px;
+}
+.search > input:focus {
+  outline: none;
+}
+.search:focus-within {
+  border-color: #23784f;
+}
+.dialog button:focus-visible {
+  outline: 2px solid #23784f;
+  outline-offset: 2px;
+}

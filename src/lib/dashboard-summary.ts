@@ -31,11 +31,13 @@ export const emptyDashboardData: DashboardData = {
   payments_needing_review: 0, ocr_pending_confirmation: 0, reminders_due_soon: 0,
 };
 
-const addAmount = (totals: Record<string, number>, invoice: Invoice, value: number) => {
+export type DashboardSummaryInvoice = DashboardInvoice & Pick<Invoice, "issue_date" | "next_reminder_at">;
+
+const addAmount = (totals: Record<string, number>, invoice: Pick<Invoice, "currency">, value: number) => {
   totals[invoice.currency] = (totals[invoice.currency] ?? 0) + value;
 };
 
-export function buildDashboardSummary(invoices: Invoice[]): DashboardData {
+export function buildDashboardSummary(invoices: DashboardSummaryInvoice[]): DashboardData {
   const openTotals: Record<string, number> = {};
   const overdueTotals: Record<string, number> = {};
   const paidTotals: Record<string, number> = {};

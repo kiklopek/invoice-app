@@ -70,4 +70,15 @@ describe("report query", () => {
     const march = report.yoy_monthly.find(row => row.month === "03");
     expect(march).toEqual({ month: "03", current_year: 1000, prior_year: 700 });
   });
+  it("uses remaining balances and places invoices due today before overdue buckets", () => {
+    const base = { ...demoInvoices[0], status: "pending" as const, amount: 1210, paid_amount: 400, due_date: "2026-10-23" };
+    const report = buildInvoiceReport([base, { ...base, id: "late", due_date: "2026-10-16", status: "overdue", paid_amount: 210 }, { ...base, id: "cancelled", status: "cancelled" }, { ...base, id: "paid", status: "paid", paid_amount: 1210 }], "CZK", "2026-10-23");
+    expect(report.open).toBe(1810);
+    expect(report.overdue).toBe(1000);
+    expect(report.aging[0]).toMatchObject({ amount: 810, count: 1 });
+    expect(report.aging[1]).toMatchObject({ amount: 1000, count: 1 });
+    expect(report.aging.reduce((sum, row) => sum + row.amount, 0)).toBe(report.open);
+    expect(report.debtors[0].count).toBe(2);
+  });
+
 });

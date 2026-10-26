@@ -25,10 +25,12 @@ produktová stránka musí mít vlastní metadata a být přidaná do sitemapu.
 Indexace se povolí jen při `NODE_ENV=production` a `VERCEL_ENV=production`
 (nebo bez `VERCEL_ENV` při hostování mimo Vercel). `APP_BASE_URL` musí být
 veřejná HTTPS doména; neplatná, lokální či Vercel preview adresa použije
-výchozí `https://www.splatno.cz`. Kanonická adresa se neodvozuje z požadavku.
-U `splatno.cz` se vždy použije kanonická varianta `www.splatno.cz`, v souladu
-s přesměrováním domény ve Vercelu. Next.js obsahuje stejné přesměrování jako
-zálohu, včetně zachování cesty, parametrů a metody požadavku.
+výchozí `https://www.splatno.com`. Kanonická adresa se neodvozuje z požadavku.
+Všechny varianty Splatna (`splatno.cz`, `www.splatno.cz`, `splatno.com`,
+`www.splatno.com`) se pro metadata normalizují na `https://www.splatno.com`,
+i když konfigurace prostředí stále obsahuje starší doménu. Next.js přesměruje
+obě `.cz` varianty i apex `.com` na `www.splatno.com` s HTTP 308 a zachováním
+cesty, parametrů a metody požadavku.
 
 ## Ověření
 
@@ -51,19 +53,42 @@ do ignorované `.artifacts/seo/`. Jinou adresu lze nastavit pomocí
 ## Po nasazení
 
 1. Ověřit, že skutečná produkce vrací na `/` a `/en` HTTP 200 bez `noindex`.
-2. V Google Search Console používat doménovou službu `splatno.cz`, která
-   zahrnuje `www`, ostatní subdomény a HTTP/HTTPS. Uživatel potvrdil, že tato
-   služba už je ověřená. Přímá kontrola účtu vyžaduje jeho propojení.
-3. Odeslat `https://www.splatno.cz/sitemap.xml` (nebo sitemap na nakonfigurované doméně).
-4. V Search Console zkontrolovat obě jazykové URL a následně indexaci a hledané dotazy.
+2. V Google Search Console ověřit doménovou službu `splatno.com`; stávající
+   ověření `splatno.cz` se na jinou doménu automaticky nevztahuje.
+3. Odeslat `https://www.splatno.com/sitemap.xml`.
+4. V Search Console zkontrolovat obě veřejné URL, živou odpověď a Googlem
+   vybranou kanonickou adresu; potom požádat o indexaci.
 5. Právní texty přidat do veřejné indexace až po dokončení a schválení obsahu.
 
-Obě domény jsou v projektu Vercel `invoice-app` ověřené. `splatno.cz` má
-nastavené trvalé přesměrování 308 na `www.splatno.cz`. Autoritativní DNS je
-u WEDOSu; Vercel u obou domén hlásí `misconfigured=false`.
-Pro kontrolu skutečné produkce spusťte `corepack pnpm check:domains`.
-Přesměrování apex domény je v Search Console očekávaný stav; indexovat se
-má výsledná kanonická stránka na `www`, ne její přesměrovaná kopie.
+### Přechod na .com — připravený k nasazení 22. 10. 2026
+
+Uživatel zvolil `www.splatno.com` jako hlavní doménu. V projektu Vercel
+`invoice-app` (`prj_JfDfhBKx5lyiluLO5c4wVUnTTAJz`, tým
+`team_WrYh8HxKpWtmy4tMh9Y36iXy`) byly čtecím konektorem ověřeny všechny
+čtyři domény. Aktuální produkce stále vrací canonical na `.cz`.
+`www.splatno.com` nemá platformní přesměrování, apex `.com` míří 308 na
+`www.splatno.com`; apex `.cz` zatím míří 308 na `www.splatno.cz`.
+
+Připravená změna zahrnuje metadata, sitemapu, robots odkaz, strukturovaná
+data, doménu v OG obrázku, aplikační přesměrování, příklad APP_BASE_URL a
+ověřovací skripty. Historické výsledky níže popisují stav před tímto přechodem.
+
+Při produkčním přechodu:
+
+- Nasadit tuto SEO změnu odděleně od rozpracovaného redesignu.
+- Nastavit obě `.cz` domény ve Vercelu přímo na 308 `www.splatno.com`.
+  Aplikační přesměrování funguje i jako záloha; bez platformní změny může
+  apex `.cz` absolvovat jeden přesměrovací krok navíc.
+- Nastavit produkční APP_BASE_URL na `https://www.splatno.com`. Před změnou
+  ověřit povolené návratové adresy autentizace pro `.com`, protože APP_BASE_URL
+  slouží i e-mailovým odkazům. Samotná změna SEO nepřepisuje nastavení Auth.
+- Spustit `node scripts/domain-seo-check.mjs`: očekává HTTP/HTTPS obou TLD,
+  hlavní `.com` canonical, sitemapu a zachovanou ochranu přihlášení.
+- V Search Console ověřit `.com`, odeslat novou sitemapu a zkontrolovat URL.
+  Pokud jde o přesun již indexovaného webu, využít nástroj Změna adresy
+  ve staré službě `.cz` až po funkčním nasazení a přesměrováních.
+
+Produkční nastavení, prostředí ani deployment během přípravy nebyly změněny.
 
 Technická připravenost sama nezaručuje pořadí ani zařazení do výsledků.
 Strukturovaná data popisují skutečný produkt; neobsahují vymyšlená hodnocení.
@@ -84,3 +109,30 @@ Strukturovaná data popisují skutečný produkt; neobsahují vymyšlená hodnoc
 Podklady: [Google: robots a noindex](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag),
 [Google: sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap),
 [Google: jazykové verze](https://developers.google.com/search/docs/specialty/international/localized-versions).
+
+## Čtecí kontrola produkce 22. 10. 2026
+
+`node scripts/domain-seo-check.mjs` prošel proti skutečné produkci bez
+přihlášení, změn konfigurace a nasazení. Výsledek je uložený v ignorované
+`.artifacts/seo/domain-check.json`. Také prošlo 25 testů `src/lib/seo.test.ts`.
+
+- `/` a `/en` na `https://www.splatno.cz` vracejí HTTP 200, index/follow,
+  odpovídající canonical a žádnou hlavičku X-Robots-Tag s noindex.
+- HTTP i HTTPS varianty obou hostů přecházejí trvalými přesměrováními
+  na HTTPS www; zachovávají cestu a parametry. Kontrola s User-Agent Googlebot
+  vrací obě veřejné stránky s HTTP 200 a povolenou indexací.
+- `/robots.txt` a `/sitemap.xml` vracejí HTTP 200. Sitemap obsahuje pouze
+  českou a anglickou veřejnou stránku a odpovídá kanonické doméně.
+- Anonymní `/invoices` přesměruje na přihlášení; přihlášení včetně varianty
+  `?returnTo=/invoices` vrací noindex v metadatech i hlavičce.
+
+Tyto kontroly nepotvrzují zařazení do indexu ani stav ověření v účtu Search
+Console. Screenshot obsahuje historickou chybu 5xx, ale ne její konkrétní URL;
+bez detailu této chyby nelze určit příčinu ani označit incident za vyřešený.
+U přihlášení je noindex očekávaný. Alternativní stránka se správným canonical
+je v pořádku, pokud Google vybral odpovídající veřejnou URL na HTTPS www.
+
+Další postup v Search Console: zkontrolovat živou hlavní URL a `/en`, ověřit
+uživatelem a Googlem zvolenou kanonickou adresu, požádat o indexaci těchto
+veřejných URL a ověřit úspěšné zpracování produkční sitemapy. Konkrétní URL
+5xx nejprve otestovat a až po odstranění příčiny spustit ověření opravy.

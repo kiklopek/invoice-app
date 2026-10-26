@@ -1,0 +1,25 @@
+.background.background.background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: clip;
+  background:
+    radial-gradient(ellipse at 88% 10%, #ecf5ef55, transparent 50%), #f9fbf9;
+}
+.background.background::before,
+.background.background::after {
+  content: none;
+  display: none;
+}
+.background > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+@media print {
+  .background.background {
+    display: none;
+  }
+}

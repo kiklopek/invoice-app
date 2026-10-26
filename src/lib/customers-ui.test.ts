@@ -13,7 +13,7 @@ const css = source("src/app/minimal.css");
 describe("customers page presentation", () => {
   it("uses the shared visual hierarchy and a compact customer overview", () => {
     expect(customersPage).toContain('className="section-header customers-hero"');
-    expect(customersPage).toContain('className="page-panel customers-toolbar"');
+    expect(customersPage).toContain('className="customers-toolbar" role="search"');
     expect(customersPage).toContain("Kontakty, fakturace a stav pohledávek");
   });
 

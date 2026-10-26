@@ -1,7 +1,10 @@
 "use client";
 
+import { ExactMoney } from "@/components/money-amount";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ChevronDown } from "@/components/chevron-down";
 import { apiFetch } from "@/lib/api-client";
 import { confirmAction } from "@/lib/confirm-action";
 import type { AssistanceFlags } from "@/lib/payment-assistance-flags";
@@ -84,19 +87,19 @@ export function PaymentAssistancePanel({ flags, payments, onConfirmed }: { flags
         const p = row.proposal;
         return <article key={row.id} className={styles.card}>
           <strong>{labels[p.kind]} · {p.payment_ids.length} plateb / {p.invoice_ids.length} faktur</strong><p>{p.reason}</p>
-          {p.snapshot.payments.map(payment => <p key={payment.id}>Platba {payment.booked_on} · {payment.counterparty_name || "Neznámý plátce"} · {money(payment.amount-payment.allocated_amount,payment.currency)}</p>)}
+          {p.snapshot.payments.map(payment => <p key={payment.id}>Platba {payment.booked_on} · {payment.counterparty_name || "Neznámý plátce"} · <ExactMoney value={payment.amount-payment.allocated_amount} currency={payment.currency} /></p>)}
           {p.allocations.map(a => <p key={`${a.payment_id}:${a.invoice_id}`}>
-            {p.snapshot.payments.find(payment => payment.id === a.payment_id)?.booked_on} → <Link href={`/invoices/${a.invoice_id}`}>Faktura {p.snapshot.invoices.find(i => i.id === a.invoice_id)?.invoice_number}</Link> · {money(a.amount,p.currency)}
+            {p.snapshot.payments.find(payment => payment.id === a.payment_id)?.booked_on} → <Link href={`/invoices/${a.invoice_id}`}>Faktura {p.snapshot.invoices.find(i => i.id === a.invoice_id)?.invoice_number}</Link> · <ExactMoney value={a.amount} currency={p.currency} />
           </p>)}
           <div className={styles.actions}>{p.kind === "unique" && <button type="button" className="btn primary compact" disabled={working} onClick={() => decide(row,true)}>Potvrdit přiřazení</button>}
             <button type="button" className="btn secondary compact" disabled={working} onClick={() => decide(row,false)}>Odmítnout návrh</button></div>
         </article>;
       })}</div>
-      <details><summary>Platby čekající na doplnění faktur</summary><div className={styles.list}>{data.payments.map(p => <div className={styles.card} key={p.id}>
-        <span>{p.counterparty_name || "Neznámý plátce"} · {money(p.amount,p.currency)} {p.assistance_waiting && "· Čeká na fakturu"}</span>
+      <details><summary>Platby čekající na doplnění faktur<ChevronDown /></summary><div className={styles.list}>{data.payments.map(p => <div className={styles.card} key={p.id}>
+        <span>{p.counterparty_name || "Neznámý plátce"} · <ExactMoney value={p.amount} currency={p.currency} /> {p.assistance_waiting && "· Čeká na fakturu"}</span>
         <button type="button" className="btn secondary compact" aria-pressed={p.assistance_waiting} disabled={working} onClick={() => mutate({ action:"waiting",payment_id:p.id,waiting:!p.assistance_waiting })}>{p.assistance_waiting ? "Zrušit čekání" : "Čeká na fakturu"}</button>
       </div>)}</div></details>
-      {flags.memory && <details><summary>Paměť zákazníků · zapamatovat pro příště</summary>
+      {flags.memory && <details><summary>Paměť zákazníků · zapamatovat pro příště<ChevronDown /></summary>
         <p>Ukládejte jen osobně ověřené vazby. Reference níže znamená přesný opakující se text zprávy, například číslo objednávky.</p>
         <div className={styles.list}>{data.memories.map(m => <div className={styles.card} key={m.id}>
           <span>IČO {m.counterparty_ico} · {m.account || m.payer_name || m.reference} · {m.active ? "Aktivní" : "Neaktivní"}</span>

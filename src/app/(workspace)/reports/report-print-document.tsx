@@ -22,7 +22,8 @@ function money(value: number, currency: string) {
   return new Intl.NumberFormat("cs-CZ", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -71,7 +72,6 @@ export function ReportPrintDocument({ report, currency, companyName, companyLogo
   const maxCustomer = Math.max(1, ...topCustomers.map((row) => Number(row.revenue)));
   const averageInvoice = report.invoice_count ? Number(report.total) / report.invoice_count : 0;
   const controls = [
-    { label: "Ruční kontrola plateb", value: totals.needs_review, tone: totals.needs_review ? "warning" : "ok" },
     { label: "Nespárované platby", value: totals.unmatched_payments, tone: totals.unmatched_payments ? "danger" : "ok" },
     { label: "Nesoulad bankovního účtu", value: totals.unacknowledged_mismatch_imports, tone: totals.unacknowledged_mismatch_imports ? "danger" : "ok" },
   ] as const;
@@ -89,6 +89,7 @@ export function ReportPrintDocument({ report, currency, companyName, companyLogo
 
   return <section className="report-print-document" aria-label="Účetní report pro tisk">
     <article className="print-report-page print-report-summary-page">
+      <p className="print-report-methodology">Metodika: fakturace a DPH včetně vybraných storen; evidované úhrady jsou současné evidované úhrady vybraných nestornovaných faktur, nikoli tok během období. Pohledávky jsou dnešní zůstatky vybraných faktur, bez rekonstrukce historie. DPH: jedna sazba na fakturu, bez DUZP a odpočtů. Bankovní část: celá firma, všechny měny (pouze počty), podle zaúčtování výpisů; nespárované podle data bankovní platby. Fakturové filtry se na bankovní část nevztahují.</p>
       <header className="print-report-cover">
         <CompanyLogo src={companyLogo} name={companyName} className="print-report-logo" />
         <div className="print-report-cover-title"><span>ÚČETNÍ REPORT</span><h1>{companyName}</h1><p>{period}</p></div>
@@ -111,7 +112,7 @@ export function ReportPrintDocument({ report, currency, companyName, companyLogo
       </section>
 
       <section className="print-report-block">
-        <div className="print-report-block-heading"><div><h2>Rozpis DPH</h2><p>Podklad pro kontrolu daňového přiznání</p></div><strong>{money(taxTotal, currency)}</strong></div>
+        <div className="print-report-block-heading"><div><h2>Rozpis DPH</h2><p>Orientační kontrola evidovaných základů a daně</p></div><strong>{money(taxTotal, currency)}</strong></div>
         {report.vat_breakdown.length ? <table className="print-report-table print-vat-table"><thead><tr><th>Sazba</th><th>Základ daně</th><th>DPH</th><th>Celkem</th><th>Faktur</th></tr></thead><tbody>{report.vat_breakdown.map((row) => <tr key={row.vat_rate}><td><strong>{row.vat_rate} %</strong></td><td>{money(Number(row.base), currency)}</td><td>{money(Number(row.tax), currency)}</td><td>{money(Number(row.gross), currency)}</td><td>{row.count}</td></tr>)}</tbody><tfoot><tr><td>Celkem</td><td>{money(netTotal, currency)}</td><td>{money(taxTotal, currency)}</td><td>{money(Number(report.total), currency)}</td><td>{report.vat_breakdown.reduce((sum, row) => sum + row.count, 0)}</td></tr></tfoot></table> : <p className="print-report-empty">Ve vybraném období nejsou data pro rozpis DPH.</p>}
       </section>
 
@@ -137,7 +138,7 @@ export function ReportPrintDocument({ report, currency, companyName, companyLogo
       <PageHeader number="03" title="Tržby a odběratelé" subtitle="Vývoj fakturace, úhrad a koncentrace odběratelů" />
       <div className="print-revenue-grid">
         <div className="print-revenue-column print-revenue-primary-column">
-          <section className="print-report-block print-revenue-main"><div className="print-report-block-heading"><div><h2>Fakturace a úhrady</h2><p>Měsíční srovnání vystavených a přijatých částek</p></div></div>{report.monthly.length === 1 ? <div className="print-single-month"><span>{monthLabel(report.monthly[0].key)}</span><div><article><small>Vystaveno</small><strong>{money(Number(report.monthly[0].issued), currency)}</strong></article><article><small>Uhrazeno</small><strong>{money(Number(report.monthly[0].paid), currency)}</strong></article></div></div> : report.monthly.length ? <div className="print-column-chart">{report.monthly.map((row) => <div key={row.key}><div><i className="issued" style={{ height: `${Number(row.issued) / maxMonthly * 100}%` }}/><i className="paid" style={{ height: `${Number(row.paid) / maxMonthly * 100}%` }}/></div><span>{monthLabel(row.key)}</span></div>)}</div> : <p className="print-report-empty">Ve vybraném období nejsou žádné faktury.</p>}</section>
+          <section className="print-report-block print-revenue-main"><div className="print-report-block-heading"><div><h2>Fakturace a úhrady</h2><p>Oba sloupce podle měsíce vystavení vybraných faktur, nikoli peněžní tok plateb</p></div></div>{report.monthly.length === 1 ? <div className="print-single-month"><span>{monthLabel(report.monthly[0].key)}</span><div><article><small>Vystaveno</small><strong>{money(Number(report.monthly[0].issued), currency)}</strong></article><article><small>Uhrazeno</small><strong>{money(Number(report.monthly[0].paid), currency)}</strong></article></div></div> : report.monthly.length ? <div className="print-column-chart">{report.monthly.map((row) => <div key={row.key}><div><i className="issued" style={{ height: `${Number(row.issued) / maxMonthly * 100}%` }}/><i className="paid" style={{ height: `${Number(row.paid) / maxMonthly * 100}%` }}/></div><span>{monthLabel(row.key)}</span></div>)}</div> : <p className="print-report-empty">Ve vybraném období nejsou žádné faktury.</p>}</section>
           <section className="print-report-block print-yoy-block"><div className="print-report-block-heading"><div><h2>Meziroční srovnání</h2><p>Aktuální období proti předchozímu roku</p></div></div>{report.yoy_monthly.length === 1 ? <div className="print-single-month compact"><span>{monthNumberLabel(report.yoy_monthly[0].month)}</span><div><article><small>Předchozí rok</small><strong>{money(Number(report.yoy_monthly[0].prior_year), currency)}</strong></article><article><small>Aktuální rok</small><strong>{money(Number(report.yoy_monthly[0].current_year), currency)}</strong></article></div></div> : report.yoy_monthly.length ? <div className="print-column-chart compact">{report.yoy_monthly.map((row) => <div key={row.month}><div><i className="prior" style={{ height: `${Number(row.prior_year) / maxYoy * 100}%` }}/><i className="current" style={{ height: `${Number(row.current_year) / maxYoy * 100}%` }}/></div><span>{monthNumberLabel(row.month)}</span></div>)}</div> : <p className="print-report-empty">Pro meziroční srovnání nejsou dostupná data.</p>}</section>
         </div>
         <div className="print-revenue-column print-revenue-secondary-column">
@@ -148,15 +149,15 @@ export function ReportPrintDocument({ report, currency, companyName, companyLogo
     </article>
 
     {hasPaymentActivity && <article className="print-report-page">
-      <PageHeader number="04" title="Párování bankovních plateb" subtitle="Výsledek automatického zpracování a otevřené kontroly" />
+      <PageHeader number="04" title="Párování bankovních plateb" subtitle="Přijaté řádky zaúčtovaných výpisů a nespárované platby" />
       <section className="print-report-metrics four" aria-label="Souhrn párování plateb">
-        <Metric label="Přijaté platby" value={String(totals.accepted)} note="potvrzeno v období" />
-        <Metric label="Automaticky spárováno" value={String(totals.auto_matched)} note={`${reviewedPayments ? Math.round(totals.auto_matched / reviewedPayments * 100) : 0} % posouzených`} tone="primary" />
-        <Metric label="Ruční kontrola" value={String(totals.needs_review)} note="vyžadovalo rozhodnutí" tone={totals.needs_review ? "warning" : undefined} />
+        <Metric label="Přijaté řádky výpisů" value={String(totals.accepted)} note="potvrzeno v období" />
+        <Metric label="Bezpečný návrh" value={String(totals.auto_matched)} note={`${reviewedPayments ? Math.round(totals.auto_matched / reviewedPayments * 100) : 0} % posouzených`} tone="primary" />
+        <Metric label="Ruční posouzení" value={String(totals.needs_review)} note="přijaté řádky po posouzení nebo bez návrhu" />
         <Metric label="Nespárované" value={String(totals.unmatched_payments)} note="zbývá vyřešit" tone={totals.unmatched_payments ? "warning" : undefined} />
       </section>
-      <section className="print-report-block print-matching-block"><div className="print-report-block-heading"><div><h2>Úspěšnost párování</h2><p>Poměr automatického zpracování a ruční kontroly</p></div><strong>{reviewedPayments ? Math.round(totals.auto_matched / reviewedPayments * 100) : 0} % automaticky</strong></div><div className="print-matching-bar"><i className="auto" style={{ width: `${reviewedPayments ? totals.auto_matched / reviewedPayments * 100 : 0}%` }}/><i className="review" style={{ width: `${reviewedPayments ? totals.needs_review / reviewedPayments * 100 : 0}%` }}/></div><div className="print-matching-legend"><span><i className="auto"/>Automaticky <strong>{totals.auto_matched}</strong></span><span><i className="review"/>Ruční kontrola <strong>{totals.needs_review}</strong></span>{totals.unacknowledged_mismatch_imports > 0 && <span className="danger"><i/>Nesoulad účtu <strong>{totals.unacknowledged_mismatch_imports}</strong></span>}</div></section>
-      <section className="print-report-block print-imports-block"><div className="print-report-block-heading"><div><h2>Poslední potvrzené výpisy</h2><p>Zobrazeno {topImports.length} z {report.payment_reconciliation.recent_imports.length} importů · úplný přehled je dostupný v aplikaci</p></div></div>{topImports.length ? <table className="print-report-table print-imports-table"><thead><tr><th>Soubor</th><th>Datum</th><th>Přijato</th><th>Automaticky</th><th>Kontrola</th><th>Chyby</th></tr></thead><tbody>{topImports.map((item) => <tr key={item.id}><td><strong>{item.filename}</strong></td><td>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</td><td>{item.accepted_count}</td><td>{item.auto_matched}</td><td className={item.needs_review ? "is-warning" : undefined}>{item.needs_review}</td><td className={item.error_count ? "is-risk" : undefined}>{item.error_count}</td></tr>)}</tbody></table> : <p className="print-report-empty">V období nejsou žádné potvrzené bankovní výpisy.</p>}</section>
+      <section className="print-report-block print-matching-block"><div className="print-report-block-heading"><div><h2>Způsob posouzení</h2><p>Bezpečné návrhy vs. ručně posuzované přijaté řádky</p></div><strong>{reviewedPayments ? Math.round(totals.auto_matched / reviewedPayments * 100) : 0} % bezpečných návrhů</strong></div><div className="print-matching-bar"><i className="auto" style={{ width: `${reviewedPayments ? totals.auto_matched / reviewedPayments * 100 : 0}%` }}/><i className="review" style={{ width: `${reviewedPayments ? totals.needs_review / reviewedPayments * 100 : 0}%` }}/></div><div className="print-matching-legend"><span><i className="auto"/>Bezpečný návrh <strong>{totals.auto_matched}</strong></span><span><i className="review"/>Ruční posouzení <strong>{totals.needs_review}</strong></span>{totals.unacknowledged_mismatch_imports > 0 && <span className="danger"><i/>Nesoulad účtu <strong>{totals.unacknowledged_mismatch_imports}</strong></span>}</div></section>
+      <section className="print-report-block print-imports-block"><div className="print-report-block-heading"><div><h2>Poslední potvrzené výpisy</h2><p>Zobrazeno {topImports.length} z {report.payment_reconciliation.recent_imports.length} importů · úplný přehled je dostupný v aplikaci</p></div></div>{topImports.length ? <table className="print-report-table print-imports-table"><thead><tr><th>Soubor</th><th>Datum</th><th>Přijato</th><th>Bezpečný návrh</th><th>Kontrola</th><th>Chyby</th></tr></thead><tbody>{topImports.map((item) => <tr key={item.id}><td><strong>{item.filename}</strong></td><td>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</td><td>{item.accepted_count}</td><td>{item.auto_matched}</td><td className={item.needs_review ? "is-warning" : undefined}>{item.needs_review}</td><td className={item.error_count ? "is-risk" : undefined}>{item.error_count}</td></tr>)}</tbody></table> : <p className="print-report-empty">V období nejsou žádné potvrzené bankovní výpisy.</p>}</section>
     </article>}
   </section>;
 }

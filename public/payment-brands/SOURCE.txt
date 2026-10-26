@@ -1,0 +1,3 @@
+SVG Credit Card & Payment Icons by Aaron Fagan
+https://github.com/aaronfagan/svg-credit-card-payment-icons
+Flat SVG assets, unchanged. Licensed under Apache-2.0; see LICENSE.txt.

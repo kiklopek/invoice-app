@@ -1,0 +1,298 @@
+@font-face {
+  font-family: "Splatno Dashboard Inter";
+  src: url("/fonts/inter/InterVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+/* Shared workspace chrome. Individual page contents retain their own styles. */
+.shell {
+  --app-sidebar-width: 244px;
+  --workspace-content-top: 20px;
+  --workspace-content-inline: 32px;
+  --workspace-text-meta: 12px;
+  --workspace-text-body: 14px;
+  --workspace-text-input: 16px;
+  --workspace-text-secondary: #526b5b;
+  --dash-ink: #17251f;
+  --dash-muted: #6b7673;
+  --dash-line: #e7ede9;
+  background: transparent;
+}
+.shell.shell > :global(.content) {
+  position: relative;
+  z-index: 1;
+  width: calc(100% - var(--app-sidebar-width));
+  margin-left: var(--app-sidebar-width);
+  background: transparent;
+}
+.shell.shell :global(.sidebar) {
+  width: var(--app-sidebar-width);
+  padding: 30px 22px 38px;
+  border-right: 1px solid var(--dash-line);
+  background: #f9fbf866;
+  color: var(--dash-ink);
+  font-family: "Splatno Dashboard Inter", Inter, sans-serif;
+}
+.shell.shell :global(.sidebar > .brand) {
+  position: static;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  width: auto;
+  height: auto;
+  min-height: 30px;
+  margin: 0 22px 44px;
+  padding: 0;
+  color: #14231c;
+  font-family: "Splatno Dashboard Inter", Inter, sans-serif;
+  line-height: 1;
+  letter-spacing: -0.8px;
+  text-decoration: none;
+}
+.shell.shell :global(.brand > svg) {
+  flex: none;
+  display: block;
+  width: 24px;
+  height: 28px;
+  filter: none;
+}
+.shell.shell :global(.brand > strong) {
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.8px;
+}
+.shell.shell :global(.sidebar > .brand:hover) {
+  color: #14231c;
+  background: transparent;
+  transform: none;
+}
+.shell.shell :global(.sidebar > .desktop-navigation) {
+  gap: 2px;
+  margin: 0 0 0 10px;
+  padding-top: 0;
+}
+.shell.shell :global(.nav-heading) {
+  display: none;
+}
+.shell.shell :global(.desktop-navigation .nav-item-group > a) {
+  height: 46px;
+  min-height: 46px;
+  gap: 14px;
+  padding: 12px 15px;
+  border: 0;
+  border-radius: 9px;
+  color: #56625d;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+}
+.shell.shell :global(.desktop-navigation .nav-item-group > a.active) {
+  color: #205d40;
+  background: #e8f2eb;
+  font-weight: 650;
+}
+.shell.shell :global(.desktop-navigation .nav-item-group > a:hover) {
+  color: #205d40;
+  background: #edf3ee;
+}
+.shell.shell :global(.desktop-navigation a.active)::before {
+  display: none;
+}
+.shell.shell :global(.nav-symbol) {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 22px;
+  color: inherit;
+}
+.shell.shell :global(.nav-symbol svg) {
+  width: 20px;
+  height: 20px;
+}
+.shell.shell :global(.desktop-navigation a em) {
+  color: #54635b;
+  background: #e7ece9;
+  font-size: 11px;
+}
+/* Existing subroutes must stay readable on the new light navigation. */
+.shell.shell :global(.desktop-navigation .nav-subitems a) {
+  color: #56625d;
+  font-size: 12px;
+  background: transparent;
+}
+.shell.shell :global(.desktop-navigation .nav-subitems a:hover),
+.shell.shell :global(.desktop-navigation .nav-subitems a.active) {
+  color: #205d40;
+  background: #e8f2eb;
+}
+.shell.shell :global(.desktop-navigation .nav-subitems a)::before {
+  color: #658272;
+}
+.shell.shell :global(.sidebar-logout-error) {
+  color: #ad3c35;
+}
+.shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--dash-line);
+}
+.shell.shell :global(.sidebar-bottom) {
+  margin-top: auto;
+  border: 0;
+}
+.shell.shell :global(.user-card) {
+  gap: 8px;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 0 0 10px;
+  color: var(--dash-ink);
+  border: 0;
+}
+.shell.shell :global(.user-card .avatar) {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  background: #e2eee4;
+  color: #276447;
+}
+.shell.shell :global(.dashboard-profile-logo) {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.shell.shell :global(.user-card strong) {
+  color: #20362a;
+  font-size: 13px;
+}
+.shell.shell :global(.user-card small) {
+  color: #6b7673;
+  font-size: 12px;
+}
+.shell.shell .logoutButton {
+  flex: 0 0 36px;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #17613f;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+.shell.shell .logoutButton svg { width: 20px; height: 20px; }
+.shell.shell .logoutButton:hover:not(:disabled) { background: transparent; color: #0e442b; }
+.shell.shell .logoutButton:focus-visible { outline: 2px solid #17613f; outline-offset: 3px; }
+.shell.shell .logoutButton:disabled { opacity: .6; cursor: wait; }
+@media (pointer: coarse) {
+  .shell.shell .logoutButton { flex-basis: 44px; width: 44px; height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .shell.shell .logoutButton { transition: none; } }
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .shell {
+    --app-sidebar-width: 220px;
+  }
+  .shell.shell :global(.sidebar) {
+    padding-inline: 16px;
+  }
+}
+/* Short desktop windows may scroll navigation instead of losing account actions. */
+@media (min-width: 1024px) and (max-height: 740px) {
+  .shell.shell :global(.sidebar) {
+    overflow-y: auto;
+  }
+  .shell.shell :global(.sidebar-bottom) {
+    flex-shrink: 0;
+    margin-top: 24px;
+  }
+}
+@media (max-width: 1023px) {
+  .shell.shell > :global(.content) {
+    width: 100%;
+    margin-left: 0;
+  }
+  .shell.shell :global(.sidebar) {
+    width: 100%;
+    height: calc(var(--mobile-navigation-height) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 0 0;
+    border: 0;
+    border-bottom: 1px solid #e7ede9;
+    background: #f9fcf8;
+  }
+  .shell.shell :global(.mobile-navigation-bar) {
+    background: #f9fcf8;
+  }
+  .shell.shell :global(.mobile-navigation-current),
+  .shell.shell :global(.mobile-navigation-current strong),
+  .shell.shell :global(.mobile-navigation-toggle) {
+    color: #245f42;
+  }
+  .shell.shell :global(.mobile-navigation-logo) {
+    filter: none;
+  }
+  .shell.shell :global(.mobile-navigation-toggle:hover) {
+    background: #e8f2eb;
+  }
+  .shell.shell :global(.mobile-navigation-toggle > span) {
+    background: #245f42;
+  }
+}
+@media print {
+  .shell.shell :global(.sidebar) {
+    display: none;
+  }
+  .shell.shell > :global(.content) {
+    width: 100%;
+    margin: 0;
+  }
+}
+
+/* One shared source of desktop toolbar placement, independent of page modules. */
+@media (min-width: 1024px) {
+  .shell.shell > :global(main.content) {
+    padding-top: var(--workspace-content-top);
+    padding-inline: var(--workspace-content-inline);
+  }
+}
+@media (min-width: 1440px) { .shell { --workspace-content-inline: 42px; } }
+.shell :global(.customer-email-edit input),
+.shell :global(.customer-phone-edit input) {
+  font-size: var(--workspace-text-input); min-height: 44px; width: min(240px, 100%);
+}
+.shell :global(.customer-email-edit), .shell :global(.customer-phone-edit) { min-width: 0; width: 100%; }
+.shell :global(.customer-email-edit input), .shell :global(.customer-phone-edit input) { flex: 1; min-width: 0; }
+.shell :global(.members-list button), .shell :global(.member-add button) { font-size: var(--workspace-text-body); }
+.shell :global(.members-list small) { font-size: var(--workspace-text-meta); color: var(--workspace-text-secondary); }
+.shell :global(.reminder-category-card label), .shell :global(.rules-panel label),
+.shell :global(.policy-name-row label > span) { font-size: var(--workspace-text-meta); color: var(--workspace-text-secondary); }
+.shell :global(.reminder-category-card input), .shell :global(.rules-panel input), .shell :global(.rules-panel select) { font-size: var(--workspace-text-input); }
+@media (max-width: 767px) {
+  .shell :global(.human-rules .rule-controls) { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
+  .shell :global(.human-rules .rule-controls > span) { grid-column: 1 / -1; font-size: var(--workspace-text-meta); }
+  .shell :global(.human-rules .rule-controls input) { grid-column: 1; width: 100%; min-width: 0; }
+  .shell :global(.human-rules .rule-controls select) { grid-column: 2; width: 100%; min-width: 0; }
+  .shell :global(.human-rules .rule-controls:not(:has(input)) select) { grid-column: 1 / -1; }
+}
+.shell :global(.rules-panel .category-header-actions) { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.shell :global(.human-rules .rule-main > strong) { font-size: var(--workspace-text-body); }
+.shell :global(.human-rules .rule-order), .shell :global(.policy-name-row label > span) { font-size: var(--workspace-text-meta); }
+
+@media (max-width: 1023px) {
+  .shell :global(.mobile-navigation-panel) { display: flex; flex-direction: column; }
+  .shell :global(.mobile-navigation-panel > *) { flex-shrink: 0; }
+  .mobileEskoFooter { margin-top: auto; padding-top: 16px; }
+}
+
+.desktopEskoFooter { margin-bottom: 24px; }

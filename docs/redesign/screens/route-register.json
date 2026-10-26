@@ -1,0 +1,2028 @@
+{
+  "schema_note": "P00 source audit, metadata for each of the 28 actual routes; null means not supplied/verified. Stable R and ST IDs are retained.",
+  "screens": [
+    {
+      "id": "R01",
+      "route": "/forgot-password",
+      "source": "src/app/(auth)/forgot-password/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R02",
+      "route": "/hlavica",
+      "source": "src/app/(auth)/hlavica/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R03",
+      "route": "/hlavica/registrace",
+      "source": "src/app/(auth)/hlavica/registrace/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R04",
+      "route": "/login",
+      "source": "src/app/(auth)/login/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R05",
+      "route": "/mfa",
+      "source": "src/app/(auth)/mfa/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R06",
+      "route": "/pozvanka/[token]",
+      "source": "src/app/(auth)/pozvanka/[token]/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R07",
+      "route": "/register",
+      "source": "src/app/(auth)/register/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R08",
+      "route": "/reset-password",
+      "source": "src/app/(auth)/reset-password/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.B",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Auth/login-session/OTP/recovery/invitation dle konkrétní routy.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-015–030",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(auth)/pozvanka/[token]/invitation-client.test.tsx",
+          "src/app/api/auth/register/route.test.ts",
+          "src/app/api/auth/registration-access/route.test.ts",
+          "src/app/api/auth/session-preference/route.test.ts",
+          "src/app/api/auth/trusted-device-routes.test.ts",
+          "src/app/api/invitations/[token]/route.test.ts",
+          "src/app/auth/callback/route.test.ts",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/auth-flow.test.ts",
+          "src/lib/auth-policy.test.ts",
+          "src/lib/auth-rate-limit.test.ts",
+          "src/lib/auth-security.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/invitation-claim.test.ts",
+          "src/lib/invitations.test.ts",
+          "src/lib/login-entry.test.ts",
+          "src/lib/login-session.test.ts",
+          "src/lib/password-policy.test.ts",
+          "src/lib/registration-code-server.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/verification-code.test.ts",
+          "e2e/registration-flow.spec.ts",
+          "e2e/staging-auth.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R09",
+      "route": "/en",
+      "source": "src/app/(landing)/en/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.A",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "CS/EN, veřejná metadata, landing/video/FAQ nebo právní obsah.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-001–014",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/components/landing/count-up.test.ts",
+          "src/lib/landing-static.test.ts",
+          "src/lib/seo.test.ts",
+          "e2e/landing-breakpoints.spec.ts",
+          "e2e/landing-faq.spec.ts",
+          "e2e/landing-process-motion.spec.ts",
+          "e2e/public-responsive.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R10",
+      "route": "/",
+      "source": "src/app/(landing)/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.A",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "CS/EN, veřejná metadata, landing/video/FAQ nebo právní obsah.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-001–014",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/components/landing/count-up.test.ts",
+          "src/lib/landing-static.test.ts",
+          "src/lib/seo.test.ts",
+          "e2e/landing-breakpoints.spec.ts",
+          "e2e/landing-faq.spec.ts",
+          "e2e/landing-process-motion.spec.ts",
+          "e2e/public-responsive.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R11",
+      "route": "/ochrana-osobnich-udaju",
+      "source": "src/app/(legal)/ochrana-osobnich-udaju/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.A",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "CS/EN, veřejná metadata, landing/video/FAQ nebo právní obsah.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-001–014",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/components/landing/count-up.test.ts",
+          "src/lib/landing-static.test.ts",
+          "src/lib/seo.test.ts",
+          "e2e/landing-breakpoints.spec.ts",
+          "e2e/landing-faq.spec.ts",
+          "e2e/landing-process-motion.spec.ts",
+          "e2e/public-responsive.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R12",
+      "route": "/podminky",
+      "source": "src/app/(legal)/podminky/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.A",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "CS/EN, veřejná metadata, landing/video/FAQ nebo právní obsah.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-001–014",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/components/landing/count-up.test.ts",
+          "src/lib/landing-static.test.ts",
+          "src/lib/seo.test.ts",
+          "e2e/landing-breakpoints.spec.ts",
+          "e2e/landing-faq.spec.ts",
+          "e2e/landing-process-motion.spec.ts",
+          "e2e/public-responsive.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R13",
+      "route": "/onboarding",
+      "source": "src/app/(onboarding)/onboarding/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.C",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Osm kroků, per-user draft a resume, ARES, firma/logo/tým/billing odděleně.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-031–044",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/api/onboarding/ares/route.test.ts",
+          "src/app/api/onboarding/draft/route.test.ts",
+          "src/app/api/onboarding/organization/route.test.ts",
+          "src/lib/company-validation.test.ts",
+          "src/lib/onboarding-draft.test.ts",
+          "src/lib/onboarding.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R14",
+      "route": "/provoz",
+      "source": "src/app/(operator)/provoz/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P17.D",
+      "mockup": [
+        "M21"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Operator guard, omezený support vstup, audit a expiry.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-150–153",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/api/operator/support/route.test.ts",
+          "src/lib/operator.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R15",
+      "route": "/customers",
+      "source": "src/app/(workspace)/customers/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P12",
+      "mockup": [
+        "M16"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Kontakt a potvrzení příjemce, kopírování, faktury zákazníka a Excel.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-093–101",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/api/customers/[id]/route.test.ts",
+          "src/app/api/customers/search/route.test.ts",
+          "src/lib/customer-invoice-linking.test.ts",
+          "src/lib/customer-search-query.test.ts",
+          "src/lib/customers-ui.test.ts",
+          "src/lib/text-search.test.ts",
+          "e2e/customer-email.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R16",
+      "route": "/dashboard",
+      "source": "src/app/(workspace)/dashboard/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P05",
+      "mockup": [
+        "M01"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": "dashboard/reference/assets/00-full-dashboard.png",
+      "status": "implemented-local; awaiting user visual review; no deployment",
+      "functional_contract": {
+        "summary": "Stejné KPI/attention a doménové agregace, role a cache.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified",
+        "implementation_spec": "dashboard/spec.md"
+      },
+      "visual_acceptance": {
+        "status": "user requested implementation of supplied SPL-DASH-001; final visual review pending",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-045–048",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/lib/dashboard-action-items.test.ts",
+          "src/lib/dashboard-summary.test.ts",
+          "src/app/(workspace)/dashboard/dashboard-client.test.tsx",
+          "src/app/(workspace)/dashboard/dashboard-presentation.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null,
+        "browser_fixture": "dashboard/verification.json (32 Chromium + 32 WebKit; not authenticated Next E2E)"
+      }
+    },
+    {
+      "id": "R17",
+      "route": "/invoices/[id]",
+      "source": "src/app/(workspace)/invoices/[id]/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P07",
+      "mockup": [
+        "M03"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Detail/read/edit/payment/reminders/history/document; revize a role.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-052–063",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/lib/invoice-detail-cache-invalidation.test.ts",
+          "src/lib/invoice-detail-presentation.test.ts",
+          "src/lib/invoice-pdf.test.ts",
+          "src/lib/invoice-validation.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R18",
+      "route": "/invoices/archive",
+      "source": "src/app/(workspace)/invoices/archive/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P06.C",
+      "mockup": [
+        "M13"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Archiv, filtry a stavy z původního API.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-053–063",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/invoices/invoice-payment-flow.test.ts",
+          "src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.test.tsx",
+          "src/app/(workspace)/invoices/payments/gpc-import-panel.test.tsx",
+          "src/app/api/invoices/[id]/assignable-payments/route.test.ts",
+          "src/app/api/invoices/[id]/money-integrity.test.ts",
+          "src/lib/invoice-list-query.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R19",
+      "route": "/invoices/import",
+      "source": "src/app/(workspace)/invoices/import/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P08",
+      "mockup": [
+        "M05",
+        "M06",
+        "M07"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "OCR upload/review/queue se zdroji, CSV all-or-nothing, private viewer.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-051, ST-064–071",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/lib/document-locate.test.ts",
+          "src/lib/document-validation.test.ts",
+          "src/lib/invoice-ocr-corpus.test.ts",
+          "src/lib/invoice-ocr-currency.test.ts",
+          "src/lib/invoice-ocr-gemini.test.ts",
+          "src/lib/invoice-ocr-label-values.test.ts",
+          "src/lib/invoice-ocr-reconcile.test.ts",
+          "src/lib/invoice-ocr-registry.test.ts",
+          "src/lib/invoice-ocr-schema.test.ts",
+          "src/lib/invoice-ocr-server.test.ts",
+          "src/lib/invoice-ocr-sources.test.ts",
+          "src/lib/invoice-ocr-vocabulary.test.ts",
+          "src/lib/invoice-ocr.test.ts",
+          "e2e/document-preview.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R20",
+      "route": "/invoices/new",
+      "source": "src/app/(workspace)/invoices/new/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P07.A",
+      "mockup": [
+        "M04"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Přidání existující faktury ke sledování; validace, finance, příjemce.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-050, ST-053–063",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/components/optional-payment-assignment.test.ts",
+          "src/lib/invoice-validation.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R21",
+      "route": "/invoices",
+      "source": "src/app/(workspace)/invoices/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P06",
+      "mockup": [
+        "M02"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "List query, filtry, řazení, counts, export a jednotlivé akce.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-049, ST-053–063",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/invoices/invoice-payment-flow.test.ts",
+          "src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.test.tsx",
+          "src/app/(workspace)/invoices/payments/gpc-import-panel.test.tsx",
+          "src/app/api/invoices/[id]/assignable-payments/route.test.ts",
+          "src/app/api/invoices/[id]/money-integrity.test.ts",
+          "src/lib/invoice-list-query.test.ts",
+          "src/lib/role-access.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R22",
+      "route": "/invoices/payments/archive",
+      "source": "src/app/(workspace)/invoices/payments/archive/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P11",
+      "mockup": [
+        "M15"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Historie, private original, discard/release a assistance dle role.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-073, ST-087–092",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/invoices/payments/archive/payment-assistance-panel.test.tsx",
+          "src/lib/payment-assistance-flags.test.ts",
+          "src/lib/payment-assistance.test.ts",
+          "src/lib/payment-reconciliation-query.test.ts",
+          "src/lib/reconciliation-errors.test.ts",
+          "src/lib/reconciliation-regressions.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R23",
+      "route": "/invoices/payments",
+      "source": "src/app/(workspace)/invoices/payments/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P09/P10",
+      "mockup": [
+        "M08",
+        "M09",
+        "M14"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Parser a review revize, potvrzení účtu, split, explicitní idempotentní commit.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-072, ST-074–086",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/invoices/payments/gpc-import-panel.test.tsx",
+          "src/lib/gpc-auto-match.test.ts",
+          "src/lib/gpc-feature.test.ts",
+          "src/lib/gpc-parser.test.ts",
+          "src/lib/payment-reconciliation-query.test.ts",
+          "src/lib/payment-validation.test.ts",
+          "src/lib/reconciliation-errors.test.ts",
+          "src/lib/reconciliation-regressions.test.ts",
+          "e2e/gpc-import.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R24",
+      "route": "/predplatne",
+      "source": "src/app/(workspace)/predplatne/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P16",
+      "mockup": [
+        "M20"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Backend entitlement/ceny/limity, trial, preview/confirm, Stripe sandbox.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-141–149",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/api/billing/stripe/route.test.ts",
+          "src/lib/billing.test.ts",
+          "src/lib/stripe-billing.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R25",
+      "route": "/reminders",
+      "source": "src/app/(workspace)/reminders/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P14.A/B",
+      "mockup": [
+        "M10",
+        "M18"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Automat/policies/operations, versionovaný společný save a skutečné mail side effects.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-120–129",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/reminders/company-logo-editor.test.tsx",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/counterparty-reminder-preferences.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/email.test.ts",
+          "src/lib/local-email-allowlist.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/reminder-automation-query.test.ts",
+          "src/lib/reminder-defaults.test.ts",
+          "src/lib/reminder-email-template.test.ts",
+          "src/lib/reminder-policies.test.ts",
+          "src/lib/reminder-queue-optimization.test.ts",
+          "src/lib/reminder-recipient-policy.test.ts",
+          "src/lib/reminder-recipient-safety.test.ts",
+          "src/lib/reminder-recipients.test.ts",
+          "src/lib/reminder-retry-route.test.ts",
+          "src/lib/reminder-subject.test.ts",
+          "src/lib/reminder-template.test.ts",
+          "src/lib/reminders.test.ts",
+          "e2e/customer-email.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R26",
+      "route": "/reports",
+      "source": "src/app/(workspace)/reports/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P13",
+      "mockup": [
+        "M11",
+        "M17"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Tržby/DPH/Pohledávky/Platby, měny, agregace, filtry a print/Excel.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-102–108",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/lib/report-print.test.ts",
+          "src/lib/report-query.test.ts",
+          "src/lib/reporting.test.ts",
+          "e2e/report-print.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R27",
+      "route": "/settings/email-template",
+      "source": "src/app/(workspace)/settings/email-template/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P14.C/D",
+      "mockup": [
+        "M18"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Čtyři stage, proměnné/reply/CC, shared PUT a nezávislý logo save.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-130–140",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/reminders/company-logo-editor.test.tsx",
+          "src/components/company-logo.test.tsx",
+          "src/lib/auth-code-email.test.ts",
+          "src/lib/company-logo-file.test.ts",
+          "src/lib/company-logo-validation-server.test.ts",
+          "src/lib/counterparty-reminder-preferences.test.ts",
+          "src/lib/email-mfa-core.test.ts",
+          "src/lib/email-mfa-server.test.ts",
+          "src/lib/email.test.ts",
+          "src/lib/local-email-allowlist.test.ts",
+          "src/lib/registration-email-server.test.ts",
+          "src/lib/reminder-automation-query.test.ts",
+          "src/lib/reminder-defaults.test.ts",
+          "src/lib/reminder-email-template.test.ts",
+          "src/lib/reminder-policies.test.ts",
+          "src/lib/reminder-queue-optimization.test.ts",
+          "src/lib/reminder-recipient-policy.test.ts",
+          "src/lib/reminder-recipient-safety.test.ts",
+          "src/lib/reminder-recipients.test.ts",
+          "src/lib/reminder-retry-route.test.ts",
+          "src/lib/reminder-subject.test.ts",
+          "src/lib/reminder-template.test.ts",
+          "src/lib/reminders.test.ts",
+          "e2e/customer-email.spec.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    },
+    {
+      "id": "R28",
+      "route": "/settings",
+      "source": "src/app/(workspace)/settings/page.tsx",
+      "owner": null,
+      "owner_status": "Produktový vlastník/schvalující osoba zatím neurčena jménem.",
+      "phase": "P15",
+      "mockup": [
+        "M19"
+      ],
+      "mockup_register": "../mockup-register.md",
+      "mockup_artifact": null,
+      "status": "source-audited; runtime-baseline-pending; implementation-not-started",
+      "functional_contract": {
+        "summary": "Versionovaná firma, účty, draft, admin edit/team/support, accounting read-only.",
+        "reference": "../03-route-and-contract-map.md",
+        "acceptance": "not-runtime-verified"
+      },
+      "visual_acceptance": {
+        "status": "artifact/version pending; see master declaration in mockup register",
+        "approved_artifact": null
+      },
+      "states": {
+        "reference": "../01-screen-inventory.md",
+        "scope": "ST-109–119",
+        "shared": "ST-154–173, ST-183–189; zúžit podle role a podfáze"
+      },
+      "responsive": {
+        "capture_planned": [
+          "1440x900",
+          "820x1180",
+          "390x844"
+        ],
+        "audit_widths": [
+          320,
+          375,
+          430,
+          768,
+          1024,
+          1440,
+          1600
+        ],
+        "reference": "../05-testing-matrix.md",
+        "actual_capture": null
+      },
+      "tests": {
+        "existing_related": [
+          "src/app/(workspace)/reminders/company-logo-editor.test.tsx",
+          "src/app/(workspace)/settings/bank-accounts-section.test.tsx",
+          "src/app/api/settings/bank-accounts/route.test.ts",
+          "src/app/api/settings/company/route.test.ts",
+          "src/app/api/settings/members/route.test.ts",
+          "src/components/company-logo.test.tsx",
+          "src/lib/company-branding.test.ts",
+          "src/lib/company-logo-file.test.ts",
+          "src/lib/company-logo-validation-server.test.ts",
+          "src/lib/company-settings-draft.test.ts",
+          "src/lib/company-validation.test.ts",
+          "src/lib/role-access.test.ts",
+          "src/lib/role-authorization.test.ts",
+          "src/lib/settings-page-data.test.ts",
+          "src/lib/tenant-exclusivity.test.ts",
+          "src/lib/use-access-role.test.ts"
+        ],
+        "matrix": "../05-testing-matrix.md",
+        "note": "Související testy podle domény; samotný seznam není důkaz pokrytí celé routy."
+      },
+      "last_verified": {
+        "source_baseline": "f0f5fcbade2531cfa50a2997e600ad79ad286729",
+        "source_audit_date": "2026-10-17",
+        "local_test_evidence": "../evidence/local-checks.txt",
+        "runtime": null,
+        "visual": null
+      }
+    }
+  ]
+}

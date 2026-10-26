@@ -195,6 +195,55 @@ describe("dvoufázové ověření", () => {
   });
 });
 
+describe("background reads during password login", () => {
+  it.each<{ headers: Record<string, string>; method: string }>([
+    { headers: { "sec-fetch-dest": "empty" }, method: "GET" },
+    { headers: { "next-router-prefetch": "1" }, method: "GET" },
+    { headers: { purpose: "prefetch" }, method: "GET" },
+    { headers: {}, method: "HEAD" },
+  ])("does not revoke the new Supabase session before bootstrap: %j", async ({ headers, method }) => {
+    authState.claims = { sub: "user-1", email: "ucetni@hlavica.cz", session_id: "new-session" };
+    // The browser has just received its JWT, before app cookies are written.
+    const { proxy } = await import("./proxy");
+    for (const path of ["/login", "/register", "/dashboard"]) {
+      const next = new NextRequest(`https://app.example${path}`, { method, headers });
+      const response = await proxy(next);
+      expect(authState.signOutCalls).toBe(0);
+      expect(response.cookies.getAll()).toEqual([]);
+      if (path === "/dashboard") {
+        expect(response.status).toBe(307);
+        expect(locationOf(response)).toContain("/login");
+      }
+    }
+  });
+
+  it("keeps MFA enforcement for a background request with an app session", async () => {
+    authState.claims = { sub: "user-1", email: "ucetni@hlavica.cz", session_id: "s1" };
+    const next = request("/dashboard", await signedInCookies("user-1", "s1"));
+    next.headers.set("sec-fetch-dest", "empty");
+    const { proxy } = await import("./proxy");
+    expect(locationOf(await proxy(next))).toContain("/mfa");
+    expect(authState.signOutCalls).toBe(0);
+  });
+
+  it("does not revoke sessions during RSC refresh when internal headers are stripped", async () => {
+    authState.claims = { sub: "user-1", email: "ucetni@hlavica.cz", session_id: "s1" };
+    const response = await runProxy("/login?_rsc=refresh");
+    expect(response.status).toBe(200);
+    expect(authState.signOutCalls).toBe(0);
+  });
+
+  it("still clears stale sessions on an actual document visit", async () => {
+    authState.claims = { sub: "user-1", email: "ucetni@hlavica.cz", session_id: "s1" };
+    const next = request("/login");
+    next.headers.set("sec-fetch-dest", "document");
+    const { proxy } = await import("./proxy");
+    const response = await proxy(next);
+    expect(authState.signOutCalls).toBe(1);
+    expect(response.cookies.get("splatno-login-session")?.value).toBe("");
+  });
+});
+
 // splatno.cz/hlavica je vstup R. Hlavica do jejich aplikace. Musí se chovat
 // přesně jako /login: veřejný pro nepřihlášené, plně ověřeného uživatele
 // pustit rovnou na nástěnku a starou relaci tiše odhlásit, ne poslat jinam.

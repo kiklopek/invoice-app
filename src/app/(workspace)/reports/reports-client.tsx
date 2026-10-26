@@ -1,23 +1,42 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { SummaryMoney, ExactMoney } from "@/components/money-amount";
+import { CloseIcon } from "@/components/close-icon";
+import { ChevronDown } from "@/components/chevron-down";
+import {
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { AppFrame } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons";
-import { MobileDisclosure } from "@/components/mobile-disclosure";
+import { useSmallMobile } from "@/components/layout/mobile-header-slot";
+import { MobileReportControls, ReportSheet } from "./report-mobile-controls";
+import { Modal } from "@/components/modal";
 import { todayInTimeZone } from "@/lib/reminders";
 import type { ReportDateBasis } from "@/lib/report-query";
 import type { ReportPageData } from "@/lib/report-page-data";
 import { useAccessProfile } from "@/lib/use-access-role";
+import {
+  revenueRanking,
+  vatMetrics,
+  reportPresetRange,
+} from "@/lib/report-presentation";
+import { compactMoneyLabel } from "@/lib/money-display";
 import type { InvoiceStatus } from "@/types/invoice";
-import { ReportPrintDocument } from "./report-print-document";
+import { FinancialReportExport } from "@/components/financial-report/financial-report-export";
+import styles from "./reports.module.css";
 
-const iso = (date: Date) => date.toISOString().slice(0, 10);
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("cs-CZ", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
 const statusNames: Record<InvoiceStatus, string> = {
   pending: "Čeká",
@@ -25,44 +44,353 @@ const statusNames: Record<InvoiceStatus, string> = {
   paid: "Zaplaceno",
   cancelled: "Storno",
 };
-const statusChartOrder: InvoiceStatus[] = ["paid", "overdue", "pending", "cancelled"];
-const TOP_CUSTOMERS_LIMIT = 5;
 type ReportTab = "revenue" | "vat" | "receivables" | "payments";
-const reportTabs: Array<{ id: ReportTab; label: string; icon: "chart" | "invoice" | "clock" | "bank" }> = [
-  { id: "revenue", label: "Tržby", icon: "chart" },
-  { id: "vat", label: "DPH", icon: "invoice" },
-  { id: "receivables", label: "Pohledávky", icon: "clock" },
-  { id: "payments", label: "Platby", icon: "bank" },
+const reportTabs: { id: ReportTab; label: string }[] = [
+  { id: "revenue", label: "Tržby" },
+  { id: "vat", label: "DPH" },
+  { id: "receivables", label: "Pohledávky" },
+  { id: "payments", label: "Platby" },
 ];
 const dateBasisNames: Record<ReportDateBasis, string> = {
   issue_date: "Datum vystavení",
   due_date: "Datum splatnosti",
-  paid_at: "Datum úhrady",
+  paid_at: "Datum úplné úhrady",
+};
+const subtitles: Record<ReportTab, string> = {
+  revenue: "Přehled fakturace a evidovaných úhrad vybraných faktur.",
+  vat: "Přehled DPH a daňových základů evidovaných faktur.",
+  receivables: "Současné zůstatky vybraných faktur a jejich splatnost.",
+  payments: "Přehled zaúčtovaných bankovních výpisů a způsobu posouzení řádků.",
 };
 const displayDate = (value: string) =>
   value
     ? new Intl.DateTimeFormat("cs-CZ").format(new Date(`${value}T12:00:00`))
-    : "-";
-const displayDateTime = (value: Date) =>
-  new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(value);
+    : "—";
+const monthLabel = (key: string) =>
+  new Intl.DateTimeFormat("cs-CZ", { month: "short", year: "2-digit" }).format(
+    new Date(`${key}-01T12:00:00`),
+  );
+const greens = ["#08794c", "#399c70", "#7abb97", "#b0d6bf", "#d9e9df"];
+const risks = ["#8fbea4", "#e5bb32", "#ec9a36", "#dc7139", "#c44b48"];
 
-export function ReportsClient({ initialData, initialFrom, initialTo, initialGeneratedAt }: { initialData: ReportPageData; initialFrom: string; initialTo: string; initialGeneratedAt: string }) {
+function Metric({
+  label,
+  value,
+  note,
+  danger = false,
+}: {
+  label: string;
+  value: string | number | { amount: number; currency: string };
+  note: string;
+  danger?: boolean;
+}) {
+  return (
+    <article className={styles.metric}>
+      <span>{label}</span>
+      {typeof value === "object" ? (
+        <SummaryMoney
+          value={value.amount}
+          currency={value.currency}
+          danger={danger}
+        />
+      ) : (
+        <strong data-danger={danger || undefined} title={String(value)}>
+          {value}
+        </strong>
+      )}
+      <small>{note}</small>
+    </article>
+  );
+}
+function Card({
+  title,
+  subtitle,
+  children,
+  action,
+  className = "",
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <article className={`${styles.card} ${className}`}>
+      <header>
+        <div>
+          <h2>{title}</h2>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        {action}
+      </header>
+      {children}
+    </article>
+  );
+}
+function Empty({ children }: { children: ReactNode }) {
+  return <p className={styles.empty}>{children}</p>;
+}
+function ReportNote({
+  children,
+  title,
+  className = styles.help,
+}: {
+  children: ReactNode;
+  title?: string;
+  className?: string;
+}) {
+  const mobile = useSmallMobile();
+  if (mobile && !title) return null;
+  return mobile ? (
+    <details className={styles.mobileNote}>
+      <summary>
+        <span aria-hidden="true">ⓘ</span>
+        {title}
+        <ChevronDown />
+      </summary>
+      <div>{children}</div>
+    </details>
+  ) : (
+    <p className={className}>{children}</p>
+  );
+}
+
+function Distribution({
+  rows,
+  totalLabel,
+  description,
+}: {
+  rows: { label: string; value: number; color: string; detail: string }[];
+  totalLabel: string;
+  description: string;
+}) {
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  const valid = total > 0 && rows.every((row) => row.value >= 0);
+  let offset = 0;
+  const stops = valid
+    ? rows
+        .map((row) => {
+          const start = offset;
+          offset += (row.value / total) * 100;
+          return `${row.color} ${start}% ${offset}%`;
+        })
+        .join(",")
+    : "";
+  return (
+    <div className={styles.distribution}>
+      {valid && (
+        <div
+          className={styles.donut}
+          role="img"
+          aria-label={`${description}: ${rows.map((row) => `${row.label}, ${row.detail}`).join("; ")}`}
+          style={{ background: `conic-gradient(${stops})` }}
+        >
+          <div>
+            <strong>{totalLabel}</strong>
+            <small>{description}</small>
+          </div>
+        </div>
+      )}
+      <ul className={styles.legend}>
+        {rows.map((row) => (
+          <li key={row.label}>
+            <span className={styles.dot} style={{ background: row.color }} />
+            <div>
+              <span>{row.label}</span>
+              <small>{row.detail}</small>
+            </div>
+            <strong>
+              {valid
+                ? `${((row.value / total) * 100).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} %`
+                : "—"}
+            </strong>
+          </li>
+        ))}
+      </ul>
+      {!valid && (
+        <ReportNote>
+          Podíly se při nulovém nebo záporném základu nezobrazují.
+        </ReportNote>
+      )}
+    </div>
+  );
+}
+function Columns({
+  rows,
+  first,
+  second,
+  format,
+  colors = ["#a9cfb6", "#08794c"],
+}: {
+  rows: { key: string; a: number; b: number }[];
+  first: string;
+  second: string;
+  format: (value: number) => string;
+  colors?: [string, string];
+}) {
+  const mobile = useSmallMobile();
+  const [selected, setSelected] = useState<(typeof rows)[number] | null>(null);
+  const chartId = useId();
+  const max = Math.max(
+    1,
+    ...rows.flatMap((row) => [Math.abs(row.a), Math.abs(row.b)]),
+  );
+  return (
+    <>
+      <div className={styles.chartLegend}>
+        <span>
+          <i style={{ background: colors[0] }} />
+          {first}
+        </span>
+        <span>
+          <i style={{ background: colors[1] }} />
+          {second}
+        </span>
+      </div>
+      <div className={styles.plot}>
+        <div className={styles.axis} aria-hidden="true">
+          {[1, 0.75, 0.5, 0.25, 0].map((fraction) => (
+            <span key={fraction}>
+              {new Intl.NumberFormat("cs-CZ", {
+                notation: "compact",
+                maximumFractionDigits: mobile ? 0 : 1,
+              }).format(max * fraction)}
+            </span>
+          ))}
+        </div>
+        <div className={styles.chartScroll}>
+          <div
+            className={styles.chart}
+            style={{
+              minWidth: mobile
+                ? Math.max(0, rows.length * 28)
+                : Math.max(260, rows.length * 58),
+            }}
+          >
+            {rows.map((row) => (
+              <div
+                className={styles.column}
+                key={row.key}
+                tabIndex={0}
+                role={mobile ? "button" : undefined}
+                onClick={
+                  mobile
+                    ? (event) => {
+                        event.currentTarget.focus({ preventScroll: true });
+                        setSelected(row);
+                      }
+                    : undefined
+                }
+                onKeyDown={
+                  mobile
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelected(row);
+                        }
+                      }
+                    : undefined
+                }
+                aria-label={`${monthLabel(row.key)}: ${first} ${format(row.a)}, ${second} ${format(row.b)}`}
+              >
+                <div className={styles.tooltip} role="tooltip">
+                  <strong>{monthLabel(row.key)}</strong>
+                  <span>
+                    {first}: {format(row.a)}
+                  </span>
+                  <span>
+                    {second}: {format(row.b)}
+                  </span>
+                </div>
+                <div className={styles.bars}>
+                  <i
+                    data-negative={row.a < 0 || undefined}
+                    style={{
+                      height: `${(Math.abs(row.a) / max) * 100}%`,
+                      background: row.a < 0 ? undefined : colors[0],
+                    }}
+                  />
+                  <i
+                    data-negative={row.b < 0 || undefined}
+                    style={{
+                      height: `${(Math.abs(row.b) / max) * 100}%`,
+                      background: row.b < 0 ? undefined : colors[1],
+                    }}
+                  />
+                </div>
+                <span title={monthLabel(row.key)}>
+                  {mobile
+                    ? new Intl.DateTimeFormat("cs-CZ", {
+                        month: "short",
+                      }).format(new Date(`${row.key}-01T12:00:00`))
+                    : monthLabel(row.key)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {mobile && (
+        <ReportSheet
+          open={selected !== null}
+          onClose={() => setSelected(null)}
+          title={selected ? monthLabel(selected.key) : "Hodnoty grafu"}
+        >
+          {selected && (
+            <dl className={styles.chartValues} id={chartId}>
+              <div>
+                <dt>{first}</dt>
+                <dd>{format(selected.a)}</dd>
+              </div>
+              <div>
+                <dt>{second}</dt>
+                <dd>{format(selected.b)}</dd>
+              </div>
+            </dl>
+          )}
+        </ReportSheet>
+      )}
+      {rows.some((row) => row.a < 0 || row.b < 0) && (
+        <ReportNote>
+          Šrafované sloupce označují velikost záporných částek; přesná hodnota
+          je dostupná při najetí nebo zaměření klávesnicí.
+        </ReportNote>
+      )}
+    </>
+  );
+}
+
+export function ReportsClient({
+  initialData,
+  initialFrom,
+  initialTo,
+  initialGeneratedAt: _initialGeneratedAt,
+}: {
+  initialData: ReportPageData;
+  initialFrom: string;
+  initialTo: string;
+  initialGeneratedAt: string;
+}) {
   const profile = useAccessProfile();
-  const [from, setFrom] = useState(initialFrom);
-  const [to, setTo] = useState(initialTo);
+  const mobile = useSmallMobile();
+  const [expandedMetrics, setExpandedMetrics] = useState(false);
+  const [from, setFrom] = useState(initialFrom),
+    [to, setTo] = useState(initialTo);
   const [currency, setCurrency] = useState("CZK");
   const [status, setStatus] = useState<"all" | InvoiceStatus>("all");
   const [customer, setCustomer] = useState("all");
   const [dateBasis, setDateBasis] = useState<ReportDateBasis>("issue_date");
-  const [report, setReport] = useState<ReportPageData | null>(initialData);
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState("");
-  const [generatedAt, setGeneratedAt] = useState(() => new Date(initialGeneratedAt));
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
-
+  const [exporting, setExporting] = useState(false),
+    [error, setError] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomers, setShowCustomers] = useState(false),
+    [showDebtors, setShowDebtors] = useState(false);
+  const fromInput = useRef<HTMLInputElement>(null);
+  const exportingRef = useRef(false);
+  const payments = activeTab === "payments";
+  const datesValid = Boolean(from && to && from <= to);
   function requestParams(format?: "xlsx") {
     const params = new URLSearchParams({
       from,
@@ -75,52 +403,47 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
     if (format) params.set("format", format);
     return params;
   }
-
-  const reportKey = `/api/reports?${requestParams().toString()}`;
-  const initialKey = `/api/reports?${new URLSearchParams({ from: initialFrom, to: initialTo, date_basis: "issue_date", currency: "CZK" }).toString()}`;
-  const { data: refreshedReport, error: loadError, isLoading } = useSWR<ReportPageData>(reportKey, {
+  const reportKey = `/api/reports?${requestParams()}`;
+  const initialKey = `/api/reports?${new URLSearchParams({ from: initialFrom, to: initialTo, date_basis: "issue_date", currency: "CZK" })}`;
+  const {
+    data: report,
+    error: loadError,
+    isValidating,
+    mutate,
+  } = useSWR<ReportPageData>(datesValid ? reportKey : null, {
     fallbackData: reportKey === initialKey ? initialData : undefined,
     revalidateOnMount: reportKey !== initialKey,
+    keepPreviousData: false,
   });
-  const loading = isLoading && !refreshedReport;
-  useEffect(() => { if (loadError instanceof Error) setError(loadError.message); }, [loadError]);
-  useEffect(() => { if (refreshedReport) { setReport(refreshedReport); setGeneratedAt(new Date()); } }, [refreshedReport]);
-
+  const loading = !report || isValidating;
+  const ready = datesValid && !loadError && !loading;
   function preset(type: "month" | "quarter" | "year") {
-    const today = todayInTimeZone();
-    const end = new Date(`${today}T12:00:00.000Z`);
-    const start = new Date(end);
-    if (type === "month") start.setUTCDate(1);
-    else if (type === "quarter")
-      start.setUTCMonth(Math.floor(end.getUTCMonth() / 3) * 3, 1);
-    else start.setUTCMonth(0, 1);
-    setFrom(iso(start));
-    setTo(today);
+    const range = reportPresetRange(type, todayInTimeZone());
+    setFrom(range.from);
+    setTo(range.to);
   }
-
-  function moveReportTab(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+  function moveReportTab(
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const lastIndex = reportTabs.length - 1;
-    const nextIndex = event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? lastIndex
-        : event.key === "ArrowRight"
-          ? (index + 1) % reportTabs.length
-          : (index - 1 + reportTabs.length) % reportTabs.length;
-    const nextTab = reportTabs[nextIndex];
-    setActiveTab(nextTab.id);
-    document.getElementById(`report-tab-${nextTab.id}`)?.focus();
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? 3
+          : (index + (event.key === "ArrowRight" ? 1 : 3)) % 4;
+    setActiveTab(reportTabs[next].id);
+    document.getElementById(`report-tab-${reportTabs[next].id}`)?.focus();
   }
-
   async function exportExcel() {
+    if (exportingRef.current || !ready) return;
+    exportingRef.current = true;
     setExporting(true);
     setError("");
     try {
-      const response = await fetch(
-        `/api/reports?${requestParams("xlsx").toString()}`,
-      );
+      const response = await fetch(`/api/reports?${requestParams("xlsx")}`);
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         throw new Error(data?.error || "Export se nepodařilo připravit.");
@@ -138,284 +461,1115 @@ export function ReportsClient({ initialData, initialFrom, initialTo, initialGene
           : "Export se nepodařilo připravit.",
       );
     } finally {
+      exportingRef.current = false;
       setExporting(false);
     }
   }
-
-  const currencies = report?.currencies ?? [];
-  const customers = report?.customers ?? [];
-  const maxMonthly = Math.max(
-    1,
-    ...(report?.monthly.flatMap((month) => [Number(month.issued), Number(month.paid)]) ?? []),
+  const ranking = report ? revenueRanking(report) : null;
+  const vat = report ? vatMetrics(report) : null;
+  const amount = (value: number) => money(value, currency);
+  const metricAmount = (value: number) => ({ amount: value, currency });
+  const compactAmount = (value: number) => compactMoneyLabel(value, currency);
+  const selectedStatus =
+    status === "all" ? "Všechny stavy" : statusNames[status];
+  const today = todayInTimeZone();
+  const customers = [
+    ...new Set([
+      ...(report?.customers ?? initialData.customers),
+      ...(customer !== "all" ? [customer] : []),
+    ]),
+  ];
+  const normalizeSearch = (text: string) =>
+    text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("cs-CZ")
+      .trim();
+  const visibleCustomers = customers.filter((name) =>
+    normalizeSearch(name).includes(normalizeSearch(customerSearch)),
   );
-  const maxDsoMonthly = Math.max(1, ...(report?.dso_monthly.map((month) => Number(month.avg_days)) ?? []));
-  const dsoPoints = (report?.dso_monthly ?? []).map((month, index, months) => ({
-    ...month,
-    x: months.length === 1 ? 50 : 6 + (index / (months.length - 1)) * 88,
-    y: 12 + (1 - Number(month.avg_days) / maxDsoMonthly) * 70,
-  }));
-  const maxYoyMonthly = Math.max(1, ...(report?.yoy_monthly.flatMap((month) => [Number(month.current_year), Number(month.prior_year)]) ?? []));
-  const maxConcentration = Math.max(1, ...(report?.customer_concentration.map((row) => Number(row.revenue)) ?? []));
-  const topCustomers = report?.customer_concentration.slice(0, TOP_CUSTOMERS_LIMIT) ?? [];
-  const totalAging = report?.aging.reduce((sum, bucket) => sum + Number(bucket.amount), 0) || 1;
-  const maxVatGross = Math.max(1, ...(report?.vat_breakdown.map((row) => Number(row.gross)) ?? []));
-  const concentrationTotal = report?.customer_concentration.reduce((sum, row) => sum + Number(row.revenue), 0) || 1;
-  const netTotal = report?.vat_breakdown.reduce((sum, row) => sum + Number(row.base), 0) ?? 0;
-  const taxTotal = report?.vat_breakdown.reduce((sum, row) => sum + Number(row.tax), 0) ?? 0;
-  const monthNumberLabel = (monthNumber: string) => new Intl.DateTimeFormat("cs-CZ", { month: "short" }).format(new Date(2024, Number(monthNumber) - 1, 1));
-  const priorYearNumber = to ? Number(to.slice(0, 4)) - 1 : new Date().getFullYear() - 1;
-  const currentYearNumber = to ? Number(to.slice(0, 4)) : new Date().getFullYear();
-  const monthAxisLabel = (key: string) => {
-    const [year, month] = key.split("-").map(Number);
-    return new Intl.DateTimeFormat("cs-CZ", { month: "short" }).format(new Date(year, (month || 1) - 1, 1)) + " " + String(year).slice(2);
-  };
-  // Neutrální záloha: konkrétní firma v kódu by se objevila u jiného
-  // zákazníka na tištěném reportu.
-  const companyName = profile?.companyName?.trim() || "Účetní oddělení";
-  const selectedStatus = status === "all" ? "Všechny stavy" : statusNames[status];
-  const selectedCustomer = customer === "all" ? "Všichni odběratelé" : customer;
-  const printPeriod = `${displayDate(from)} - ${displayDate(to)}`;
+  const customerTotals = new Map(
+    (report?.customer_concentration ?? [])
+      .filter((row, index) => !(index >= 10 && row.name === "Ostatní"))
+      .map((row) => [row.name, row]),
+  );
+  const currencies = [
+    ...new Set([currency, ...(report?.currencies ?? initialData.currencies)]),
+  ];
+  const allDebtors = report?.debtors ?? [];
+  const metricsToggle = mobile && (
+    <button
+      type="button"
+      className={styles.metricsToggle}
+      aria-expanded={expandedMetrics}
+      onClick={() => setExpandedMetrics((value) => !value)}
+    >
+      {expandedMetrics ? "Skrýt další ukazatele" : "Další ukazatele"}
+      <ChevronDown />
+    </button>
+  );
 
   return (
-    <AppFrame>
-      <header className="section-header report-screen-header">
-        <div>
-          <p>ANALYTIKA</p>
-          <h1>Reporty</h1>
-          <span>
-            Finanční přehled pohledávek a platební disciplíny za vybrané období.
-          </span>
-        </div>
-        <div className="section-actions">
-          <button className="btn secondary" title="Vytisknout nebo uložit jako PDF" disabled={loading || !report} onClick={() => window.print()}>
-            <Icon name="print" />
-            Tisk / PDF
-          </button>
-          <button
-            className="btn primary"
-            disabled={!report?.invoice_count || exporting}
-            onClick={exportExcel}
-          >
-            <Icon name="download" />
-            {exporting ? "Připravuji…" : "Exportovat do Excelu"}
-          </button>
-        </div>
-      </header>
-      <MobileDisclosure label="Období a filtry reportu" className="mobile-filter-disclosure">
-      <section className="page-panel report-filters">
-        <div className="period-presets" role="group" aria-label="Rychlá volba období">
-          <button type="button" onClick={() => preset("month")}>Tento měsíc</button>
-          <button type="button" onClick={() => preset("quarter")}>Toto čtvrtletí</button>
-          <button type="button" onClick={() => preset("year")}>Tento rok</button>
-        </div>
-        <label>
-          <span>Období podle</span>
-          <select
-            value={dateBasis}
-            onChange={(e) => setDateBasis(e.target.value as ReportDateBasis)}
-          >
-            <option value="issue_date">data vystavení</option>
-            <option value="due_date">data splatnosti</option>
-            <option value="paid_at">data úhrady</option>
-          </select>
-        </label>
-        <label>
-          <span>Od</span>
-          <input
-            type="date"
-            value={from}
-            max={to}
-            onChange={(e) => setFrom(e.target.value)}
+    <AppFrame className={`content section-page ${styles.frame}`}>
+      <div className={`${styles.page} report-screen-document`}>
+        <header className={`${styles.heading} report-screen-header`}>
+          <div>
+            <h1>{reportTabs.find((tab) => tab.id === activeTab)?.label}</h1>
+            <p>{subtitles[activeTab]}</p>
+          </div>
+          <FinancialReportExport
+            query={{
+              from,
+              to,
+              currency,
+              dateBasis,
+              status: status === "all" ? null : status,
+              customer: customer === "all" ? null : customer,
+            }}
+            currencies={currencies}
+            customers={customers}
+            ready={ready}
+            exporting={exporting}
+            onExcel={exportExcel}
           />
-        </label>
-        <label>
-          <span>Do</span>
-          <input
-            type="date"
-            value={to}
-            min={from}
-            onChange={(e) => setTo(e.target.value)}
+        </header>
+        <nav
+          className={styles.tabs}
+          role="tablist"
+          aria-label="Části účetního reportu"
+        >
+          {reportTabs.map((tab, index) => (
+            <button
+              id={`report-tab-${tab.id}`}
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`report-panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => moveReportTab(event, index)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+        {mobile ? (
+          <MobileReportControls
+            value={{ from, to, currency, status, customer, dateBasis }}
+            defaults={{
+              from: initialFrom,
+              to: initialTo,
+              currency: "CZK",
+              status: "all",
+              customer: "all",
+              dateBasis: "issue_date",
+            }}
+            today={today}
+            payments={payments}
+            customers={customers}
+            currencies={currencies}
+            onApply={(next) => {
+              setFrom(next.from);
+              setTo(next.to);
+              if (!payments) {
+                setCurrency(next.currency);
+                setStatus(next.status);
+                setCustomer(next.customer);
+                setDateBasis(next.dateBasis);
+              }
+            }}
           />
-        </label>
-        <label>
-          <span>Měna</span>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
+        ) : (
+          <section
+            className={styles.filters}
+            aria-label="Období a filtry reportu"
           >
-            {currencies.length ? (
-              currencies.map((item) => <option key={item}>{item}</option>)
+            <div className={styles.filterTop}>
+              <div
+                className={styles.presets}
+                role="group"
+                aria-label="Rychlá volba období"
+              >
+                {(
+                  [
+                    ["month", "Tento měsíc"],
+                    ["quarter", "Toto čtvrtletí"],
+                    ["year", "Tento rok"],
+                  ] as const
+                ).map(([key, label]) => {
+                  const range = reportPresetRange(key, today);
+                  return (
+                    <button
+                      key={key}
+                      aria-pressed={from === range.from && to === range.to}
+                      onClick={() => preset(key)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+                <button onClick={() => fromInput.current?.focus()}>
+                  Vlastní období
+                </button>
+              </div>
+              <div className={styles.dateRange}>
+                <label>
+                  Od
+                  <input
+                    ref={fromInput}
+                    type="date"
+                    value={from}
+                    max={to}
+                    onChange={(e) => setFrom(e.target.value)}
+                  />
+                </label>
+                <span aria-hidden="true">–</span>
+                <label>
+                  Do
+                  <input
+                    type="date"
+                    value={to}
+                    min={from}
+                    onChange={(e) => setTo(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+            {payments ? (
+              <p className={styles.scope}>
+                Období podle zaúčtování výpisu; nespárované podle dne bankovního
+                zaúčtování platby. Celá firma, všechny měny. Fakturové filtry se
+                zde neuplatní.
+              </p>
             ) : (
-              <option>CZK</option>
+              <details className={styles.more}>
+                <summary>
+                  Další filtry{" "}
+                  <span>
+                    {dateBasisNames[dateBasis]} · {currency} · {selectedStatus}
+                  </span>
+                  <ChevronDown />
+                </summary>
+                <div className={styles.detailFilters}>
+                  <label>
+                    Období podle
+                    <select
+                      aria-label="Období podle"
+                      value={dateBasis}
+                      onChange={(e) =>
+                        setDateBasis(e.target.value as ReportDateBasis)
+                      }
+                    >
+                      {Object.entries(dateBasisNames).map(([key, label]) => (
+                        <option value={key} key={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Měna
+                    <select
+                      aria-label="Měna"
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                    >
+                      {currencies.map((item) => (
+                        <option key={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Stav
+                    <select
+                      aria-label="Stav"
+                      value={status}
+                      onChange={(e) =>
+                        setStatus(e.target.value as typeof status)
+                      }
+                    >
+                      <option value="all">Všechny stavy</option>
+                      {Object.entries(statusNames).map(([key, label]) => (
+                        <option value={key} key={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Odběratel
+                    <select
+                      aria-label="Odběratel"
+                      value={customer}
+                      onChange={(e) => setCustomer(e.target.value)}
+                    >
+                      <option value="all">Všichni odběratelé</option>
+                      {customers.map((item) => (
+                        <option key={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </details>
             )}
-          </select>
-        </label>
-        <label>
-          <span>Stav</span>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as typeof status)}
-          >
-            <option value="all">Všechny</option>
-            {Object.entries(statusNames).map(([key, value]) => (
-              <option key={key} value={key}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="customer-filter">
-          <span>Odběratel</span>
-          <select
-            value={customer}
-            onChange={(e) => setCustomer(e.target.value)}
-          >
-            <option value="all">Všichni odběratelé</option>
-            {customers.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </label>
-      </section>
-      </MobileDisclosure>
-      {error ? (
-        <p className="page-state error-state">{error}</p>
-      ) : loading || !report ? (
-        <p className="page-state">Připravuji report…</p>
-      ) : (
-        <>
-          <ReportPrintDocument
-            report={report}
-            currency={currency}
-            companyName={companyName}
-            companyLogo={profile?.companyLogo ?? null}
-            period={printPeriod}
-            dateBasis={dateBasisNames[dateBasis]}
-            selectedStatus={selectedStatus}
-            selectedCustomer={selectedCustomer}
-            generatedAt={displayDateTime(generatedAt)}
-          />
-          <div className="report-screen-document">
-          <section className="report-accounting-summary" aria-label="Účetní souhrn">
-            {[
-              ["Základ bez DPH", money(netTotal, currency), `${report.invoice_count} faktur`],
-              ["DPH", money(taxTotal, currency), "daň ve výběru"],
-              ["Fakturováno celkem", money(Number(report.total), currency), printPeriod],
-              ["Přijaté úhrady", money(Number(report.paid), currency), `${report.paid_rate} % uhrazeno`],
-              ["Otevřené pohledávky", money(Number(report.open), currency), `${money(Number(report.overdue), currency)} po splatnosti`],
-            ].map(([label, value, note], index) => (
-              <article className={index === 2 ? "primary" : index === 4 ? "warning" : ""} key={label}>
-                <span>{label}</span><strong>{value}</strong><small>{note}</small>
-              </article>
-            ))}
+            {!payments && customer !== "all" && (
+              <div
+                className={styles.activeFilters}
+                role="group"
+                aria-label="Aktivní filtry"
+              >
+                <span className={styles.filterChip}>
+                  <span>
+                    Odběratel: <strong>{customer}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Zrušit filtr odběratele"
+                    title="Zobrazit všechny odběratele"
+                    onClick={() => setCustomer("all")}
+                  >
+                    <CloseIcon width="14" height="14" />
+                  </button>
+                </span>
+              </div>
+            )}
           </section>
-
-          <nav className="report-tabs" role="tablist" aria-label="Části účetního reportu">
-            {reportTabs.map((tab, index) => (
-              <button
-                id={`report-tab-${tab.id}`}
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`report-panel-${tab.id}`}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-                className={activeTab === tab.id ? "active" : ""}
-                onClick={() => setActiveTab(tab.id)}
-                onKeyDown={(event) => moveReportTab(event, index)}
-              ><Icon name={tab.icon}/><span>{tab.label}</span></button>
-            ))}
-          </nav>
-
-          <div className="report-tab-panels">
-            <section id="report-panel-revenue" role="tabpanel" aria-labelledby="report-tab-revenue" aria-hidden={activeTab !== "revenue"} className={`report-tab-panel${activeTab === "revenue" ? " active" : ""}`}>
-              <div className="report-tab-intro"><div><span>01</span><h2>Tržby</h2></div><p>Vývoj fakturace, úhrad a struktury odběratelů.</p></div>
-              <div className="report-revenue-layout">
-                <div className="report-revenue-main">
-                <article className="page-panel report-card report-revenue-card report-revenue-primary-card">
-                  <header><div><h3>Fakturace a úhrady</h3><p>Měsíční srovnání vystavených a přijatých částek</p></div><div className="report-chart-key"><span className="issued">Vystaveno</span><span className="paid">Uhrazeno</span></div></header>
-                  <div className={`report-column-chart report-revenue-chart${report.monthly.length === 1 ? " is-single" : ""}`} role="group" aria-label="Měsíční fakturace a úhrady, částky jsou uvedeny nad sloupci">
-                    {report.monthly.map((month) => <div className="report-column-group" key={month.key}>
-                      <div className="report-column-values"><small className="issued">{money(Number(month.issued), currency)}</small><small className="paid">{money(Number(month.paid), currency)}</small></div>
-                      <div className="report-columns"><i className="issued" style={{ height: `${(Number(month.issued) / maxMonthly) * 100}%` }}/><i className="paid" style={{ height: `${(Number(month.paid) / maxMonthly) * 100}%` }}/></div>
-                      <span>{monthAxisLabel(month.key)}</span>
-                    </div>)}
-                    {!report.monthly.length && <p className="report-revenue-empty">Ve vybraném období nejsou žádné faktury.</p>}
+        )}
+        {error && (
+          <p role="alert" className={styles.error}>
+            {error}
+            <button onClick={() => setError("")}>Zavřít</button>
+          </p>
+        )}
+        {!datesValid ? (
+          <p role="alert" className={styles.error}>
+            Vyberte platné datum od a do.
+          </p>
+        ) : loadError ? (
+          <div role="alert" className={styles.error}>
+            Report se nepodařilo načíst.
+            <button onClick={() => void mutate()}>Zkusit znovu</button>
+          </div>
+        ) : !ready || !report || !ranking || !vat ? (
+          <div role="status" className={styles.loading}>
+            Připravuji report…
+            <div />
+            <div />
+          </div>
+        ) : (
+          <>
+            <section
+              id={`report-panel-${activeTab}`}
+              role="tabpanel"
+              aria-labelledby={`report-tab-${activeTab}`}
+              className={styles.panel}
+            >
+              {activeTab === "revenue" && (
+                <>
+                  <div
+                    className={styles.metrics}
+                    data-expanded={expandedMetrics || undefined}
+                    data-report={activeTab}
+                    role="group"
+                    aria-label="Souhrn reportu"
+                    tabIndex={0}
+                  >
+                    <Metric
+                      label="Fakturováno"
+                      value={metricAmount(Number(report.total))}
+                      note={`${report.invoice_count} faktur · s DPH${report.counts.cancelled ? " · včetně storna" : ""}`}
+                    />
+                    <Metric
+                      label="Evidované úhrady"
+                      value={metricAmount(Number(report.paid))}
+                      note="K vybraným fakturám, bez storna"
+                    />
+                    <Metric
+                      label="Otevřené pohledávky"
+                      value={metricAmount(Number(report.open))}
+                      note={`Současný zůstatek · ${report.counts.pending + report.counts.overdue} faktur`}
+                    />
+                    <Metric
+                      label="Průměrná faktura"
+                      value={
+                        report.invoice_count
+                          ? metricAmount(
+                              Number(report.total) / report.invoice_count,
+                            )
+                          : "—"
+                      }
+                      note={`Celkem / ${report.invoice_count} vybraných faktur`}
+                    />
                   </div>
-                </article>
-                <article className="page-panel report-card report-revenue-card report-revenue-yoy-card">
-                  <header><div><h3>Meziroční srovnání</h3><p>{currentYearNumber} oproti {priorYearNumber}</p></div><div className="report-chart-key"><span className="prior">{priorYearNumber}</span><span className="current">{currentYearNumber}</span></div></header>
-                  <div className={`report-column-chart compact report-revenue-chart${report.yoy_monthly.length === 1 ? " is-single" : ""}`} role="group" aria-label="Meziroční srovnání podle měsíce, částky jsou uvedeny nad sloupci">
-                    {report.yoy_monthly.map((month) => <div className="report-column-group" key={month.month}>
-                      <div className="report-column-values"><small className="prior">{money(Number(month.prior_year), currency)}</small><small className="current">{money(Number(month.current_year), currency)}</small></div>
-                      <div className="report-columns"><i className="prior" style={{ height: `${Number(month.prior_year) / maxYoyMonthly * 100}%` }}/><i className="current" style={{ height: `${Number(month.current_year) / maxYoyMonthly * 100}%` }}/></div>
-                      <span>{monthNumberLabel(month.month)}</span>
-                    </div>)}
-                    {!report.yoy_monthly.length && <p className="report-revenue-empty">Pro srovnání nejsou dostupná data.</p>}
+                  {metricsToggle}
+                  <div className={styles.mainGrid}>
+                    <Card
+                      title="Fakturace a evidované úhrady"
+                      subtitle="Oba sloupce podle měsíce vystavení vybraných faktur."
+                      className={styles.revenueChart}
+                    >
+                      {dateBasis === "issue_date" && report.monthly.length ? (
+                        <Columns
+                          rows={report.monthly.map((row) => ({
+                            key: row.key,
+                            a: Number(row.issued),
+                            b: Number(row.paid),
+                          }))}
+                          first="Fakturováno"
+                          second="Evidované úhrady"
+                          format={amount}
+                        />
+                      ) : (
+                        <Empty>
+                          {dateBasis !== "issue_date"
+                            ? "Měsíční graf je dostupný při výběru podle data vystavení. Souhrn výše respektuje zvolené datumové pole."
+                            : "Ve vybraném období nejsou žádné faktury."}
+                        </Empty>
+                      )}
+                      <ReportNote>
+                        Úhrady jsou aktuálně evidované částky; nejde o peněžní
+                        tok během období. Fakturace zahrnuje všechny vybrané
+                        stavy.
+                      </ReportNote>
+                    </Card>
+                    <Card
+                      title="Tržby podle odběratelů"
+                      subtitle="Top 5 · podíl na fakturaci s DPH"
+                    >
+                      {ranking.top.length ? (
+                        <div className={styles.ranking}>
+                          {ranking.top.map((row) => (
+                            <button
+                              key={row.name}
+                              onClick={() => setCustomer(row.name)}
+                            >
+                              <span>{row.name}</span>
+                              <strong>
+                                <ExactMoney
+                                  value={Number(row.revenue)}
+                                  currency={currency}
+                                />
+                              </strong>
+                              <i>
+                                <b
+                                  style={{
+                                    width: `${ranking.total > 0 ? Math.min(100, Math.max(0, (Number(row.revenue) / ranking.total) * 100)) : 0}%`,
+                                  }}
+                                />
+                              </i>
+                              <small>
+                                {ranking.total > 0
+                                  ? `${((Number(row.revenue) / ranking.total) * 100).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} %`
+                                  : "—"}
+                              </small>
+                            </button>
+                          ))}
+                          {report.customer_concentration.length > 5 && (
+                            <ReportNote>
+                              Zbývající odběratelé:{" "}
+                              <ExactMoney
+                                value={ranking.other}
+                                currency={currency}
+                              />
+                            </ReportNote>
+                          )}
+                        </div>
+                      ) : (
+                        <Empty>Ve výběru nejsou žádní odběratelé.</Empty>
+                      )}
+                      <button
+                        className={styles.textButton}
+                        aria-haspopup="dialog"
+                        onClick={() => {
+                          setCustomerSearch("");
+                          setShowCustomers(true);
+                        }}
+                      >
+                        Přehled odběratelů <span aria-hidden="true">→</span>
+                      </button>
+                    </Card>
                   </div>
-                </article>
-                </div>
-                <div className="report-revenue-aside">
-                <article className="page-panel report-card report-revenue-card report-revenue-customers-card">
-                  <header><div><h3>Největší odběratelé</h3><p>Podíl na tržbách v období</p></div></header>
-                  <div className="report-ranking">
-                    {topCustomers.map((row) => <div key={row.name}><div><span>{row.name}</span><strong>{Math.round(Number(row.revenue) / concentrationTotal * 100)} %</strong></div><i><b style={{ width: `${Number(row.revenue) / maxConcentration * 100}%` }}/></i><small>{money(Number(row.revenue), currency)}</small></div>)}
-                    {!report.customer_concentration.length && <p className="report-revenue-empty">Zatím nejsou tržby podle odběratelů.</p>}
-                  </div>
-                </article>
-                <article className="page-panel report-card report-revenue-card report-revenue-average-card">
-                  <header><div><h3>Průměrná faktura</h3></div><span className="report-average-icon" aria-hidden="true"><Icon name="chart" /></span></header>
-                  <div className="report-revenue-average-hero"><strong>{money(report.invoice_count ? Number(report.total) / report.invoice_count : 0, currency)}</strong></div>
-                </article>
-                </div>
-              </div>
-            </section>
-
-            <section id="report-panel-vat" role="tabpanel" aria-labelledby="report-tab-vat" aria-hidden={activeTab !== "vat"} className={`report-tab-panel${activeTab === "vat" ? " active" : ""}`}>
-              <div className="report-tab-intro"><div><span>02</span><h2>DPH</h2></div><p>Daňové základy, vypočtená daň a celkové částky podle sazeb.</p></div>
-              <div className="report-workspace-grid report-vat-grid">
-                <article className="page-panel report-card report-table-card report-span-8"><header><div><h3>Rozpis podle sazby DPH</h3><p>Podklad pro kontrolu daňového přiznání</p></div></header><div className="report-accounting-table"><table className="vat-breakdown-table"><thead><tr><th>Sazba</th><th>Základ daně</th><th>DPH</th><th>Celkem</th><th>Faktur</th></tr></thead><tbody>{report.vat_breakdown.map((row) => <tr key={row.vat_rate}><td data-label="Sazba"><strong>{row.vat_rate} %</strong></td><td data-label="Základ daně">{money(Number(row.base), currency)}</td><td data-label="DPH">{money(Number(row.tax), currency)}</td><td data-label="Celkem">{money(Number(row.gross), currency)}</td><td data-label="Faktur">{row.count}</td></tr>)}</tbody><tfoot><tr><td data-label="Sazba"><strong>Celkem</strong></td><td data-label="Základ daně"><strong>{money(netTotal, currency)}</strong></td><td data-label="DPH"><strong>{money(taxTotal, currency)}</strong></td><td data-label="Celkem"><strong>{money(Number(report.total), currency)}</strong></td><td data-label="Faktur"><strong>{report.vat_breakdown.reduce((sum, row) => sum + row.count, 0)}</strong></td></tr></tfoot></table></div></article>
-                <article className="page-panel report-card report-span-4 report-vat-structure-card"><header><div><h3>Struktura DPH</h3><p>Poměr jednotlivých sazeb</p></div></header><div className="report-vat-bars">{report.vat_breakdown.map((row) => <div key={row.vat_rate}><div><span>{row.vat_rate} %</span><strong>{money(Number(row.gross), currency)}</strong></div><i><b style={{ width: `${Number(row.gross) / maxVatGross * 100}%` }}/></i><small>Základ {money(Number(row.base), currency)} · DPH {money(Number(row.tax), currency)}</small></div>)}</div></article>
-              </div>
-            </section>
-
-            <section id="report-panel-receivables" role="tabpanel" aria-labelledby="report-tab-receivables" aria-hidden={activeTab !== "receivables"} className={`report-tab-panel${activeTab === "receivables" ? " active" : ""}`}>
-              <div className="report-tab-intro"><div><span>03</span><h2>Pohledávky</h2></div><p>Stav faktur, stáří dluhu a platební disciplína odběratelů.</p></div>
-              <article className="page-panel report-card report-status-card"><header><div><h3>Stav faktur</h3><p>{report.invoice_count} faktur ve vybraném období</p></div><strong>{money(Number(report.open), currency)} otevřeno</strong></header><div className="report-segmented-bar">{statusChartOrder.map((key) => <i key={key} className={key} style={{ width: `${report.invoice_count ? report.counts[key] / report.invoice_count * 100 : 0}%` }}/>)}</div><div className="report-segment-legend">{statusChartOrder.map((key) => <div key={key}><i className={key}/><span>{statusNames[key]}</span><strong>{report.counts[key]}</strong></div>)}</div></article>
-              <div className="report-workspace-grid report-receivables-grid">
-                <article className="page-panel report-card report-span-7 report-aging-overview-card">
-                  <header><div><h3>Stáří pohledávek</h3><p>Rozložení otevřených částek podle doby po splatnosti</p></div><strong>{money(Number(report.open), currency)}</strong></header>
-                  <div className="report-aging-distribution">
-                    <div className="report-aging-segments" role="img" aria-label={`Rozložení pohledávek: ${report.aging.map((bucket) => `${bucket.label} ${money(Number(bucket.amount), currency)}`).join(", ")}`}>
-                      {report.aging.map((bucket, index) => <i className={`risk-${index}`} key={bucket.label} style={{ width: `${Number(bucket.amount) / totalAging * 100}%` }}/>) }
+                  <details
+                    className={`${styles.extra} ${styles.compactDisclosure}`}
+                  >
+                    <summary>
+                      Další přehledy a metodika
+                      <ChevronDown className={styles.disclosureArrow} />
+                    </summary>
+                    <p>
+                      Fakturováno a průměr zahrnují storna, pokud jsou ve
+                      výběru. Otevřené pohledávky jsou dnešní zůstatky pouze
+                      vybraných faktur. Datum úplné úhrady neobsahuje data
+                      jednotlivých částečných plateb.
+                    </p>
+                    <div className={styles.tableScroll}>
+                      <table>
+                        <caption>
+                          Meziroční srovnání podle vystavení (i při jiném
+                          datumovém filtru)
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th>Měsíc</th>
+                            <th>Aktuální období</th>
+                            <th>O rok dříve</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.yoy_monthly.map((row) => (
+                            <tr key={row.month}>
+                              <td>{row.month}</td>
+                              <td>
+                                <ExactMoney
+                                  value={Number(row.current_year)}
+                                  currency={currency}
+                                />
+                              </td>
+                              <td>
+                                <ExactMoney
+                                  value={Number(row.prior_year)}
+                                  currency={currency}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    <div className="report-aging-legend">{report.aging.map((bucket, index) => <div className="report-aging-legend-item" key={bucket.label}><i className={`risk-${index}`} aria-hidden="true"/><div><span>{bucket.label}</span><small>{bucket.count} {bucket.count === 1 ? "faktura" : "faktur"}</small></div><strong>{money(Number(bucket.amount), currency)}</strong></div>)}</div>
+                  </details>
+                </>
+              )}
+              {activeTab === "vat" && (
+                <>
+                  <div
+                    className={styles.metrics}
+                    data-expanded={expandedMetrics || undefined}
+                    data-report={activeTab}
+                    role="group"
+                    aria-label="Souhrn reportu"
+                    tabIndex={0}
+                  >
+                    <Metric
+                      label={
+                        vat.main
+                          ? `Základ daně ${vat.main.vat_rate} %`
+                          : "Základ daně"
+                      }
+                      value={
+                        vat.main ? metricAmount(Number(vat.main.base)) : "—"
+                      }
+                      note="Sazba s největším objemem fakturace"
+                    />
+                    <Metric
+                      label={vat.main ? `DPH ${vat.main.vat_rate} %` : "DPH"}
+                      value={
+                        vat.main ? metricAmount(Number(vat.main.tax)) : "—"
+                      }
+                      note="Evidovaná daň vybraných faktur"
+                    />
+                    <Metric
+                      label="Základ ostatních sazeb"
+                      value={metricAmount(vat.otherBase)}
+                      note={`${Math.max(0, report.vat_breakdown.length - 1)} dalších sazeb`}
+                    />
+                    <Metric
+                      label="Celkem fakturováno"
+                      value={metricAmount(Number(report.total))}
+                      note={`${report.invoice_count} faktur · s DPH`}
+                    />
                   </div>
-                </article>
-                <article className="page-panel report-card report-span-5 report-dso-card report-dso-insight-card">
-                  <header><div><h3>Doba do úplné úhrady</h3><p>{dsoPoints.length > 1 ? `Vývoj podle měsíce platby · průměr ${report.dso.avg_days} dní` : "Jak rychle jsou faktury v průměru plně zaplacené"}</p></div></header>
-                  {dsoPoints.length === 1 ? <div className="report-dso-summary">
-                    <div className="report-dso-summary-main"><span className="report-dso-summary-icon" aria-hidden="true"><Icon name="clock"/></span><div><strong>{dsoPoints[0].avg_days}</strong><span>dne v průměru</span></div></div>
-                    <dl><div><dt>Měsíc platby</dt><dd>{monthAxisLabel(dsoPoints[0].key)}</dd></div><div><dt>Plně uhrazené faktury</dt><dd>{dsoPoints[0].count}</dd></div></dl>
-                  </div> : dsoPoints.length > 1 ? <div className="report-dso-line-chart" role="img" aria-label={`Vývoj doby do úplné úhrady: ${dsoPoints.map((month) => `${monthAxisLabel(month.key)} ${month.avg_days} dní`).join(", ")}`}><div className="report-dso-plot"><div className="report-dso-grid" aria-hidden="true"><i/><i/><i/><i/></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points={dsoPoints.map((month) => `${month.x},${month.y}`).join(" ")}/></svg>{dsoPoints.map((month) => <div className="report-dso-point" key={month.key} style={{ left: `${month.x}%`, top: `${month.y}%` }}><strong>{month.avg_days} dní</strong><i aria-hidden="true"/></div>)}</div><div className="report-dso-axis">{dsoPoints.map((month) => <span key={month.key}>{monthAxisLabel(month.key)}</span>)}</div></div> : <p className="report-revenue-empty">Pro výpočet zatím nejsou dostupné uhrazené faktury.</p>}
-                </article>
-                <article className="page-panel report-card report-table-card report-span-12 report-debtors-card"><header><div><h3>Přehled dlužníků</h3><p>Kliknutím na řádek omezíte celý report na vybraného odběratele</p></div><strong>{report.debtors.length} odběratelů</strong></header><div className="report-accounting-table"><table className="top-debtors-table"><thead><tr><th>Odběratel</th><th>Otevřeno</th><th>Po splatnosti</th><th>Faktur</th><th>Upomínky</th></tr></thead><tbody>{report.debtors.map((row, index) => <tr key={row.name} role="button" tabIndex={0} onClick={() => setCustomer(row.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setCustomer(row.name); } }}><td data-label="Odběratel"><span className="report-debtor-name"><i aria-hidden="true">{index + 1}</i><strong>{row.name}</strong></span></td><td data-label="Otevřeno">{money(Number(row.open), currency)}</td><td data-label="Po splatnosti"><span className={row.overdue ? "report-overdue-amount" : undefined}>{money(Number(row.overdue), currency)}</span></td><td data-label="Faktur">{row.count}</td><td data-label="Upomínky">{row.reminders}</td></tr>)}</tbody></table></div></article>
-              </div>
+                  {metricsToggle}
+                  <div className={styles.mainGrid}>
+                    <Card
+                      title="Rozpis DPH podle sazeb"
+                      subtitle={`${dateBasisNames[dateBasis]} · ${currency}`}
+                    >
+                      <div
+                        className={`${styles.tableScroll} ${styles.vatTable}`}
+                      >
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Sazba</th>
+                              <th>Základ daně</th>
+                              <th>DPH</th>
+                              <th>Celkem</th>
+                              <th>Faktur</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {report.vat_breakdown.map((row) => (
+                              <tr key={row.vat_rate}>
+                                <td>
+                                  <strong>{row.vat_rate} %</strong>
+                                </td>
+                                <td>
+                                  <ExactMoney
+                                    value={Number(row.base)}
+                                    currency={currency}
+                                  />
+                                </td>
+                                <td>
+                                  <ExactMoney
+                                    value={Number(row.tax)}
+                                    currency={currency}
+                                  />
+                                </td>
+                                <td>
+                                  <ExactMoney
+                                    value={Number(row.gross)}
+                                    currency={currency}
+                                  />
+                                </td>
+                                <td>{row.count}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr>
+                              <th>Celkem</th>
+                              <td>
+                                <ExactMoney
+                                  value={vat.base}
+                                  currency={currency}
+                                />
+                              </td>
+                              <td>
+                                <ExactMoney
+                                  value={vat.tax}
+                                  currency={currency}
+                                />
+                              </td>
+                              <td>
+                                <ExactMoney
+                                  value={Number(report.total)}
+                                  currency={currency}
+                                />
+                              </td>
+                              <td>{report.invoice_count}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                      {mobile && report.vat_breakdown.length > 0 && (
+                        <details className={styles.mobileNote}>
+                          <summary>
+                            Částky s DPH a počty faktur
+                            <ChevronDown />
+                          </summary>
+                          <dl className={styles.vatDetails}>
+                            {report.vat_breakdown.map((row) => (
+                              <div key={row.vat_rate}>
+                                <dt>{row.vat_rate} %</dt>
+                                <dd>
+                                  <ExactMoney
+                                    value={Number(row.gross)}
+                                    currency={currency}
+                                  />{" "}
+                                  · {row.count} faktur
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </details>
+                      )}
+                      {!report.vat_breakdown.length && (
+                        <Empty>
+                          Ve vybraném období nejsou evidované sazby DPH.
+                        </Empty>
+                      )}
+                    </Card>
+                    <Card
+                      title="Podíl podle sazeb"
+                      subtitle="Podíl na celkové částce s DPH"
+                    >
+                      <Distribution
+                        rows={report.vat_breakdown.map((row, index) => ({
+                          label: `${row.vat_rate} %`,
+                          value: Number(row.gross),
+                          color: greens[index % greens.length],
+                          detail: `Základ ${amount(Number(row.base))} · DPH ${amount(Number(row.tax))} · ${row.count} faktur`,
+                        }))}
+                        totalLabel={compactAmount(Number(report.total))}
+                        description="fakturováno s DPH"
+                      />
+                    </Card>
+                  </div>
+                  <ReportNote className={styles.info}>
+                    <span aria-hidden="true">ⓘ</span>
+                    {profile?.vatPayer === false
+                      ? "Firma je nastavena jako neplátce DPH. "
+                      : ""}
+                    Orientační přehled evidovaných faktur, jedna sazba na
+                    fakturu, bez DUZP a odpočtů. Nejde o daňové přiznání.{" "}
+                    {report.counts.cancelled > 0 && "Výběr obsahuje i storna."}
+                  </ReportNote>
+                </>
+              )}
+              {activeTab === "receivables" && (
+                <>
+                  <ReportNote className={styles.scope}>
+                    Stav k {displayDate(today)} · pouze faktury odpovídající
+                    zvolenému období a filtrům. Historický stav k poslednímu dni
+                    období se nerekonstruuje. „Po splatnosti“ vychází z
+                    aktuálního stavu faktury.
+                  </ReportNote>
+                  <div
+                    className={styles.metrics}
+                    data-expanded={expandedMetrics || undefined}
+                    data-report={activeTab}
+                    role="group"
+                    aria-label="Souhrn reportu"
+                    tabIndex={0}
+                  >
+                    <Metric
+                      label="Otevřené pohledávky"
+                      value={metricAmount(Number(report.open))}
+                      note={`${report.counts.pending + report.counts.overdue} otevřených faktur`}
+                    />
+                    <Metric
+                      label="Po splatnosti"
+                      value={metricAmount(Number(report.overdue))}
+                      note={`${report.counts.overdue} faktur dle stavu`}
+                      danger={Number(report.overdue) > 0}
+                    />
+                    {[
+                      report.aging[1],
+                      {
+                        label: "8–30 dní",
+                        amount:
+                          Number(report.aging[2]?.amount ?? 0) +
+                          Number(report.aging[3]?.amount ?? 0),
+                        count:
+                          (report.aging[2]?.count ?? 0) +
+                          (report.aging[3]?.count ?? 0),
+                      },
+                      report.aging[4],
+                    ]
+                      .filter(Boolean)
+                      .map((row) => (
+                        <Metric
+                          key={row.label}
+                          label={row.label}
+                          value={metricAmount(Number(row.amount))}
+                          note={`${row.count} faktur · podle splatnosti`}
+                          danger={
+                            row === report.aging[4] && Number(row.amount) > 0
+                          }
+                        />
+                      ))}
+                  </div>
+                  {metricsToggle}
+                  <div className={styles.mainGrid}>
+                    <Card
+                      className={styles.agingCard}
+                      title="Stav pohledávek podle splatnosti"
+                      subtitle="Zbývající částky po částečných úhradách"
+                    >
+                      <div
+                        className={styles.agingRows}
+                        role="list"
+                        aria-label="Pohledávky podle stáří"
+                      >
+                        {report.aging.map((row, index) => (
+                          <div key={row.label} role="listitem">
+                            <span
+                              className={styles.dot}
+                              style={{
+                                background: risks[index % risks.length],
+                              }}
+                            />
+                            <span>
+                              {index === 0
+                                ? "Ve splatnosti (včetně dneška)"
+                                : row.label}
+                              <small>{row.count} faktur</small>
+                            </span>
+                            <i>
+                              <b
+                                style={{
+                                  background: risks[index % risks.length],
+                                  width: `${Math.min(100, (Math.abs(Number(row.amount)) / Math.max(1, ...report.aging.map((item) => Math.abs(Number(item.amount))))) * 100)}%`,
+                                }}
+                              />
+                            </i>
+                            <strong>
+                              <ExactMoney
+                                value={Number(row.amount)}
+                                currency={currency}
+                              />
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                    <Card
+                      title="Platební disciplína"
+                      subtitle="Za jak dlouho zákazníci faktury skutečně doplácejí"
+                    >
+                      <dl className={styles.disciplineMetrics}>
+                        <div>
+                          <dt>Průměr od vystavení do úhrady</dt>
+                          <dd>
+                            {report.dso.paid_invoice_count
+                              ? `${Number(report.dso.avg_days).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} dní`
+                              : "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Plně uhrazené faktury</dt>
+                          <dd>{report.dso.paid_invoice_count}</dd>
+                        </div>
+                      </dl>
+                      {report.dso_monthly.length ? (
+                        <>
+                          <div className={styles.tableScroll}>
+                            <table>
+                              <caption>Poslední měsíce úplné úhrady</caption>
+                              <thead>
+                                <tr>
+                                  <th>Měsíc</th>
+                                  <th>Průměr dní</th>
+                                  <th>Faktur</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {report.dso_monthly.slice(-3).map((row) => (
+                                  <tr key={row.key}>
+                                    <td>{monthLabel(row.key)}</td>
+                                    <td>
+                                      {Number(row.avg_days).toLocaleString(
+                                        "cs-CZ",
+                                        { maximumFractionDigits: 1 },
+                                      )}
+                                    </td>
+                                    <td>{row.count}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {report.dso_monthly.length > 3 && (
+                            <details className={styles.extra}>
+                              <summary>
+                                Starší měsíce úhrad
+                                <ChevronDown />
+                              </summary>
+                              <div className={styles.tableScroll}>
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>Měsíc</th>
+                                      <th>Průměr dní</th>
+                                      <th>Faktur</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {report.dso_monthly
+                                      .slice(0, -3)
+                                      .map((row) => (
+                                        <tr key={row.key}>
+                                          <td>{monthLabel(row.key)}</td>
+                                          <td>
+                                            {Number(
+                                              row.avg_days,
+                                            ).toLocaleString("cs-CZ", {
+                                              maximumFractionDigits: 1,
+                                            })}
+                                          </td>
+                                          <td>{row.count}</td>
+                                        </tr>
+                                      ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </details>
+                          )}
+                        </>
+                      ) : (
+                        <Empty>
+                          Ve výběru zatím nejsou plně uhrazené faktury s datem
+                          úhrady.
+                        </Empty>
+                      )}
+                      {!mobile && (
+                        <p className={styles.help}>
+                          Pouze plně uhrazené faktury z aktuálního výběru.
+                          Částečné úhrady se do průměru nezahrnují.
+                        </p>
+                      )}
+                    </Card>
+                  </div>
+                  <Card
+                    title="Největší otevřené pohledávky"
+                    subtitle="Výběr odběratele filtruje celý report"
+                  >
+                    <div
+                      className={`${styles.tableScroll} ${styles.debtorsTable}`}
+                    >
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Odběratel</th>
+                            <th>Otevřeno</th>
+                            <th>Po splatnosti</th>
+                            <th>Faktur</th>
+                            <th>Upomínky</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allDebtors
+                            .slice(0, showDebtors ? 10 : 5)
+                            .map((row) => (
+                              <tr key={row.name}>
+                                <td>
+                                  <button
+                                    className={styles.textButton}
+                                    onClick={() => setCustomer(row.name)}
+                                  >
+                                    {row.name}
+                                  </button>
+                                </td>
+                                <td data-label="Otevřeno">
+                                  <ExactMoney
+                                    value={Number(row.open)}
+                                    currency={currency}
+                                  />
+                                </td>
+                                <td
+                                  data-label="Po splatnosti"
+                                  className={
+                                    Number(row.overdue) > 0
+                                      ? styles.danger
+                                      : undefined
+                                  }
+                                >
+                                  <ExactMoney
+                                    value={Number(row.overdue)}
+                                    currency={currency}
+                                  />
+                                </td>
+                                <td data-label="Faktur">{row.count}</td>
+                                <td data-label="Upomínky">{row.reminders}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!allDebtors.length && (
+                      <Empty>Ve výběru nejsou žádné otevřené pohledávky.</Empty>
+                    )}
+                    {allDebtors.length > 5 && (
+                      <button
+                        className={styles.textButton}
+                        onClick={() => setShowDebtors(!showDebtors)}
+                      >
+                        {showDebtors
+                          ? "Zobrazit prvních 5"
+                          : "Zobrazit prvních 10"}
+                      </button>
+                    )}
+                    <Link className={styles.textButton} href="/customers">
+                      Registr zákazníků a jejich faktury →
+                    </Link>
+                  </Card>
+                </>
+              )}
+              {activeTab === "payments" &&
+                (() => {
+                  const summary = report.payment_reconciliation,
+                    totals = summary.totals;
+                  return (
+                    <>
+                      <div
+                        className={styles.metrics}
+                        data-expanded={expandedMetrics || undefined}
+                        data-report={activeTab}
+                        role="group"
+                        aria-label="Souhrn reportu"
+                        tabIndex={0}
+                      >
+                        <Metric
+                          label="Přijaté řádky výpisů"
+                          value={totals.accepted}
+                          note={`${totals.imports} zaúčtovaných výpisů`}
+                        />
+                        <Metric
+                          label="Posouzené jako bezpečné"
+                          value={totals.auto_matched}
+                          note="Přijaté řádky s bezpečným návrhem"
+                        />
+                        <Metric
+                          label="Ruční posouzení"
+                          value={totals.needs_review}
+                          note="Po posouzení nebo bez návrhu"
+                        />
+                        <Metric
+                          label="Nespárované platby"
+                          value={totals.unmatched_payments}
+                          note="Jiná populace · datum bankovní platby"
+                          danger={totals.unmatched_payments > 0}
+                        />
+                      </div>
+                      {metricsToggle}
+                      {totals.unacknowledged_mismatch_imports > 0 && (
+                        <p role="alert" className={styles.warning}>
+                          Nepotvrzený nesoulad bankovního účtu u{" "}
+                          {totals.unacknowledged_mismatch_imports} zaúčtovaných
+                          výpisů.
+                        </p>
+                      )}
+                      <div className={styles.mainGrid}>
+                        <Card
+                          title="Zaúčtované řádky výpisů"
+                          subtitle="Počty podle měsíce zaúčtování výpisu, nikoli částky plateb"
+                        >
+                          {summary.monthly.length ? (
+                            <Columns
+                              rows={summary.monthly.map((row) => ({
+                                key: row.key,
+                                a: row.auto_matched,
+                                b: row.needs_review,
+                              }))}
+                              first="Bezpečný návrh"
+                              second="Ruční posouzení"
+                              colors={["#08794c", "#e5bb32"]}
+                              format={(value) => `${value} řádků`}
+                            />
+                          ) : (
+                            <Empty>
+                              V období nejsou žádné zaúčtované výpisy.
+                            </Empty>
+                          )}
+                        </Card>
+                        <Card
+                          title="Způsob posouzení"
+                          subtitle="Pouze přijaté řádky ze zaúčtovaných výpisů"
+                        >
+                          <Distribution
+                            rows={[
+                              {
+                                label: "Bezpečný návrh",
+                                value: totals.auto_matched,
+                                color: greens[0],
+                                detail: `${totals.auto_matched} řádků`,
+                              },
+                              {
+                                label: "Ruční posouzení",
+                                value: totals.needs_review,
+                                color: "#e5bb32",
+                                detail: `${totals.needs_review} řádků`,
+                              },
+                            ]}
+                            totalLabel={`${totals.auto_matched + totals.needs_review}`}
+                            description="posouzených řádků"
+                          />
+                          {!mobile && (
+                            <p className={styles.help}>
+                              Nespárované platby nejsou součástí tohoto podílu.
+                              Bezpečný návrh neurčuje, zda bylo zaúčtování
+                              spuštěno automaticky.
+                            </p>
+                          )}
+                        </Card>
+                      </div>
+                    </>
+                  );
+                })()}
             </section>
-
-            <section id="report-panel-payments" role="tabpanel" aria-labelledby="report-tab-payments" aria-hidden={activeTab !== "payments"} className={`report-tab-panel${activeTab === "payments" ? " active" : ""}`}>
-              <div className="report-tab-intro"><div><span>04</span><h2>Platby</h2></div><p>Výsledek automatického párování bankovních transakcí.</p></div>
-              {(() => { const totals = report.payment_reconciliation.totals; const reviewed = totals.auto_matched + totals.needs_review; return <>
-                <section className="report-payment-metrics"><article><span>Přijaté platby</span><strong>{totals.accepted}</strong><small>potvrzeno v období</small></article><article><span>Automaticky spárováno</span><strong>{totals.auto_matched}</strong><small>{reviewed ? Math.round(totals.auto_matched / reviewed * 100) : 0} % posouzených</small></article><article><span>Ruční kontrola</span><strong>{totals.needs_review}</strong><small>vyžadovalo rozhodnutí</small></article><article><span>Nespárované</span><strong>{totals.unmatched_payments}</strong><small>zbývá vyřešit</small></article>{totals.unacknowledged_mismatch_imports > 0 && <article className="report-payment-alert"><span>Nepotvrzený nesoulad účtu</span><strong>{totals.unacknowledged_mismatch_imports}</strong><small>výpis(y) zaúčtovány automaticky bez potvrzení</small></article>}</section>
-                <article className="page-panel report-card report-payment-result"><header><div><h3>Úspěšnost párování</h3><p>Poměr automatického zpracování a ruční kontroly</p></div></header><div className="report-payment-bar"><i className="auto" style={{ width: `${reviewed ? totals.auto_matched / reviewed * 100 : 0}%` }}/><i className="review" style={{ width: `${reviewed ? totals.needs_review / reviewed * 100 : 0}%` }}/></div><div className="report-payment-legend"><span><i className="auto"/>Automaticky <strong>{totals.auto_matched}</strong></span><span><i className="review"/>Ruční kontrola <strong>{totals.needs_review}</strong></span></div></article>
-              </>; })()}
-              <article className="page-panel report-card report-splittable-card report-imports-card"><header><div><h3>Poslední potvrzené výpisy</h3><p>Importy bankovních plateb ve vybraném období</p></div></header>{report.payment_reconciliation.recent_imports.length ? <div className="report-import-list">{report.payment_reconciliation.recent_imports.map((item) => <div key={item.id}><span>{item.filename}</span><time>{new Intl.DateTimeFormat("cs-CZ").format(new Date(item.committed_at))}</time><strong>{item.auto_matched} automaticky · {item.needs_review} kontrola{item.error_count ? ` · ${item.error_count} chyb` : ""}</strong></div>)}</div> : <p className="empty-report">V období nejsou žádné potvrzené bankovní výpisy.</p>}</article>
-            </section>
+          </>
+        )}
+      </div>
+      <Modal
+        open={showCustomers}
+        onClose={() => setShowCustomers(false)}
+        labelledBy="report-customers-title"
+        className={styles.customerDialog}
+      >
+        <header>
+          <div>
+            <h2 id="report-customers-title">Přehled odběratelů</h2>
+            <p>Výběrem odběratele vyfiltrujete report.</p>
           </div>
-
-          </div>
-        </>
-      )}
+          <button
+            type="button"
+            aria-label="Zavřít přehled odběratelů"
+            onClick={() => setShowCustomers(false)}
+          >
+            <CloseIcon width="18" height="18" />
+          </button>
+        </header>
+        <label className={styles.customerSearch}>
+          <Icon name="search" />
+          <input
+            type="search"
+            ref={(input) => input?.setAttribute("autofocus", "")}
+            aria-label="Hledat odběratele"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                setShowCustomers(false);
+              }
+            }}
+            placeholder="Hledat podle názvu…"
+            value={customerSearch}
+            onChange={(event) => setCustomerSearch(event.target.value)}
+          />
+        </label>
+        <p className={styles.customerResults} role="status">
+          Nalezeno: {visibleCustomers.length} · částky ve výběru ({currency})
+          {visibleCustomers.length > 100 &&
+            " · Zobrazeno prvních 100, zpřesněte hledání."}
+        </p>
+        <div
+          className={styles.customerList}
+          role="region"
+          aria-label="Seznam odběratelů"
+          tabIndex={0}
+        >
+          {visibleCustomers.slice(0, 100).map((name) => {
+            const row = customerTotals.get(name);
+            return (
+              <button
+                type="button"
+                key={name}
+                aria-pressed={customer === name}
+                onClick={() => {
+                  setShowCustomers(false);
+                  setCustomer(name);
+                }}
+              >
+                <span>
+                  <strong>{name}</strong>
+                  <small>
+                    {row
+                      ? `Počet faktur: ${row.count}`
+                      : "Vyberte pro zobrazení souhrnu"}
+                  </small>
+                </span>
+                <span className={styles.customerAmount}>
+                  {row ? (
+                    <ExactMoney
+                      value={Number(row.revenue)}
+                      currency={currency}
+                    />
+                  ) : (
+                    "→"
+                  )}
+                </span>
+              </button>
+            );
+          })}
+          {!visibleCustomers.length && (
+            <Empty>Žádný odběratel neodpovídá hledání.</Empty>
+          )}
+        </div>
+        <div className={styles.customerDialogFooter}>
+          <Link href="/customers">Otevřít registr zákazníků →</Link>
+        </div>
+      </Modal>
     </AppFrame>
   );
 }

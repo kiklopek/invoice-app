@@ -1,4 +1,5 @@
 import "server-only";
+import { validPaymentHighlight } from "./workspace-search";
 
 import type { RequestIdentity } from "@/lib/auth";
 import { canAccessOperations, canManageInvoices } from "@/lib/role-access";
@@ -48,7 +49,7 @@ export type PaymentsPageData = {
 // žije na /invoices/payments/archive.
 export async function loadPaymentsPageData(
   identity: RequestIdentity | null,
-  options: { includePayments?: boolean } = {},
+  options: { includePayments?: boolean; highlightPaymentId?: string } = {},
 ): Promise<PaymentsPageData> {
   if (!identity) throw new PageDataError("Nejste přihlášený uživatel.", 401);
   if (!canAccessOperations(identity.membership.role)) throw new PageDataError("Čtenář nemá přístup ke správě bankovních plateb.", 403);
@@ -58,14 +59,15 @@ export async function loadPaymentsPageData(
   const assistance = assistanceFlags(organizationId);
   // Dotaz se jen sestaví; odešle se až jeho awaitem níž, takže při
   // includePayments === false neproběhne vůbec.
-  const paymentsQuery = identity.service
+  const paymentQuery = () => identity.service
     .from("bank_payments")
     .select(
       assistance.mode !== "off"
         ? "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, match_reason, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)"
         : "id, external_id, booked_on, amount, currency, variable_symbol, counterparty_name, match_status, source, invoice_id, invoices!bank_payments_invoice_id_fkey(invoice_number, counterparty_name)",
     )
-    .eq("organization_id", organizationId)
+    .eq("organization_id", organizationId);
+  const paymentsQuery = paymentQuery()
     .order("booked_on", { ascending: false })
     .limit(100)
     .overrideTypes<Array<Omit<PaymentsPagePayment,"allocations">>, { merge:false }>();
@@ -79,9 +81,17 @@ export async function loadPaymentsPageData(
       .order("due_date", { ascending: true })
       .limit(500),
   ]);
-  const data = paymentsResult?.data ?? [];
+  let data = paymentsResult?.data ?? [];
   const error = paymentsResult?.error ?? null;
   if (error || invoiceError) throw new PageDataError("Bankovní platby se nepodařilo načíst. Zkuste to prosím znovu za chvíli.", 500);
+
+  const highlightPaymentId = validPaymentHighlight(options.highlightPaymentId);
+  if (includePayments && highlightPaymentId && !data.some(payment => payment.id === highlightPaymentId)) {
+    const extra = await paymentQuery().eq("id", highlightPaymentId).limit(1)
+      .overrideTypes<Array<Omit<PaymentsPagePayment, "allocations">>, { merge: false }>();
+    if (extra.error) throw new PageDataError("Vybranou platbu se nepodařilo načíst.", 500);
+    data = [...(extra.data ?? []), ...data];
+  }
 
   const paymentIds = (data ?? []).map((payment) => payment.id);
   // Faktura se přibalí k alokaci rovnou (dřív samostatný dotaz čekající na

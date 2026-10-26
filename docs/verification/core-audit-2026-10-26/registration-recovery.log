@@ -1,0 +1,1 @@
+[{"name":"real registration with locally delivered OTP","status":"PASS","redirect":"/onboarding"},{"name":"password recovery, new password, rejected old password and single-use token","status":"PASS"}]

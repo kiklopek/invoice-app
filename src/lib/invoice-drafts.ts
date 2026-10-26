@@ -53,13 +53,15 @@ function writeStore(next: DraftStore) {
   const store = storage();
   if (!store) {
     memoryFallback = next;
-    return;
+    return false;
   }
   try {
     store.setItem(STORAGE_KEY, JSON.stringify(next));
+    return true;
   } catch {
     // Plne uloziste nesmi shodit rozepsany formular -- drzi se aspon v pameti.
     memoryFallback = next;
+    return false;
   }
 }
 
@@ -77,7 +79,7 @@ export function saveInvoiceDraft(key: string, draft: InvoiceInput) {
     const oldest = order.shift()!;
     delete drafts[oldest];
   }
-  writeStore({ version: SCHEMA_VERSION, drafts, order });
+  return writeStore({ version: SCHEMA_VERSION, drafts, order });
 }
 
 export function clearInvoiceDraft(key: string) {
