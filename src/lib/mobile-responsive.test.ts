@@ -136,7 +136,7 @@ describe("mobile application layout", () => {
       /\.mobile-navigation-subitems \{[\s\S]*?gap: 7px;[\s\S]*?\}/,
     );
     expect(navigationCss).toMatch(
-      /\.mobile-navigation-subitems a \{[\s\S]*?min-height: 48px;[\s\S]*?align-items: center;[\s\S]*?padding: 8px 12px;[\s\S]*?text-align: center;[\s\S]*?\}/,
+      /\.mobile-navigation-subitems a \{[\s\S]*?min-height: 48px;[\s\S]*?align-items: center;[\s\S]*?padding: 8px 12px;[\s\S]*?text-align: left;[\s\S]*?\}/,
     );
     expect(navigationCss).toMatch(
       /\.mobile-navigation-subitems a:hover,[\s\S]*?\.mobile-navigation-subitems a:focus-visible \{\s*background: #f3f7f4;\s*\}/,
