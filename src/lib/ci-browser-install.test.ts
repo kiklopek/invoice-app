@@ -1,26 +1,22 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { devices } from "@playwright/test";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Skutečný incident (22. 9.): CI instaloval jen "chromium", ale
-// playwright.config.ts má projekt desktop-safari na WebKitu. Nebylo to
-// 35 nesouvisejících selhání -- byla to jedna chybějící závislost, a
-// protože padal KAŽDÝ test na tom prohlížeči, vypadalo to jako plošná
-// regrese, ne jako chybějící instalační krok. Test porovná, jaké enginy
-// projekty v playwright.config.ts skutečně potřebují, s tím, co
-// `playwright install` v ci.yml doopravdy stahuje.
-
-function projectDeviceNames(): string[] {
-  const config = readFileSync(join(process.cwd(), "playwright.config.ts"), "utf8");
-  return [...config.matchAll(/\.\.\.devices\["([^"]+)"\]/g)].map(match => match[1]);
+// Compare the projects actually enabled in the normal CI environment with
+// its installed engines. A text search also includes conditional release-only
+// projects and incorrectly requires Firefox when RELEASE_AUDIT is disabled.
+async function enabledProjects(releaseAudit = false) {
+  vi.stubEnv("RELEASE_AUDIT", String(releaseAudit));
+  vi.resetModules();
+  const { default: config } = await import("../../playwright.config");
+  return config.projects ?? [];
 }
 
-function requiredEngines(): Set<string> {
+async function requiredEngines(releaseAudit = false): Promise<Set<string>> {
   const engines = new Set<string>();
-  for (const name of projectDeviceNames()) {
-    const engine = (devices as Record<string, { defaultBrowserType?: string }>)[name]?.defaultBrowserType;
-    if (engine) engines.add(engine);
+  for (const project of await enabledProjects(releaseAudit)) {
+    const use = project.use as { browserName?: string; defaultBrowserType?: string } | undefined;
+    engines.add(use?.browserName ?? use?.defaultBrowserType ?? "chromium");
   }
   return engines;
 }
@@ -31,17 +27,24 @@ function installedEngines(): Set<string> {
   return new Set(match ? match[1].trim().split(/\s+/) : []);
 }
 
-describe("CI instaluje prohlížeče pro všechny projekty v playwright.config.ts", () => {
-  it("zjišťuje aspoň jeden projekt a aspoň jednu instalovanou závislost, jinak testuje fikci", () => {
-    expect(projectDeviceNames().length).toBeGreaterThan(0);
+afterEach(() => vi.unstubAllEnvs());
+
+describe("CI instaluje prohlížeče pro aktivní projekty v playwright.config.ts", () => {
+  it("zjišťuje aspoň jeden projekt a aspoň jednu instalovanou závislost, jinak testuje fikci", async () => {
+    expect((await enabledProjects()).length).toBeGreaterThan(0);
     expect(installedEngines().size).toBeGreaterThan(0);
   });
 
-  it("každý engine, který nějaký projekt potřebuje, se v CI instaluje", () => {
-    const required = requiredEngines();
+  it("každý engine běžného CI projektu se instaluje", async () => {
+    const required = await requiredEngines();
     const installed = installedEngines();
     for (const engine of required) {
       expect(installed.has(engine), `playwright.config.ts potřebuje "${engine}", ale ci.yml ho neinstaluje -- ${[...installed].join(", ")}`).toBe(true);
     }
+  });
+
+  it("Firefox zůstává součástí samostatného release auditu", async () => {
+    expect(await requiredEngines()).toEqual(new Set(["chromium", "webkit"]));
+    expect(await requiredEngines(true)).toEqual(new Set(["chromium", "webkit", "firefox"]));
   });
 });
