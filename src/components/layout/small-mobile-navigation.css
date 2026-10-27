@@ -1,4 +1,4 @@
-/* These additions intentionally leave the existing 768–1023px navigation intact. */
+/* Phone drawer presentation; menu sizing tokens are shared through 1023px. */
 .small-mobile-wordmark,
 .small-mobile-account-actions,
 .small-mobile-drawer-heading {
@@ -134,13 +134,14 @@
     transition: opacity 220ms ease;
   }
   .app-shell .sidebar .mobile-navigation-panel {
+    --menu-icon-slot: 28px;
     position: absolute;
     inset: 0 0 0 auto;
     width: min(340px, 88vw);
     max-width: none;
     height: 100%;
     max-height: 100%;
-    padding: calc(12px + env(safe-area-inset-top)) 14px
+    padding: calc(12px + env(safe-area-inset-top)) var(--menu-panel-inset)
       calc(18px + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
@@ -187,7 +188,7 @@
     min-height: 44px;
   }
   .app-shell .small-mobile-drawer-heading strong {
-    font-size: 23px;
+    font-size: 1.4375rem;
     letter-spacing: -1px;
   }
   .app-shell .small-mobile-drawer-heading button {
@@ -224,14 +225,14 @@
   }
   .app-shell .sidebar .mobile-navigation-profile strong {
     display: block;
-    font-size: 14px;
+    font-size: var(--menu-count-text);
     white-space: normal;
     overflow-wrap: anywhere;
   }
   .app-shell .sidebar .mobile-navigation-profile small {
     display: block;
     margin-top: 3px;
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.45;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -252,11 +253,11 @@
   }
   .app-shell .sidebar .mobile-navigation-links > a {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-columns: var(--menu-icon-slot) minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
+    gap: var(--menu-gap);
     min-height: 56px;
-    padding: 8px 12px;
+    padding: 8px var(--menu-inset);
     border: 0;
     border-radius: 9px;
     background: transparent;
@@ -285,10 +286,6 @@
     padding: 0;
     color: #506174;
   }
-  .app-shell .sidebar .mobile-navigation-links .nav-symbol svg {
-    width: 20px;
-    height: 20px;
-  }
   .app-shell .sidebar .mobile-navigation-links .active .nav-symbol {
     color: #087245;
   }
@@ -296,7 +293,6 @@
     min-width: 24px;
     padding: 2px 6px;
     border-radius: 20px;
-    font-size: 14px;
     font-style: normal;
     background: #e5f2ea;
     color: #0d7046;
@@ -306,10 +302,7 @@
     padding: 0 0 0 12px;
   }
   .app-shell .sidebar .mobile-navigation-subitems a {
-    min-height: 48px;
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
+    padding: 8px var(--menu-inset);
   }
   .app-shell .sidebar :is(button, a):focus-visible {
     outline: 2px solid #23784f;

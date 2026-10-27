@@ -133,6 +133,13 @@
 }
 
 @media (max-width: 1023px) {
-  .navigationEntry.navigationEntry { min-height: 64px; font-size: 18px; }
-  .navigationEntry img { width: 48px; height: auto; }
+  .navigationEntry.navigationEntry {
+    min-height: 64px;
+    min-width: 0;
+    gap: var(--menu-gap);
+    padding-inline: var(--menu-inset);
+    font-size: var(--menu-text);
+  }
+  .navigationEntry img { width: var(--menu-mascot); height: auto; }
+  .navigationEntry span { min-width: 0; overflow-wrap: anywhere; }
 }
