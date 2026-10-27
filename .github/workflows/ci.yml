@@ -15,7 +15,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -51,7 +51,7 @@ jobs:
       # prohlizec). desktop-safari pouziva WebKit. Kdyz CI instaluje jen
       # chromium, kazdy test na desktop-safari selze uz na startu prohlizece
       # -- to neni 35 nesouvisejicich chyb, je to jedna chybejici zavislost.
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - run: pnpm exec playwright install --with-deps chromium webkit
       # Krok driv bezel uplne bez env, takze dev server nemel zadne pripojeni
       # k Supabase a KAZDY workspace test se tise preskocil -- realne bezel
       # jediny test a CI pritom svitilo zelene.
