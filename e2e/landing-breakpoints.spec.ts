@@ -3,10 +3,11 @@ import { expect, test, type Page } from "@playwright/test";
 const WIDTHS = [320, 330, 359, 360, 380, 390, 440, 639, 640, 641, 667, 760, 761, 768, 820, 834, 979, 980, 981, 1024, 1079, 1080, 1081, 1180, 1279, 1280, 1366, 1439, 1440, 1599, 1600, 1759, 1760, 1919, 1920, 2560, 3840];
 
 async function resize(page: Page, width: number) {
+  await page.bringToFront();
   await page.setViewportSize({ width, height: 1000 });
-  // A layout read flushes resize synchronously. WebKit may suspend animation
-  // frames in background CI pages, so awaiting rAF can hang without a UI fault.
-  await expect.poll(() => page.evaluate(() => document.documentElement.getBoundingClientRect().width)).toBe(width);
+  // Locator assertions retry across dev-server reloads; raw page.evaluate
+  // can run while the document is being replaced and lose its context.
+  await expect(page.locator("html")).toHaveJSProperty("offsetWidth", width);
 }
 
 async function layoutProblems(page: Page) {
@@ -41,7 +42,10 @@ async function layoutProblems(page: Page) {
 for (const route of ["/", "/en"]) {
   test(`${route}: resizing across mobile, tablet and desktop preserves content`, async ({ page }, testInfo) => {
     test.setTimeout(90_000);
+    await page.bringToFront();
     await page.goto(route);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("h1")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     const problems: string[] = [];
     // Resize both ways without a reload: open answers and billing state must survive.
@@ -66,7 +70,10 @@ for (const route of ["/", "/en"]) {
   });
 
   test(`${route}: desktop typography and spacing do not jump at adjacent widths`, async ({ page }) => {
+    await page.bringToFront();
     await page.goto(route);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("h1")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     for (const width of [1080, 1439, 1599, 1759, 1919]) {
       const metrics: number[][] = [];
