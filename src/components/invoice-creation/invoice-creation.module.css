@@ -1352,6 +1352,34 @@
   .fields {
     gap: 14px 12px;
   }
+  /* Date controls need room for the localized value and native picker.
+     iOS otherwise uses its own intrinsic sizing and value alignment. */
+  .fields > .field:has(> input[type="date"]) {
+    grid-column: 1 / -1;
+  }
+  .creation input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    inline-size: 100%;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    min-block-size: 44px;
+    /* Same line height, padding (2 × 10px) and border (2 × 1px) as other inputs. */
+    block-size: calc(1.4em + 22px);
+    /* Override the global coarse-pointer 16px rule while honoring text zoom. */
+    font-size: max(16px, 1rem) !important;
+    text-align: start;
+  }
+  .creation input[type="date"]::-webkit-date-and-time-value {
+    min-block-size: 1.4em;
+    padding: 0;
+    line-height: inherit;
+    text-align: start;
+  }
+  .creation input[type="date"]::-webkit-datetime-edit {
+    min-inline-size: 0;
+    padding: 0;
+  }
   .customerRow {
     align-items: stretch;
     flex-direction: column;

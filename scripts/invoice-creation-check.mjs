@@ -22,8 +22,8 @@ const context={supplier,customers:[customer],today:'2026-10-25',suggested_number
 const require=createRequire(import.meta.url),vr=createRequire(require.resolve('vitest/config'));const{createServer}=await import(pathToFileURL(vr.resolve('vite')).href);
 const server=await createServer({configFile:false,root:dir,publicDir:resolve('public'),logLevel:'error',server:{host:'127.0.0.1',port:4399,strictPort:true,fs:{allow:[root]}},esbuild:{jsx:'automatic'},css:{postcss:{plugins:[]}},resolve:{alias:[{find:/^next\/link$/,replacement:resolve(dir,'link.tsx')},{find:/^next\/image$/,replacement:resolve(dir,'image.tsx')},{find:/^next\/navigation$/,replacement:resolve(dir,'navigation.tsx')},{find:'@',replacement:resolve('src')}],dedupe:['react','react-dom']}});
 await server.listen();const engine=process.argv.includes('--webkit')?'webkit':'chromium',browser=await({chromium,webkit}[engine]).launch(),results=[];
-async function setup(width=1440,height=1000,overrides={}){
- const page=await browser.newPage({viewport:{width,height},locale:'cs-CZ'}),requests=[],errors=[];let failSend=false,failIssue=false,stored=null;
+async function setup(width=1440,height=1000,overrides={},mobile=false){
+ const page=await browser.newPage({viewport:{width,height},locale:'cs-CZ',isMobile:mobile,hasTouch:mobile}),requests=[],errors=[];let failSend=false,failIssue=false,stored=null;
  const ctx={...context,...overrides};page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/**',async r=>{const req=r.request(),url=new URL(req.url());requests.push({method:req.method(),path:url.pathname,body:req.postDataJSON()});
   if(url.pathname==='/api/invoices/creation')return r.fulfill({json:url.searchParams.has('customer_id')?{customer}:ctx});
@@ -39,6 +39,54 @@ async function setup(width=1440,height=1000,overrides={}){
 }
 async function fill(page){await page.getByRole('combobox',{name:'Odběratel',exact:true}).click();await page.getByRole('option',{name:/WOOD & PAPER/}).click();await page.getByRole('textbox',{name:'Název položky 1',exact:true}).fill('Consultingové služby');await page.getByRole('textbox',{name:'Cena za jednotku 1',exact:true}).fill('50000');}
 try{
+ if(process.argv.includes('--date-fields')){
+  const dateOut=resolve('docs/redesign/visual-validation/invoice-date-fields');await mkdir(dateOut,{recursive:true});
+  for(const {width,height=844,text=100} of [
+   ...[320,360,390,430,600,767,768,1023,1024,1440].map(width=>({width})),
+   {width:320,height:480},...[320,390,767].map(width=>({width,text:200})),
+  ]){
+   const c=await setup(width,height,{},width<1024),p=c.page;
+   await fill(p);
+   if(text===200)await p.evaluate(()=>document.documentElement.style.fontSize='200%');
+   const dates=p.locator('input[type=date]');await expect(dates).toHaveCount(3);
+   const card=p.locator('section').filter({has:p.getByRole('heading',{name:'Základní údaje',exact:true})}).last();
+   const form=p.locator('form').filter({has:dates.first()});
+   const fields=[['Datum vystavení *','2026-12-29'],['Datum splatnosti *','2027-01-12'],['DUZP *','2026-12-31']];
+   for(const [label,value] of fields){
+    const input=p.getByLabel(label,{exact:true});await input.fill(value);await expect(input).toHaveValue(value);
+    const metrics=await input.evaluate(n=>{const r=n.getBoundingClientRect(),label=n.parentElement.getBoundingClientRect(),grid=n.parentElement.parentElement.getBoundingClientRect(),style=getComputedStyle(n);return {width:r.width,labelWidth:label.width,gridWidth:grid.width,height:r.height,font:parseFloat(style.fontSize),marginStart:parseFloat(style.marginInlineStart),marginEnd:parseFloat(style.marginInlineEnd),overflow:n.scrollWidth>n.clientWidth+1,right:r.right,left:r.left}});
+    expect(Math.abs(metrics.width+metrics.marginStart+metrics.marginEnd-metrics.labelWidth)).toBeLessThanOrEqual(1);
+    if(width<=767){expect(Math.abs(metrics.labelWidth-metrics.gridWidth)).toBeLessThanOrEqual(1);expect(metrics.marginStart).toBe(0);expect(metrics.marginEnd).toBe(0);expect(metrics.height).toBeGreaterThanOrEqual(44);expect(metrics.font).toBeGreaterThanOrEqual(text===200?32:16);}
+    expect(metrics.overflow).toBe(false);
+    if(width<=767&&text===100){
+     const reference=await p.getByLabel('Variabilní symbol',{exact:true}).evaluate(n=>{const s=getComputedStyle(n);return {height:n.getBoundingClientRect().height,padding:s.padding,border:s.border,borderRadius:s.borderRadius,background:s.backgroundColor,font:s.fontSize}});
+     const appearance=await input.evaluate(n=>{const s=getComputedStyle(n);return {height:n.getBoundingClientRect().height,padding:s.padding,border:s.border,borderRadius:s.borderRadius,background:s.backgroundColor,font:s.fontSize}});
+     expect(Math.abs(appearance.height-reference.height)).toBeLessThanOrEqual(1);
+     expect({...appearance,height:undefined}).toEqual({...reference,height:undefined});
+    }
+    await input.clear();await expect(input).toHaveValue('');expect(await input.evaluate(n=>n.validity.valueMissing)).toBe(true);
+    expect((await input.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await input.fill(value);
+   }
+   const due=p.getByLabel('Datum splatnosti *',{exact:true});await expect(due).toHaveAttribute('min','2026-12-29');await due.fill('2026-12-28');expect(await due.evaluate(n=>n.validity.rangeUnderflow)).toBe(true);await due.fill('2027-01-12');
+   expect(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+   expect(await form.evaluate(n=>n.scrollWidth<=n.clientWidth+1)).toBe(true);
+   await card.screenshot({path:resolve(dateOut,`${engine}-${width}x${height}-text-${text}.png`)});
+   expect(c.errors).toEqual([]);await p.close();results.push({scenario:'native invoice date inputs',width,height,text,passed:true});console.log(`PASS date inputs ${width}x${height}, text ${text}%`);
+  }
+  {
+   const c=await setup(375,667,{},true),p=c.page;await fill(p);
+   await p.getByLabel('Datum vystavení *',{exact:true}).fill('2026-12-29');
+   await p.setViewportSize({width:667,height:375});
+   const guard=p.getByRole('dialog',{name:'Otočte telefon na výšku',exact:true});
+   if(engine==='chromium')await expect(guard).toBeVisible();
+   await p.setViewportSize({width:375,height:667});await expect(guard).toBeHidden();
+   await expect(p.getByLabel('Datum vystavení *',{exact:true})).toHaveValue('2026-12-29');
+   await p.close();console.log('PASS dates survive orientation changes and portrait guard');
+  }
+  const c=await setup(390,844,{supplier:{...supplier,vat_payer:false}},true);await expect(c.page.locator('input[type=date]')).toHaveCount(2);await expect(c.page.getByLabel('DUZP *',{exact:true})).toHaveCount(0);await c.page.close();console.log('PASS nonpayer dates');
+  await writeFile(resolve(dateOut,`${engine}-results.json`),JSON.stringify(results,null,2));
+ }else{
  if(!process.argv.includes("--menu-only")){
  {
   const c=await setup(1440,800,{supplier:{...supplier,name:'Dlouhý název společnosti se službami a poradenstvím '.repeat(4)}}),p=c.page;await fill(p);await p.getByRole('textbox',{name:'Cena za jednotku 1',exact:true}).fill('99999999.1234');await p.getByRole('textbox',{name:'Množství 1',exact:true}).fill('1000.125');
@@ -163,4 +211,5 @@ try{
  }
  await writeFile(resolve(menuOut,`${engine}-results.json`),JSON.stringify(results,null,2));
  await writeFile(resolve(out,`${engine}-results.json`),JSON.stringify(results,null,2));
+}
 }finally{await browser.close();await server.close();}
