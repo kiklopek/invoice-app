@@ -1,7 +1,6 @@
 // Prints the vertical stack of a page's main content (top, height, margins, min-height)
 // so overflow beyond the viewport can be attributed to concrete elements.
 //   node scripts/responsive-mockups/height-breakdown.mjs /invoices/payments 1470x830 [depth]
-import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { startHarness, installNetwork } from "../responsive-audit/harness.mjs";
 import { fixtures, NOW } from "../responsive-audit/fixtures.mjs";
