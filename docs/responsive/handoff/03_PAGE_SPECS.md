@@ -157,3 +157,9 @@ Pilíře jsou v `reference/pillars/`. Rodina je uvedená v tabulce nahoře.
 - **Předplatné** (`predplatne`): form; karta plánu, historie plateb.
 
 Mobil (< 640) a MacBook (1470) se u žádné stránky nemění.
+
+## Otevřené stavy všech stránek
+
+Ke každé stránce patří i její existující popupy, nabídky, filtry, výběry a sbalitelné
+sekce. Úplný pracovní registr variant je v `06_INTERACTION_INVENTORY.md`, zadání a
+kontroly v `05_INTERACTIVE_STATES.md`. Schválený směr stránky sám nepotvrzuje otevřené stavy.

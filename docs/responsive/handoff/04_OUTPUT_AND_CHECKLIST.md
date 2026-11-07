@@ -2,7 +2,7 @@
 
 ## Formát
 
-Jeden samostatný soubor HTML na **jednu stránku v jedné velikosti okna**, pojmenovaný
+Pro základní stránkový návrh jeden samostatný soubor HTML na **jednu stránku v jedné velikosti okna**, pojmenovaný
 `<stránka>-<šířka>x<výška>.html` (např. `reminders-1024x768.html`).
 
 - `<meta name="viewport" content="width=<šířka>">`. Návrh je pro okno přesně této velikosti.
@@ -56,3 +56,13 @@ Kontrolu 2–6 lze spustit vložením do konzole prohlížeče:
 ```
 
 U statické stránky musí vyjít `pageOverflow: 0`, `gapBelowContent: 24` a `brokenText: []`.
+
+
+## Rozšíření pro otevřené prvky
+
+Pro každou otevřenou vrstvu a interaktivní stav použít samostatnou scénu a rozšířený
+checklist v dokumentu 05. Čtrnáct kontrol výše nadále platí pro základní stránku;
+kontroly výplně plátna a zbytku pod řádky se nepřenášejí na samotný malý popup.
+Scénáře a skutečné použití určuje dokument 06. Skript výše hledá text jen v `.main`:
+portál mimo `.main`, top layer, fokus ani otevřený systémový picker tím neověří.
+U každé kontroly uvést PASS/FAIL/N/A/NEOVĚŘENO, nepovažovat spuštění skriptu za vizuální revizi.

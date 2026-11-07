@@ -86,3 +86,10 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
 
 Ověřeno v mockupu: žádný rám nepřesahuje okno. Mezera pod posledním řádkem je ≤ 25 px, mezi menu a
 profilem 33–41 px, v panelu detailu 22 px.
+
+## Otevřené vrstvy a sbalitelné sekce
+
+Pro interaktivní prvky platí doplněk `05_INTERACTIVE_STATES.md` (I-R01 až I-R12).
+Pravidla 2 a 11 řeší plátno stránky a jeho panely; krátké dialogy, menu, tooltipy
+a prázdné stavy mají přirozenou velikost, nemusí vyplnit viewport ani přidávat obsah.
+Mobil a MacBook nejprve porovnat s otevřenými referencemi, které zatím v balíčku chybí.

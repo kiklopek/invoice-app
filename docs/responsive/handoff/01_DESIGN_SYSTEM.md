@@ -96,3 +96,9 @@ Každý řádek mřížky musí být zaplněný, žádné osamocené pole s prá
 ### Dropzóna (nahrání souboru)
 Přerušovaný zelený okraj, světle zelené pozadí, uprostřed ikona dokumentu, nadpis,
 popisek formátů, tlačítko „Vybrat …“, štítky GPC / CSV a limit souboru. Vše vycentrované.
+
+## Otevírací prvky a stavy
+
+Dialogy, nabídky, výběry, tooltipy a pomocné panely používají stejné tokeny, pole
+a tlačítka. Rozměry a chování určuje dokument 05, konkrétní použití dokument 06.
+Velikost krátkého popupu se řídí obsahem; pravidla vyplňování karet ho nenutí růst.
