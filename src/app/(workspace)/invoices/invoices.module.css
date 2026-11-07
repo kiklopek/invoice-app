@@ -1180,14 +1180,14 @@ select.pageSize {
     .statusCol { width: 152px; }
     .paidCol { width: 0; }
     .actionsCol { width: 44px; }
+    /* Kept off here even if the wide rule below would match a later size. */
+    .issuedCol, .remindersCol { width: 0; }
     /* The cell stays (so Akce keeps its column) with no width or content. */
-    .table th:nth-child(7),
-    .table td:nth-child(7) {
+    .table .paidCell {
       padding: 0;
       overflow: hidden;
     }
-    .table th:nth-child(7) > *,
-    .table td:nth-child(7) > * {
+    .table .paidCell > * {
       display: none;
     }
     .dueCell small {
@@ -1253,5 +1253,71 @@ select.pageSize {
   }
   .subtitle {
     display: none;
+  }
+}
+
+/* ---- Wide list (TRANSITION_RULES pravidla 11, 13) ---------------------------
+   Vystaveno and Upomínky exist in every row but take no width until the panel
+   is wide (from 1400 px: 1920 px windows and up), so narrower layouts and the
+   pillars are untouched and the columns stay aligned. In the wide panel every
+   column is a share of the width, so the table grows evenly instead of leaving
+   one huge Odběratel column. */
+.issuedCol,
+.remindersCol {
+  width: 0;
+}
+.table .issuedCell,
+.table .remindersCell {
+  padding: 0;
+  overflow: hidden;
+}
+.table .issuedCell > *,
+.table .remindersCell > * {
+  display: none;
+}
+@media (min-width: 1024px) {
+  @container invoice-records (min-width: 1400px) {
+    .checkCol { width: 3%; }
+    .numberCol { width: 10%; }
+    .customerCol { width: 18%; }
+    .issuedCol { width: 8%; }
+    .amountCol { width: 10%; }
+    .dueCol { width: 11%; }
+    .statusCol { width: 11%; }
+    .paidCol { width: 15%; }
+    .remindersCol { width: 10%; }
+    .actionsCol { width: 4%; }
+    .table .issuedCell,
+    .table .remindersCell {
+      padding: 10px;
+    }
+    .table .issuedCell > *,
+    .table .remindersCell > * {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+/* Large screens: secondary text, pills and headers grow with the cells
+   (record text 14 → 16 px from the shell), up to the caps of rule 6. */
+@media (min-width: 1600px) {
+  .table {
+    --list-grow: var(--workspace-grow, 0px);
+  }
+  .table th {
+    font-size: calc(11px + var(--list-grow) / 960);
+  }
+  .table small {
+    font-size: calc(12px + var(--list-grow) * 2 / 960);
+  }
+  .badge {
+    font-size: calc(12px + var(--list-grow) / 960);
+    padding: calc(4px + var(--list-grow) * 2 / 960) calc(8px + var(--list-grow) * 2 / 960);
+  }
+  .badge svg {
+    width: calc(14px + var(--list-grow) * 2 / 960);
+    height: calc(14px + var(--list-grow) * 2 / 960);
   }
 }

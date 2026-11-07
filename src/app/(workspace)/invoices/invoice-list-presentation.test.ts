@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Invoice } from "@/types/invoice";
-import { invoiceDueContext, invoiceMoney, invoicePaidPercentage, invoicePageNumbers, sortInvoicePage } from "./invoice-list-presentation";
+import { invoiceDueContext, invoiceMoney, invoiceReminderSummary, invoicePaidPercentage, invoicePageNumbers, sortInvoicePage } from "./invoice-list-presentation";
 
 describe("invoice list presentation", () => {
   it.each([[0,100,0],[100,25,25],[100,200,100],[100,-10,0],[NaN,10,0],[100,Infinity,0],[0.03,0.01,100/3]])("clamps progress without rounding money: %s / %s",(amount,paid,expected)=>{
@@ -27,5 +27,25 @@ describe("invoice list presentation", () => {
     expect(invoicePageNumbers(1,1)).toEqual([1]);
     expect(invoicePageNumbers(5,20)).toEqual([1,4,5,6,20]);
     expect(invoicePageNumbers(20,20)).toEqual([1,19,20]);
+  });
+});
+
+describe("invoice reminder summary", () => {
+  const base = { status: "pending", reminders_sent: 0, next_reminder_at: null, reminders_paused: false } as const;
+  it.each([
+    [1, "1 upomínka"], [2, "2 upomínky"], [4, "4 upomínky"], [5, "5 upomínek"], [21, "21 upomínek"],
+  ])("declines the sent count: %s", (sent, text) => {
+    expect(invoiceReminderSummary({ ...base, reminders_sent: sent }).main).toBe(text);
+  });
+  it("names the next reminder by its Prague calendar day", () => {
+    // 23:30 UTC on 19 Oct is already 20 Oct in Prague (CEST).
+    expect(invoiceReminderSummary({ ...base, next_reminder_at: "2026-10-19T23:30:00Z" })).toEqual({ main: "Zatím žádná", detail: "První 20. 10." });
+    expect(invoiceReminderSummary({ ...base, reminders_sent: 2, next_reminder_at: "2026-11-02T08:00:00Z" })).toEqual({ main: "2 upomínky", detail: "Další 2. 11." });
+  });
+  it("says when reminders are paused and ignores plans of closed invoices", () => {
+    expect(invoiceReminderSummary({ ...base, reminders_sent: 1, reminders_paused: true, next_reminder_at: "2026-11-02T08:00:00Z" })).toEqual({ main: "1 upomínka", detail: "Pozastaveno" });
+    expect(invoiceReminderSummary({ ...base, status: "paid", reminders_sent: 3, next_reminder_at: "2026-11-02T08:00:00Z" })).toEqual({ main: "3 upomínky", detail: "" });
+    expect(invoiceReminderSummary({ ...base, status: "paid" })).toEqual({ main: "—", detail: "" });
+    expect(invoiceReminderSummary(base)).toEqual({ main: "Zatím žádná", detail: "" });
   });
 });

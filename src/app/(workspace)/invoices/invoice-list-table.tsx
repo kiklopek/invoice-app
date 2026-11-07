@@ -10,6 +10,7 @@ import {
   invoiceDate,
   invoiceMoney,
   invoiceDueContext,
+  invoiceReminderSummary,
   invoicePaidPercentage,
   invoiceStatusLabels,
   sortInvoicePage,
@@ -148,10 +149,12 @@ export function InvoiceListTable({
             <col className={styles.checkCol} />
             <col className={styles.numberCol} />
             <col className={styles.customerCol} />
+            <col className={styles.issuedCol} />
             <col className={styles.amountCol} />
             <col className={styles.dueCol} />
             <col className={styles.statusCol} />
             <col className={styles.paidCol} />
+            <col className={styles.remindersCol} />
             <col className={styles.actionsCol} />
           </colgroup>
           <thead>
@@ -199,6 +202,10 @@ export function InvoiceListTable({
               >
                 {heading("counterparty_name", "Odběratel")}
               </th>
+              {/* Vystaveno and Upomínky appear only in a wide records panel. */}
+              <th scope="col" className={styles.issuedCell}>
+                <span>Vystaveno</span>
+              </th>
               <th
                 scope="col"
                 aria-sort={
@@ -226,6 +233,7 @@ export function InvoiceListTable({
               <th scope="col">Stav</th>
               <th
                 scope="col"
+                className={styles.paidCell}
                 aria-sort={
                   sort === "paid_amount"
                     ? direction === "asc"
@@ -235,6 +243,9 @@ export function InvoiceListTable({
                 }
               >
                 {heading("paid_amount", "Uhrazeno")}
+              </th>
+              <th scope="col" className={styles.remindersCell}>
+                <span>Upomínky</span>
               </th>
               <th scope="col">
                 <span className={styles.srOnly}>Akce</span>
@@ -247,6 +258,7 @@ export function InvoiceListTable({
               const isOpen =
                   invoice.status === "pending" || invoice.status === "overdue",
                 partial = isOpen && Number(invoice.paid_amount) > 0;
+              const reminders = invoiceReminderSummary(invoice);
               const percentage = invoicePaidPercentage(
                 Number(invoice.amount),
                 Number(invoice.paid_amount),
@@ -305,6 +317,11 @@ export function InvoiceListTable({
                     <small title={invoice.counterparty_email}>
                       {invoice.counterparty_email || "—"}
                     </small>
+                  </td>
+                  <td className={styles.issuedCell}>
+                    <time dateTime={invoice.issue_date}>
+                      {invoiceDate(invoice.issue_date)}
+                    </time>
                   </td>
                   <td className={styles.amountCell}>
                     <span className={styles.mobileLabel}>Částka</span>
@@ -374,6 +391,10 @@ export function InvoiceListTable({
                         %
                       </small>
                     </div>
+                  </td>
+                  <td className={styles.remindersCell}>
+                    <span>{reminders.main}</span>
+                    {reminders.detail ? <small>{reminders.detail}</small> : null}
                   </td>
                   <td className={styles.actionsCell}>
                     <InvoiceRowActions

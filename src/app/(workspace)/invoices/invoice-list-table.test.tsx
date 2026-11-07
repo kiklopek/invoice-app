@@ -70,7 +70,7 @@ describe("InvoiceListTable compact status", () => {
     // The amounts are spelled out whole (rule 8), not as a bare percentage.
     expect(bars[0].getAttribute("aria-label")).toMatch(/^Uhrazeno 2\s500,00\sKč z 10\s000,00\sKč$/);
     expect((bars[0].firstElementChild as HTMLElement).style.width).toBe("25%");
-    // Every row keeps all eight cells so the columns line up.
-    for (const row of container.querySelectorAll("tbody tr")) expect(row.children).toHaveLength(8);
+    // Every row keeps all ten cells so the columns line up.
+    for (const row of container.querySelectorAll("tbody tr")) expect(row.children).toHaveLength(10);
   });
 });
