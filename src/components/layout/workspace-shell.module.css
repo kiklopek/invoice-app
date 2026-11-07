@@ -207,7 +207,125 @@
     padding-inline: 16px;
   }
 }
+/* Rail (TRANSITION_RULES pravidlo 5): on landscape tablets a 220 px sidebar left
+   too little room for records, so navigation becomes an 84 px column of icon +
+   label. Labels stay whole (the longest, "Nastavení", fits at 10 px); the open
+   section keeps its sublinks, centred and allowed to wrap, so no page becomes
+   unreachable. The account keeps avatar and logout; name and company remain
+   in the accessible tree and in the avatar tooltip. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .shell {
+    --app-sidebar-width: 84px;
+  }
+  .shell.shell :global(.sidebar) {
+    align-items: stretch;
+    padding: 18px 6px 12px;
+  }
+  .shell.shell :global(.sidebar > .brand) {
+    justify-content: center;
+    margin: 0 0 18px;
+  }
+  .shell.shell :global(.sidebar > .brand > strong),
+  .shell.shell :global(.user-card-details) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .shell.shell :global(.sidebar > .desktop-navigation) {
+    gap: 2px;
+    margin: 0;
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group > a) {
+    position: relative;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    height: auto;
+    min-height: 52px;
+    padding: 7px 2px 6px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group > a em) {
+    position: absolute;
+    top: 3px;
+    right: 6px;
+    min-width: 16px;
+    margin: 0;
+    padding: 1px 4px;
+    font-size: 9px;
+    line-height: 14px;
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems) {
+    gap: 1px;
+    margin: 2px 0 4px;
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a) {
+    justify-content: center;
+    min-height: 28px;
+    padding: 4px 3px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a)::before {
+    display: none;
+  }
+  .shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .shell.shell :global(.sidebar-bottom) {
+    min-width: 0;
+  }
+  .shell.shell .desktopEskoFooter {
+    margin-bottom: 8px;
+  }
+  .shell.shell .desktopEskoFooter button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 0;
+    padding: 4px 0;
+    font-size: 10px;
+    text-align: center;
+  }
+  .shell.shell .desktopEskoFooter button img {
+    width: 40px;
+    height: 36px;
+  }
+  .shell.shell :global(.user-card) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 0;
+    padding: 0;
+  }
+  .shell.shell :global(.user-card .avatar) {
+    width: 40px;
+    height: 40px;
+    flex-basis: auto;
+  }
+  .shell.shell .logoutButton {
+    flex-basis: auto;
+    margin: 0;
+  }
+}
 /* Short desktop windows may scroll navigation instead of losing account actions. */
+@media (min-width: 1100px) and (max-height: 800px) {
+  .shell.shell :global(.desktop-navigation .nav-item-group > a) {
+    height: 42px;
+    min-height: 42px;
+  }
+}
 @media (min-width: 1024px) and (max-height: 740px) {
   .shell.shell :global(.sidebar) {
     overflow-y: auto;
@@ -304,10 +422,7 @@
     .shell[data-proportional-layout="true"] {
       --workspace-growth: calc((100vw - 1600px) / 800px);
       --workspace-scale: calc(1 + .4 * var(--workspace-growth) / (1 + var(--workspace-growth)));
-      --workspace-navigation-height-growth: clamp(0, calc((100dvh - 1000px) / 800px), 1);
-      --workspace-navigation-room: calc(var(--workspace-navigation-height-growth) * var(--workspace-growth) / (1 + var(--workspace-growth)));
-      --workspace-navigation-scale: min(1.85, calc(1 + .75 * var(--workspace-growth) / (1 + var(--workspace-growth)) + .7 * var(--workspace-navigation-room)));
-      --workspace-sidebar-width: calc(var(--app-sidebar-width) * var(--workspace-navigation-scale));
+      --workspace-sidebar-width: var(--app-sidebar-width);
       padding-left: var(--workspace-sidebar-width);
     }
 
@@ -331,31 +446,6 @@
        logical viewport too. Portals outside main retain the physical viewport. */
     .shell :global(main.content dialog.modal) {
       max-height: calc(var(--workspace-height) - 32px);
-    }
-
-    .shell.shell[data-proportional-layout="true"] :global(.sidebar) {
-      zoom: var(--workspace-navigation-scale);
-      top: 0;
-      bottom: auto;
-      height: calc(100dvh / var(--workspace-navigation-scale));
-      /* Keep a small physical bottom inset as the navigation grows. */
-      padding-bottom: calc(16px / var(--workspace-navigation-scale));
-      min-height: 0;
-      overflow-y: auto;
-    }
-
-    .shell.shell[data-proportional-layout="true"] :global(.sidebar-bottom) {
-      flex-shrink: 0;
-    }
-
-    /* Use spare height for the navigation itself, keeping related sublinks
-       together. Width, icons and labels grow with the same navigation scale. */
-    .shell.shell[data-proportional-layout="true"] :global(.sidebar > .desktop-navigation) {
-      gap: clamp(2px, calc(2px + 18px * var(--workspace-navigation-room)), 12px);
-    }
-    .shell.shell[data-proportional-layout="true"] :global(.desktop-navigation .nav-item-group > a) {
-      height: clamp(46px, calc(46px + 24px * var(--workspace-navigation-room)), 64px);
-      min-height: clamp(46px, calc(46px + 24px * var(--workspace-navigation-room)), 64px);
     }
 
     .shell :global(main[data-workspace-layout="form"]) {
@@ -382,5 +472,172 @@
       height: clamp(63px, calc(4.5 * var(--workspace-vh)), 88px);
       font-size: var(--workspace-record-text);
     }
+  }
+}
+
+/* Large-screen navigation (TRANSITION_RULES pravidlo 5). Real sizes instead of a
+   zoom: width, text, icons, logo, Esko and avatar step up together so the
+   sidebar is neither small nor empty, and rows take up spare height (max +28 px)
+   so the profile sits at the bottom without a hole above it. */
+@media screen and (min-width: 1600px) {
+  .shell {
+    --app-sidebar-width: 280px;
+    --nav-text: 18px;
+    --nav-icon: 22px;
+    --nav-row-base: 52px;
+    --nav-sub-text: 15px;
+    --nav-sub-row: 38px;
+    --nav-mark: 30px;
+    --nav-word: 32px;
+    --nav-esko: 60px;
+    --nav-avatar: 46px;
+    --nav-user: 16px;
+    --nav-meta: 14px;
+  }
+  /* Every group takes an equal share of the spare height; its main row grows by
+     at most 28 px and whatever is left stays as even spacing between groups. */
+  .shell.shell :global(.sidebar > .desktop-navigation) {
+    flex: 1 1 auto;
+    gap: 2px;
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group) {
+    flex: 1 0 auto;
+  }
+  .shell.shell :global(.sidebar) {
+    padding: 34px 26px 20px;
+  }
+  .shell.shell :global(.sidebar > .brand) {
+    gap: 11px;
+    margin-bottom: 48px;
+  }
+  .shell.shell :global(.brand > svg) {
+    width: calc(var(--nav-mark) * 24 / 28);
+    height: var(--nav-mark);
+  }
+  .shell.shell :global(.brand > strong) {
+    font-size: var(--nav-word);
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group > a) {
+    flex: 1 0 auto;
+    height: auto;
+    min-height: var(--nav-row-base);
+    max-height: calc(var(--nav-row-base) + 28px);
+    gap: 16px;
+    padding: 0 16px;
+    border-radius: 11px;
+    font-size: var(--nav-text);
+  }
+  .shell.shell :global(.nav-symbol),
+  .shell.shell :global(.nav-symbol svg) {
+    width: var(--nav-icon);
+    height: var(--nav-icon);
+  }
+  .shell.shell :global(.desktop-navigation a em) {
+    font-size: calc(var(--nav-text) - 5px);
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a) {
+    min-height: var(--nav-sub-row);
+    padding-left: 26px;
+    font-size: var(--nav-sub-text);
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a)::before {
+    font-size: calc(var(--nav-sub-text) + 4px);
+  }
+  .shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
+    margin-top: 22px;
+    padding-top: 22px;
+  }
+  .shell.shell .desktopEskoFooter button {
+    gap: 14px;
+    min-height: calc(var(--nav-esko) + 8px);
+    font-size: var(--nav-text);
+  }
+  .shell.shell .desktopEskoFooter button img {
+    width: var(--nav-esko);
+    height: calc(var(--nav-esko) * 554 / 640);
+  }
+  .shell.shell :global(.user-card) {
+    gap: 12px;
+  }
+  .shell.shell :global(.user-card .avatar) {
+    width: var(--nav-avatar);
+    height: var(--nav-avatar);
+    flex-basis: var(--nav-avatar);
+    font-size: calc(var(--nav-user) - 2px);
+  }
+  .shell.shell :global(.user-card strong) {
+    font-size: var(--nav-user);
+  }
+  .shell.shell :global(.user-card small) {
+    font-size: var(--nav-meta);
+  }
+  .shell.shell .logoutButton {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+  .shell.shell .logoutButton svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+@media screen and (min-width: 2200px) {
+  .shell {
+    --app-sidebar-width: 320px;
+    --nav-text: 21px;
+    --nav-icon: 26px;
+    --nav-row-base: 60px;
+    --nav-sub-text: 17px;
+    --nav-sub-row: 44px;
+    --nav-mark: 36px;
+    --nav-word: 38px;
+    --nav-esko: 84px;
+    --nav-avatar: 54px;
+    --nav-user: 18px;
+    --nav-meta: 15px;
+  }
+  .shell.shell :global(.sidebar) {
+    padding: 40px 30px 24px;
+  }
+}
+/* Closed sections show their sublinks only where the sidebar has the height
+   for them; elsewhere only the open section does (the pillars unchanged). */
+.shell.shell :global(.nav-subitems-peek) {
+  display: none;
+}
+@media screen and (min-width: 1600px) and (max-width: 2199px) and (min-height: 1000px),
+  screen and (min-width: 2200px) and (min-height: 1240px) {
+  .shell.shell :global(.nav-subitems-peek) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 5px 0 7px 18px;
+  }
+  .shell.shell :global(.nav-subitems-peek a) {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: auto;
+    min-height: var(--nav-sub-row);
+    padding: 7px 10px 7px 26px;
+    border-radius: 6px;
+    color: #56625d;
+    background: transparent;
+    font-size: var(--nav-sub-text);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .shell.shell :global(.nav-subitems-peek a:hover) {
+    color: #205d40;
+    background: #e8f2eb;
+  }
+  .shell.shell :global(.nav-subitems-peek a)::before {
+    content: "›";
+    position: absolute;
+    left: 8px;
+    color: #658272;
+    font-size: calc(var(--nav-sub-text) + 4px);
+    font-weight: 500;
+    line-height: 1;
   }
 }

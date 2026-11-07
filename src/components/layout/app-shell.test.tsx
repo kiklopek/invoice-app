@@ -135,6 +135,22 @@ describe("shared workspace navigation", () => {
         ]);
     },
   );
+  it("keeps closed sections' sublinks apart from the open section's", async () => {
+    await render("admin", "/invoices");
+    const hrefs = (selector: string) =>
+      Array.from(
+        container.querySelectorAll<HTMLAnchorElement>(selector),
+        (link) => link.getAttribute("href"),
+      );
+    expect(hrefs(".desktop-navigation .nav-subitems-peek a")).toEqual([
+      "/invoices/payments/archive",
+      "/settings/email-template",
+      "/predplatne",
+    ]);
+    expect(hrefs(".desktop-navigation .nav-subitems a")).not.toContain(
+      "/invoices/payments/archive",
+    );
+  });
   it("belongs to payments rather than invoices on a nested payment route", async () => {
     await render("admin", "/invoices/payments/archive");
     expect(
