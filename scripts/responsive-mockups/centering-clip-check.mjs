@@ -10,7 +10,7 @@ import { startHarness, installNetwork } from "../responsive-audit/harness.mjs";
 import { fixtures, NOW } from "../responsive-audit/fixtures.mjs";
 
 const ROUTES = (process.argv.find(a => a.startsWith("--routes="))?.slice(9).split(",")) || ["/invoices/payments", "/invoices/import", "/invoices", "/customers", "/dashboard", "/invoices/create"];
-const SIZES = [[390, 844], [1024, 768], [1180, 820], [1470, 830], [1920, 1080], [2560, 1440]];
+const SIZES = process.argv.find(a => a.startsWith("--sizes="))?.slice(8).split(",").map(s => s.split("x").map(Number)) || [[390, 844], [1024, 768], [1180, 820], [1470, 830], [1920, 1080], [2560, 1440]];
 // Boxes whose content is meant to read as a centred block.
 const PANELS = [".gpc-safety-card", ".gpc-dropzone", ".invoice-document-dropzone", "[class*=documentGuidance]", "[class*=_dropzone]", "[class*=_uploadPanel]"];
 
@@ -67,7 +67,7 @@ try {
       await context.close();
     }
 } finally {
-  await writeFile(resolve(out, process.argv.includes("--routes=/invoices/import") ? "centering-import.json" : "centering-clip.json"), JSON.stringify(rows, null, 2));
+  await writeFile(resolve(out, process.argv.find(a => a.startsWith("--out="))?.slice(6) || "centering-clip.json"), JSON.stringify(rows, null, 2));
   await harness.server.close();
   await browser.close();
 }
