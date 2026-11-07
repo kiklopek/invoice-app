@@ -1,4 +1,4 @@
-# Pravidla přechodů responzivity — návrh v1.1
+# Pravidla přechodů responzivity — návrh v1.2
 
 Stav: návrh odvozený z mockupů stránky Faktury (Figma „Splatno — responzivní mockupy“,
 https://www.figma.com/design/YK83a6K9WYjLnAQ3md1HYS). Čeká na schválení. Konkrétní prahy
@@ -25,14 +25,20 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
 4. **Počet řádků podle výšky.** Seznam počítá řádky na stránku z dostupné výšky, nikdy ne půl řádku.
    Zbytek pod posledním řádkem se rozpočítá do výšky řádků (max +18 px na řádek, půl nahoru, půl dolů). Výchozí volba je
    „Automaticky“. Ruční 10/25/50 přepne panel na vnitřní scroll.
-5. **Navigace podle obrazovky.**
-   - < 768: dnešní mobilní hlavička a menu.
-   - 768–1099: rail 84 px (ikona a krátký popisek).
-   - 1100–1599: sidebar 220–244 px.
-   - ≥ 1600: sidebar 264 px.
+5. **Navigace podle obrazovky — na velkém displeji nesmí být malá ani prázdná.**
 
-   Ve vyšším okně rostou řádky menu i jejich text, takže menu zaplní výšku. Profil je vždy u spodního
-   okraje a mezi menu a profilem nezůstane díra.
+   | Okno       | Navigace      | Text / ikona | Logo / Esko / avatar | Podsekce                       |
+   | ---------- | ------------- | ------------ | -------------------- | ------------------------------ |
+   | < 768      | mobilní hlavička + vysouvací menu (beze změny) | — | — | —                 |
+   | 768–1099   | rail 84 px    | 10 / 20 px   | značka 30 / 40 / 40  | jen v menu po rozbalení        |
+   | 1100–1599  | sidebar 220–244 px | 15 / 18 px | 26 / 44 / 40       | jen aktivní oddíl              |
+   | 1600–2199  | sidebar 280 px | 18 / 22 px  | 30 / 60 / 46         | aktivní oddíl + Faktury        |
+   | ≥ 2200     | sidebar 320 px | 21 / 26 px  | 36 / 84 / 54         | všechny oddíly (od výšky 1300) |
+
+   - Střed loga leží na stejné ose jako střed horní lišty.
+   - Pod menu je Esko a profil, vždy u spodního okraje.
+   - Zbylá výška se rozpočítá do řádků hlavních položek (max +28 px na řádek), podsekce zůstávají kompaktní. Díra mezi menu a Eskem je nejvýš ~50 px.
+   - Podsekce na vysokých oknech jsou existující stránky (žádná nová místa), jen dostupné bez rozbalování.
 6. **Velké obrazovky: text roste s objektem, ne lupou.** Celé UI se nezvětšuje lupou (dnes 1,11× a
    1,22×). Místo navíc dostanou nejdřív další sloupce, víc řádků a panel detailu. Text roste se svým
    objektem v pevných mezích:
@@ -74,6 +80,21 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
     položce menu podle skutečné výšky písma. Když objekt roste, padding roste symetricky, takže střed
     zůstává. Samostatné bloky (prázdný stav, upload, hodnota KPI) jsou vystředěné v ose objektu i po
     zalomení textu. Čísla ve sloupci mají stejnou hranu zarovnání.
+
+13. **Logické umístění a zarovnání.**
+    - Sloupec je ve všech řádcích i v záhlaví na stejném místě (odchylka 0 px). Tabulky proto používají pevné nebo poměrové šířky sloupců, nikdy `auto`, které si každý řádek počítá sám.
+    - Textové sloupce jsou zarovnané vlevo. Částky, počty a data, která se porovnávají, jsou vpravo, s tabulárními číslicemi. Záhlaví má stejné zarovnání jako jeho sloupec.
+    - Karty v jedné řadě mají stejnou horní i spodní hranu a stejný vnitřní padding. Nadpisy sousedních karet leží na stejné výšce.
+    - Ikona je svisle vystředěná s prvním řádkem textu (odchylka ≤ 1 px). Tlačítka v jedné řadě mají stejnou výšku.
+    - Levá hrana obsahu stránky (hlavička, karty, tabulka) je jedna svislá linie.
+    - Dvojice popisek–hodnota (detail, souhrn) jsou ve dvou sloupcích se společnou hranou.
+    - Obsah, který je na široké kartě výrazně užší než karta (KPI), se vycentruje jako blok. Na úzké kartě zůstává vlevo.
+14. **Nezapomínat na prvky mimo obsah.** Každý mockup i implementace má vrstvy, které nejsou v datech:
+    - pozadí aplikace (základ `#f9fbf9`, mátový gradient vpravo nahoře, zelené vlny vlevo dole; pevná vrstva za vším, navigace je poloprůhledná),
+    - logo Splatno (značka + slovo), Esko v navigaci, avatar s obrysem, oddělovače,
+    - stavové prvky lišty (tečka nepřečtených oznámení), stíny a okraje karet.
+
+    Plochá barva místo pozadí nebo čtverec místo loga je chyba.
 
 ## Faktury — aplikace pravidel
 

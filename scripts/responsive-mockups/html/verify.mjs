@@ -41,9 +41,32 @@ for (const f of files) {
   if (r.scrolls) { await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await page.waitForTimeout(100); await page.screenshot({ path: resolve(SHOTS, f.replace(".html", "-end.png")) }); }
   // Any element wider than its parent inside a card = overflowing control (buttons, pills).
   r.overflowingBoxes = await page.evaluate(() => [...document.querySelectorAll(".card *")].filter((e) => { const p = e.parentElement; if (!p || getComputedStyle(p).overflow !== "visible") return false; const a = e.getBoundingClientRect(), b = p.getBoundingClientRect(); return a.width > 0 && (a.right > b.right + 1 || a.left < b.left - 1); }).slice(0, 5).map((e) => (e.className.baseVal ?? e.className) + " " + (e.textContent || "").trim().slice(0, 24)));
+  // Alignment (rule 13): measured deviations in px.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  r.align = await page.evaluate(() => {
+    const R = (e) => e.getBoundingClientRect();
+    const textBox = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const rs = [...rg.getClientRects(), ...[...e.querySelectorAll("svg, img, .ini, .pill, .amt")].map(R)].filter((x) => x.width); if (!rs.length) return R(e); return { left: Math.min(...rs.map((x) => x.left)), right: Math.max(...rs.map((x) => x.right)), top: Math.min(...rs.map((x) => x.top)), bottom: Math.max(...rs.map((x) => x.bottom)) }; };
+    let header = 0;
+    for (const th of document.querySelectorAll(".thead")) {
+      const panel = th.parentElement; const row = [...panel.querySelectorAll(".rows .row")].find((x) => x.style.display !== "none"); if (!row) continue;
+      [...th.children].forEach((h, k) => { const c = row.children[k]; if (!c || !h.textContent.trim()) return; const right = getComputedStyle(h).textAlign === "right";
+        const hb = textBox(h), cb = textBox(c); header = Math.max(header, Math.abs(right ? hb.right - cb.right : hb.left - cb.left)); });
+    }
+    let cards = 0;
+    for (const g of document.querySelectorAll(".kpis, .grid2, .split, .editor")) { const ks = [...g.children].filter((x) => x.offsetParent && x.classList.contains("card")); if (ks.length < 2 || g.classList.contains("editor")) continue; const t = ks.map((k) => R(k).top), b = ks.map((k) => R(k).bottom); cards = Math.max(cards, Math.max(...t) - Math.min(...t), Math.max(...b) - Math.min(...b)); }
+    let navIcon = 0;
+    for (const a of document.querySelectorAll(".nav.side > a:not(.sub):not(.esko)")) { const ic = a.querySelector(".ic"); const tx = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim()); if (!ic || !tx) continue; const rg = document.createRange(); rg.selectNodeContents(tx); const t = rg.getBoundingClientRect(); const c = R(ic); navIcon = Math.max(navIcon, Math.abs((c.top + c.bottom) / 2 - (t.top + t.bottom) / 2)); }
+    const logo = document.querySelector(".nav .logo"), top = document.querySelector(".top");
+    const logoTop = logo && top ? Math.abs((R(logo).top + R(logo).bottom) / 2 - (R(top).top + R(top).bottom) / 2) : null;
+    const fill = document.querySelector("[data-nav-fill]");
+    let columns = 0;
+    for (const box of document.querySelectorAll(".rows")) { const rows = [...box.children].filter((x) => x.style.display !== "none"); if (rows.length < 2) continue; const n = rows[0].children.length;
+      for (let k = 0; k < n; k++) { const ls = rows.map((r) => r.children[k] && R(r.children[k]).left).filter((x) => x != null); columns = Math.max(columns, Math.max(...ls) - Math.min(...ls)); } }
+    return { columns: Math.round(columns), header: Math.round(header), cards: Math.round(cards), navIcon: Math.round(navIcon * 10) / 10, logoVsTopbar: logoTop == null ? null : Math.round(logoTop), navGap: fill ? Math.round(R(fill).height) : null };
+  });
   results.push({ file: f, ...r });
   await page.close();
 }
 await browser.close();
 await writeFile(resolve(SHOTS, "verify.json"), JSON.stringify(results, null, 2));
-for (const r of results) console.log(`${r.file.padEnd(32)} ${r.scrolls ? "scroll-ok " : "static    "} overflow ${String(r.docOverflow).padStart(4)}  gap-below ${String(r.gapBelowContent).padStart(4)}  rows ${r.rows.map((x) => x.kept + "(+" + x.leftover + ")").join(" ") || "-"}  brokenText ${r.brokenCount}  boxOverflow ${r.overflowingBoxes.length}${r.overflowingBoxes.length ? " " + JSON.stringify(r.overflowingBoxes) : ""}${r.brokenCount ? " " + JSON.stringify(r.broken.slice(0, 2)) : ""}`);
+for (const r of results) console.log(`${r.file.padEnd(32)} ${r.scrolls ? "scroll-ok " : "static    "} overflow ${String(r.docOverflow).padStart(4)}  gap-below ${String(r.gapBelowContent).padStart(4)}  rows ${r.rows.map((x) => x.kept + "(+" + x.leftover + ")").join(" ") || "-"}  align ${JSON.stringify(r.align)}  brokenText ${r.brokenCount}  boxOverflow ${r.overflowingBoxes.length}${r.overflowingBoxes.length ? " " + JSON.stringify(r.overflowingBoxes) : ""}${r.brokenCount ? " " + JSON.stringify(r.broken.slice(0, 2)) : ""}`);

@@ -35,6 +35,9 @@ Pro základní stránkový návrh jeden samostatný soubor HTML na **jednu strá
 | 12 | Každý řádek formulářové mřížky je zaplněný | design system |
 | 13 | Dotykové cíle ≥ 44 × 44 px (tablet) | změřit |
 | 14 | Nepřibyla žádná funkce, kterou aplikace nemá | porovnat s pilířem |
+| 15 | Sloupce jsou ve všech řádcích i v záhlaví na stejném místě (`columns: 0`, `header: 0`) | konzole |
+| 16 | Karty v řadě mají stejnou horní a spodní hranu; ikony vystředěné s textem | konzole / vizuálně |
+| 17 | Pozadí aplikace, logo, Esko a avatar jsou přítomné; navigace odpovídá tabulce pravidla 5 | vizuálně |
 
 Kontrolu 2–6 lze spustit vložením do konzole prohlížeče:
 
@@ -50,12 +53,19 @@ Kontrolu 2–6 lze spustit vložením do konzole prohlížeče:
     pageOverflow: document.documentElement.scrollHeight - innerHeight,
     gapBelowContent: Math.round(innerHeight - Math.max(...kids.map(k => k.getBoundingClientRect().bottom))),
     rows: [...document.querySelectorAll(".rows[data-fit]")].map(b => b.dataset.kept),
+    columns: Math.max(0, ...[...document.querySelectorAll(".rows")].flatMap(box => {
+      const rs = [...box.children].filter(r => r.style.display !== "none");
+      return rs.length < 2 ? [] : [...rs[0].children].map((_, k) => {
+        const ls = rs.map(r => r.children[k]?.getBoundingClientRect().left).filter(x => x != null);
+        return Math.round(Math.max(...ls) - Math.min(...ls));
+      });
+    })),
     brokenText: broken,
   };
 })();
 ```
 
-U statické stránky musí vyjít `pageOverflow: 0`, `gapBelowContent: 24` a `brokenText: []`.
+U statické stránky musí vyjít `pageOverflow: 0`, `gapBelowContent: 24`, `columns: 0` a `brokenText: []`.
 
 
 ## Rozšíření pro otevřené prvky

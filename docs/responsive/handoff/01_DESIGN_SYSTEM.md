@@ -43,6 +43,13 @@ Tmavý panel „Párování / Rozpoznání pod kontrolou“: gradient `#235c42 �
 | Štítek stavu (pill)                  | 12 px / 500        | 12 px            | 13 px           |
 | Pole formuláře                       | 14 px (výška 44)   | 14 px            | 15 px (výška 48) |
 
+## Pozadí aplikace (nezapomínat — pravidlo 14)
+
+Pevná vrstva za celým obsahem, ne součást layoutu:
+- základ `#f9fbf9` a radiální mátový gradient vpravo nahoře (`radial-gradient(ellipse at 88% 10%, #ecf5ef55, transparent 50%)`),
+- SVG s mátovou vlnou vpravo nahoře a třemi zelenými vlnami vlevo dole. Hotový kód je v `assets/background.html`,
+- navigace je poloprůhledná (`#f9fbf866`), takže vlny prosvítají. Karty jsou bílé a neprůhledné.
+
 ## Mezery, rádiusy, stíny
 
 - Řada mezer: **4 / 8 / 12 / 16 / 20 / 24 / 32 px**. Mezi kartami 14–24 px.
@@ -61,7 +68,12 @@ Tmavý panel „Párování / Rozpoznání pod kontrolou“: gradient `#235c42 �
   - podpoložky aktivní sekce: „› Importovat fakturu“ 13 px,
   - oddělovač, pak Nastavení,
   - dole uživatel: avatar 40 px, jméno, firma, ikona odhlášení.
-- **Sidebar 264 px (≥ 1600):** vyšší řádky menu (až 64 px), text až 18 px, ikony až 22 px. Menu tak zaplní výšku a profil zůstane dole bez díry.
+- **Sidebar 280 px (1600–2199) a 320 px (≥ 2200):**
+  - text menu 18 / 21 px, ikony 22 / 26 px, logo 30 / 36 px, Esko 60 / 84 px, avatar 46 / 54 px,
+  - na vysokých oknech jsou rozbalené i podsekce dalších oddílů,
+  - menu zaplní výšku a profil zůstane dole bez díry. Přesná tabulka je v pravidle 5.
+- **Logo:** značka `assets/splatno-mark.svg` a slovo „splatno“ (700, −0,5 px). Střed loga leží na ose horní lišty.
+- **Esko:** obrázek `assets/mascot-wave.webp` s popiskem „Esko“ nad profilem. V railu je obrázek nad avatarem.
 - **Horní lišta:**
   - vlevo hledání: pole 44 px vysoké, šířka 300–520 px,
   - vpravo „Importovat fakturu“ (sekundární), „Nová faktura“ (primární zelené) a kulatý zvonek 44 px.
