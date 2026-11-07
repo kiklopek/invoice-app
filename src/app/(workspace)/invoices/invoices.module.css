@@ -1306,6 +1306,10 @@ select.pageSize {
   .table {
     --list-grow: var(--workspace-grow, 0px);
   }
+  /* Amounts and names follow the cell's record text instead of a fixed 13 px. */
+  .table td strong {
+    font-size: inherit;
+  }
   .table th {
     font-size: calc(11px + var(--list-grow) / 960);
   }

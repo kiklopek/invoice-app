@@ -448,9 +448,6 @@
     max-width: var(--workspace-canvas-max);
     margin-block: 24px 0;
   }
-  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"]) {
-    flex: 0 0 auto;
-  }
   .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td) {
     height: clamp(63px, 4.5dvh, 88px);
     font-size: var(--workspace-record-text);
