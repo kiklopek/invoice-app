@@ -571,7 +571,9 @@ export function InvoicesClient({
                   aria-controls="invoice-advanced-filters"
                   onClick={() => setAdvancedOpen((value) => !value)}
                 >
-                  Další filtry{" "}
+                  {/* The compact list keeps the date ranges behind this button. */}
+                  <span className={styles.moreFiltersWide}>Další filtry</span>
+                  <span className={styles.moreFiltersCompact}>Datum a další</span>{" "}
                   <ChevronDown />
                 </button>
                 <details className={styles.pageMenu}>

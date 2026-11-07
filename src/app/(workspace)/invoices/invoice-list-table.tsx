@@ -336,6 +336,16 @@ export function InvoiceListTable({
                         ? "Částečně uhrazeno"
                         : invoiceStatusLabels[invoice.status]}
                     </span>
+                    {partial ? (
+                      /* Shown only in the compact list, which hides the Uhrazeno column. */
+                      <span
+                        className={styles.statusProgress}
+                        role="img"
+                        aria-label={`Uhrazeno ${invoiceMoney(Number(invoice.paid_amount), invoice.currency)} z ${invoiceMoney(Number(invoice.amount), invoice.currency)}`}
+                      >
+                        <i style={{ width: `${percentage}%` }} />
+                      </span>
+                    ) : null}
                   </td>
                   <td className={styles.paidCell}>
                     <span className={styles.mobileLabel}>Uhrazeno</span>

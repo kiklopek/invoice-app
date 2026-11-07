@@ -1152,3 +1152,106 @@ select.pageSize {
 @media screen and (max-width: 420px) {
   .filters .dateRange { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 }
+
+/* ---- Compact list (TRANSITION_RULES pravidla 7, 10, 13) ----------------------
+   A component rule: when the records panel is narrower than the full table
+   (1090 px: tablets, 1366 px laptops), the table drops its horizontal scroll and
+   the Uhrazeno column; partial payments show a mini bar under the status.
+   Columns are fixed tracks so every row lines up; only Odběratel flexes.
+   The date ranges move behind "Datum a další"; active ones stay visible as
+   chips. Scoped to the desktop shell: mobile keeps its own card layout. */
+.moreFiltersCompact,
+.statusProgress {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .panel {
+    container: invoice-records / inline-size;
+  }
+  @container invoice-records (max-width: 1089px) {
+    .table {
+      min-width: 0;
+    }
+    .checkCol { width: 40px; }
+    .numberCol { width: 132px; }
+    .customerCol { width: auto; }
+    .amountCol { width: 132px; }
+    .dueCol { width: 148px; }
+    .statusCol { width: 152px; }
+    .paidCol { width: 0; }
+    .actionsCol { width: 44px; }
+    /* The cell stays (so Akce keeps its column) with no width or content. */
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+      padding: 0;
+      overflow: hidden;
+    }
+    .table th:nth-child(7) > *,
+    .table td:nth-child(7) > * {
+      display: none;
+    }
+    .dueCell small {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .statusCell .badge {
+      max-width: 100%;
+      white-space: nowrap;
+    }
+    .statusProgress {
+      display: block;
+      width: min(100%, 120px);
+      height: 4px;
+      margin-top: 6px;
+      border-radius: 99px;
+      background: #edf1ef;
+      overflow: hidden;
+    }
+    .statusProgress i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: #2775bc;
+    }
+    .filterGrid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+    }
+    .filterGrid > .filterActions {
+      grid-column: 3;
+      grid-row: 1;
+    }
+    .filterGrid > .range,
+    .filterGrid > .range + .range {
+      grid-column: auto;
+      grid-row: 2;
+      max-width: none;
+    }
+    .filters:has(:global(#invoice-advanced-filters)[hidden]) .filterGrid > .range {
+      display: none;
+    }
+    .moreFiltersWide {
+      display: none;
+    }
+    .moreFiltersCompact {
+      display: inline;
+    }
+    .advanced {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+/* Tablet header: shorter title and no subtitle, so the records start higher. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .pageHeader {
+    margin: 24px 0 20px;
+  }
+  .pageHeader h1 {
+    margin-bottom: 0;
+    font-size: 32px;
+    line-height: 38px;
+  }
+  .subtitle {
+    display: none;
+  }
+}
