@@ -310,3 +310,18 @@
 @media (max-width: 767px) and (min-height: 650px) and (max-height: 780px) {
   .page.page :global(.gpc-dropzone-icon) { display: grid; width: 40px; height: 40px; margin-bottom: 10px; }
 }
+
+/* Process card: centre the content block in the card and let its text grow with the
+   card (rules 11 + 12). At the MacBook card width (430px) the clamps resolve to the
+   previous 22/13/12px. Same specificity as the >=1600px rules above, declared later. */
+@media screen and (min-width: 1024px) {
+  .page.page:not(.reviewPage) :global(.gpc-safety-card) {
+    container-type: inline-size;
+    grid-template-columns: 44px fit-content(24em);
+    justify-content: center;
+    font-size: clamp(13px, 9.29px + 0.862cqi, 16px);
+  }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card h3) { font-size: clamp(22px, 14.6px + 1.724cqi, 28px); text-wrap: balance; }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card li strong) { font-size: clamp(13px, 9.29px + 0.862cqi, 16px); }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card li span) { font-size: clamp(12px, 9.53px + 0.575cqi, 14px); }
+}

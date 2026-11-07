@@ -228,3 +228,25 @@
   .page .documentInfo .documentGuidance { padding: 16px; gap: 14px; background: transparent; }
   .documentInfo .guidanceTitle { display: none; }
 }
+
+/* Guidance panel: centre the content block in the panel and let its text grow with
+   the panel (rules 11 + 12). At the MacBook panel width (430px) the clamps resolve to
+   the previous 22/13/12px, so the pillar keeps its type sizes. */
+@media (min-width: 1024px) {
+  .guidance.documentGuidance {
+    container-type: inline-size;
+    grid-template-columns: fit-content(100%);
+    justify-content: center;
+    font-size: clamp(13px, 9.29px + 0.862cqi, 16px);
+  }
+  .documentGuidance .guidanceTitle { font-size: clamp(22px, 14.6px + 1.724cqi, 28px); text-wrap: balance; }
+  .page .documentGuidance small, .page .documentGuidance strong { text-wrap: pretty; }
+  .documentGuidance .guidanceTitle > span { width: clamp(44px, 34px + 2.3cqi, 52px); height: clamp(44px, 34px + 2.3cqi, 52px); }
+  .page .documentGuidance strong { font-size: clamp(13px, 9.29px + 0.862cqi, 16px); }
+  .page .documentGuidance small { font-size: clamp(12px, 9.53px + 0.575cqi, 14px); }
+}
+/* When the title has to wrap anyway, don't let its one-line width stretch the column;
+   the column then shrink-wraps the list and stays centred (1024–1300 px viewports). */
+@container (max-width: 320px) {
+  .documentGuidance .guidanceTitle { contain: inline-size; }
+}
