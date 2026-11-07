@@ -38,6 +38,7 @@ Pro základní stránkový návrh jeden samostatný soubor HTML na **jednu strá
 | 15 | Sloupce jsou ve všech řádcích i v záhlaví na stejném místě (`columns: 0`, `header: 0`) | konzole |
 | 16 | Karty v řadě mají stejnou horní a spodní hranu; ikony vystředěné s textem | konzole / vizuálně |
 | 17 | Pozadí aplikace, logo, Esko a avatar jsou přítomné; navigace odpovídá tabulce pravidla 5 | vizuálně |
+| 18 | Škálovatelné objekty (donut, graf, KPI) zabírají ≥ 75 % omezující osy karty, největší okraj ≤ max(40 px, 15 %) | změřit |
 
 Kontrolu 2–6 lze spustit vložením do konzole prohlížeče:
 

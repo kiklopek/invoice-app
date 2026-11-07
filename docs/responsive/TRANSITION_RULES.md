@@ -1,4 +1,4 @@
-# Pravidla přechodů responzivity — návrh v1.2
+# Pravidla přechodů responzivity — návrh v1.3
 
 Stav: návrh odvozený z mockupů stránky Faktury (Figma „Splatno — responzivní mockupy“,
 https://www.figma.com/design/YK83a6K9WYjLnAQ3md1HYS). Čeká na schválení. Konkrétní prahy
@@ -95,6 +95,12 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
     - stavové prvky lišty (tečka nepřečtených oznámení), stíny a okraje karet.
 
     Plochá barva místo pozadí nebo čtverec místo loga je chyba.
+
+15. **Objekty se zvětšují stejně jako zmenšují — žádné velké mezery.**
+    - Škálovatelný objekt (donut, graf, KPI, náhled dokumentu, ilustrace) roste i se zmenšuje s menším z rozměrů své karty. Spolu s ním roste text, ikony a vnitřní mezery (`clamp()` s `cqi` / `cqh`). Spodní hranicí je tabletová velikost, horní strop role.
+    - Obsah zabírá aspoň **75 %** omezující osy karty. Největší prázdný okraj je nejvýš **max(40 px, 15 % rozměru)**. Měří `scripts/responsive-mockups/html/fill.mjs`.
+    - Když krátký obsah nevyplní šířku ani v maximální velikosti, **rozloží se** (např. KPI: název a hodnota vlevo, částka zarovnaná k pravému okraji). Nepřidává se nový obsah a nenechává se prázdný okraj.
+    - Naměřeno na Nástěnce 2560 (před → po): donut největší okraj 115 → 61 px, KPI 142 → 1 px.
 
 ## Faktury — aplikace pravidel
 

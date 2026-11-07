@@ -137,8 +137,8 @@ function doc(size, title, body, { scrolls = false, extraCss = "", script = "" } 
 // "Automaticky" rows-per-page: keep only whole rows that fit, spread the rest into row
 // padding (max +18 px per row, split top/bottom) so no gap is left below the last row (rule 4).
 const FIT_SCRIPT = `
-function fitRows(){for(const box of document.querySelectorAll('.rows[data-fit]')){const rows=[...box.children];rows.forEach(r=>r.style.display='');const avail=box.clientHeight;let used=0,kept=0;for(const r of rows){if(used+r.offsetHeight<=avail+0.5){used+=r.offsetHeight;kept++;}else r.style.display='none';}
-const extra=Math.min(18,Math.floor((avail-used)/Math.max(1,kept)));rows.slice(0,kept).forEach(r=>{const cs=getComputedStyle(r);r.style.paddingTop=(parseFloat(cs.paddingTop)+Math.floor(extra/2))+'px';r.style.paddingBottom=(parseFloat(cs.paddingBottom)+Math.ceil(extra/2))+'px';});
+function fitRows(){for(const box of document.querySelectorAll('.rows[data-fit]')){const rows=[...box.children];rows.forEach(r=>r.style.display='');const avail=box.getBoundingClientRect().height;const hgt=r=>r.getBoundingClientRect().height;let used=0,kept=0;for(const r of rows){if(used+hgt(r)<=avail+0.5){used+=hgt(r);kept++;}else r.style.display='none';}
+const extra=Math.min(18,Math.floor((avail-used-1)/Math.max(1,kept)));rows.slice(0,kept).forEach(r=>{const cs=getComputedStyle(r);r.style.paddingTop=(parseFloat(cs.paddingTop)+Math.floor(extra/2))+'px';r.style.paddingBottom=(parseFloat(cs.paddingBottom)+Math.ceil(extra/2))+'px';});
 const total=+box.dataset.total;const info=box.parentElement.querySelector('[data-info]');if(info)info.textContent='Zobrazuji 1–'+kept+' z '+total+' '+box.dataset.noun;const pages=Math.ceil(total/kept);const pg=box.parentElement.querySelector('[data-pages]');if(pg)pg.innerHTML=(pages<=4?Array.from({length:pages},(_,n)=>n+1):[1,2,'…',pages]).map(n=>'<span class="pg'+(n===1?' on':'')+'">'+n+'</span>').join('');box.dataset.kept=kept;}}
 function fitNav(){const n=document.querySelector('[data-nav]');if(!n)return;const f=n.querySelector('[data-nav-fill]');const items=[...n.querySelectorAll(':scope > a:not(.esko):not(.sub)')];const spare=f.getBoundingClientRect().height-24;if(spare<=0)return;const add=Math.min(14,Math.floor(spare/items.length/2));items.forEach(a=>{const cs=getComputedStyle(a);a.style.paddingTop=(parseFloat(cs.paddingTop)+add)+'px';a.style.paddingBottom=(parseFloat(cs.paddingBottom)+add)+'px';});}
 document.fonts.ready.then(()=>{fitNav();fitRows();});`;
@@ -156,7 +156,7 @@ const pill = (st) => `<span class="pill ${st}">${PILL[st][1] ? i(PILL[st][1]) : 
 function dashboard(s) {
   const v = PAGE_VARS(s);
   const narrow = s.w < 1300;
-  const kpi = (ic, tone, label, value, sub) => `<div class="card kpi ${tone}"><span class="kpi-ic">${i(ic)}</span><div class="stack2"><span class="kpi-l">${label}</span><b class="kpi-v num">${value}</b><span class="kpi-s num">${sub}</span></div></div>`;
+  const kpi = (ic, tone, label, value, sub) => `<div class="card kpi ${tone}" data-scale="kpi"><span class="kpi-ic">${i(ic)}</span><div class="stack2"><span class="kpi-l">${label}</span><b class="kpi-v num">${value}</b><span class="kpi-s num">${sub}</span></div></div>`;
   const months = ["lis", "pro", "led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj"];
   const bars = months.map((m, k) => { const a = [30, 40, 55, 70, 25, 45, 60, 72, 50, 48, 62, 66][k], b = [20, 15, 25, 30, 10, 12, 30, 28, 4, 20, 26, 30][k], c = [6, 6, 8, 20, 4, 4, 14, 16, 0, 10, 8, 12][k]; return `<div class="bar"><div class="stack" style="height:${a + b + c}%"><i style="flex:${c};background:#e2706a"></i><i style="flex:${b};background:#f3c48f"></i><i style="flex:${a};background:var(--green)"></i></div><span>${m}</span></div>`; }).join("");
   const recCols = narrow ? "minmax(0,1fr) 118px 88px 132px 20px" : `130px minmax(0,1fr) ${s.w >= 2560 ? 150 : 140}px 110px ${s.w >= 2560 ? 160 : 150}px 20px`;
@@ -166,22 +166,24 @@ function dashboard(s) {
   <header class="head ${v.compactHead ? "compact-head" : ""}" style="--h1:${narrow ? 32 : v.h1 - 10}px"><div class="t"><div class="eyebrow">Sobota 7. listopadu 2026</div><h1>Dobrý den, Ukázkový uživateli!</h1><p class="sub">25 faktur čeká na úplnou úhradu, z toho 7 po splatnosti.</p></div><span class="btn">${i("cal")}Za celé období${i("down")}</span></header>
   <section class="kpis">${kpi("file", "", "Celkem faktur", "124", "Za celé období")}${kpi("hourglass", "amber", "Čeká na splatnost", "18", "1 020 000,00 Kč")}${kpi("clock", "red", "Po splatnosti", "7", "320 000,00 Kč")}${kpi("check", "green", "Zaplaceno", "99", "1 980 000,00 Kč")}</section>
   <section class="grid2 charts"><div class="card fillcol"><div class="card-h"><h2>Faktury v čase</h2>${i("more", "muted")}</div><div class="legend"><span><i style="background:var(--green)"></i>Uhrazeno</span><span><i style="background:#f3c48f"></i>Čeká na splatnost</span><span><i style="background:#e2706a"></i>Po splatnosti</span></div><div class="plot">${bars}</div></div>
-  <div class="card donutcard"><div class="card-h"><h2>Stav faktur</h2></div><div class="donutwrap"><div class="donut"><b class="num">124</b><span>faktur</span></div><ul class="dl"><li><i style="background:var(--green)"></i><span>Zaplaceno</span><b>99</b><em>80 %</em></li><li><i style="background:#f3c48f"></i><span>Čeká na splatnost</span><b>18</b><em>15 %</em></li><li><i style="background:#e2706a"></i><span>Po splatnosti</span><b>7</b><em>6 %</em></li></ul></div></div></section>
+  <div class="card donutcard" data-scale="donut"><div class="card-h"><h2>Stav faktur</h2></div><div class="donutwrap" data-scale-body><div class="donut"><b class="num">124</b><span>faktur</span></div><ul class="dl"><li><i style="background:var(--green)"></i><span>Zaplaceno</span><b>99</b><em>80 %</em></li><li><i style="background:#f3c48f"></i><span>Čeká na splatnost</span><b>18</b><em>15 %</em></li><li><i style="background:#e2706a"></i><span>Po splatnosti</span><b>7</b><em>6 %</em></li></ul></div></div></section>
   <section class="grid2 lists"><div class="card fillcol"><div class="card-h"><h2>Poslední faktury</h2><span class="link">Zobrazit všechny ${i("arrow")}</span></div><div class="fillcol" style="margin-top:12px"><div class="rows" data-fit data-total="124" data-noun="faktur">${recent}</div></div></div>
   <div class="card fillcol"><div class="card-h"><h2>Nejbližší upomínky</h2><span class="link">12 odesláno</span></div><div class="fillcol" style="margin-top:8px"><div class="rows" data-fit data-total="12" data-noun="upomínek">${rem}</div></div></div></section>
   </main></div>`;
   const kv = [[34, 14], [36, 14], [46, 17], [56, 20]][SIZES.indexOf(s)];
   const css = `
-  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;flex:none;container-type:inline-size}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;flex:none;container:kpis / inline-size}
   /* rule 12: on wide cards the icon + value block sits in the card's centre, not stuck to the left edge */
-  @container (min-width: 1500px){.kpi{justify-content:center;gap:22px}}
+  /* wide cards: icon + label/value on the left, the amount right-aligned on the right edge,
+     so the card is filled by its own content instead of an empty margin (rules 13 + 15) */
+  @container kpis (min-width: 1500px){.kpi{gap:clamp(16px,4cqi,28px)}.kpi .stack2{flex:1;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'l s' 'v s';column-gap:24px;align-items:center}.kpi-l{grid-area:l}.kpi-v{grid-area:v}.kpi-s{grid-area:s;justify-self:end;text-align:right}}
   .kpi{display:flex;align-items:center;gap:14px;padding:${s.h <= 830 ? 14 : 18}px 18px;container-type:inline-size}
-  .kpi-ic{display:grid;place-items:center;width:clamp(40px,14cqi,68px);height:clamp(40px,14cqi,68px);border-radius:50%;background:var(--green-soft);color:var(--green);flex:none}.kpi-ic .ic{width:42%;height:42%}
+  .kpi-ic{display:grid;place-items:center;width:clamp(40px,15cqi,84px);height:clamp(40px,15cqi,84px);border-radius:50%;background:var(--green-soft);color:var(--green);flex:none}.kpi-ic .ic{width:42%;height:42%}
   .kpi.amber .kpi-ic{background:var(--amber-soft);color:var(--amber)}.kpi.red .kpi-ic{background:var(--red-soft);color:var(--red)}
-  .kpi-l{font-weight:600;font-size:${kv[1] - 1}px;line-height:1.25;text-wrap:balance}
-  .kpi-v{font-size:clamp(28px,12cqi,${kv[0]}px);line-height:1.05;letter-spacing:-.02em}
+  .kpi-l{font-weight:600;font-size:max(${kv[1] - 1}px,min(4.2cqi,22px));line-height:1.25;text-wrap:balance}
+  .kpi-v{font-size:max(min(${kv[0]}px,12cqi),min(12.5cqi,72px));line-height:1.15;letter-spacing:-.02em}
   .kpi.amber .kpi-v{color:var(--amber)}.kpi.red .kpi-v,.kpi.red .kpi-s{color:var(--red)}.kpi.green .kpi-v,.kpi.green .kpi-s{color:var(--green)}
-  .kpi-s{font-weight:600;font-size:${kv[1] - 2}px}
+  .kpi-s{font-weight:600;font-size:max(${kv[1] - 2}px,min(3.8cqi,20px))}
   .grid2{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(${narrow ? 280 : 360}px,1fr);gap:14px;min-height:0}
   .charts{flex:${s.h >= 1300 ? "0 0 38%" : s.h >= 1000 ? "0 0 34%" : "0 0 " + (s.h <= 800 ? 200 : 214) + "px"}}
   .lists{flex:1}
@@ -189,10 +191,10 @@ function dashboard(s) {
   .plot{flex:1;min-height:0;display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(6px,1.2vw,22px);padding:10px 18px 12px;align-items:end}
   .bar{height:100%;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}.bar .stack{width:min(100%,46px);display:flex;flex-direction:column;border-radius:4px 4px 0 0;overflow:hidden;margin-top:auto}.bar span{color:var(--muted);font-size:12px}
   .donutcard{display:flex;flex-direction:column;container-type:size}
-  .donutwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(16px,6cqi,40px);padding:8px 18px 14px}
-  .donut{flex:none;width:clamp(96px,min(62cqh,34cqi),300px);aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--green) 0 80%,#f3c48f 0 95%,#e2706a 0);display:grid;place-content:center;text-align:center;position:relative}
-  .donut::before{content:"";position:absolute;inset:16%;border-radius:50%;background:#fff}.donut b,.donut span{position:relative}.donut b{font-size:clamp(24px,9cqi,44px);line-height:1}.donut span{color:var(--muted);font-size:clamp(12px,3.4cqi,16px)}
-  .dl{list-style:none;padding:0;display:grid;gap:clamp(8px,3cqh,16px);font-size:clamp(13px,3.4cqi,19px)}.dl li{display:grid;grid-template-columns:10px auto max-content max-content;align-items:center;gap:8px;white-space:nowrap}.dl i{width:9px;height:9px;border-radius:50%}.dl b,.dl em{text-align:right;font-style:normal}.dl em{color:var(--muted)}
+  .donutwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(16px,4cqi,48px);padding:8px 18px 14px}
+  .donut{flex:none;width:clamp(96px,min(80cqh,48cqi),480px);aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--green) 0 80%,#f3c48f 0 95%,#e2706a 0);display:grid;place-content:center;text-align:center;position:relative}
+  .donut::before{content:"";position:absolute;inset:16%;border-radius:50%;background:#fff}.donut b,.donut span{position:relative}.donut b{font-size:clamp(24px,min(13cqh,7.5cqi),72px);line-height:1}.donut span{color:var(--muted);font-size:clamp(12px,min(4cqh,2.4cqi),22px)}
+  .dl{list-style:none;padding:0;display:grid;gap:clamp(8px,4cqh,28px);font-size:clamp(13px,min(5cqh,2.5cqi),26px)}.dl i{width:.6em!important;height:.6em!important}.dl li{column-gap:.6em!important}.dl li{display:grid;grid-template-columns:10px auto max-content max-content;align-items:center;gap:8px;white-space:nowrap}.dl i{width:9px;height:9px;border-radius:50%}.dl b,.dl em{text-align:right;font-style:normal}.dl em{color:var(--muted)}
   @container (max-width: 360px){.dl{font-size:13px;gap:8px}.dl li{grid-template-columns:10px auto max-content}.dl em{display:none}.donutwrap{gap:14px;padding-inline:14px}}
   .dot{width:9px;height:9px;border-radius:50%;background:#f3c48f}
   .lists .row{font-size:${[13, 13, 14, 15][SIZES.indexOf(s)]}px}

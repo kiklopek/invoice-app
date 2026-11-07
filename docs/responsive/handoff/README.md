@@ -36,7 +36,7 @@ Aplikace má dva **hotové a schválené pilíře**, které se nesmí měnit:
 ## Pořadí čtení
 
 1. `01_DESIGN_SYSTEM.md`: barvy, písmo, mezery, komponenty a jejich velikosti.
-2. `02_TRANSITION_RULES.md`: 14 závazných pravidel, jak se layout mění s velikostí. **Nejdůležitější soubor.**
+2. `02_TRANSITION_RULES.md`: 15 závazných pravidel, jak se layout mění s velikostí. **Nejdůležitější soubor.**
 3. `03_PAGE_SPECS.md`: co je na každé stránce a jak se má chovat v každé velikosti.
 4. `04_OUTPUT_AND_CHECKLIST.md`: v jakém formátu odevzdat a jak výsledek zkontrolovat.
 5. `05_INTERACTIVE_STATES.md` a `06_INTERACTION_INVENTORY.md`: otevřené prvky, stavy a pokrytí.
@@ -80,6 +80,7 @@ Pro další velikost téže stránky stačí v tomtéž chatu napsat:
 - Nechávat prázdnou plochu pod posledním panelem nebo uvnitř velkých karet (pravidla 2 a 11).
 - Zapomenout pozadí aplikace, logo, Eska nebo avatar; malá a prázdná navigace na velkém displeji (pravidla 5 a 14).
 - Sloupce, které nejsou ve všech řádcích na stejném místě (pravidlo 13).
+- Objekty, které na velké obrazovce zůstanou malé uprostřed prázdné karty (pravidlo 15).
 - Používat skutečná jména firem, e-maily nebo IČO. Jen `assets/sample-data.json`.
 - Přidávat funkce, které aplikace nemá. Mockup mění rozložení, ne funkčnost.
 
