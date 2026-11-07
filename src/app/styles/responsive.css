@@ -2109,3 +2109,12 @@
     .archive-invoice-table .invoice-row.is-paid .archive-invoice-status { display: none !important; }
   }
 }
+
+/* Invoice archive on tablets and narrow laptops: Hledat keeps its own row and
+ * Stav, Měna and both dates share the second one (four fields fit from ~760 px),
+ * instead of three rows that pushed the first card below the fold. */
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  .filter-row.archive-filter-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

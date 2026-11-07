@@ -620,3 +620,26 @@
     line-height: 1;
   }
 }
+
+/* Collection family (TRANSITION_RULES pravidla 2–4): the records panel takes the
+   rest of the window, so a short list leaves no empty band under the panel.
+   From 1600 px: below that lists scroll and a flex column would change the
+   pillars' margins. */
+@media (min-width: 1600px) {
+  .shell :global(main[data-workspace-layout="collection"]) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"]) {
+    flex: 1 0 auto;
+  }
+  /* Values and their secondary lines grow with the record text (rule 6),
+     over the global 12/13 px table type. */
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td strong) {
+    font-size: inherit;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td small) {
+    font-size: calc(12px + var(--workspace-grow, 0px) * 2 / 960);
+  }
+}
