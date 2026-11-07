@@ -1499,6 +1499,22 @@
     overflow: auto;
     overscroll-behavior: contain;
   }
+  /* The paper scrolls inside the sticky preview; with overlay scrollbars its lower part
+     looked cut off. A sticky fade over the bottom edge shows the document continues; the
+     extra bottom padding means that at the end it only covers empty space, never text. */
+  .paper {
+    padding-bottom: 36px;
+  }
+  .paper::after {
+    content: "";
+    position: sticky;
+    bottom: -36px;
+    display: block;
+    height: 36px;
+    margin: -36px -20px -36px;
+    background: linear-gradient(rgb(255 255 255 / 0), #fff 85%);
+    pointer-events: none;
+  }
   .documentTable {
     max-height: none;
     overflow: visible;
