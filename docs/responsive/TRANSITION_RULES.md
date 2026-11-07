@@ -1,4 +1,4 @@
-# Pravidla přechodů responzivity — návrh v1
+# Pravidla přechodů responzivity — návrh v1.1
 
 Stav: návrh odvozený z mockupů stránky Faktury (Figma „Splatno — responzivní mockupy“,
 https://www.figma.com/design/YK83a6K9WYjLnAQ3md1HYS). Čeká na schválení. Konkrétní prahy
@@ -23,7 +23,7 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
    (b) stránkování podle výšky, (c) vnitřní scroll panelu s přilepeným záhlavím a akcemi.
    Celá stránka se posouvá jen u obsahu s přirozenou délkou (tvorba faktury, nastavení).
 4. **Počet řádků podle výšky.** Seznam počítá řádky na stránku z dostupné výšky, nikdy ne půl řádku.
-   Zbytek pod posledním řádkem se rozpočítá do výšky řádků (max +6 px na řádek). Výchozí volba je
+   Zbytek pod posledním řádkem se rozpočítá do výšky řádků (max +18 px na řádek, půl nahoru, půl dolů). Výchozí volba je
    „Automaticky“. Ruční 10/25/50 přepne panel na vnitřní scroll.
 5. **Navigace podle obrazovky.**
    - < 768: dnešní mobilní hlavička a menu.
@@ -42,7 +42,8 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
    | Buňka tabulky       | 13 px   | 15 px   |
    | Částka, číslo       | 14 px   | 16 px   |
    | Položka menu        | 15 px   | 18 px   |
-   | Hodnota KPI         | 36 px   | 44 px   |
+   | Hodnota KPI         | 36 px   | 56 px   |
+   | Ikona KPI           | 40 px   | 68 px   |
    | Nadpis stránky      | 42 px   | 48 px   |
 
 7. **Text se zkrátí, zalomí nebo přeskupí, ale nikdy nepřeteče.**
@@ -67,7 +68,8 @@ Každé pravidlo níže musí v pilířích dát dnešní výsledek. Mění se j
     2. větší text a ikony do maxima role,
     3. teprve potom vnitřní mezery.
 
-    Prázdná plocha uvnitř karty nesmí být větší než jeden její řádek obsahu.
+    Prázdná plocha uvnitř karty nesmí být větší než jeden její řádek obsahu. Když se obsah
+    nevejde ani do nejmenší varianty, přeskupí se (např. donut v úzké kartě skryje procenta).
 12. **Centrování drží při každé transformaci.** Text je svisle vystředěný v řádku, tlačítku, štítku i
     položce menu podle skutečné výšky písma. Když objekt roste, padding roste symetricky, takže střed
     zůstává. Samostatné bloky (prázdný stav, upload, hodnota KPI) jsou vystředěné v ose objektu i po
