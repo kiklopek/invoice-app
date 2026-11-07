@@ -646,7 +646,6 @@ export function AppShell({
         <InvoiceCountContext.Provider value={setInvoiceCount}>
           <div
             className={`app-shell ${workspaceStyles.shell}`}
-            data-proportional-layout="true"
           >
             <AppBackground variant={backgroundVariant} />
             <AppSidebar

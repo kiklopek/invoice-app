@@ -415,63 +415,45 @@
 
 .desktopEskoFooter { margin-bottom: 24px; }
 
-/* Bounded desktop growth; navigation has its own stronger scale so its width,
-   icons, labels and profile grow together instead of leaving an empty rail. */
+/* Large screens grow in real sizes, not with a zoom (TRANSITION_RULES pravidla 6
+   a 11): the canvas gets the extra width, and text tokens rise linearly from
+   1600 to 2560 px up to fixed caps. Pages read these tokens; their own
+   components decide what else grows with them. Lengths only, so no browser
+   needs typed division. */
 @media screen and (min-width: 1600px) {
-  @supports (zoom: calc(100vw / 1600px)) {
-    .shell[data-proportional-layout="true"] {
-      --workspace-growth: calc((100vw - 1600px) / 800px);
-      --workspace-scale: calc(1 + .4 * var(--workspace-growth) / (1 + var(--workspace-growth)));
-      --workspace-sidebar-width: var(--app-sidebar-width);
-      padding-left: var(--workspace-sidebar-width);
-    }
+  .shell.shell > :global(main.content) {
+    --workspace-grow: clamp(0px, calc(100vw - 1600px), 960px);
+    --workspace-detail-text: calc(13px + var(--workspace-grow) * 2 / 960);
+    --workspace-record-text: calc(14px + var(--workspace-grow) * 2 / 960);
+    --workspace-task-title: calc(20px + var(--workspace-grow) * 8 / 960);
+    --workspace-task-body: calc(13px + var(--workspace-grow) * 4 / 960);
+    --workspace-task-meta: calc(12px + var(--workspace-grow) * 3 / 960);
+  }
 
-    .shell.shell[data-proportional-layout="true"] > :global(main.content) {
-      /* Viewport lengths inside the scaled working area use logical pixels. */
-      --workspace-vw: 16px;
-      --workspace-vh: calc(1dvh / var(--workspace-scale));
-      --workspace-height: calc(100dvh / var(--workspace-scale));
-      --workspace-detail-text: clamp(13px, calc(13px + (var(--workspace-scale) - 1) * 10px), 16px);
-      --workspace-record-text: clamp(14px, calc(14px + (var(--workspace-scale) - 1) * 6px), 16px);
-      --workspace-task-title: clamp(20px, calc(20px + (var(--workspace-scale) - 1) * 20px), 28px);
-      --workspace-task-body: clamp(13px, calc(13px + (var(--workspace-scale) - 1) * 12px), 17px);
-      --workspace-task-meta: clamp(12px, calc(12px + (var(--workspace-scale) - 1) * 12px), 16px);
-      zoom: var(--workspace-scale);
-      width: calc((100vw - var(--workspace-sidebar-width)) / var(--workspace-scale));
-      margin-left: 0;
-      min-height: calc(100 * var(--workspace-vh));
-    }
-
-    /* Native dialogs inherit their frame's zoom; their limit must use the
-       logical viewport too. Portals outside main retain the physical viewport. */
-    .shell :global(main.content dialog.modal) {
-      max-height: calc(var(--workspace-height) - 32px);
-    }
-
-    .shell :global(main[data-workspace-layout="form"]) {
-      --workspace-canvas-max: 1280px;
-    }
-    .shell :global(main[data-workspace-layout="task"]) {
-      --workspace-canvas-max: none;
-      --workspace-upload-min: clamp(520px, calc(58 * var(--workspace-vh)), 900px);
-      display: flex;
-      flex-direction: column;
-    }
-    .shell :global(main[data-workspace-layout="task"] > [data-workspace-stage]) {
-      flex: 0 0 auto;
-      width: 100%;
-      height: auto;
-      min-height: 0;
-      max-width: var(--workspace-canvas-max);
-      margin-block: 24px 0;
-    }
-    .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"]) {
-      flex: 0 0 auto;
-    }
-    .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td) {
-      height: clamp(63px, calc(4.5 * var(--workspace-vh)), 88px);
-      font-size: var(--workspace-record-text);
-    }
+  .shell :global(main[data-workspace-layout="form"]) {
+    --workspace-canvas-max: 1280px;
+  }
+  .shell :global(main[data-workspace-layout="task"]) {
+    --workspace-canvas-max: none;
+    --workspace-upload-min: clamp(520px, 58dvh, 900px);
+    display: flex;
+    flex-direction: column;
+  }
+  /* Task family: the stage takes the rest of the window height. */
+  .shell :global(main[data-workspace-layout="task"] > [data-workspace-stage]) {
+    flex: 1 0 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-width: var(--workspace-canvas-max);
+    margin-block: 24px 0;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"]) {
+    flex: 0 0 auto;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td) {
+    height: clamp(63px, 4.5dvh, 88px);
+    font-size: var(--workspace-record-text);
   }
 }
 

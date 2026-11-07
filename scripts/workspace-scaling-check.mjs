@@ -62,6 +62,7 @@ const server = await createServer({
 await server.listen();
 
 // Exercise the real shell and page components with isolated read-only fixtures.
+const deferred = [];
 try {
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch();
@@ -98,7 +99,7 @@ try {
           await expect(page.locator("main h1")).toBeVisible();
           await page.evaluate(() => document.fonts.ready);
           const metrics = await page.evaluate(() => {
-            const shell = document.querySelector("[data-proportional-layout]");
+            const shell = document.querySelector(".app-shell");
             const heading = document.querySelector("main h1");
             const sidebar = document.querySelector(".sidebar");
             const icon = document.querySelector(
@@ -125,20 +126,24 @@ try {
             metrics.overflow,
             `${engine.name()} ${route} ${width}: horizontal overflow`,
           ).toBe(false);
+          // TRANSITION_RULES pravidla 5 a 6: no zoom anywhere; navigation steps
+          // to real sizes (rail 84 / 220 / 244 / 280 / 320 px) and the content
+          // starts right after it and fills the rest of the window.
           if (width === 1600) reference = metrics;
-          if (width >= 1600) {
-            const growth = (width - 1600) / 800;
-            const scale = 1 + (0.4 * growth) / (1 + growth);
-            expect(metrics.scale).toBeCloseTo(scale, 2);
-            expect(metrics.scale).toBeLessThan(1.4);
-            expect(metrics.headingFont).toBeCloseTo(reference.headingFont, 1);
-            expect(metrics.sidebarWidth).toBeCloseTo(reference.sidebarWidth, 1);
-            expect(metrics.mainLeft).toBeCloseTo(reference.sidebarWidth, 1);
-            expect(metrics.shellScale).toBe(1);
-            expect(metrics.iconWidth).toBeCloseTo(reference.iconWidth, 1);
+          expect(metrics.scale).toBe(1);
+          expect(metrics.shellScale).toBe(1);
+          if (width >= 1024) {
+            const nav = width >= 2200 ? 320 : width >= 1600 ? 280 : width >= 1200 ? 244 : width >= 1100 ? 220 : 84;
+            expect(metrics.sidebarWidth).toBeCloseTo(nav, 0);
+            expect(metrics.mainLeft).toBeCloseTo(nav, 0);
             expect(metrics.sidebarHeight).toBeCloseTo(height, 0);
             expect(Math.abs(metrics.mainRight - width)).toBeLessThan(2);
-          } else expect(metrics.scale).toBe(1);
+          }
+          if (width >= 1600) {
+            expect(metrics.iconWidth).toBeGreaterThanOrEqual(reference.iconWidth);
+            expect(metrics.headingFont).toBeGreaterThanOrEqual(reference.headingFont - 0.5);
+            expect(metrics.headingFont).toBeLessThanOrEqual(56);
+          }
           if (route === "/invoices/import" && width >= 1600) {
             const gaps = await page
               .locator(".invoice-document-import")
@@ -153,10 +158,9 @@ try {
                   below: innerHeight - panel.getBoundingClientRect().bottom,
                 };
               });
-            expect(
-              Math.abs(gaps.above - gaps.below),
-              `balanced upload panel gaps: ${JSON.stringify(gaps)}`,
-            ).toBeLessThan(3);
+            // Reported at the end so the other routes and widths still run.
+            if (Math.abs(gaps.above - gaps.below) >= 3)
+              deferred.push(`${engine.name()} ${route} ${width}: unbalanced upload panel gaps ${JSON.stringify(gaps)}`);
           }
           if ([390, 1600, 2560, 3840].includes(width))
             await page.screenshot({
@@ -177,15 +181,15 @@ try {
             .evaluate((el) => getComputedStyle(el).zoom),
         ).toBe("1");
         await page.emulateMedia({ media: "screen" });
-        // Resize the mounted page to a short ultrawide window. The fixed
-        // sidebar must remain viewport-sized with scrollable account actions.
+        // A short ultrawide window: the sidebar stays viewport-sized and the
+        // account actions stay inside it (the menu scrolls if it must).
         await page.setViewportSize({ width: 2560, height: 800 });
         const shortWindow = await page.locator(".sidebar").evaluate((el) => ({
           height: el.getBoundingClientRect().height,
-          overflow: getComputedStyle(el).overflowY,
+          accountBottom: el.querySelector(".sidebar-bottom").getBoundingClientRect().bottom,
         }));
         expect(shortWindow.height).toBeCloseTo(800, 0);
-        expect(shortWindow.overflow).toBe("auto");
+        expect(shortWindow.accountBottom).toBeLessThanOrEqual(800);
         await page.setViewportSize({ width: 390, height: 844 });
         expect(
           await page
@@ -199,6 +203,10 @@ try {
     }
   }
   console.log(`Screenshots: ${output}`);
+  if (deferred.length) {
+    console.error(deferred.join("\n"));
+    process.exitCode = 1;
+  }
 } finally {
   await server.close();
 }

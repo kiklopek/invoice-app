@@ -182,8 +182,10 @@
 }
 
 @media screen and (min-width: 1600px) {
-  .documentStart.start :global(.invoice-import-workspace) { flex: 0 0 auto; justify-content: flex-start; }
-  .documentStart.start :global(.invoice-document-import) { min-height: var(--workspace-upload-min, 520px); }
+  /* Task family: the work panel fills the rest of the window with the same
+     24 px above and below, instead of a fixed share with empty space under it. */
+  .documentStart.start :global(.invoice-import-workspace) { flex: 1 0 auto; justify-content: flex-start; }
+  .documentStart.start :global(.invoice-document-import) { flex: 1 0 auto; min-height: var(--workspace-upload-min, 520px); }
   .page.page :global(.invoice-document-dropzone h2) { font-size: var(--workspace-task-title, 20px); }
   .page.page :global(.invoice-document-dropzone p) { max-width: 600px; font-size: var(--workspace-task-body, 13px); }
   .page.page :global(.large-import-icon) { width: 72px; height: 72px; }
