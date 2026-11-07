@@ -275,7 +275,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                           </form>
                         ) : customer.email ? (
                           <div className="customer-contact-line">
-                            <span className="customer-contact-value">{customer.email}</span>
+                            <span className="customer-contact-value" title={customer.email}>{customer.email}</span>
                             {canManage ? <button type="button" className="customer-contact-edit" onClick={() => startEditingEmail(customer)} disabled={savingEmail || savingPhone} aria-label={`Upravit e-mail zákazníka ${customer.name}`}><Icon name="edit" /></button> : null}
                           </div>
                         ) : (
@@ -302,7 +302,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                           </span>
                         ) : customer.phone ? (
                           <div className="customer-contact-line">
-                            <span className="customer-contact-value">{customer.phone}</span>
+                            <span className="customer-contact-value" title={customer.phone ?? undefined}>{customer.phone}</span>
                             {canManage ? <button type="button" className="customer-contact-edit" onClick={() => startEditingPhone(customer)} disabled={savingEmail || savingPhone} aria-label={`Upravit telefon zákazníka ${customer.name}`}><Icon name="edit" /></button> : null}
                           </div>
                         ) : (

@@ -3199,7 +3199,9 @@ th,
 .customer-phone-edit button { display: grid; place-items: center; width: 26px; height: 26px; border: none; border-radius: 6px; background: var(--green-soft); color: var(--green); cursor: pointer; }
 .customer-phone-edit button svg { width: 14px; height: 14px; }
 .customer-email-display { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; border: none; background: none; padding: 0; font: inherit; color: var(--muted); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
-.customer-contact-value { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+/* One line with an ellipsis; the full value is in the title (rule 7). Breaking an
+   e-mail mid-word made "kontakt1@example.inval / id" on the MacBook pillar. */
+.customer-contact-value { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .customer-contact-line { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
 .customer-contact-edit { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; padding: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
 .customer-contact-edit svg { width: 14px; height: 14px; }
