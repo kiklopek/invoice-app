@@ -24,6 +24,7 @@ import { useToast } from "@/components/toast";
 import { invoiceTotalsKey } from "@/lib/invoice-totals-key";
 import { InvoiceListTable } from "./invoice-list-table";
 import { InvoiceListSkeleton } from "./invoice-list-skeleton";
+import { InvoiceDetailPane, INVOICE_DETAIL_PANE_QUERY } from "./invoice-detail-pane";
 import {
   invoicePageNumbers,
   invoiceSortOptions,
@@ -235,6 +236,17 @@ export function InvoicesClient({
     pageSizeChoice === "auto" && autoRows.rows
       ? invoices.slice(0, autoRows.rows)
       : invoices;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedInvoice =
+    shownInvoices.find((invoice) => invoice.id === selectedId) ??
+    shownInvoices[0] ??
+    null;
+  function startPaymentConfirmation(invoice: Invoice) {
+    setPaymentDate(todayInTimeZone());
+    setSelectedBankPaymentId("");
+    setConfirmWithoutBankPayment(false);
+    setPaymentCandidate(invoice);
+  }
 
   useEffect(() => {
     if (!(loadError instanceof Error)) return;
@@ -463,6 +475,9 @@ export function InvoicesClient({
           {notice}
         </p>
       )}
+      {/* Records and, on very wide windows, the selected invoice's detail beside
+          them; below that the wrapper is display: contents (no box). */}
+      <div className={styles.records}>
       <section
         ref={recordsPanel}
         className={styles.panel}
@@ -826,13 +841,14 @@ export function InvoicesClient({
             canManage={canManage}
             today={today}
             onPrefetch={prefetchInvoice}
-            onOpen={(id) => router.push(`/invoices/${id}`)}
-            onConfirm={(invoice) => {
-              setPaymentDate(todayInTimeZone());
-              setSelectedBankPaymentId("");
-              setConfirmWithoutBankPayment(false);
-              setPaymentCandidate(invoice);
-            }}
+            selectedId={selectedInvoice?.id ?? null}
+            onOpen={(id) =>
+              // With the detail pane on screen a click selects; elsewhere it opens.
+              window.matchMedia(INVOICE_DETAIL_PANE_QUERY).matches
+                ? setSelectedId(id)
+                : router.push(`/invoices/${id}`)
+            }
+            onConfirm={startPaymentConfirmation}
           />
         )}
         <nav
@@ -905,6 +921,13 @@ export function InvoicesClient({
           </div>
         </nav>
       </section>
+      <InvoiceDetailPane
+        invoice={selectedInvoice}
+        canManage={canManage}
+        today={today}
+        onConfirm={startPaymentConfirmation}
+      />
+      </div>
       <Modal
         open={Boolean(paymentCandidate)}
         onClose={() => setPaymentCandidate(null)}

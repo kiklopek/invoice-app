@@ -54,7 +54,10 @@ export function InvoiceListTable({
   onExportSelected,
   exporting,
   rowHeight = null,
+  selectedId = null,
 }: {
+  /** Invoice shown in the detail pane (very wide windows only). */
+  selectedId?: string | null;
   /** Automaticky: every row gets this height so the list fills the window. */
   rowHeight?: number | null;
   onExportSelected: (ids: string[]) => void;
@@ -272,6 +275,7 @@ export function InvoiceListTable({
                   data-invoice-id={invoice.id}
                   data-partial={partial || undefined}
                   style={rowHeight ? { height: rowHeight } : undefined}
+                  data-selected={invoice.id === selectedId || undefined}
                   onMouseEnter={() => onPrefetch(invoice.id)}
                   onTouchStart={() => onPrefetch(invoice.id)}
                   onClick={(event) => {
