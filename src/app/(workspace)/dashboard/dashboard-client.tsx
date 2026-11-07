@@ -125,6 +125,7 @@ export function DashboardClient({
 
   return (
     <AppFrame
+      layout="overview"
       invoiceCount={summary.active_count}
       className={`content ${styles.page}`}
     >

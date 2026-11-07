@@ -642,7 +642,10 @@ export function AppShell({
       <EskoAssistantProvider>
       <MobileHeaderProvider>
         <InvoiceCountContext.Provider value={setInvoiceCount}>
-          <div className={`app-shell ${workspaceStyles.shell}`}>
+          <div
+            className={`app-shell ${workspaceStyles.shell}`}
+            data-proportional-layout="true"
+          >
             <AppBackground variant={backgroundVariant} />
             <AppSidebar
               invoiceCount={invoiceCount}
@@ -666,18 +669,20 @@ export function AppFrame({
   invoiceCount,
   className = "content section-page",
   topbar,
+  layout = "content",
 }: {
   children: React.ReactNode;
   invoiceCount?: number;
   className?: string;
   topbar?: React.ReactNode;
+  layout?: "content" | "overview" | "collection" | "form" | "task" | "document";
 }) {
   const setInvoiceCount = useContext(InvoiceCountContext);
   useEffect(() => {
     if (invoiceCount !== undefined) setInvoiceCount?.(invoiceCount);
   }, [invoiceCount, setInvoiceCount]);
   return (
-    <main id="obsah" className={className}>
+    <main id="obsah" className={className} data-workspace-layout={layout}>
       {topbar === undefined ? <WorkspaceTopbar /> : topbar}
       {children}
     </main>

@@ -83,7 +83,7 @@
 .statusWrap:hover .statusTooltip, .statusWrap:focus-within .statusTooltip, .statusTooltip.shown { display: block; }
 .hoverInfo { display: none; position: absolute; z-index: 20; top: 27px; right: 0; width: 340px; padding: 16px; border-radius: 9px; border: 1px solid #dde6e0; background: white; box-shadow: 0 12px 32px #173b2b20; max-height: min(460px, 65vh); overflow: auto; }
 @media (hover: hover) and (min-width: 701px) { .infoWrap:hover .hoverInfo { display: block; } .hoverInfo::before { content: ""; position: absolute; top: -8px; height: 8px; width: 100%; left: 0; } }
-.popup.popup { position: fixed; left: var(--matching-popup-left, 24px); top: var(--matching-popup-top, 90px); right: auto; bottom: auto; transform: none; margin: 0; width: min(380px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 16px; border: 1px solid #dce4e5; border-radius: 10px; color: #142339; background: #fff; box-shadow: 0 15px 50px #193b2d26; font-size: 12px; overflow: auto; }
+.popup.popup { position: fixed; left: var(--matching-popup-left, 24px); top: var(--matching-popup-top, 90px); right: auto; bottom: auto; transform: none; margin: 0; width: min(380px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: calc(var(--workspace-height, 100dvh) - 24px); padding: 16px; border: 1px solid #dce4e5; border-radius: 10px; color: #142339; background: #fff; box-shadow: 0 15px 50px #193b2d26; font-size: 12px; overflow: auto; }
 .popup.wide { width: min(560px, calc(100vw - 24px)); }
 .popup::backdrop { background: #18332808; }
 .popupHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }

@@ -160,7 +160,7 @@
 
 /* Allocate spare desktop height to useful content, preserving shared chrome. */
 @media (min-width: 1280px) {
-  .page { display: flex; flex-direction: column; min-height: 100dvh; box-sizing: border-box; padding-bottom: 16px; }
+  .page { display: flex; flex-direction: column; min-height: var(--workspace-height, 100dvh); box-sizing: border-box; padding-bottom: 16px; }
   .page > :global([data-workspace-topbar]), .breadcrumb, .heading { flex-shrink: 0; }
   .grid { flex: 1 0 auto; align-items: stretch; }
   .mainColumn, .sideColumn { align-self: stretch; }
@@ -203,7 +203,7 @@
 .documentInfo > strong { font-size: 13px; line-height: 1.5; }
 .documentInfo .secondaryButton { margin-top: 4px; width: 100%; box-sizing: border-box; font-size: 12px; }
 @media (min-width: 1280px) {
-  .thumbnail { min-height: clamp(100px,calc(100dvh - 880px),160px); flex-basis: 0; }
+  .thumbnail { min-height: clamp(100px,calc(var(--workspace-height, 100dvh) - 880px),160px); flex-basis: 0; }
 }
 
 .documentInfo { grid-template-columns: minmax(0,1fr) auto; align-items: baseline; }

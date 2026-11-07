@@ -23,5 +23,5 @@ export default function NewInvoicePage() {
     router.push(`/invoices/${data.invoice.id}`);
     router.refresh();
   }
-  return <AppFrame><div className="manual-invoice-page"><header className="section-header">{mobile && <Link href="/invoices" className="manual-invoice-back" aria-label="Zpět na faktury"><Icon name="arrow-left"/></Link>}<div><p>RUČNÍ ZADÁNÍ</p><h1>Nová vydaná faktura</h1><span>Zapište fakturu, jejíž úhradu má firma sledovat.</span></div><Link href="/invoices/import" className="btn secondary"><Icon name="upload"/>Raději importovat dokument</Link></header><InvoiceForm onSubmit={create}/></div></AppFrame>;
+  return <AppFrame layout="form"><div className="manual-invoice-page"><header className="section-header">{mobile && <Link href="/invoices" className="manual-invoice-back" aria-label="Zpět na faktury"><Icon name="arrow-left"/></Link>}<div><p>RUČNÍ ZADÁNÍ</p><h1>Nová vydaná faktura</h1><span>Zapište fakturu, jejíž úhradu má firma sledovat.</span></div><Link href="/invoices/import" className="btn secondary"><Icon name="upload"/>Raději importovat dokument</Link></header><InvoiceForm onSubmit={create}/></div></AppFrame>;
 }

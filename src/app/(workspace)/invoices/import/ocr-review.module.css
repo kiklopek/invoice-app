@@ -2,7 +2,7 @@
   box-sizing: border-box;
   display: block;
   gap: 28px;
-  min-height: 100dvh;
+  min-height: var(--workspace-height, 100dvh);
   padding: 20px 32px 34px 44px;
   color: #17251e;
   font-family: "Splatno Dashboard Inter", Inter, sans-serif;
@@ -26,7 +26,7 @@
 .steps small { font-size: inherit; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr); align-items: start; gap: 20px; min-height: 0; min-width: 0; }
 .formPanel { min-width: 0; min-height: 0; overflow: visible; background: #fff; border: 1px solid #e7ece8; border-radius: 12px; padding: 18px; }
-.documentPanel { position: sticky; top: 20px; height: calc(100dvh - 160px); min-height: 360px; max-height: calc(100dvh - 40px); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.documentPanel { position: sticky; top: 20px; height: calc(var(--workspace-height, 100dvh) - 160px); min-height: 360px; max-height: calc(var(--workspace-height, 100dvh) - 40px); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .documentPanel :global(.document-preview) { flex: 1 1 0; min-height: 0; border: 1px solid #e7ece8; border-radius: 12px; background: #fff; }
 .documentPanel :global(.document-preview-toolbar) { flex: none; padding: 14px; gap: 8px; background: #fff; color: #677487; }
 .documentPanel :global(.document-preview-title) { min-width: 0; flex: 1 1 110px; display: grid; gap: 4px; }

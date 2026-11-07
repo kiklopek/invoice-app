@@ -28,7 +28,7 @@
 }
 .shell.shell :global(.sidebar) {
   width: var(--app-sidebar-width);
-  padding: 30px 22px 38px;
+  padding: 30px 22px 16px;
   border-right: 1px solid var(--dash-line);
   background: #f9fbf866;
   color: var(--dash-ink);
@@ -296,3 +296,91 @@
 }
 
 .desktopEskoFooter { margin-bottom: 24px; }
+
+/* Bounded desktop growth; navigation has its own stronger scale so its width,
+   icons, labels and profile grow together instead of leaving an empty rail. */
+@media screen and (min-width: 1600px) {
+  @supports (zoom: calc(100vw / 1600px)) {
+    .shell[data-proportional-layout="true"] {
+      --workspace-growth: calc((100vw - 1600px) / 800px);
+      --workspace-scale: calc(1 + .4 * var(--workspace-growth) / (1 + var(--workspace-growth)));
+      --workspace-navigation-height-growth: clamp(0, calc((100dvh - 1000px) / 800px), 1);
+      --workspace-navigation-room: calc(var(--workspace-navigation-height-growth) * var(--workspace-growth) / (1 + var(--workspace-growth)));
+      --workspace-navigation-scale: min(1.85, calc(1 + .75 * var(--workspace-growth) / (1 + var(--workspace-growth)) + .7 * var(--workspace-navigation-room)));
+      --workspace-sidebar-width: calc(var(--app-sidebar-width) * var(--workspace-navigation-scale));
+      padding-left: var(--workspace-sidebar-width);
+    }
+
+    .shell.shell[data-proportional-layout="true"] > :global(main.content) {
+      /* Viewport lengths inside the scaled working area use logical pixels. */
+      --workspace-vw: 16px;
+      --workspace-vh: calc(1dvh / var(--workspace-scale));
+      --workspace-height: calc(100dvh / var(--workspace-scale));
+      --workspace-detail-text: clamp(13px, calc(13px + (var(--workspace-scale) - 1) * 10px), 16px);
+      --workspace-record-text: clamp(14px, calc(14px + (var(--workspace-scale) - 1) * 6px), 16px);
+      --workspace-task-title: clamp(20px, calc(20px + (var(--workspace-scale) - 1) * 20px), 28px);
+      --workspace-task-body: clamp(13px, calc(13px + (var(--workspace-scale) - 1) * 12px), 17px);
+      --workspace-task-meta: clamp(12px, calc(12px + (var(--workspace-scale) - 1) * 12px), 16px);
+      zoom: var(--workspace-scale);
+      width: calc((100vw - var(--workspace-sidebar-width)) / var(--workspace-scale));
+      margin-left: 0;
+      min-height: calc(100 * var(--workspace-vh));
+    }
+
+    /* Native dialogs inherit their frame's zoom; their limit must use the
+       logical viewport too. Portals outside main retain the physical viewport. */
+    .shell :global(main.content dialog.modal) {
+      max-height: calc(var(--workspace-height) - 32px);
+    }
+
+    .shell.shell[data-proportional-layout="true"] :global(.sidebar) {
+      zoom: var(--workspace-navigation-scale);
+      top: 0;
+      bottom: auto;
+      height: calc(100dvh / var(--workspace-navigation-scale));
+      /* Keep a small physical bottom inset as the navigation grows. */
+      padding-bottom: calc(16px / var(--workspace-navigation-scale));
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .shell.shell[data-proportional-layout="true"] :global(.sidebar-bottom) {
+      flex-shrink: 0;
+    }
+
+    /* Use spare height for the navigation itself, keeping related sublinks
+       together. Width, icons and labels grow with the same navigation scale. */
+    .shell.shell[data-proportional-layout="true"] :global(.sidebar > .desktop-navigation) {
+      gap: clamp(2px, calc(2px + 18px * var(--workspace-navigation-room)), 12px);
+    }
+    .shell.shell[data-proportional-layout="true"] :global(.desktop-navigation .nav-item-group > a) {
+      height: clamp(46px, calc(46px + 24px * var(--workspace-navigation-room)), 64px);
+      min-height: clamp(46px, calc(46px + 24px * var(--workspace-navigation-room)), 64px);
+    }
+
+    .shell :global(main[data-workspace-layout="form"]) {
+      --workspace-canvas-max: 1280px;
+    }
+    .shell :global(main[data-workspace-layout="task"]) {
+      --workspace-canvas-max: none;
+      --workspace-upload-min: clamp(520px, calc(58 * var(--workspace-vh)), 900px);
+      display: flex;
+      flex-direction: column;
+    }
+    .shell :global(main[data-workspace-layout="task"] > [data-workspace-stage]) {
+      flex: 0 0 auto;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      max-width: var(--workspace-canvas-max);
+      margin-block: 24px 0;
+    }
+    .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"]) {
+      flex: 0 0 auto;
+    }
+    .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td) {
+      height: clamp(63px, calc(4.5 * var(--workspace-vh)), 88px);
+      font-size: var(--workspace-record-text);
+    }
+  }
+}

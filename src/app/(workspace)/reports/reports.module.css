@@ -76,7 +76,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  width: min(310px, 80vw);
+  width: min(310px, calc(80 * var(--workspace-vw, 1vw)));
   padding: 12px;
   background: white;
   border: 1px solid #dce5de;
@@ -1000,8 +1000,8 @@
 }
 
 .customerDialog {
-  width: min(640px, calc(100vw - 28px));
-  max-height: min(680px, calc(100dvh - 32px));
+  width: min(640px, calc(calc(100 * var(--workspace-vw, 1vw)) - 28px));
+  max-height: min(680px, calc(calc(100 * var(--workspace-vh, 1dvh)) - 32px));
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -1321,7 +1321,7 @@
   .vatDetails { margin: 10px 0 0; }
   .vatDetails > div { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; padding: 6px 0; }
   .vatDetails dd { margin: 0; min-width: 0; max-width: 100%; }
-  .mobileSheet.mobileSheet { position: fixed; inset: auto 0 var(--report-sheet-bottom,0px); display: flex; flex-direction: column; width: min(100%,600px); max-width: calc(100% - 16px); height: auto; max-height: min(var(--report-sheet-height,calc(100dvh - 16px)),calc(100dvh - 16px)); margin: 0 auto; padding: 0; border-radius: 18px 18px 0 0; overflow: hidden; color: #203c2c; font: 400 14px/1.5 var(--font-body,sans-serif); }
+  .mobileSheet.mobileSheet { position: fixed; inset: auto 0 var(--report-sheet-bottom,0px); display: flex; flex-direction: column; width: min(100%,600px); max-width: calc(100% - 16px); height: auto; max-height: min(var(--report-sheet-height,calc(calc(100 * var(--workspace-vh, 1dvh)) - 16px)),calc(calc(100 * var(--workspace-vh, 1dvh)) - 16px)); margin: 0 auto; padding: 0; border-radius: 18px 18px 0 0; overflow: hidden; color: #203c2c; font: 400 14px/1.5 var(--font-body,sans-serif); }
   .mobileSheet *, .mobileSheet *::before, .mobileSheet *::after { box-sizing: border-box; }
   .mobileSheet.mobileSheet > header { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 8px 16px; border-bottom: 1px solid #e5ece7; }
   .mobileSheet.mobileSheet > header h2 { margin: 0; color: #173b29; font: 650 18px/1.4 var(--font-body,sans-serif); }
@@ -1372,4 +1372,10 @@
   .page .legend li { grid-template-columns: 8px minmax(0,1fr); }
   .page .legend strong { grid-column: 2; }
   .sheetDates { grid-template-columns: minmax(0,1fr); }
+}
+
+@media screen and (min-width: 1600px) {
+  .page .revenueChart .plot {
+    min-height: clamp(236px, calc(26 * var(--workspace-vh, 1dvh)), 420px);
+  }
 }

@@ -11,7 +11,7 @@
   max-width: none;
   min-width: 0;
   height: auto;
-  min-height: 100dvh;
+  min-height: var(--workspace-height, 100dvh);
   margin: 0 0 0 244px;
   padding: 18px 48px 110px 41px;
   overflow: visible;
@@ -1059,14 +1059,14 @@
 }
 @media (min-width: 1440px) and (min-height: 900px) {
   .page.page {
-    --height-progress: clamp(0px, calc(100dvh - 900px), 124px);
-    --chart-reduction: clamp(0px, calc((100dvh - 900px) * 0.3), 56px);
+    --height-progress: clamp(0px, calc(var(--workspace-height, 100dvh) - 900px), 124px);
+    --chart-reduction: clamp(0px, calc((var(--workspace-height, 100dvh) - 900px) * 0.3), 56px);
     display: grid;
     padding: 18px 48px 22px 41px;
     gap: 14px;
     grid-template-rows:
       max-content max-content max-content
-      minmax(min-content, calc(218px + (100dvh - 900px) * 0.4 - var(--chart-reduction)))
+      minmax(min-content, calc(218px + (var(--workspace-height, 100dvh) - 900px) * 0.4 - var(--chart-reduction)))
       minmax(min-content, 1fr);
   }
   .page > [data-workspace-topbar],
@@ -1207,7 +1207,7 @@
     width: 100%;
     margin: calc(72px + env(safe-area-inset-top)) 0 0;
     padding: 24px 24px 90px;
-    min-height: calc(100dvh - 72px);
+    min-height: calc(var(--workspace-height, 100dvh) - 72px);
   }
   .search {
     flex: 1 1 250px;
@@ -2014,15 +2014,15 @@
   (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
   .page.page {
     display: grid;
-    --chart-reduction: clamp(0px, calc((100dvh - 700px) * 0.3), 40px);
-    min-height: 100dvh;
+    --chart-reduction: clamp(0px, calc((var(--workspace-height, 100dvh) - 700px) * 0.3), 40px);
+    min-height: var(--workspace-height, 100dvh);
     height: auto;
     padding: 10px 24px;
     gap: 8px;
     align-content: start;
     grid-template-rows:
       max-content max-content max-content
-      minmax(min-content, clamp(148px, calc(170px + (100dvh - 700px) * 0.5 - var(--chart-reduction)), 300px))
+      minmax(min-content, clamp(148px, calc(170px + (var(--workspace-height, 100dvh) - 700px) * 0.5 - var(--chart-reduction)), 300px))
       minmax(min-content, 1fr);
   }
   .page > [data-workspace-topbar],
@@ -2146,7 +2146,7 @@
     gap: 6px;
   }
   .donut {
-    width: clamp(92px, calc(100dvh * 0.14), 120px);
+    width: clamp(92px, calc(var(--workspace-height, 100dvh) * 0.14), 120px);
   }
   .donut strong {
     font-size: 27px;
@@ -2719,4 +2719,32 @@
   .page .invoiceCard .status[data-status="overdue"] { color: #a52232; background: #fff0f0; }
   .page .invoiceCard .status[data-status="paid"] { color: #17613f; background: #e5f2ea; }
   .page .invoiceCard .status[data-status="cancelled"] { color: #526b5b; background: #edf0ee; }
+}
+
+/* Wide cards scale their contents as a group, rather than separating a small
+   fixed donut from a right-aligned legend or leaving list items at the top. */
+@media screen and (min-width: 1600px) {
+  .page .statusChart {
+    justify-content: center;
+    gap: clamp(20px, 3cqi, 32px);
+    padding-inline-start: 0;
+  }
+  .page .donut { width: clamp(148px, 36cqi, 240px); }
+  .page .donut strong { font-size: clamp(30px, 6cqi, 44px); line-height: 1.2; }
+  .page .donut span { font-size: clamp(12px, 2.4cqi, 16px); }
+  .page .statusLegendWrap { flex: 0 1 260px; }
+  .page .statusChart .statusLegend { width: 100%; margin-inline-start: 0; font-size: clamp(13px, 2.4cqi, 16px); }
+  .page .statusLegend dt { line-height: 1.4; }
+  .page .statusLegend dd { gap: 8px; }
+  .page .statusLegend dd > span { width: 38px; }
+  .page .invoiceTable td,
+  .page .invoiceTable td strong,
+  .page .invoiceTable a {
+    font-size: var(--workspace-detail-text, 13px);
+    line-height: 1.5;
+  }
+  .page .invoiceTable th { font-size: 12px; line-height: 1.5; }
+  .page .companyReminderList > .companyReminderItem { flex: 1 0 auto; }
+  .page .companyReminders .reminderHeader { margin-bottom: clamp(16px, 3cqi, 32px); }
+  .page .companyReminderContents { padding-bottom: clamp(14px, 2.6cqi, 30px); }
 }

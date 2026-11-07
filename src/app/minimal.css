@@ -668,8 +668,8 @@ tr:hover td { background: #fafbf9; }
 .invoice-pagination > span { color: var(--muted); font-size: 11px; }
 
 /* Formuláře a import */
-.manual-invoice-page { width: min(100%, 960px); margin-inline: auto; }
-.manual-invoice-page .standalone-form { width: 100%; }
+.manual-invoice-page { width: min(100%, var(--workspace-canvas-max, 960px)); margin-inline: auto; }
+.manual-invoice-page .standalone-form { width: 100%; max-width: none; }
 .standalone-form { width: min(100%, 960px); }
 .invoice-import-tabs { margin: 0 0 18px; vertical-align: top; }
 .invoice-import-workspace { width: min(100%, 1120px); margin-inline: auto; }
@@ -3589,8 +3589,7 @@ th,
 [data-popup][data-placement="below"] { bottom: auto !important; top: calc(100% + 8px) !important; }
 details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
 
-/* Exact financial values scroll within their own cell when unusually long. */
-.customer-amount { display: inline-block; white-space: nowrap; overflow-x: auto; }
+/* Customer amounts use the shared fitting component to adapt to the cell width. */
 .customer-billing-cell, .customer-outstanding-cell { min-width: 0; }
 .customer-invoices-link, .outstanding-badge { max-width: 100%; min-width: 0; }
 .payment-history-summary, .payment-history-allocations { min-width: 0; }

@@ -972,10 +972,28 @@ select.pageSize {
   }
 }
 @media (min-width: 768px) {
+  .page.page {
+    display: flex;
+    flex-direction: column;
+    min-height: var(--workspace-height, 100dvh);
+    padding-bottom: 0;
+  }
+  .page > * {
+    flex-shrink: 0;
+  }
+  .panel {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
   .pagination {
+    margin-top: auto;
     padding-block: 22px;
   }
 }
+
+
+
 @media (max-width: 1399px) and (min-width: 1024px) {
   .filterGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1042,7 +1060,7 @@ select.pageSize {
   .page .table tr[data-partial] .paidCell { display:block; }
   .page .table .paidInfo { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
   .page .table .paidInfo .progress { flex:1;min-width:50px; }
-  .rowMenu { max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain; }
+  .rowMenu { max-width:calc(100vw - 24px);max-height:calc(var(--workspace-height, 100dvh) - 32px);overflow-y:auto;overscroll-behavior:contain; }
   .rowMenu :is(a,button) { min-height:44px;white-space:normal;overflow-wrap:anywhere;font-size:14px; }
   .page .table .statusCell { grid-column:2 / 4;grid-row:4;max-width:65%; }
   .page .table .statusCell .badge { white-space:nowrap; }

@@ -26,3 +26,8 @@ graphify-out/
 /artifacts/
 /docs/redesign/visual-validation/
 /docs/design-audit/**/*.png
+
+# Responsive review exports (regenerable, duplicate sources)
+/responsive-review-export/
+/responsive-review-export.zip
+/Splatno_Frontend_Responsive_Review.zip

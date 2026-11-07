@@ -2,6 +2,8 @@
    minimal.css globálně vypíná box-shadow, proto stíny nesou !important. */
 
 .page {
+  /* Stejný omezený růst jako AuthShell; levý panel kroků se nezvětšuje. */
+  --entry-growth: clamp(0px, min(calc(1vw - 16px), calc(2.5dvh - 20px)), 8px);
   --pine: #12372a;
   --cta: #17613f;
   --cta-hover: #124d32;
@@ -28,16 +30,16 @@
     radial-gradient(600px 460px at 0 100%, rgba(227, 241, 231, 0.9), transparent 70%),
     #f4f7f4;
   color: var(--ink);
-  font-size: 15px;
+  font-size: calc(15px + var(--entry-growth) * 0.1875);
   line-height: 1.5;
 }
 
 .card {
   width: 100%;
-  max-width: 1440px;
+  max-width: calc(1440px + var(--entry-growth) * 40);
   height: 100%;
   min-height: 0;
-  max-height: 1000px;
+  max-height: calc(1000px + var(--entry-growth) * 10);
   display: grid;
   grid-template-columns: minmax(216px, 0.62fr) minmax(0, 1.5fr) minmax(0, 1fr);
   overflow: hidden;
@@ -46,11 +48,18 @@
   box-shadow: 0 0 0 1px rgba(19, 35, 27, 0.04), 0 40px 80px -40px rgba(19, 35, 27, 0.22) !important;
 }
 
+@media (min-width: 1600px) {
+  .card {
+    grid-template-columns: 286px minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
 /* ---------- kroky ---------- */
 .rail {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  font-size: 15px;
   padding: clamp(20px, 4dvh, 40px) 24px;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -182,7 +191,7 @@
 .content {
   flex: none;
   width: 100%;
-  max-width: 560px;
+  max-width: calc(560px + var(--entry-growth) * 10);
   min-width: 0;
   margin: auto;
   padding: 4px;
@@ -199,32 +208,32 @@
 }
 .title {
   margin: 14px 0 0;
-  font-size: clamp(28px, 2.6vw, 38px);
+  font-size: clamp(28px, 2.6vw, calc(38px + var(--entry-growth) * 0.75));
   font-weight: 750;
   line-height: 1.08;
   letter-spacing: -0.03em;
   text-wrap: balance;
 }
 .sub {
-  max-width: 470px;
-  margin: 12px 0 0;
+  max-width: calc(470px + var(--entry-growth) * 8);
+  margin: calc(12px + var(--entry-growth) * 0.5) 0 0;
   color: var(--muted);
-  font-size: 16px;
+  font-size: calc(16px + var(--entry-growth) * 0.25);
 }
 .form {
   display: grid;
-  gap: clamp(12px, 2dvh, 18px);
-  margin-top: clamp(18px, 3dvh, 28px);
+  gap: clamp(12px, 2dvh, calc(18px + var(--entry-growth) * 0.5));
+  margin-top: clamp(18px, 3dvh, calc(28px + var(--entry-growth)));
 }
 .field {
   min-width: 0;
   align-content: start;
   display: grid;
-  gap: 7px;
+  gap: calc(7px + var(--entry-growth) * 0.125);
 }
 .label {
   color: var(--text);
-  font-size: 14.5px;
+  font-size: calc(14.5px + var(--entry-growth) * 0.1875);
   font-weight: 600;
 }
 .label small {
@@ -240,16 +249,16 @@
 .control > svg {
   position: absolute;
   left: 16px;
-  width: 20px;
-  height: 20px;
+  width: calc(20px + var(--entry-growth) * 0.25);
+  height: calc(20px + var(--entry-growth) * 0.25);
   color: #7b8780;
   pointer-events: none;
 }
 .control input,
 .control select {
   width: 100%;
-  height: 52px;
-  padding: 0 16px 0 48px;
+  height: calc(52px + var(--entry-growth));
+  padding: 0 calc(16px + var(--entry-growth) * 0.5) 0 calc(48px + var(--entry-growth));
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
@@ -366,7 +375,7 @@
   align-items: center;
   gap: 14px;
   width: 100%;
-  max-width: 560px;
+  max-width: calc(560px + var(--entry-growth) * 10);
   min-width: 0;
   box-sizing: border-box;
   justify-self: center;
@@ -383,13 +392,13 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  height: 56px;
+  height: calc(56px + var(--entry-growth));
   border: 0;
   border-radius: 10px;
   background: var(--cta);
   color: #fff;
   font: inherit;
-  font-size: 16px;
+  font-size: calc(16px + var(--entry-growth) * 0.25);
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 10px 22px -12px rgba(23, 97, 63, 0.7) !important;
@@ -403,14 +412,14 @@
 }
 .primary svg,
 .back svg {
-  width: 19px;
-  height: 19px;
+  width: calc(19px + var(--entry-growth) * 0.25);
+  height: calc(19px + var(--entry-growth) * 0.25);
 }
 .back {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 56px;
+  height: calc(56px + var(--entry-growth));
   padding: 0 18px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -634,7 +643,7 @@
 }
 .mascot {
   display: block;
-  width: min(380px, 100%);
+  width: min(calc(380px + var(--entry-growth) * 7.5), 100%);
   max-height: 46dvh;
   object-fit: contain;
   height: auto;
@@ -643,16 +652,16 @@
 .artTitle {
   font-weight: 700;
   margin: 8px 0 0;
-  font-size: clamp(24px, 2vw, 30px);
+  font-size: clamp(24px, 2vw, calc(30px + var(--entry-growth) * 0.5));
   line-height: 1.2;
   letter-spacing: -0.025em;
   text-wrap: balance;
 }
 .artSub {
-  max-width: 340px;
+  max-width: calc(340px + var(--entry-growth) * 5);
   margin: 0 auto;
   color: var(--muted);
-  font-size: 16px;
+  font-size: calc(16px + var(--entry-growth) * 0.25);
 }
 
 .page :focus-visible {
@@ -849,7 +858,7 @@
 /* Pole 16 px všude: menší písmo iPhone při psaní přiblíží. */
 .control input,
 .control select {
-  font-size: 16px;
+  font-size: calc(16px + var(--entry-growth) * 0.25);
 }
 .mobileProgress {
   display: none;

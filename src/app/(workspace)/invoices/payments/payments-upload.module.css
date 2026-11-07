@@ -3,10 +3,20 @@
   --upload-muted: #52665a;
   position: relative;
   isolation: isolate;
-  min-height: 100dvh;
+  min-height: calc(100 * var(--workspace-vh, 1dvh));
   background: transparent;
 }
 .mobileBack, .mobileTitle { display: none; }
+
+@media screen and (min-width: 1600px) {
+  .page.page:not(.reviewPage) :global(.gpc-intro-grid) { min-height: var(--workspace-upload-min, 520px); }
+  .page.page:not(.reviewPage) :global(.gpc-upload-column) { display: flex; flex-direction: column; }
+  .page.page:not(.reviewPage) :global(.gpc-dropzone) { flex: 1; justify-content: center; }
+  .page.page:not(.reviewPage) :global(.gpc-dropzone > strong) { font-size: var(--workspace-task-title, 20px); }
+  .page.page:not(.reviewPage) :global(.gpc-dropzone > p) { font-size: var(--workspace-task-body, 13px); }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card li strong) { font-size: var(--workspace-task-body, 13px); }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card li span) { font-size: var(--workspace-task-meta, 12px); }
+}
 .page.page :global(.gpc-mobile-info),
 .page.page :global(.gpc-mobile-button-label) { display: none; }
 .page.page :global(.gpc-dropzone > strong) { overflow-wrap: anywhere; max-width: 100%; }
@@ -23,7 +33,7 @@
 .page.page :global(.payments-hero)::after { display: none; }
 .page.page :global(.payments-hero-copy) { max-width: 720px; }
 .page.page :global(.payments-hero-copy > p) { font-size: 11px; letter-spacing: 1.8px; color: #387359; margin: 0 0 12px; }
-.page.page :global(.payments-hero-copy h1) { font-size: clamp(28px, 2.7vw, 42px); line-height: 1.15; letter-spacing: -1.3px; color: var(--upload-ink); margin: 0 0 14px; }
+.page.page :global(.payments-hero-copy h1) { font-size: clamp(28px, calc(2.7 * var(--workspace-vw, 1vw)), 42px); line-height: 1.15; letter-spacing: -1.3px; color: var(--upload-ink); margin: 0 0 14px; }
 .page.page :global(.payments-hero-copy > span) { font-size: 14px; line-height: 1.7; color: var(--upload-muted); }
 .page.page :global(.payments-hero-side) { flex: 0 1 310px; width: auto; }
 .page.page :global(.payments-switch-archive) { min-height: 80px; padding: 17px; background: #fff; border: 1px solid #dce4de; border-radius: 14px; color: var(--upload-ink); box-shadow: none; }
@@ -98,7 +108,7 @@
 }
 
 @media (min-width: 1024px) {
-  .page.page { height: auto; min-height: 100dvh; display: flex; flex-direction: column; padding-top: clamp(20px, 3dvh, 36px); padding-bottom: 24px; }
+  .page.page { height: auto; min-height: calc(100 * var(--workspace-vh, 1dvh)); display: flex; flex-direction: column; padding-top: clamp(20px, calc(3 * var(--workspace-vh, 1dvh)), 36px); padding-bottom: 24px; }
   .page.page :global(.payments-hero) { flex-shrink: 0; }
   .page.page :global(.payments-anchor) { display: none; }
   .page.page :global(.gpc-panel) { min-height: auto; margin-bottom: 0; flex-shrink: 0; display: flex; flex-direction: column; }
@@ -107,13 +117,13 @@
 }
 
 @media (min-width: 1181px) and (min-height: 761px) {
-  .page.page > .stage { min-height: min(82dvh, 960px); height: auto; }
+  .page.page > .stage { min-height: min(calc(82 * var(--workspace-vh, 1dvh)), 960px); height: auto; }
   .page.page :global(.gpc-panel) { flex: 1; }
   .page.page :global(.gpc-intro-grid) { min-height: 0; }
-  .page.page :global(.gpc-upload-column) { display: flex; flex-direction: column; padding: clamp(28px, 2.4vw, 40px); }
+  .page.page :global(.gpc-upload-column) { display: flex; flex-direction: column; padding: clamp(28px, calc(2.4 * var(--workspace-vw, 1vw)), 40px); }
   .page.page :global(.gpc-dropzone) { flex: 1; min-height: 240px; }
-  .page.page :global(.gpc-safety-card) { padding: clamp(28px, 2.4vw, 40px); align-content: center; }
-  .page.page :global(.gpc-safety-card ol) { gap: clamp(25px, 3.5dvh, 40px); }
+  .page.page :global(.gpc-safety-card) { padding: clamp(28px, calc(2.4 * var(--workspace-vw, 1vw)), 40px); align-content: center; }
+  .page.page :global(.gpc-safety-card ol) { gap: clamp(25px, calc(3.5 * var(--workspace-vh, 1dvh)), 40px); }
 }
 
 @media (min-width: 1024px) and (max-width: 1180px) {
@@ -163,7 +173,7 @@
 .page.page :global(.payments-switch-icon) { background: #235c42; color: #fff; }
 
 /* The review uses document scrolling and the shared shell/topbar. */
-.page.page.reviewPage { height: auto; min-height: 100dvh; overflow: visible; padding-top: 12px; padding-bottom: 24px; }
+.page.page.reviewPage { height: auto; min-height: calc(100 * var(--workspace-vh, 1dvh)); overflow: visible; padding-top: 12px; padding-bottom: 24px; }
 .page.page.reviewPage > .stage { display: block; max-width: none; height: auto; min-height: 0; margin-block: 0; flex: none; }
 
 /* The upload page reflows independently of the shared application header. */
@@ -202,7 +212,7 @@
   .desktopTitle { display: none; }
   .page.page :global(.payments-hero) { display: block; padding: 0; margin: 0 0 20px; border: 0; }
   .page.page :global(.payments-hero-copy > p) { font-size: 11px; margin-bottom: 8px; letter-spacing: 1.8px; }
-  .page.page :global(.payments-hero-copy h1) { font-size: clamp(24px, 4vw, 28px); line-height: 1.2; letter-spacing: -.7px; margin-bottom: 12px; }
+  .page.page :global(.payments-hero-copy h1) { font-size: clamp(24px, calc(4 * var(--workspace-vw, 1vw)), 28px); line-height: 1.2; letter-spacing: -.7px; margin-bottom: 12px; }
   .page.page :global(.payments-hero-copy > span) { display: block; font-size: 14px; line-height: 1.6; }
   .page.page :global(.payments-hero-side) { display: none; }
   .page.page :global(.gpc-panel) { display: block; border: 0; background: transparent; border-radius: 0; box-shadow: none; margin: 0; overflow: visible; }
@@ -267,7 +277,7 @@
   .page.page :global(.gpc-panel) { display: flex; flex-direction: column; flex: 1; }
   .page.page :global(.gpc-intro-grid) { display: flex; flex-direction: column; flex: 1; gap: 16px; }
   .page.page :global(.gpc-upload-column) { display: flex; flex-direction: column; flex: 1; min-height: min-content; }
-  .page.page :global(.gpc-dropzone) { flex: 1; justify-content: center; padding-block: clamp(16px, 3dvh, 30px); }
+  .page.page :global(.gpc-dropzone) { flex: 1; justify-content: center; padding-block: clamp(16px, calc(3 * var(--workspace-vh, 1dvh)), 30px); }
   .page.page :global(.gpc-mobile-info) { flex-shrink: 0; }
   .page:not(.reviewPage) ~ :global([data-esko-launcher]) { width: 64px; height: 64px; }
   .page:not(.reviewPage) ~ :global([data-esko-launcher]),

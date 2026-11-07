@@ -1039,7 +1039,7 @@
 }
 .dialog {
   width: min(560px, calc(100vw - 24px));
-  max-height: calc(100dvh - 32px);
+  max-height: calc(var(--workspace-height, 100dvh) - 32px);
   padding: 22px;
   overflow: auto;
   border: 1px solid #dce6df;
@@ -1068,7 +1068,7 @@
 }
 .customerDialog.customerDialog {
   width: min(640px, calc(100vw - 24px)) !important;
-  max-height: calc(100dvh - 32px);
+  max-height: calc(var(--workspace-height, 100dvh) - 32px);
   margin: auto;
   padding: 0;
   overflow: hidden;
@@ -1079,7 +1079,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-height: calc(100dvh - 34px);
+  max-height: calc(var(--workspace-height, 100dvh) - 34px);
   margin: 0;
   padding: 0;
 }
@@ -1180,11 +1180,11 @@
 @media (max-width: 480px) {
   .customerDialog.customerDialog {
     width: calc(100vw - 16px) !important;
-    max-height: calc(100dvh - 16px);
+    max-height: calc(var(--workspace-height, 100dvh) - 16px);
     border-radius: 16px;
   }
   .customerDialog .customerForm {
-    max-height: calc(100dvh - 18px);
+    max-height: calc(var(--workspace-height, 100dvh) - 18px);
   }
   .customerForm > header {
     padding: 20px 16px;
@@ -1234,8 +1234,8 @@
   display: flex;
   flex-direction: column;
   width: min(900px, calc(100vw - 24px)) !important;
-  height: min(1000px, calc(100dvh - 24px));
-  max-height: calc(100dvh - 24px);
+  height: min(1000px, calc(var(--workspace-height, 100dvh) - 24px));
+  max-height: calc(var(--workspace-height, 100dvh) - 24px);
   margin: auto;
   padding: 0;
   overflow: hidden;
@@ -1487,7 +1487,7 @@
   .preview {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 40px);
+    max-height: calc(var(--workspace-height, 100dvh) - 40px);
   }
   .previewHeading,
   .actions {

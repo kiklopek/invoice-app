@@ -380,6 +380,7 @@ export function InvoicesClient({
 
   return (
     <AppFrame
+      layout="collection"
       invoiceCount={loading ? undefined : activeCount}
       className={`content section-page ${styles.page}`}
     >
@@ -428,6 +429,7 @@ export function InvoicesClient({
       )}
       <section
         className={styles.panel}
+        data-workspace-surface="records"
         aria-label="Přehled faktur"
         aria-busy={loading}
       >
