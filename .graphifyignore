@@ -1,0 +1,7 @@
+# Šum pro graphify: přibalené knihovny, exporty a výstupy testů
+public/pdfjs/
+responsive-review-export/
+test-results/
+artifacts/
+*.min.js
+*.bundle.js
