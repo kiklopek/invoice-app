@@ -19,7 +19,8 @@ export async function fixtures(sourceRoot, scenario = "normal") {
           ? "Ukázkový odběratel s.r.o."
           : k === "customers" && Array.isArray(v) && typeof v[0] === "string"
             ? v.map((_, i) => `Ukázkový odběratel ${i + 1}`)
-            : ["debtors", "customers"].includes(k) && Array.isArray(v)
+            : // any list of customers/debtors (incl. customer_concentration on reports)
+              /customer|debtor/.test(k) && Array.isArray(v)
               ? v.map((x, i) =>
                   typeof x === "object"
                     ? { ...neutralize(x), name: `Ukázkový odběratel ${i + 1}` }
