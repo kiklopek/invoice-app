@@ -11,7 +11,7 @@ Každá stránka patří do **rodiny**, která určuje základní chování (pra
 | `document`   | přirozená výška, dokument a souhrn vedle sebe, akce sticky   | Detail faktury                                   |
 
 Pilíře každé stránky: `reference/pillars/<stránka>--mobil-390.png` a `--macbook-1470x830.png`.
-Dnešní (špatný) stav: `reference/current/`. Schválený směr: `reference/mockups/`.
+Dnešní (špatný) stav: `reference/current/`. Schválený směr: `reference/mockups/` a živé HTML v `reference/html/` (Faktury, Nástěnka, Zákazníci, Tvorba faktury).
 
 Legenda: ✅ směr schválený (existuje mockup) · 🟡 navrhnout podle pravidel.
 

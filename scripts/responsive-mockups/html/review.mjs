@@ -9,7 +9,7 @@ const DIR = resolve("docs/responsive/mockups");
 const REF = "../handoff/reference"; // relative to DIR (images are local, not in git)
 const SIZES = [[1024, 768, "tablet na šířku"], [1180, 820, "iPad Air na šířku"], [1920, 1080, "velký monitor"], [2560, 1440, "27\" monitor"]];
 const PAGES = [
-  { id: "invoices", label: "Faktury", source: "Figma (mockup) — 1180 a aktuální 1920 jsou jen ve Figmě, export dodám po obnovení limitu", item: (w, h) => w === 1920 ? { img: `${REF}/mockups/invoices-1920x1080--verze1.png`, note: "starší verze 1 (bez statického okna)" } : { img: `${REF}/mockups/invoices-${w}x${h}.png`, alt: w === 1180 ? `${REF}/mockups/invoices-1920x1080--verze1.png` : null } },
+  { id: "invoices", label: "Faktury", source: "HTML prototyp (směr schválený ve Figmě)", item: (w, h) => ({ html: `invoices-${w}x${h}.html` }) },
   { id: "dashboard", label: "Nástěnka", source: "HTML prototyp", item: (w, h) => ({ html: `dashboard-${w}x${h}.html` }) },
   { id: "customers", label: "Zákazníci", source: "HTML prototyp", item: (w, h) => ({ html: `customers-${w}x${h}.html` }) },
   { id: "invoice-create", label: "Tvorba faktury", source: "HTML prototyp (stránka se posouvá)", item: (w, h) => ({ html: `invoice-create-${w}x${h}.html` }) },

@@ -62,7 +62,8 @@ for (const f of files) {
     let columns = 0;
     for (const box of document.querySelectorAll(".rows")) { const rows = [...box.children].filter((x) => x.style.display !== "none"); if (rows.length < 2) continue; const n = rows[0].children.length;
       for (let k = 0; k < n; k++) { const ls = rows.map((r) => r.children[k] && R(r.children[k]).left).filter((x) => x != null); columns = Math.max(columns, Math.max(...ls) - Math.min(...ls)); } }
-    return { columns: Math.round(columns), header: Math.round(header), cards: Math.round(cards), navIcon: Math.round(navIcon * 10) / 10, logoVsTopbar: logoTop == null ? null : Math.round(logoTop), navGap: fill ? Math.round(R(fill).height) : null };
+    const df = document.querySelector(".dbody .fill");
+    return { detailGap: df ? Math.round(R(df).height) : null, columns: Math.round(columns), header: Math.round(header), cards: Math.round(cards), navIcon: Math.round(navIcon * 10) / 10, logoVsTopbar: logoTop == null ? null : Math.round(logoTop), navGap: fill ? Math.round(R(fill).height) : null };
   });
   results.push({ file: f, ...r });
   await page.close();

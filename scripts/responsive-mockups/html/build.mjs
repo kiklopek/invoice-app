@@ -254,6 +254,69 @@ function customers(s) {
   return doc(s, "Zákazníci", body, { extraCss: css });
 }
 
+// ---------------------------------------------------------------- Faktury
+// Direction approved in Figma: compact two-line rows instead of the 1090 px table on tablets,
+// extra columns instead of zoom on large screens, a detail panel on 2560.
+function invoices(s) {
+  const v = PAGE_VARS(s);
+  const k = SIZES.indexOf(s);
+  const wide = k >= 2, withDetail = s.w >= 2560;
+  const cols = wide
+    ? `22px 150px minmax(0,1.5fr) 110px 150px 170px 160px 150px 90px 20px`
+    : `22px 112px minmax(0,1fr) 136px 148px 150px 20px`;
+  const H = (t, right) => `<span${right ? ' style="text-align:right"' : ""}>${t}</span>`;
+  const head = `<span class="chk"></span>${H("Faktura")}${H("Odběratel")}${wide ? H("Vystaveno") : ""}${H("Částka", true)}${H("Splatnost")}${H("Stav")}${wide ? H("Uhrazeno") + H("Upomínky") : ""}<span></span>`;
+  const rel = (r, n) => r.st === "paid" ? "Zaplaceno" : r.st === "overdue" ? `Po splatnosti ${34 - (n % 8)} dní` : `Za ${3 + n} dní`;
+  const pct = (r) => r.st === "paid" ? 100 : r.st === "partial" ? 21 : 0;
+  const bar = (p) => `<span class="bar"><i style="width:${p}%"></i></span><span class="muted num">${p} %</span>`;
+  const rows = INV.map((r, n) => `<div class="row${withDetail && n === 3 ? " sel" : ""}" style="grid-template-columns:${cols}">
+    <span class="chk${withDetail && n === 3 ? " on" : ""}"></span>
+    <div class="stack2"><b class="num">${r.no}</b><span class="muted num">VS 2026${String(n + 1).padStart(6, "0")}</span></div>
+    <div class="stack2"><span class="ell" title="${r.cust}" style="font-weight:500">${r.cust}</span><span class="muted ell">${n === 2 ? "fakturace.oddeleni.dlouhy.nazev@example.invalid" : `kontakt${n + 1}@example.invalid`}</span></div>
+    ${wide ? `<span class="muted num">${1 + (n % 27)}. 10. 2026</span>` : ""}
+    <b class="num" style="text-align:right">${n === 0 ? "12 266 189,00 Kč" : r.amt}</b>
+    <div class="stack2"><span class="num">${r.due}</span><span class="${r.st === "overdue" ? "late" : "muted"}">${rel(r, n)}</span></div>
+    <div class="stack2">${pill(r.st)}${!wide && r.st === "partial" ? `<span class="paybar">${bar(21)}</span>` : ""}</div>
+    ${wide ? `<span class="paybar">${bar(pct(r))}</span><span class="${r.st === "overdue" ? "" : "muted"}">${r.st === "overdue" ? "2×" : "—"}</span>` : ""}
+    ${i("more", "muted")}</div>`).join("");
+  const detail = withDetail ? `<aside class="card detail"><div class="card-h"><h2>Faktura FV-2026-0004</h2>${i("x", "muted")}</div>
+    <div class="dbody">${pill("partial")}<div class="big num">24 142,00 Kč<small>k úhradě zbývá 19 142,00 Kč</small></div>
+    <dl><dt>Odběratel</dt><dd class="ell">Ukázkový odběratel 4 s.r.o.</dd><dt>E-mail</dt><dd class="ell">kontakt4@example.invalid</dd><dt>Vystaveno</dt><dd class="num">4. 10. 2026</dd><dt>Splatnost</dt><dd><span class="num">17. 10. 2026</span> · za 6 dní</dd><dt>Var. symbol</dt><dd class="num">2026000004</dd><dt>Upomínky</dt><dd>Standardní · žádná odeslaná</dd></dl>
+    <h3>Uhrazeno</h3><div class="paybar wide">${bar(21)}</div>
+    <h3>Položky</h3><div class="mini"><span class="ell">Vývoj webové aplikace · 12 h</span><b class="num">17 400,00 Kč</b></div><div class="mini"><span class="ell">DPH 21 %</span><b class="num">3 654,00 Kč</b></div>
+    <h3>Historie</h3>${[["4. 10. 2026", "Faktura vystavena a odeslána"], ["4. 10. 2026", "E-mail doručen odběrateli"], ["12. 10. 2026", "Částečná úhrada 5 000,00 Kč"]].map(([d, t]) => `<div class="hist"><span class="muted num">${d}</span><span class="ell">${t}</span></div>`).join("")}
+    <h3>Automatické upomínky</h3>${[["3 dny před splatností", "14. 10. 2026", "Odesláno"], ["V den splatnosti", "17. 10. 2026", "Naplánováno"], ["7 dní po splatnosti", "24. 10. 2026", "Naplánováno"]].map(([a, d, st]) => `<div class="mini"><div class="stack2"><b>${a}</b><span class="muted num">${d}</span></div><span class="pill ${st === "Odesláno" ? "paid" : "waiting"}">${st}</span></div>`).join("")}
+    <div class="fill"></div><span class="btn primary">${i("mail")}Poslat upomínku</span><span class="btn">${i("check")}Označit jako uhrazenou</span><span class="link" style="justify-content:center">Otevřít celou fakturu ${i("arrow")}</span></div></aside>` : "";
+  const filters = wide
+    ? `<div class="filters"><label class="fl" style="width:220px"><span>Stav</span><span class="in">Všechny stavy${i("down")}</span></label><label class="fl" style="width:220px"><span>Seřadit podle</span><span class="in">Výchozí pořadí${i("down")}</span></label><label class="fl"><span>Datum vystavení</span><span class="in num">dd.mm.rrrr ${i("cal")} – dd.mm.rrrr ${i("cal")}</span></label><label class="fl"><span>Datum splatnosti</span><span class="in num">dd.mm.rrrr ${i("cal")} – dd.mm.rrrr ${i("cal")}</span></label><span class="grow"></span><span class="link" style="min-height:42px">Další filtry ${i("down")}</span></div>`
+    : `<div class="filters"><label class="fl grow"><span>Stav</span><span class="in">Všechny stavy${i("down")}</span></label><label class="fl grow"><span>Seřadit podle</span><span class="in">Výchozí pořadí${i("down")}</span></label><span class="btn" style="color:var(--green)">${i("cal")}Datum a další</span></div>`;
+  const body = `<div class="app">${nav(s, "Faktury")}<main class="main" style="--pad:${v.pad}px;--stack:${v.stack}px">${topbar(s)}
+  <header class="head ${v.compactHead ? "compact-head" : ""}" style="--h1:${v.compactHead ? 32 : v.h1}px"><div class="t"><div class="eyebrow">Faktury</div><h1>Všechny faktury</h1><p class="sub">Přehled všech vydaných faktur, jejich stav a platby.</p></div><span class="card total">${i("file")}<b class="num">707 456,00 Kč</b></span></header>
+  <div class="split"><section class="card fillcol panel">${filters}
+  <div class="thead" style="grid-template-columns:${cols}">${head}</div>
+  <div class="rows" data-fit data-total="47" data-noun="faktur">${rows}</div>
+  <div class="foot"><span class="muted" data-info></span><span class="grow"></span><span class="btn" style="padding:7px 12px">Automaticky ${i("down")}</span>${i("left", "muted")}<span data-pages style="display:inline-flex;gap:4px"></span>${i("right")}</div></section>${detail}</div>
+  </main></div>`;
+  const css = `
+  .split{flex:1;min-height:0;display:flex;gap:24px}.panel{flex:1;overflow:hidden}
+  .filters{display:flex;align-items:flex-end;gap:14px;padding:16px 18px;flex:none}.filters .grow{flex:1;min-width:0}
+  .fl{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}.fl .in{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;background:#fff;font-weight:400;white-space:nowrap}.fl .in .ic:last-child{margin-left:auto;color:var(--muted)}.fl .in .ic{color:var(--muted)}
+  .chk{width:18px;height:18px;border:1.5px solid var(--muted);border-radius:4px;background:#fff}.chk.on{background:var(--green);border-color:var(--green)}
+  .late{color:var(--red)}
+  .paybar{display:inline-flex;align-items:center;gap:8px}.bar{display:inline-block;width:64px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--green)}.paybar.wide .bar{width:240px}
+  .row{font-size:${[13, 13, 14, 15][k]}px}.row b.num{font-size:${[14, 14, 15, 16][k]}px}.row.sel{background:var(--green-soft)}
+  .total{display:inline-flex;align-items:center;gap:12px;padding:${v.compactHead ? "12px 16px" : "18px 22px"};font-size:${v.compactHead ? 17 : 20}px;color:var(--green)}.total b{color:var(--ink)}
+  .detail{width:420px;flex:none;display:flex;flex-direction:column}.detail .card-h h2{font-size:20px}
+  .dbody{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:12px 22px 20px;font-size:15px}.dbody>*{align-self:stretch}.dbody>.pill{align-self:flex-start}
+  .big{font-size:34px;font-weight:700;display:flex;flex-direction:column}.big small{font-size:14px;color:var(--muted);font-weight:400}
+  dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:9px 12px}dt{color:var(--muted)}dd{margin:0;min-width:0}
+  h3{font-size:15px;margin-top:6px}.mini{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--canvas)}
+  .hist{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px}
+  .dbody .fill{flex:1}.dbody .btn{width:100%;padding-block:14px}
+  `;
+  return doc(s, "Faktury", body, { extraCss: css });
+}
+
 // ---------------------------------------------------------------- Tvorba faktury
 function invoiceCreate(s) {
   const v = PAGE_VARS(s);
@@ -312,7 +375,7 @@ function invoiceCreate(s) {
 }
 
 // ---------------------------------------------------------------- gallery
-const PAGES = [["dashboard", "Nástěnka", dashboard], ["customers", "Zákazníci", customers], ["invoice-create", "Tvorba faktury", invoiceCreate]];
+const PAGES = [["invoices", "Faktury", invoices], ["dashboard", "Nástěnka", dashboard], ["customers", "Zákazníci", customers], ["invoice-create", "Tvorba faktury", invoiceCreate]];
 await mkdir(OUT, { recursive: true });
 const files = [];
 for (const [id, , fn] of PAGES) for (const s of SIZES) { const name = `${id}-${s.w}x${s.h}.html`; await writeFile(resolve(OUT, name), fn(s)); files.push(name); }
