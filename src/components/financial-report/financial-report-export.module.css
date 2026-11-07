@@ -23,8 +23,8 @@
   width: min(1240px, calc(100vw - 32px)) !important;
   margin: auto;
   max-width: none;
-  height: min(920px, calc(var(--workspace-height, 100dvh) - 32px));
-  max-height: calc(var(--workspace-height, 100dvh) - 32px);
+  height: min(920px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
   padding: 0;
   border: 1px solid #dce6df;
   border-radius: 16px;
@@ -311,8 +311,8 @@
   .dialog.dialog {
     width: calc(100% - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))) !important;
     margin: auto;
-    height: calc(var(--workspace-height, 100dvh) - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
-    max-height: calc(var(--workspace-height, 100dvh) - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+    height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
+    max-height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
     border-radius: 12px;
   }
   .dialog .header {

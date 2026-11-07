@@ -29,6 +29,15 @@ describe("persistent invoice pagination", () => {
     expect(page.props.initialData).toMatchObject({page_size:10,total_pages:13});
     expect(state.rpc).toHaveBeenCalledWith("list_invoices_page_filtered",expect.objectContaining({page_size:10,search_query:"WOOD",currency_filter:"CZK"}));
   });
+  it("renders Automaticky at the default size and lets the browser fit it", async () => {
+    state.cookie="auto";
+    const page=await InvoicesPage({searchParams:Promise.resolve({})});
+    expect(state.rpc).toHaveBeenCalledWith("list_invoices_page_filtered",expect.objectContaining({page_size:25}));
+    expect(page.props.initialPageSizeChoice).toBe("auto");
+    expect(page.props.initialKey).not.toContain("page_size");
+    const linked=await InvoicesPage({searchParams:Promise.resolve({page_size:"50"})});
+    expect(linked.props.initialPageSizeChoice).toBe(50);
+  });
   it("ignores an invalid stored preference", async () => {
     state.cookie="999999";
     const page=await InvoicesPage({searchParams:Promise.resolve({})});

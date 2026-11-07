@@ -11,7 +11,7 @@
   max-width: none;
   min-width: 0;
   height: auto;
-  min-height: var(--workspace-height, 100dvh);
+  min-height: 100dvh;
   margin: 0 0 0 244px;
   padding: 18px 48px 110px 41px;
   overflow: visible;
@@ -1059,14 +1059,14 @@
 }
 @media (min-width: 1440px) and (min-height: 900px) {
   .page.page {
-    --height-progress: clamp(0px, calc(var(--workspace-height, 100dvh) - 900px), 124px);
-    --chart-reduction: clamp(0px, calc((var(--workspace-height, 100dvh) - 900px) * 0.3), 56px);
+    --height-progress: clamp(0px, calc(100dvh - 900px), 124px);
+    --chart-reduction: clamp(0px, calc((100dvh - 900px) * 0.3), 56px);
     display: grid;
     padding: 18px 48px 22px 41px;
     gap: 14px;
     grid-template-rows:
       max-content max-content max-content
-      minmax(min-content, calc(218px + (var(--workspace-height, 100dvh) - 900px) * 0.4 - var(--chart-reduction)))
+      minmax(min-content, calc(218px + (100dvh - 900px) * 0.4 - var(--chart-reduction)))
       minmax(min-content, 1fr);
   }
   .page > [data-workspace-topbar],
@@ -1207,7 +1207,7 @@
     width: 100%;
     margin: calc(72px + env(safe-area-inset-top)) 0 0;
     padding: 24px 24px 90px;
-    min-height: calc(var(--workspace-height, 100dvh) - 72px);
+    min-height: calc(100dvh - 72px);
   }
   .search {
     flex: 1 1 250px;
@@ -2014,15 +2014,15 @@
   (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
   .page.page {
     display: grid;
-    --chart-reduction: clamp(0px, calc((var(--workspace-height, 100dvh) - 700px) * 0.3), 40px);
-    min-height: var(--workspace-height, 100dvh);
+    --chart-reduction: clamp(0px, calc((100dvh - 700px) * 0.3), 40px);
+    min-height: 100dvh;
     height: auto;
     padding: 10px 24px;
     gap: 8px;
     align-content: start;
     grid-template-rows:
       max-content max-content max-content
-      minmax(min-content, clamp(148px, calc(170px + (var(--workspace-height, 100dvh) - 700px) * 0.5 - var(--chart-reduction)), 300px))
+      minmax(min-content, clamp(148px, calc(170px + (100dvh - 700px) * 0.5 - var(--chart-reduction)), 300px))
       minmax(min-content, 1fr);
   }
   .page > [data-workspace-topbar],
@@ -2146,7 +2146,7 @@
     gap: 6px;
   }
   .donut {
-    width: clamp(92px, calc(var(--workspace-height, 100dvh) * 0.14), 120px);
+    width: clamp(92px, calc(100dvh * 0.14), 120px);
   }
   .donut strong {
     font-size: 27px;

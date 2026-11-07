@@ -6,6 +6,7 @@ import { CloseIcon } from "@/components/close-icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useAutoInvoiceRows } from "./use-auto-invoice-rows";
 import useSWR from "swr";
 import { useRevalidateOnRevisit } from "@/lib/revalidate-on-revisit";
 import { AppFrame } from "@/components/layout/app-shell";
@@ -32,8 +33,11 @@ import styles from "./invoices.module.css";
 import {
   DEFAULT_INVOICE_PAGE_SIZE,
   INVOICE_PAGE_SIZES,
-  parseInvoicePageSize,
+  invoicePageKeepingFirstRow,
+  parseInvoiceRequestPageSize,
+  parseInvoicePageSizeChoice,
   saveInvoicePageSize,
+  type InvoicePageSizeChoice,
 } from "@/lib/invoice-page-size";
 
 const labels: Record<InvoiceStatus, string> = {
@@ -49,7 +53,9 @@ export function InvoicesClient({
   initialKey,
   initialNow,
   initialTotals,
+  initialPageSizeChoice,
 }: {
+  initialPageSizeChoice?: InvoicePageSizeChoice;
   initialData: InvoiceListPageData;
   initialQuery: InvoiceListQuery;
   initialKey: string;
@@ -108,17 +114,38 @@ export function InvoicesClient({
   );
   const [bankMatch, setBankMatch] = useState(initialQuery.bankMatch ?? "all");
   const [page, setPage] = useState(initialQuery.page);
-  const [pageSize, setPageSize] = useState(
+  const [pageSizeChoice, setPageSizeChoice] = useState<InvoicePageSizeChoice>(
     () =>
-      parseInvoicePageSize(initialData.page_size) ?? DEFAULT_INVOICE_PAGE_SIZE,
+      initialPageSizeChoice ??
+      parseInvoicePageSizeChoice(initialData.page_size) ??
+      DEFAULT_INVOICE_PAGE_SIZE,
   );
+  const recordsPanel = useRef<HTMLElement>(null);
+  const autoRows = useAutoInvoiceRows(pageSizeChoice === "auto", recordsPanel);
+  // Automaticky asks for exactly the rows that fit; until measured (and on
+  // mobile) it uses the size the server rendered.
+  const pageSize =
+    pageSizeChoice === "auto"
+      ? (autoRows.rows ??
+        parseInvoiceRequestPageSize(initialData.page_size) ??
+        DEFAULT_INVOICE_PAGE_SIZE)
+      : pageSizeChoice;
+  const previousPageSize = useRef(pageSize);
+  const shouldSyncUrl = useRef(false);
+  useEffect(() => {
+    // A new fit keeps the invoice that was first on screen.
+    if (previousPageSize.current === pageSize) return;
+    const before = previousPageSize.current;
+    previousPageSize.current = pageSize;
+    shouldSyncUrl.current = true;
+    setPage((current) => invoicePageKeepingFirstRow(current, before, pageSize));
+  }, [pageSize]);
   const [total, setTotal] = useState(initialData.total);
   const [totalPages, setTotalPages] = useState(initialData.total_pages);
   const [currencies, setCurrencies] = useState<string[]>(
     initialData.currencies,
   );
   const [activeCount, setActiveCount] = useState(initialData.active_count);
-  const shouldSyncUrl = useRef(false);
 
   function requestParams(
     requestedPage = page,
@@ -161,14 +188,17 @@ export function InvoicesClient({
     // and cancel an immediate navigation to another workspace page.
     if (!shouldSyncUrl.current) return;
     shouldSyncUrl.current = false;
-    const nextUrl = `/invoices?${listKey.slice(listKey.indexOf("?") + 1)}`;
+    const urlParams = new URLSearchParams(listKey.slice(listKey.indexOf("?") + 1));
+    // The fitted count depends on the window; the saved choice restores it.
+    if (pageSizeChoice === "auto") urlParams.delete("page_size");
+    const nextUrl = `/invoices?${urlParams.toString()}`;
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     // This is presentation state already fetched by SWR. Native replaceState is
     // synchronous and integrated with the App Router, so a pending RSC
     // navigation cannot race a later click to another workspace page.
     if (window.location.pathname === "/invoices" && currentUrl !== nextUrl)
       window.history.replaceState(null, "", nextUrl);
-  }, [listKey]);
+  }, [listKey, pageSizeChoice]);
   // Sdílená cache přežívá navigaci a ignoruje čerstvý fallbackData ze
   // serveru, takže při NÁVRATU na seznam se musí znovu načíst. Při první
   // návštěvě v cache nic není a initialData ze serveru je čerstvé -- druhý
@@ -183,7 +213,8 @@ export function InvoicesClient({
   } = useSWR<InvoiceListPageData>(listKey, {
     fallbackData: listKey === initialKey ? initialData : undefined,
     revalidateOnMount: listKey !== initialKey || revalidateOnRevisit,
-    keepPreviousData: false,
+    // Automaticky refits on resize; keep the rows on screen while it reloads.
+    keepPreviousData: pageSizeChoice === "auto",
   });
   const totalsKey = invoiceTotalsKey(listKey);
   const initialTotalsKey = invoiceTotalsKey(initialKey);
@@ -199,6 +230,11 @@ export function InvoicesClient({
     keepPreviousData: false,
   });
   const loading = isLoading && !loadedData;
+  // While a refit reloads, show no more rows than fit (the new page follows).
+  const shownInvoices =
+    pageSizeChoice === "auto" && autoRows.rows
+      ? invoices.slice(0, autoRows.rows)
+      : invoices;
 
   useEffect(() => {
     if (!(loadError instanceof Error)) return;
@@ -428,6 +464,7 @@ export function InvoicesClient({
         </p>
       )}
       <section
+        ref={recordsPanel}
         className={styles.panel}
         data-workspace-surface="records"
         aria-label="Přehled faktur"
@@ -782,7 +819,8 @@ export function InvoicesClient({
             key={listKey}
             sortOrder={sortOrder}
             onSortChange={setSortOrder}
-            invoices={invoices}
+            invoices={shownInvoices}
+            rowHeight={pageSizeChoice === "auto" ? autoRows.rowHeight : null}
             onExportSelected={ids => void exportExcel(ids)}
             exporting={exporting}
             canManage={canManage}
@@ -804,24 +842,26 @@ export function InvoicesClient({
         >
           <span aria-live="polite">
             Zobrazuji {total ? (page - 1) * pageSize + 1 : 0}–
-            {total ? (page - 1) * pageSize + invoices.length : 0} z {total}{" "}
+            {total ? (page - 1) * pageSize + shownInvoices.length : 0} z {total}{" "}
             faktur
           </span>
           <div className={styles.paginationControls}>
             <select
               className={styles.pageSize}
               aria-label="Faktur na stránku"
-              value={pageSize}
+              value={pageSizeChoice}
               disabled={loading}
               onChange={(event) => {
-                const size = parseInvoicePageSize(event.target.value);
-                if (!size || size === pageSize) return;
+                const choice = parseInvoicePageSizeChoice(event.target.value);
+                if (!choice || choice === pageSizeChoice) return;
                 shouldSyncUrl.current = true;
                 setPage(1);
-                setPageSize(size);
-                saveInvoicePageSize(size);
+                previousPageSize.current = choice === "auto" ? pageSize : choice;
+                setPageSizeChoice(choice);
+                saveInvoicePageSize(choice);
               }}
             >
+              <option value="auto">Automaticky</option>
               {INVOICE_PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {size} na stránku

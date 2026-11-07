@@ -975,7 +975,7 @@ select.pageSize {
   .page.page {
     display: flex;
     flex-direction: column;
-    min-height: var(--workspace-height, 100dvh);
+    min-height: 100dvh;
     padding-bottom: 0;
   }
   .page > * {
@@ -1060,7 +1060,7 @@ select.pageSize {
   .page .table tr[data-partial] .paidCell { display:block; }
   .page .table .paidInfo { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
   .page .table .paidInfo .progress { flex:1;min-width:50px; }
-  .rowMenu { max-width:calc(100vw - 24px);max-height:calc(var(--workspace-height, 100dvh) - 32px);overflow-y:auto;overscroll-behavior:contain; }
+  .rowMenu { max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain; }
   .rowMenu :is(a,button) { min-height:44px;white-space:normal;overflow-wrap:anywhere;font-size:14px; }
   .page .table .statusCell { grid-column:2 / 4;grid-row:4;max-width:65%; }
   .page .table .statusCell .badge { white-space:nowrap; }
@@ -1241,8 +1241,9 @@ select.pageSize {
     }
   }
 }
-/* Tablet header: shorter title and no subtitle, so the records start higher. */
-@media (min-width: 1024px) and (max-width: 1279px) {
+/* Tablet and short-window header: shorter title and no subtitle, so the records
+   start higher (1366 × 768 fits its rows; the 830 px tall pillar is unchanged). */
+@media (min-width: 1024px) and (max-width: 1279px), (min-width: 1024px) and (max-height: 800px) {
   .pageHeader {
     margin: 24px 0 20px;
   }
