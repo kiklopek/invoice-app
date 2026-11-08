@@ -18,6 +18,7 @@ const loaders={
  '/invoices/payments/archive':()=>import('__SOURCE__/src/app/(workspace)/invoices/payments/archive/payments-archive-client').then(m=>({default:()=> <m.PaymentsArchiveClient initialData={data.payments}/>})),
  '/customers':()=>import('__SOURCE__/src/app/(workspace)/customers/customers-client').then(m=>({default:()=> <m.CustomersClient initialData={data.customers}/>})),
  '/reminders':()=>import('__SOURCE__/src/app/(workspace)/reminders/reminders-client').then(m=>({default:()=> <m.RemindersClient initialData={data.reminder}/>})),
+ '/settings/email-template':()=>import('__SOURCE__/src/app/(workspace)/reminders/reminders-client').then(m=>({default:()=> <m.RemindersClient key="templates" initialData={data.reminder} view="templates"/>})),
  '/reports':()=>import('__SOURCE__/src/app/(workspace)/reports/reports-client').then(m=>({default:()=> <m.ReportsClient initialData={data.reports} initialFrom="2026-01-01" initialTo="2026-10-19" initialGeneratedAt="2026-10-19T08:00:00Z"/>})),
  '/settings':()=>import('__SOURCE__/src/app/(workspace)/settings/settings-client').then(m=>({default:()=> <m.SettingsClient initialData={data.settings}/>})),
  '/notifications':()=>import('__SOURCE__/src/app/(workspace)/notifications/notifications-client').then(m=>({default:m.NotificationsClient})),
