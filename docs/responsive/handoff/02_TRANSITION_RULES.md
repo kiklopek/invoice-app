@@ -207,5 +207,6 @@ Mobil a MacBook nejprve porovnat s otevřenými referencemi, které zatím v bal
 Pojistka proti nahodilým breakpointům: `scripts/responsive-lint.mjs` (součást `npm run lint`)
 spočítá `@media` hodnoty mimo dohodnutou sadu po souborech; počet smí jen klesat.
 
-Známé otevřené body: Oznámení pod 1600 px nechává pod panelem 300–420 px volna (vyplnění by
-změnilo pilíř 1470, čeká na rozhodnutí uživatele); Nástěnka 1600 × 900 se posouvá o 2 px.
+Oznámení pod 1600 px zůstávají s kartou podle obsahu (pod ní 300–420 px pozadí); roztažená karta
+by při pár oznámeních měla prázdnotu uvnitř a změnila by pilíř 1470. Uživatel 8. 11. potvrdil:
+nechat, jak je. Známý otevřený bod: Nástěnka 1600 × 900 se posouvá o 2 px.
