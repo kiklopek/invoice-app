@@ -3643,6 +3643,23 @@ details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
 }
 
 
+/* Page headers on large screens (TRANSITION_RULES pravidlo 6): eyebrow, title,
+   subtitle and header actions grow together from the MacBook pillar to 2560 px
+   (×1.04 / 1.08 / 1.11 / 1.14, title 42 → 48 px), keeping each page's own
+   proportions. Headers that already grow keep their own rule: the task pages
+   (Import, Platby) and the dashboard greeting (capped at 36 px by the design
+   system). A header is in normal flow, so zoom also gives it the room it needs. */
+:root { --header-zoom: 1; }
+@media screen and (min-width: 1600px) { :root { --header-zoom: 1.04; } }
+@media screen and (min-width: 1920px) { :root { --header-zoom: 1.08; } }
+@media screen and (min-width: 2200px) { :root { --header-zoom: 1.11; } }
+@media screen and (min-width: 2560px) { :root { --header-zoom: 1.14; } }
+@media screen and (min-width: 1600px) {
+  main.content:not([data-workspace-layout="task"]):not(:has(#dashboard-status-heading)) header:has(h1) {
+    zoom: var(--header-zoom);
+  }
+}
+
 @media print {
   html,
   body {

@@ -56,7 +56,8 @@ export function useAutoInvoiceRows(
         paginationBox.height -
         Math.max(0, afterPagination);
       const { rows, extra } = fitInvoiceRows(room, naturalRow);
-      const rowHeight = Math.round(naturalRow + extra);
+      // Round down: fractional rows rounded up could add up to more than the room.
+      const rowHeight = Math.floor(naturalRow + extra);
       setFit((current) =>
         current.rows === rows && current.rowHeight === rowHeight ? current : { rows, rowHeight },
       );
