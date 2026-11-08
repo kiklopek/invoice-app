@@ -2517,6 +2517,16 @@
   border-color: var(--ledger);
   background: var(--mint);
 }
+/* The list stretches to the intro card's height (the English heading wraps to
+   four lines), so a closed question fills its card and stays vertically
+   centred instead of sitting at the top, as in Czech. */
+.faq details {
+  display: flex;
+  flex-direction: column;
+}
+.faq details:not([open]) > summary {
+  flex: 1 0 auto;
+}
 .faq summary {
   display: flex;
   align-items: center;
