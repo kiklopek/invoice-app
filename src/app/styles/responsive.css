@@ -2208,3 +2208,22 @@
     font-size: calc(14px + var(--cg) * 2 / 960);
   }
 }
+
+/* Reminders on large screens (TRANSITION_RULES pravidla 6 a 13; spec Upomínky):
+ * each step stays one row with the day count in a narrow field and the timing
+ * select taking the rest (the count field was as wide as the select, 800 px at
+ * 2560), and the page's sections grow with the page header (--header-zoom).
+ * Sections are in normal flow with auto width, so the zoom keeps them inside
+ * the page width. Below 1600 px (MacBook pillar) nothing changes. */
+@media screen and (min-width: 1600px) {
+  .human-rules .rule-controls input {
+    flex: 0 0 clamp(96px, 12%, 160px);
+    min-width: 0;
+  }
+  .human-rules .rule-controls select {
+    flex: 1 1 auto;
+  }
+  main.content:has(> .reminders-hero) > :is(section, .reminders-layout, details) {
+    zoom: var(--header-zoom, 1);
+  }
+}
