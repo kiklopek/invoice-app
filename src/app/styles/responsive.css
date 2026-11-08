@@ -2227,3 +2227,31 @@
     zoom: var(--header-zoom, 1);
   }
 }
+
+/* Payments pages: the 1280 px content width (minimal.css .payments-page > *) also
+ * caught the workspace toolbar, which then sat centred with its search 438 px
+ * right of where it is on every other page at 2560. The toolbar spans the page
+ * like everywhere else; below 1280 px of content nothing changes. */
+.payments-page > [data-workspace-topbar] {
+  width: 100%;
+  margin-inline: 0;
+}
+
+/* Payments archive on large screens: the sections grow with the page header and
+ * the last panel (statement archive) takes the rest of the window, so its empty
+ * state sits in free space instead of a 285 px band under the page. */
+@media screen and (min-width: 1600px) {
+  main.payments-archive-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  /* Zoom the sections' contents: a zoomed flex item would not take its full
+   * share of the free height. */
+  main.payments-archive-page > section > * {
+    zoom: var(--header-zoom, 1);
+  }
+  main.payments-archive-page > section:last-of-type {
+    flex: 1 0 auto;
+  }
+}
