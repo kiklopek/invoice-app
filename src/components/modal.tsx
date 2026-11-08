@@ -51,7 +51,7 @@ export function Modal({
     opener.current = null;
     // Prvek uz nemusi v dokumentu byt (napr. radek tabulky, ktery mezitim
     // zmizel) -- pak se fokus nechava na miste, ne vnucuje nekam jinam.
-    if (trigger?.isConnected) trigger.focus();
+    focusReturnTarget(trigger)?.focus();
   }, [open]);
 
   useEffect(() => {
@@ -93,4 +93,16 @@ export function Modal({
   );
   // Modeless support windows must escape clipping/stacking contexts of page shells.
   return modal ? dialog : createPortal(dialog, document.body);
+}
+
+/**
+ * Where focus goes when a dialog closes: its opener, or, when the opener sat in
+ * a menu that closed meanwhile (e.g. "Smazat fakturu" under ⋯ on phones), that
+ * menu's trigger. Nothing when the opener has left the page.
+ */
+export function focusReturnTarget(opener: HTMLElement | null): HTMLElement | null {
+  if (!opener?.isConnected) return null;
+  if (opener.getClientRects().length) return opener;
+  const menu = opener.closest("details:not([open])");
+  return menu?.querySelector<HTMLElement>(":scope > summary") ?? null;
 }
