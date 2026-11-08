@@ -2757,3 +2757,79 @@
     top: 8px;
   }
 }
+
+/* "Stav faktur" as one centred block (user report: donut, legend and heading
+   never lined up). The chart area fills the card under its heading, so it is a
+   size container: the donut follows the area's shorter side (at most 92 % of
+   its height and 40 % of its width), and the total, the legend and the gap all
+   follow the donut, so the pair grows and shrinks together and stays on one
+   axis in the middle of the card. A narrow card hides the percentages, as the
+   dashboard spec says. Desktop shell only; phones keep their stacked card. */
+@media screen and (min-width: 1024px) {
+  .page.page .statusChart {
+    --d: clamp(96px, min(92cqh, 40cqi), 420px);
+    container-type: size;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    gap: 0;
+    min-height: 120px;
+    padding: 0;
+  }
+  .page.page .statusChart .donut {
+    width: var(--d);
+  }
+  .page.page .statusChart .donut strong {
+    font-size: calc(var(--d) * .2);
+    line-height: 1.15;
+  }
+  .page.page .statusChart .donut span {
+    font-size: max(11px, calc(var(--d) * .085));
+  }
+  .page.page .statusChart .statusLegendWrap {
+    flex: none;
+    min-width: 0;
+    margin-inline-start: calc(var(--d) * .16);
+  }
+  .page.page .statusChart .statusLegend {
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    font-size: clamp(12px, calc(var(--d) * .095), 19px);
+  }
+  .page.page .statusChart .statusLegend > div {
+    padding-block: calc(var(--d) * .025);
+  }
+  .page.page .statusChart .statusLegend dd > span {
+    width: auto;
+    min-width: 3.2em;
+  }
+  /* The chart area takes the card's height under the heading at every
+     desktop size (the 1024 px layout stacked the card as a block). */
+  .page.page .card:has(> .statusChart) {
+    display: flex;
+    flex-direction: column;
+  }
+  .page.page .card > .statusChart {
+    flex: 1 1 auto;
+  }
+  @container (max-width: 330px) {
+    .page.page .statusChart .statusLegend dd > span {
+      display: none;
+    }
+  }
+}
+
+/* "Žádné další upomínky nejsou naplánované." sits in the middle of the card,
+   not in its top-left corner (user report). */
+.page .companyReminderEmpty {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  text-wrap: balance;
+}

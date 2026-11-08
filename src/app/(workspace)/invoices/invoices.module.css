@@ -1508,3 +1508,19 @@ select.pageSize {
     zoom: var(--ui-zoom, 1);
   }
 }
+
+/* Date ranges never clip their text (user report): each date field is at least
+   ten characters plus the calendar icon wide, in whatever font it renders, and
+   the range columns take that width instead of a fixed 220 px (which left
+   "dd.mm.rrrr" cut under the icon from 1400 px on). */
+.dateInput {
+  min-width: calc(10.5ch + 22px);
+}
+.range {
+  max-width: 280px;
+}
+@media (min-width: 1400px) {
+  .filterGrid {
+    grid-template-columns: minmax(135px,156px) minmax(150px,168px) minmax(0,1fr) max-content max-content max-content;
+  }
+}
