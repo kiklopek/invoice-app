@@ -50,7 +50,7 @@
 
 /* The step rail is wide enough for every step's one-line description
    ("Kdy zákazníkům připomenout"); at 286 px it wrapped and crowded step 5. */
-@media (min-width: 1181px) {
+@media (min-width: 1180px) {
   .card {
     grid-template-columns: minmax(304px, 0.62fr) minmax(0, 1.5fr) minmax(0, 1fr);
   }
@@ -62,12 +62,11 @@
 }
 
 /* Large monitors (TRANSITION_RULES pravidla 6 a 11): the whole card grows with
-   its text instead of staying a 1760 × 1080 island. Only where the window is
-   also tall enough; the card's box is given in its own (zoomed) units. */
-@media (min-width: 2200px) and (min-height: 1200px) { .page { --onboarding-zoom: 1.1; } }
-@media (min-width: 2560px) and (min-height: 1400px) { .page { --onboarding-zoom: 1.16; } }
-@media (min-width: 3200px) and (min-height: 1800px) { .page { --onboarding-zoom: 1.4; } }
-@media (min-width: 2200px) and (min-height: 1200px) {
+   its text instead of staying a 1760 × 1080 island (4K keeps the 2560 size,
+   like the rest of the app). Only where the window is also tall enough; the card's box is given in its own (zoomed) units. */
+@media (min-width: 2200px) and (min-height: 1240px) { .page { --onboarding-zoom: 1.1; } }
+@media (min-width: 2560px) and (min-height: 1240px) { .page { --onboarding-zoom: 1.16; } }
+@media (min-width: 2200px) and (min-height: 1240px) {
   .card {
     zoom: var(--onboarding-zoom);
     width: calc((100vw - 48px) / var(--onboarding-zoom));
