@@ -433,3 +433,57 @@
   .actions:not(.dashboardActions) { display: none; }
   .topbar:not(:has(.dashboardActions)) { display: none; }
 }
+
+/* Desktop toolbar (TRANSITION_RULES pravidla 6 a 14): drawn 20 px lower at every
+   desktop size (user request) with a relative offset, so only the toolbar moves
+   and the gap under it shrinks; the page below stays exactly where it was. From the MacBook pillar (1470 px) up
+   to 2560 px everything grows linearly with the window: controls 44 → 56 px,
+   search text 12 → 15 px, buttons 13 → 16 px, icons 19 → 24 px, the search box
+   438 → 600 px wide. Below 1470 px the sizes stay as on the pillar. */
+@media screen and (min-width: 1024px) {
+  .topbar {
+    --tb-grow: clamp(0px, calc(100vw - 1470px), 1090px);
+    --tb-control: calc(44px + var(--tb-grow) * 12 / 1090);
+    --tb-icon: calc(19px + var(--tb-grow) * 5 / 1090);
+    --workspace-notification-size: var(--tb-control);
+    top: 20px;
+    gap: calc(14px + var(--tb-grow) * 6 / 1090);
+    min-height: var(--tb-control);
+  }
+  .search {
+    max-width: calc(438px + var(--tb-grow) * 162 / 1090);
+    width: min(calc(438px + var(--tb-grow) * 162 / 1090), 46%);
+    gap: calc(10px + var(--tb-grow) * 4 / 1090);
+    padding-inline: calc(14px + var(--tb-grow) * 4 / 1090);
+    border-radius: calc(10px + var(--tb-grow) * 2 / 1090);
+  }
+  .search > svg {
+    width: var(--tb-icon);
+    height: var(--tb-icon);
+  }
+  .search input {
+    height: calc(var(--tb-control) - 2px);
+    font-size: calc(12px + var(--tb-grow) * 3 / 1090);
+  }
+  .actions,
+  .actionGroup {
+    gap: calc(12px + var(--tb-grow) * 4 / 1090);
+  }
+  .primary,
+  .secondary {
+    min-height: var(--tb-control);
+    gap: calc(10px + var(--tb-grow) * 2 / 1090);
+    padding-inline: calc(17px + var(--tb-grow) * 5 / 1090);
+    border-radius: calc(10px + var(--tb-grow) * 2 / 1090);
+    font-size: calc(13px + var(--tb-grow) * 3 / 1090);
+  }
+  .primary svg,
+  .secondary svg {
+    width: var(--tb-icon);
+    height: var(--tb-icon);
+  }
+  .notificationButton > svg {
+    width: calc(20px + var(--tb-grow) * 6 / 1090);
+    height: calc(20px + var(--tb-grow) * 6 / 1090);
+  }
+}

@@ -244,7 +244,7 @@
     justify-content: center;
     gap: 4px;
     height: auto;
-    min-height: 52px;
+    min-height: 50px;
     padding: 7px 2px 6px;
     font-size: 10px;
     line-height: 1.2;
@@ -500,7 +500,7 @@
   }
   .shell.shell :global(.desktop-navigation .nav-item-group > a) {
     flex: none;
-    height: calc(var(--nav-row-base) + clamp(0px, (100dvh - 900px) * .1, 28px));
+    height: calc(var(--nav-row-base) + clamp(0px, (100dvh - var(--nav-grow-from, 900px)) * .1, 28px));
     min-height: 0;
     gap: 16px;
     padding: 0 16px;
@@ -563,6 +563,7 @@
     --nav-text: 21px;
     --nav-icon: 26px;
     --nav-row-base: 60px;
+    --nav-grow-from: 1100px;
     --nav-sub-text: 17px;
     --nav-sub-row: 44px;
     --nav-mark: 36px;
@@ -597,4 +598,20 @@
   .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td small) {
     font-size: calc(12px + var(--workspace-grow, 0px) * 2 / 960);
   }
+}
+
+/* The desktop toolbar is drawn 20 px lower (workspace-topbar.module.css); the logo
+   follows it so both stay on one axis (TRANSITION_RULES pravidlo 14), and the
+   space under the logo shrinks by the same amount so the menu stays in place. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .shell.shell :global(.sidebar > .brand) { margin: 29px 0 0; }
+}
+@media (min-width: 1100px) and (max-width: 1599px) {
+  .shell.shell :global(.sidebar > .brand) { margin-top: 17px; margin-bottom: 27px; }
+}
+@media (min-width: 1600px) and (max-width: 2199px) {
+  .shell.shell :global(.sidebar > .brand) { margin-top: 14px; margin-bottom: 34px; }
+}
+@media (min-width: 2200px) {
+  .shell.shell :global(.sidebar > .brand) { margin-top: 9px; margin-bottom: 39px; }
 }
