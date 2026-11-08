@@ -412,3 +412,36 @@
     font-size: clamp(12px, 3.4cqmin, 34px);
   }
 }
+
+/* One shared column for the title and the steps (as on the import panel): the
+   list sits in the text column, so every step's text starts where the title's
+   text starts, and each step number is drawn centred under the title icon and
+   on its bold line. The values are tokens resolved inside the card, so the
+   container units match the icon's at every size. */
+@media screen and (min-width: 1024px) {
+  .page.page:not(.reviewPage) :global(.gpc-safety-card) {
+    --p-badge: 44px;
+    --p-gap: 14px;
+    --p-num: 25px;
+    --p-strong: clamp(13px, 9.29px + 0.862cqi, 16px);
+    column-gap: var(--p-gap);
+  }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card ol) {
+    grid-column: 2;
+  }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card li) {
+    padding-left: 0;
+  }
+  .page.page:not(.reviewPage) :global(.gpc-safety-card li)::before {
+    left: calc(-1 * (var(--p-gap) + (var(--p-badge) + var(--p-num)) / 2));
+    top: calc((1.4 * var(--p-strong) - var(--p-num)) / 2);
+  }
+}
+@media screen and (min-width: 1600px) {
+  .page.page:not(.reviewPage) :global(.gpc-safety-card) {
+    --p-badge: clamp(44px, 12.4cqmin, 120px);
+    --p-gap: clamp(14px, 1.7vmin, 32px);
+    --p-num: clamp(25px, 6.4cqmin, 64px);
+    --p-strong: clamp(13px, 3.7cqmin, 38px);
+  }
+}

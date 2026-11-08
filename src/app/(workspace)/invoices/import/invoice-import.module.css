@@ -353,3 +353,46 @@
     font-size: clamp(12px, 2.9cqmin, 24px);
   }
 }
+
+/* One shared column for the title and the items (user report: the text looked
+   misaligned). Item icons sit centred under the title's badge and every item's
+   text starts exactly where the title's text starts; each icon is centred on
+   its bold line. --g-badge / --g-gap are the badge size and the gap after it,
+   the same values the title uses at each size. */
+@media (min-width: 1024px) {
+  .guidance.documentGuidance {
+    --g-badge: 44px;
+    --g-gap: 14px;
+  }
+  .documentGuidance .guidanceTitle {
+    gap: var(--g-gap);
+  }
+  .documentGuidance > div {
+    display: grid;
+    grid-template-columns: var(--g-badge) minmax(0, 1fr);
+    column-gap: var(--g-gap);
+    row-gap: 0;
+    align-items: center;
+  }
+  .documentGuidance > div > svg {
+    grid-row: 1;
+    justify-self: center;
+  }
+  .documentGuidance > div > span {
+    display: contents;
+  }
+  .documentGuidance > div strong {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .documentGuidance > div small {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+@media screen and (min-width: 1600px) {
+  .guidance.documentGuidance {
+    --g-badge: clamp(44px, 11.3cqmin, 110px);
+    --g-gap: clamp(14px, 3.6cqmin, 32px);
+  }
+}
