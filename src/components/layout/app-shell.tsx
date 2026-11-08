@@ -365,10 +365,8 @@ export function AppSidebar({
                     <em>{invoiceCount}</em>
                   ) : null}
                 </Link>
-                {item.children && item.children.length > 0 ? (
-                  /* Closed sections render their (role-filtered) links too, hidden
-                     by CSS except on large tall windows with room for them. */
-                  <div className={active ? "nav-subitems" : "nav-subitems-peek"}>
+                {active && item.children && item.children.length > 0 ? (
+                  <div className="nav-subitems">
                     {item.children.map((child) => (
                       <Link
                         key={child.href}

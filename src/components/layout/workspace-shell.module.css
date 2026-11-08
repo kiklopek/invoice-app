@@ -473,14 +473,16 @@
     --nav-user: 16px;
     --nav-meta: 14px;
   }
-  /* Every group takes an equal share of the spare height; its main row grows by
-     at most 28 px and whatever is left stays as even spacing between groups. */
+  /* Rows grow with the window height (max +28 px) and stay together at the
+     top with Nastavení right after its separator; any height left over stays
+     below the menu, above Esko and the profile (as the user asked). */
   .shell.shell :global(.sidebar > .desktop-navigation) {
     flex: 1 1 auto;
     gap: 2px;
   }
-  .shell.shell :global(.desktop-navigation .nav-item-group) {
-    flex: 1 0 auto;
+  .shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
+    margin-top: 22px;
+    padding-top: 22px;
   }
   .shell.shell :global(.sidebar) {
     padding: 34px 26px 20px;
@@ -497,10 +499,9 @@
     font-size: var(--nav-word);
   }
   .shell.shell :global(.desktop-navigation .nav-item-group > a) {
-    flex: 1 0 auto;
-    height: auto;
-    min-height: var(--nav-row-base);
-    max-height: calc(var(--nav-row-base) + 28px);
+    flex: none;
+    height: calc(var(--nav-row-base) + clamp(0px, (100dvh - 900px) * .1, 28px));
+    min-height: 0;
     gap: 16px;
     padding: 0 16px;
     border-radius: 11px;
@@ -521,10 +522,6 @@
   }
   .shell.shell :global(.desktop-navigation .nav-subitems a)::before {
     font-size: calc(var(--nav-sub-text) + 4px);
-  }
-  .shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
-    margin-top: 22px;
-    padding-top: 22px;
   }
   .shell.shell .desktopEskoFooter button {
     gap: 14px;
@@ -579,48 +576,6 @@
     padding: 40px 30px 24px;
   }
 }
-/* Closed sections show their sublinks only where the sidebar has the height
-   for them; elsewhere only the open section does (the pillars unchanged). */
-.shell.shell :global(.nav-subitems-peek) {
-  display: none;
-}
-@media screen and (min-width: 1600px) and (max-width: 2199px) and (min-height: 1000px),
-  screen and (min-width: 2200px) and (min-height: 1240px) {
-  .shell.shell :global(.nav-subitems-peek) {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin: 5px 0 7px 18px;
-  }
-  .shell.shell :global(.nav-subitems-peek a) {
-    position: relative;
-    display: flex;
-    align-items: center;
-    height: auto;
-    min-height: var(--nav-sub-row);
-    padding: 7px 10px 7px 26px;
-    border-radius: 6px;
-    color: #56625d;
-    background: transparent;
-    font-size: var(--nav-sub-text);
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .shell.shell :global(.nav-subitems-peek a:hover) {
-    color: #205d40;
-    background: #e8f2eb;
-  }
-  .shell.shell :global(.nav-subitems-peek a)::before {
-    content: "›";
-    position: absolute;
-    left: 8px;
-    color: #658272;
-    font-size: calc(var(--nav-sub-text) + 4px);
-    font-weight: 500;
-    line-height: 1;
-  }
-}
-
 /* Collection family (TRANSITION_RULES pravidla 2–4): the records panel takes the
    rest of the window, so a short list leaves no empty band under the panel.
    From 1600 px: below that lists scroll and a flex column would change the
