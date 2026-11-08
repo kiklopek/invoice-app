@@ -167,7 +167,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
   }
 
   return (
-    <AppFrame className="content section-page customers-page">
+    <AppFrame className="content section-page customers-page" layout="collection">
       <header className="section-header customers-hero">
         <div className="customers-hero-copy">
           <p>REGISTR ZÁKAZNÍKŮ</p>
@@ -183,7 +183,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
 
       {exportError && <p className="form-error">{exportError}</p>}
 
-      <section className="page-panel data-panel customers-table" aria-label="Zákazníci">
+      <section className="page-panel data-panel customers-table" aria-label="Zákazníci" data-workspace-surface="records">
         <div className="customers-toolbar" role="search" aria-label="Vyhledávání zákazníků">
           <label>
             <span>Vyhledat zákazníka</span>
@@ -238,7 +238,7 @@ export function CustomersClient({ initialData }: { initialData: CustomersPageDat
                       <div className="customer-identity">
                         <span className="customer-avatar" aria-hidden="true">{customer.name.trim().charAt(0).toUpperCase() || "?"}</span>
                         <span>
-                          <strong>{customer.name}</strong>
+                          <strong title={customer.name}>{customer.name}</strong>
                           <small className="customer-tax-ids">
                             <span><span className="customer-tax-label">IČO</span> {customer.ico || "neuvedeno"}</span>
                             {customer.dic ? <span><span className="customer-tax-label">DIČ</span> {customer.dic}</span> : null}

@@ -2118,3 +2118,93 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* Customers, compact list (TRANSITION_RULES pravidla 7, 10, 13): when the table
+ * is narrower than the full layout (1090 px: tablets and 1366 laptops), each row
+ * is one line of name + IČO/DIČ, the contact (e-mail and phone, shortened with
+ * the full value in the tooltip), billing and the outstanding amount. The address
+ * and the reminder category step back; the last invoice date stays where there is
+ * room. Desktop shell only: phones keep their cards; the MacBook pillar (1142 px
+ * table) keeps the full layout. */
+@media screen and (min-width: 1024px) {
+  .customers-page .customers-list-table {
+    container: customers-table / inline-size;
+  }
+  @container customers-table (max-width: 1089px) {
+    .customers-page .customers-list-table table { min-width: 0; table-layout: fixed; }
+    .customers-page .customers-list-table th:nth-child(1) { width: auto; }
+    .customers-page .customers-list-table th:nth-child(2) { width: 30%; }
+    .customers-page .customers-list-table th:nth-child(3) { width: 132px; }
+    .customers-page .customers-list-table th:nth-child(4) { width: 146px; }
+    .customers-page .customers-list-table th:nth-child(6) { width: 104px; }
+    .customers-page .customers-list-table th:nth-child(2),
+    .customers-page .customers-list-table td:nth-child(2) { display: table-cell; }
+    .customers-page .customers-list-table th:nth-child(5),
+    .customers-page .customers-list-table td:nth-child(5) { display: none; }
+    .customers-page .customers-list-table .customer-address { display: none; }
+    .customers-page .customers-list-table .customer-identity strong {
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-wrap: normal;
+    }
+    .customers-page .customers-list-table .customer-identity > span { min-width: 0; }
+    .customers-page .customers-list-table .customer-identity .customer-tax-ids {
+      flex-wrap: nowrap;
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+    .customers-page .customers-list-table .outstanding-badge,
+    .customers-page .customers-list-table .customer-billing-cell strong {
+      white-space: nowrap;
+      overflow-wrap: normal;
+    }
+  }
+  @container customers-table (max-width: 979px) {
+    .customers-page .customers-list-table th:nth-child(6),
+    .customers-page .customers-list-table td:nth-child(6) { display: none; }
+  }
+}
+
+/* Customers on large screens (TRANSITION_RULES pravidla 6 a 11): the contact,
+ * headers, category badge, initial and search grow with the record text from
+ * 1600 to 2560 px (the shell's --workspace-grow), like names and amounts do. */
+@media screen and (min-width: 1600px) {
+  .customers-page {
+    --cg: var(--workspace-grow, 0px);
+  }
+  .customers-page .customers-list-table .customer-contact-details,
+  .customers-page .customers-list-table .customer-contact-value {
+    font-size: calc(13px + var(--cg) * 3 / 960);
+  }
+  .customers-page .customers-list-table th {
+    font-size: calc(12px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customers-list-table .reminder-policy-badge,
+  .customers-page .customers-list-table .customer-reminders-cell {
+    font-size: calc(13px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customer-avatar {
+    flex-basis: calc(34px + var(--cg) * 10 / 960);
+    width: calc(34px + var(--cg) * 10 / 960);
+    height: calc(34px + var(--cg) * 10 / 960);
+    font-size: calc(18px + var(--cg) * 4 / 960);
+  }
+  .customers-page .customers-toolbar > label > span:first-child {
+    font-size: calc(13px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customers-search-field {
+    max-width: calc(650px + var(--cg) * 150 / 960);
+  }
+  .customers-page .customers-search-field input {
+    min-height: calc(44px + var(--cg) * 8 / 960);
+    font-size: calc(14px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customers-toolbar-meta strong {
+    font-size: calc(20px + var(--cg) * 6 / 960);
+  }
+  .customers-page .customers-toolbar-meta span {
+    font-size: calc(14px + var(--cg) * 2 / 960);
+  }
+}
