@@ -1319,7 +1319,9 @@
     min-height: 30px;
   }
 }
-@media (max-width: 1279px) {
+/* One column only below the desktop shell: from 1024 px the preview sits beside
+   the form (sticky), so it is never a long scroll away on tablets. */
+@media (max-width: 1023px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1479,7 +1481,7 @@
 }
 
 /* Match OCR: sticky follows the document scroll, with its paper scrolling inside. */
-@media screen and (min-width: 1280px) {
+@media screen and (min-width: 1024px) {
   :global(html):has(.page),
   :global(body):has(.page) {
     overflow-x: clip;
@@ -1561,4 +1563,56 @@
   outline: 2px solid #23784f;
   outline-offset: 2px;
   border-radius: 9px;
+}
+
+/* Narrow preview (tablets): the template picker keeps its field, the visible
+   "Šablona" label steps back (dashboard spec); the field keeps its aria-label. */
+@media screen and (min-width: 1024px) {
+  .preview {
+    container: creation-preview / inline-size;
+  }
+  @container creation-preview (max-width: 380px) {
+    .templateLabel {
+      display: none;
+    }
+  }
+}
+
+/* Wide forms (TRANSITION_RULES pravidla 11 a 13; spec Tvorba faktury): from an
+   800 px field group (1920 px windows and up) the fields take three columns
+   and every row is full: the address spans two columns with IČO filling the
+   first row, and a last field that would stand alone spans the rest. */
+@media screen and (min-width: 1024px) {
+  :has(> .fields) {
+    container: creation-fields / inline-size;
+  }
+  @container creation-fields (min-width: 800px) {
+    .fields {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-auto-flow: row dense;
+    }
+    .fields > .wideField {
+      grid-column: span 2;
+    }
+    .fields:not(:has(> .wideField)) > :last-child:nth-child(3n + 2) {
+      grid-column: span 2;
+    }
+    .fields:not(:has(> .wideField)) > :last-child:nth-child(3n + 1) {
+      grid-column: 1 / -1;
+    }
+  }
+}
+/* Large screens: fields and their labels grow with the window (44 → 48 px). */
+@media screen and (min-width: 1600px) {
+  .creation {
+    --form-grow: var(--workspace-grow, 0px);
+  }
+  .creation :is(.fields, .itemRow) :is(input, select, textarea):not([type="checkbox"], [type="radio"]) {
+    min-height: calc(44px + var(--form-grow) * 4 / 960);
+    font-size: calc(14px + var(--form-grow) * 1 / 960);
+  }
+  .creation :is(.fields, .itemRow) label,
+  .creation :is(.fields, .itemRow) .choiceLabel {
+    font-size: calc(13px + var(--form-grow) * 1 / 960);
+  }
 }

@@ -1318,7 +1318,7 @@ function CreationEditor({ context }: { context: CreationContext }) {
           <div className={styles.previewHeading}>
             <h2>Náhled faktury</h2>
             <label>
-              Šablona
+              <span className={styles.templateLabel}>Šablona</span>
               <select aria-label="Šablona faktury" disabled>
                 <option>Standardní</option>
               </select>
