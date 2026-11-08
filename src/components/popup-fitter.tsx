@@ -77,6 +77,30 @@ function fit(popup: HTMLElement) {
   popup.setAttribute("data-fitted", "");
 }
 
+function isModal(dialog: HTMLDialogElement) {
+  try { return dialog.matches(":modal"); } catch { return dialog.getAttribute("aria-modal") === "true"; }
+}
+
+/**
+ * Escape closes the innermost open popup menu (a <details> whose content is a
+ * `data-popup`) and returns focus to its summary (WCAG 2.1.1, handoff I-R05).
+ * Accordions are plain <details> without `data-popup` and stay open. While a
+ * modal dialog is open, only menus inside it count: Escape belongs to the dialog.
+ */
+export function closeInnermostPopupMenu(doc: Document) {
+  const modal = [...doc.querySelectorAll<HTMLDialogElement>("dialog[open]")].find(isModal)
+    ?? doc.querySelector<HTMLDialogElement>('dialog[open][aria-modal="true"]');
+  const menus = [...doc.querySelectorAll<HTMLDetailsElement>("details[open]")].filter(
+    (menu) => menu.querySelector(":scope > [data-popup]") && (!modal || modal.contains(menu)),
+  );
+  const focused = doc.activeElement;
+  const target = menus.filter((menu) => focused && menu.contains(focused)).at(-1) ?? menus.at(-1);
+  if (!target) return false;
+  target.open = false;
+  target.querySelector<HTMLElement>(":scope > summary")?.focus();
+  return true;
+}
+
 function popupsIn(root: Element | null) {
   if (!root) return [];
   const own = root.matches("[data-popup]") ? [root as HTMLElement] : [];
@@ -123,8 +147,14 @@ export function PopupFitter() {
       schedule();
     });
 
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented && closeInnermostPopupMenu(document))
+        event.preventDefault();
+    };
+
     // toggle nebublá, proto zachytávání.
     document.addEventListener("toggle", onToggle, true);
+    document.addEventListener("keydown", onKey);
     document.addEventListener("pointerover", onEnter);
     document.addEventListener("focusin", onEnter);
     window.addEventListener("resize", schedule);
@@ -135,6 +165,7 @@ export function PopupFitter() {
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => {
       document.removeEventListener("toggle", onToggle, true);
+      document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerover", onEnter);
       document.removeEventListener("focusin", onEnter);
       window.removeEventListener("resize", schedule);

@@ -3597,6 +3597,51 @@ details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
 .payment-history-summary, .payment-history-allocations { min-width: 0; }
 .payment-history-summary > strong { min-width: 0; max-width: 100%; }
 .quick-payment-summary > strong { display: block; max-width: 100%; white-space: nowrap; overflow-x: auto; font-variant-numeric: tabular-nums; }
+/* Touch targets inside overlays (WCAG 2.5.5, handoff I-R10): on touch screens
+   every control in a menu, popover, dialog or option list is at least 44 px
+   tall. Inline text links are unaffected (min-height does not apply to inline
+   boxes); a mouse or trackpad keeps the denser sizes. */
+@media (pointer: coarse) {
+  :is([data-popup], dialog, [role="dialog"], [role="listbox"], [role="menu"])
+    :is(a[href], button, select, summary, [role="option"], input:not([type="checkbox"], [type="radio"], [type="hidden"])) {
+    min-height: 44px;
+  }
+  :is(dialog, [role="dialog"]) label:has(input:is([type="checkbox"], [type="radio"])) {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  details:has(> [data-popup]) > summary {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  :is([data-popup], [role="dialog"]:not(dialog), [role="menu"]) :is(a[href], button) {
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Overlays on large screens (TRANSITION_RULES pravidla 6 a 11, handoff 05):
+   menus, popovers, dialogs and the notification panel grow with the rest of the
+   interface instead of staying at 11–13 px next to 16 px tables. Their content
+   is zoomed in four steps; the overlay boxes themselves are not, because their
+   position is computed in pixels from the trigger. Fixed-width boxes widen by
+   the same factor in their own modules. Below 1600 px nothing changes. */
+:root { --ui-zoom: 1; }
+@media screen and (min-width: 1600px) { :root { --ui-zoom: 1.06; } }
+@media screen and (min-width: 1920px) { :root { --ui-zoom: 1.1; } }
+@media screen and (min-width: 2200px) { :root { --ui-zoom: 1.13; } }
+@media screen and (min-width: 2560px) { :root { --ui-zoom: 1.16; } }
+@media screen and (min-width: 1600px) {
+  [data-popup] > * {
+    zoom: var(--ui-zoom);
+  }
+  /* Modal dialogs are centred by the browser, so the whole box can scale. */
+  dialog.modal:modal {
+    zoom: var(--ui-zoom);
+  }
+}
+
 
 @media print {
   html,

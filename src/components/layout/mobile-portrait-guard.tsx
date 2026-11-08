@@ -8,11 +8,15 @@ type LockableOrientation = ScreenOrientation & {
   lock?: (orientation: "portrait") => Promise<void>;
 };
 
+// A phone's short side is at most ~480 CSS px; small tablets start at 600
+// (7–8" Android) and the iPad mini is 744, and those keep landscape.
+const PHONE_SHORT_SIDE = 600;
+
 // Use the device screen, not the shrinking visual viewport when a keyboard opens.
 export function phoneNeedsPortrait() {
   const phone = navigator.maxTouchPoints > 0
     && window.matchMedia("(pointer: coarse)").matches
-    && Math.min(screen.width, screen.height) < 768;
+    && Math.min(screen.width, screen.height) < PHONE_SHORT_SIDE;
   if (!phone) return false;
   const type = screen.orientation?.type;
   if (type) return type.startsWith("landscape");
@@ -34,7 +38,7 @@ export function MobilePortraitGuard() {
       if (!active || !orientation?.lock || document.visibilityState === "hidden"
         || navigator.maxTouchPoints === 0
         || !window.matchMedia("(pointer: coarse)").matches
-        || Math.min(screen.width, screen.height) >= 768) return;
+        || Math.min(screen.width, screen.height) >= PHONE_SHORT_SIDE) return;
       // Browsers may require an installed app or fullscreen. Keep the fallback
       // available instead of forcing fullscreen or changing the current form.
       void orientation.lock("portrait").then(() => {

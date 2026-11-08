@@ -45,6 +45,19 @@ describe("mobile portrait mode", () => {
     expect(phoneNeedsPortrait()).toBe(false);
   });
 
+  it("leaves small tablets in landscape available (iPad mini, 7–8 inch tablets)", () => {
+    orientation.type = "landscape-primary";
+    for (const [width, height] of [[1133, 744], [1024, 600], [960, 600]]) {
+      vi.stubGlobal("screen", { width, height, orientation });
+      expect(phoneNeedsPortrait(), `${width}×${height}`).toBe(false);
+    }
+    // The largest phones still turn back to portrait.
+    for (const [width, height] of [[932, 430], [915, 412], [740, 360]]) {
+      vi.stubGlobal("screen", { width, height, orientation });
+      expect(phoneNeedsPortrait(), `${width}×${height}`).toBe(true);
+    }
+  });
+
   it("does not mistake the on-screen keyboard for rotating the phone", () => {
     vi.stubGlobal("innerWidth", 390);
     vi.stubGlobal("innerHeight", 240);

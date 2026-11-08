@@ -388,3 +388,18 @@
     overflow: visible;
   }
 }
+
+/* Touch screens: the dialog's actions and every option row (the label is the
+   hit area of its checkbox or radio) are at least 44 px tall (WCAG 2.5.5). */
+@media (pointer: coarse) {
+  .dialog button,
+  .dialog .footer :global(.btn) {
+    min-height: 44px;
+  }
+  .dialog label:has(input:is([type="checkbox"], [type="radio"])),
+  .dialog .settings .checks label,
+  .dialog .settings .modes label {
+    min-height: 44px;
+    align-items: center;
+  }
+}

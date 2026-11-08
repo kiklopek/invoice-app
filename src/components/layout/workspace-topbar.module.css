@@ -487,3 +487,22 @@
     height: calc(20px + var(--tb-grow) * 6 / 1090);
   }
 }
+
+/* Touch screens: the panel's footer link is a full 44 px target (WCAG 2.5.5). */
+@media (pointer: coarse) {
+  .notificationPanel > footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* Large screens: the notification panel grows with the interface (minimal.css --ui-zoom). */
+@media screen and (min-width: 1600px) {
+  .notificationPanel {
+    width: min(calc(410px * var(--ui-zoom, 1)), calc(100vw - 24px));
+  }
+  .notificationPanel > * {
+    zoom: var(--ui-zoom, 1);
+  }
+}

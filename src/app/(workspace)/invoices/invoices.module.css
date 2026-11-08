@@ -1498,3 +1498,13 @@ select.pageSize {
   color: #17613f;
   font-size: 14px;
 }
+
+/* Large screens: the row menu grows with the interface (minimal.css --ui-zoom). */
+@media screen and (min-width: 1600px) {
+  .rowMenu {
+    width: calc(236px * var(--ui-zoom, 1));
+  }
+  .rowMenu > * {
+    zoom: var(--ui-zoom, 1);
+  }
+}
