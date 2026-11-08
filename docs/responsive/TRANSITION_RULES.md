@@ -1,7 +1,9 @@
-# Pravidla přechodů responzivity — v1.4
+# Pravidla přechodů responzivity — v1.5
 
-Stav: pravidla se implementují na větvi `responsive/extended` (hotovo: navigace, konec lupy,
-Faktury, Archiv faktur, Import a Platby, horní lišta). Vznikla z mockupů (Figma „Splatno —
+Stav: pravidla jsou implementovaná na větvi `responsive/extended` na všech pracovních stránkách
+(navigace, konec lupy, horní lišta, hlavičky stránek, Nástěnka, Faktury, Archiv faktur, Detail
+faktury, Tvorba a Ruční faktura, Import včetně kontroly OCR, Platby včetně párování, Archiv plateb,
+Upomínky, Zákazníci, Reporty, Oznámení, Nastavení, Předplatné a otevírací vrstvy). Vznikla z mockupů (Figma „Splatno —
 responzivní mockupy“, https://www.figma.com/design/YK83a6K9WYjLnAQ3md1HYS). Kde se implementace
 na pokyn uživatele odchýlila od návrhu, platí text níže; přehled je v sekci „Rozhodnutí během
 implementace“ na konci.
@@ -125,10 +127,20 @@ porovnání po pixelech). Po schválené změně se referenční snímky poříd
     - Výjimka: hustá mřížka Nástěnky na oknech do výšky 899 px má pod lištou jen 18–28 px, tam je posun 8 px (logo je proto o 12 px pod osou lišty).
     - Od MacBooku (1470 px) do 2560 px roste lineárně: ovládací prvky 44 → 56 px, text hledání 12 → 15 px, tlačítka 13 → 16 px, ikony 19 → 24 px, pole hledání 438 → 600 px. Pod 1470 px a nad 2560 px se nemění.
 
+17. **Růst nad MacBookem bez lupy celé stránky.** Tři sdílené proměnné, každá na jiné úrovni:
+    - `--workspace-grow` (`main.content`): 0 px do 1600, pak lineárně až 960 px. Z ní rostou
+      rozměry rodin stránek (sloupce, výšky).
+    - `--header-zoom` (1 / 1,04 / 1,08 / 1,11 / 1,14 při 1600 / 1920 / 2200 / 2560): hlavičky stránek
+      a obsah sekcí. Zoom se dává **pod** natahovací kontejnery (`section > *`), protože zoomovaná
+      flex položka nedostane celý svůj podíl volného místa.
+    - `--ui-zoom` (1 / 1,06 / 1,1 / 1,13 / 1,16): otevírací vrstvy (`[data-popup] > *`, modální
+      dialogy). Dialog uvnitř zoomované hlavičky dostane `zoom: calc(ui / header)`, jinak by se
+      zoom násobil. Výška dialogu je omezená `calc((100dvh − 24px) / --ui-zoom)`.
+
+    Pod 1600 px jsou všechny tři neutrální, takže pilíř 1470 se nemění.
+
 ## Faktury — aplikace pravidel
 
-| Viewport    | Navigace     | Hlavička                  | Filtry                           | Sloupce                                                                       | Řádků/stránku |
-| ----------- | ------------ | ------------------------- | -------------------------------- | ----------------------------------------------------------------------------- | ------------- |
 Implementováno takto (počet řádků platí pro volbu „Automaticky“):
 
 | Viewport    | Navigace     | Hlavička                  | Filtry                           | Sloupce                                                                       | Řádků/stránku |
@@ -148,9 +160,29 @@ Implementováno takto (počet řádků platí pro volbu „Automaticky“):
 - Řádků je méně než v mockupu (6/7/9/14), protože hlavička a filtry v aplikaci zabírají víc výšky.
 - Ověřují `auto-rows-check.mjs`, `detail-pane-check.mjs` a `invoices-design-check.mjs`.
 
+## Ostatní stránky — aplikace pravidel
+
+| Stránka (rodina) | Tablet 1024–1279 | Velká okna ≥ 1600 |
+| ---------------- | ---------------- | ----------------- |
+| Nástěnka (overview) | hustá mřížka od 1024, kompaktní řádky odběratelů | KPI a ikony rostou do maxima role; donut je `size` kontejner (`--d: clamp(96px, min(92cqh, 40cqi), 420px)`) a s ním text legendy; prázdné upomínky vystředěné v kartě |
+| Tvorba faktury (form) | dva sloupce, náhled pod 380 px skryje popisek „Šablona“ | pole ve 3 sloupcích od šířky kontejneru 800 px, pole a text rostou |
+| Detail faktury (document) | beze změny rozložení | sloupec se natáhne do výšky okna, historie vyplní zbytek, prázdné stavy vystředěné |
+| Import, Platby (task / document) | sdílený sloupec v zelených panelech | obsah roste s plochou (`size` kontejner); nízká okna ≤ 740 px kompaktní |
+| Kontrola OCR (document) | — | náhled dokumentu začíná u každého nového dokladu na 1. straně |
+| Zákazníci, Archiv plateb, Oznámení (collection) | kompaktní filtry | poslední panel vyplní výšku, sekce rostou s `--header-zoom` |
+| Upomínky, Reporty, Nastavení, Předplatné | beze změny | sekce rostou s `--header-zoom`; stránky s přirozenou délkou se posouvají |
+
+Na 1024–1279 × ≤ 768 se task stránky posouvají až o ~120 px (přijato: kompaktnější varianta by
+schovala povinné kroky). Na 4K narážejí stránky na horní stropy růstu a pod obsahem zůstane volno;
+to je záměr (pravidlo 6: text roste jen do maxima role).
+
 ## Otevřené vrstvy a sbalitelné sekce
 
-Pro interaktivní prvky platí doplněk `05_INTERACTIVE_STATES.md` (I-R01 až I-R12).
+Pro interaktivní prvky platí doplněk `05_INTERACTIVE_STATES.md` (I-R01 až I-R12). Implementováno:
+Escape zavře nejvnitřnější otevřenou nabídku a vrátí fokus na její spouštěč (`PopupFitter`);
+dialog vrací fokus otevírači, nebo spouštěči nabídky, která se mezitím zavřela (`focusReturnTarget`);
+na dotykových zařízeních (`pointer: coarse`) mají ovládací prvky vrstev aspoň 44 px; telefon se
+pozná podle kratší strany < 600 px, tablety (od 7") smí na šířku. Ověřuje `overlay-check.mjs`.
 Pravidla 2 a 11 řeší plátno stránky a jeho panely; krátké dialogy, menu, tooltipy
 a prázdné stavy mají přirozenou velikost, nemusí vyplnit viewport ani přidávat obsah.
 Mobil a MacBook nejprve porovnat s otevřenými referencemi, které zatím v balíčku chybí.
@@ -167,6 +199,13 @@ Mobil a MacBook nejprve porovnat s otevřenými referencemi, které zatím v bal
 | Horní lišta | — | o 20 px níž, roste 1470 → 2560 | požadavek uživatele (pravidlo 16) |
 | Lupa nad 1600 px | zrušit | zrušena | skutečné velikosti místo zoomu |
 | Zelené panely | text roste se šířkou | obsah roste s plochou, sdílený sloupec | uživatel: víc vyplnit, lépe zarovnat |
+| Datum ve formulářích | — | pole nepřetéká, min. šířka 281 px | uživatel: data přetékala |
+| Donut na Nástěnce | pevná velikost | roste s kratší stranou karty | uživatel: nesedělo k textům |
+| Prázdné upomínky | vpravo nahoře | uprostřed karty | uživatel |
+| Hlavičky stránek | nadpis 42 → 48 px | celá hlavička `--header-zoom` (max 1,14) | jednotný růst s lištou |
 
-Známé otevřené body: Import a Platby na 1280 × 720 přetékají o 20 px (stav i před změnami);
-Zákazníci, Archiv plateb, Upomínky, Reporty, Předplatné a Oznámení ještě nevyplňují velká okna.
+Pojistka proti nahodilým breakpointům: `scripts/responsive-lint.mjs` (součást `npm run lint`)
+spočítá `@media` hodnoty mimo dohodnutou sadu po souborech; počet smí jen klesat.
+
+Známé otevřené body: Oznámení pod 1600 px nechává pod panelem 300–420 px volna (vyplnění by
+změnilo pilíř 1470, čeká na rozhodnutí uživatele); Nástěnka 1600 × 900 se posouvá o 2 px.

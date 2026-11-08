@@ -2251,7 +2251,10 @@
   main.payments-archive-page > section > * {
     zoom: var(--header-zoom, 1);
   }
+  /* The page's bottom padding already ends the window; the panel's own margin
+   * would add a second gap under it. */
   main.payments-archive-page > section:last-of-type {
     flex: 1 0 auto;
+    margin-bottom: 0;
   }
 }
