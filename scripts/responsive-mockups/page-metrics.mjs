@@ -1,9 +1,9 @@
 // Per-page layout health at any size: horizontal overflow, page scroll, empty space
 // below the content, clipped text and the zoom in effect. Prints one row per page.
-//   node scripts/responsive-mockups/page-metrics.mjs 1920x1080 2560x1440 [--only=/invoices] [--shots=dir]
+//   node scripts/responsive-mockups/page-metrics.mjs 1920x1080 2560x1440 [--only=/invoices] [--shots=dir] [--engine=webkit]
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { chromium } from "@playwright/test";
+import { chromium, webkit, firefox } from "@playwright/test";
 import { startHarness, installNetwork } from "../responsive-audit/harness.mjs";
 import { fixtures, NOW } from "../responsive-audit/fixtures.mjs";
 
@@ -17,7 +17,7 @@ const routes = arg("only")?.split(",") ?? [
 const shots = arg("shots");
 if (shots) await mkdir(resolve(shots), { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await ({ chromium, webkit, firefox }[arg("engine") ?? "chromium"] ?? chromium).launch();
 const harness = await startHarness(process.cwd(), "page-metrics", 4394);
 const data = await fixtures(process.cwd());
 console.log("size       route                        hOver vScroll gapBelow clipped zoom  bodyText");
