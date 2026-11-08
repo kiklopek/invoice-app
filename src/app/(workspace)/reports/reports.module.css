@@ -1379,3 +1379,13 @@
     min-height: clamp(236px, calc(26 * 1dvh), 420px);
   }
 }
+
+/* Large screens (TRANSITION_RULES pravidla 6 a 11): tabs, filters and the report
+   panel grow with the page header from 1600 to 2560 px (--header-zoom), so the
+   KPIs, chart and customer list are not small type in a large window. They
+   are in normal flow with auto width, so the zoom keeps them in the page. */
+@media screen and (min-width: 1600px) {
+  .page > :is(.tabs, .filters, .panel) {
+    zoom: var(--header-zoom, 1);
+  }
+}

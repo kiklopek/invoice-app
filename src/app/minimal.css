@@ -3636,9 +3636,13 @@ details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
   [data-popup] > * {
     zoom: var(--ui-zoom);
   }
-  /* Modal dialogs are centred by the browser, so the whole box can scale. */
+  /* Modal dialogs are centred by the browser, so the whole box can scale. Their
+     limits are in the dialog's own (zoomed) units, so the window size is divided
+     by the same factor; otherwise a tall dialog could leave the window. */
   dialog.modal:modal {
     zoom: var(--ui-zoom);
+    max-width: calc((100dvw - 24px) / var(--ui-zoom)) !important;
+    max-height: calc((100dvh - 24px) / var(--ui-zoom)) !important;
   }
 }
 
@@ -3657,6 +3661,10 @@ details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
 @media screen and (min-width: 1600px) {
   main.content:not([data-workspace-layout="task"]):not(:has(#dashboard-status-heading)) header:has(h1) {
     zoom: var(--header-zoom);
+  }
+  /* A dialog opened from a zoomed header would compound both factors. */
+  main.content:not([data-workspace-layout="task"]):not(:has(#dashboard-status-heading)) header:has(h1) dialog.modal:modal {
+    zoom: calc(var(--ui-zoom) / var(--header-zoom));
   }
 }
 
