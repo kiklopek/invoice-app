@@ -1459,6 +1459,24 @@
     min-width: 44px;
     min-height: 44px;
   }
+
+  /* A switch without text keeps its drawn track (TRANSITION_RULES pravidlo 9);
+     the 44 px touch area is an invisible layer around it. Stretching the button
+     itself turned the track into a square. */
+  .app-shell button[role="switch"][aria-label] {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+  }
+  .app-shell button[role="switch"][aria-label]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
 }
 
 @media screen and (max-height: 500px) and (orientation: landscape) and (max-width: 1023px) {

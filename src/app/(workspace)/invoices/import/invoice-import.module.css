@@ -39,7 +39,9 @@
 .page.page :global(.csv-file-button) { background: #17462f; color: white; }
 @media (min-width: 1024px) and (min-height: 761px) {
   .start.start { height: calc(100 * 1dvh); display: flex; flex-direction: column; padding-block: 28px; }
-  .start.start > .stage { height: min(calc(86 * 1dvh), 1040px); margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
+  /* Anchored under the toolbar like every page heading (shared gap) and filling
+     the rest of the window instead of centring vertically. */
+  .start.start > .stage { flex: 1 1 auto; height: auto; margin-block: 0; display: flex; flex-direction: column; min-height: 0; }
   .start.start .header { flex-shrink: 0; }
   .start.start :global(.invoice-import-workspace) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .start.start :global(.invoice-document-import), .start.start :global(.csv-import-panel) { flex: 1; display: flex; flex-direction: column; }

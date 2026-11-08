@@ -77,9 +77,12 @@ porovnání po pixelech). Po schválené změně se referenční snímky poříd
 8. **Čísla a částky se nezkracují.** Částky, čísla faktur, VS a data nikdy nedostanou tři tečky ani
    ořez. Sloupec má šířku podle nejdelší hodnoty. Když se nevejde: přesun na 2. řádek buňky, pak
    menší řez písma, minimum 12 px. Tabulární číslice.
-9. **Ikony a štítky drží tvar.** Ikony 16–20 px se neškálují s textem tabulky (výjimka: navigace a
-   akce podle pravidla 6). Štítky stavu se nezalamují. Když se nevejdou, nahradí je barevná tečka s
-   tooltipem. Dotykové cíle na tabletu mají aspoň 44 × 44 px.
+9. **Ikony, štítky a ovládací prvky drží tvar.** Ikony 16–20 px se neškálují s textem tabulky (výjimka:
+   navigace a akce podle pravidla 6). Štítky stavu se nezalamují. Když se nevejdou, nahradí je barevná
+   tečka s tooltipem. Dotykové cíle na tabletu mají aspoň 44 × 44 px, ale **zvětšuje se jen neviditelná
+   plocha pro dotyk, nikdy kreslený prvek**: switch zůstane podlouhlý, checkbox a radio čtvercové, ikona
+   v původním poměru stran. Hlídá `scripts/responsive-mockups/control-shape-check.mjs` (myš i dotyk,
+   390–2560 px).
 10. **Kdo rozhoduje o změně.**
     - Shell (navigace) reaguje na viewport.
     - Rodina stránky (seznam, formulář, upload, dokument) reaguje na výšku a šířku plátna.
@@ -126,6 +129,7 @@ porovnání po pixelech). Po schválené změně se referenční snímky poříd
     - Na každé desktopové velikosti (od 1024 px) je o 20 px níž než původně, a to relativním posunem: pohne se jen lišta, mezera pod ní se zmenší a obsah stránky zůstane na místě.
     - Výjimka: hustá mřížka Nástěnky na oknech do výšky 899 px má pod lištou jen 18–28 px, tam je posun 8 px (logo je proto o 12 px pod osou lišty).
     - Od MacBooku (1470 px) do 2560 px roste lineárně: ovládací prvky 44 → 56 px, text hledání 12 → 15 px, tlačítka 13 → 16 px, ikony 19 → 24 px, pole hledání 438 → 600 px. Pod 1470 px a nad 2560 px se nemění.
+    - **Mezera mezi lištou a hlavičkou stránky je na všech stránkách stejná** (`--page-head-gap`): 40 px na MacBooku, lineárně 48 px na 2560, na nízkých oknech (výška ≤ 800 px) 32 px. Hlavičky stránek na desktopu nemají vlastní horní okraj a úlohové stránky (Import) se pod lištou nevystřeďují. Výjimka: Nástěnka si mezery dopočítává sama, aby se vešla bez posouvání. Rozhodnutí uživatele 8. 11. (dřív měla většina stránek jen 12 px).
 
 17. **Růst nad MacBookem bez lupy celé stránky.** Tři sdílené proměnné, každá na jiné úrovni:
     - `--workspace-grow` (`main.content`): 0 px do 1600, pak lineárně až 960 px. Z ní rostou

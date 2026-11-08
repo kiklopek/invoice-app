@@ -446,7 +446,9 @@
     height: auto;
     min-height: 0;
     max-width: var(--workspace-canvas-max);
-    margin-block: 24px 0;
+    /* No extra top margin: the toolbar's --page-head-gap sets the heading's
+       distance on every page. */
+    margin-block: 0;
   }
   .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td) {
     height: clamp(63px, 4.5dvh, 88px);

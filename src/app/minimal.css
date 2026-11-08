@@ -3668,6 +3668,13 @@ details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
   }
 }
 
+/* Page headings sit one shared gap under the toolbar (workspace-topbar.module.css
+ * --page-head-gap); their own top margins would make it differ per page. */
+@media screen and (min-width: 1024px) {
+  /* Nástěnka keeps its own fitted spacing (dense grid, dashboard-summary.module.css). */
+  main#obsah:not(:has(#dashboard-status-heading)) header:has(h1) { margin-top: 0; }
+}
+
 @media print {
   html,
   body {

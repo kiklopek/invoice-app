@@ -446,6 +446,12 @@
     --tb-control: calc(44px + var(--tb-grow) * 12 / 1090);
     --tb-icon: calc(19px + var(--tb-grow) * 5 / 1090);
     --workspace-notification-size: var(--tb-control);
+    /* One gap between the toolbar and the page heading on every page (user
+       request 8. 11.): 40 px on the MacBook, growing to 48 px at 2560. The
+       margin includes the 20 px the toolbar is drawn lower. Page headings
+       carry no top margin of their own on desktop (minimal.css). */
+    --page-head-gap: calc(40px + var(--tb-grow) * 8 / 1090);
+    margin-bottom: calc(20px + var(--page-head-gap));
     top: 20px;
     gap: calc(14px + var(--tb-grow) * 6 / 1090);
     min-height: var(--tb-control);
@@ -486,6 +492,12 @@
     width: calc(20px + var(--tb-grow) * 6 / 1090);
     height: calc(20px + var(--tb-grow) * 6 / 1090);
   }
+}
+
+/* Short windows (laptops at 768 px and less) keep the same gap on every page,
+   just tighter, so a list still fits five whole rows. */
+@media screen and (min-width: 1024px) and (max-height: 800px) {
+  .topbar { --page-head-gap: 32px; }
 }
 
 /* Touch screens: the panel's footer link is a full 44 px target (WCAG 2.5.5). */
