@@ -2010,8 +2010,8 @@
   white-space: normal;
 }
 /* The browser's available height, rather than the physical screen, controls density. */
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .page.page {
     display: grid;
     --chart-reduction: clamp(0px, calc((100dvh - 700px) * 0.3), 40px);
@@ -2275,8 +2275,8 @@
     line-height: 18px;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .statusChart {
     flex-direction: row;
   }
@@ -2284,7 +2284,7 @@
     width: auto;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 759px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 759px) {
   .page.page {
     gap: 6px;
     padding-block: 8px;
@@ -2315,8 +2315,8 @@
     min-height: 140px;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .statusChart {
     min-height: 0;
   }
@@ -2325,7 +2325,7 @@
     gap: 4px;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 759px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 759px) {
   .heading .date {
     display: block;
     font-size: 11px;
@@ -2334,8 +2334,8 @@
   }
 }
 /* Give monetary details their full card width at tighter sizes. */
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px),
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px),
   (min-width: 360px) and (max-width: 599px) {
   .metric {
     display: grid;
@@ -2368,13 +2368,13 @@
     grid-column: 1 / -1;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .chartTable {
     margin: 0;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 759px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 759px) {
   .page.page {
     gap: 5px;
   }
@@ -2392,7 +2392,7 @@
   width: 15px;
   height: 15px;
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 699px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 699px) {
   .page.page {
     gap: 4px;
     padding-block: 6px;
@@ -2423,8 +2423,8 @@
 .shortActionLabel {
   display: none;
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .page .invoiceTable th:nth-child(1) {
     width: 20%;
   }
@@ -2449,7 +2449,7 @@
 }
 
 /* Distribute available height between charts and lists, keeping the greeting intrinsic. */
-@media (min-width: 1180px) and (min-height: 660px) {
+@media (min-width: 1024px) and (min-height: 660px) {
   .page.page {
     height: auto;
     align-content: stretch;
@@ -2529,8 +2529,8 @@
   font-size: 11px;
   line-height: 15px;
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .page .metric {
     min-height: 104px;
     padding: 10px 12px;
@@ -2580,8 +2580,8 @@
     --reminder-row-pad: 2px;
   }
 }
-@media (min-width: 1180px) and (min-height: 660px) and (max-height: 899px),
-  (min-width: 1180px) and (max-width: 1439px) and (min-height: 900px) {
+@media (min-width: 1024px) and (min-height: 660px) and (max-height: 899px),
+  (min-width: 1024px) and (max-width: 1439px) and (min-height: 900px) {
   .reminderPanel {
     --reminder-inset: 8px;
     --reminder-marker: 28px;
@@ -2616,7 +2616,7 @@
 .companyReminderList::-webkit-scrollbar-thumb { background: #91b3a0; border-radius: 6px; }
 .companyReminderList:focus-visible { outline: 2px solid #17613f; outline-offset: 2px; }
 .companyReminders .reminderHeader { flex-shrink: 0; }
-@media (min-width: 1180px) and (min-height: 660px) {
+@media (min-width: 1024px) and (min-height: 660px) {
   .companyReminderList { flex: 1 1 0; max-height: none; }
 }
 .companyReminderItem { display: flex; flex: 0 0 auto; min-height: clamp(68px, 12cqi, 170px); flex-direction: column; min-width: 0; border-top: 1px solid #e9eeea; }
@@ -2654,7 +2654,7 @@
 .companyReminderRetry { align-self: flex-start; margin: 0 0 4px 16px; }
 .companyReminderNotice { margin: 0 0 8px; font-size: 12px; color: #8a6427; }
 .companyReminderEmpty { flex: 1; margin: 12px 0; color: #697d8e; font-size: 13px; line-height: 20px; }
-@media (min-width: 1180px) and (max-height: 959px) {
+@media (min-width: 1024px) and (max-height: 959px) {
   .page .companyReminders .reminderHeader { margin-bottom: 12px; }
   .companyReminderRow { padding-block: 2px; }
 }
@@ -2663,7 +2663,7 @@
   .companyReminderDate { justify-content: start; }
 }
 
-@media (min-width: 1180px) and (max-height: 759px) {
+@media (min-width: 1024px) and (max-height: 759px) {
   .page .companyReminders .reminderHeader { margin-bottom: 6px; }
   .companyReminderRow { padding-block: 2px; row-gap: 0; }
 }
@@ -2688,7 +2688,7 @@
   }
 }
 /* Recover the taller shared toolbar's space on the shortest dashboard layout. */
-@media screen and (min-width: 1180px) and (min-height: 660px) and (max-height: 699px) {
+@media screen and (min-width: 1024px) and (min-height: 660px) and (max-height: 699px) {
   .page.page { gap: 3px; }
   .page .metric { min-height: 96px; padding-block: 8px; }
   .page .charts > .card { padding-block: 6px; }
@@ -2832,4 +2832,129 @@
   padding: 16px;
   text-align: center;
   text-wrap: balance;
+}
+
+/* "Poslední faktury" in a narrow card (tablets, 1280 px laptops; dashboard spec):
+   the customer moves under the invoice number and the Odběratel column steps
+   back, so amounts stay whole (rule 8: never "125 tis. Kč") and statuses stay
+   on one line. Desktop shell only; the MacBook table (694 px) is unchanged. */
+.compactCustomer {
+  display: none;
+}
+@media screen and (min-width: 1024px) {
+  .page .invoiceTable {
+    container: dash-invoices / inline-size;
+  }
+  @container dash-invoices (max-width: 599px) {
+    .page .invoiceTable th:nth-child(2),
+    .page .invoiceTable td:nth-child(2) {
+      display: none;
+    }
+    .page .invoiceTable td:first-child small:not(.compactCustomer) {
+      display: none;
+    }
+    .page.page .invoiceTable td .compactCustomer {
+      position: static;
+      width: auto;
+      height: auto;
+      margin: 1px 0 0;
+      clip: auto;
+      clip-path: none;
+      color: var(--dash-muted);
+      font-size: 11px;
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .page .invoiceTable td :is([class*="badge"], [class*="status"]) {
+      white-space: nowrap;
+    }
+    /* Two lines in the first cell; tighter rows keep the five rows in the card. */
+    .page.page .invoiceTable td {
+      height: auto;
+      padding-block: 3px;
+      line-height: 16px;
+    }
+    .page.page .invoiceTable td:first-child a {
+      line-height: 16px;
+    }
+    .page.page .invoiceTable td .compactCustomer {
+      line-height: 13px;
+    }
+  }
+}
+
+/* The reminder list scrolls inside its card when it is longer than the card;
+   a soft fade at the bottom says so while more items are below, and it fades
+   out at the end of the list (scroll-driven; browsers without it show the list
+   as before). */
+@supports (animation-timeline: scroll()) {
+  .companyReminderList::after {
+    content: "";
+    position: sticky;
+    bottom: 0;
+    flex: none;
+    height: 28px;
+    margin-top: -28px;
+    background: linear-gradient(rgb(255 255 255 / 0), #fff 90%);
+    pointer-events: none;
+    opacity: 0;
+    animation: reminder-list-more linear both;
+    animation-timeline: scroll(nearest block);
+  }
+  @keyframes reminder-list-more {
+    from { opacity: 1; }
+    92% { opacity: 1; }
+    to { opacity: 0; }
+  }
+}
+
+/* Large screens (TRANSITION_RULES pravidla 6 a 11; dashboard spec): KPI cards,
+   the chart's legend and month labels and the latest invoices table grow with
+   the window from 1600 to 2560 px (KPI value 36 → 56 px, its icon 48 → 68 px),
+   so wide cards carry content instead of empty space. */
+@media screen and (min-width: 1600px) {
+  .page.page {
+    --dash-grow: var(--workspace-grow, 0px);
+  }
+  .page.page .metric {
+    gap: calc(16px + var(--dash-grow) * 8 / 960);
+  }
+  .page.page .metricIcon {
+    flex-basis: calc(48px + var(--dash-grow) * 20 / 960);
+    width: calc(48px + var(--dash-grow) * 20 / 960);
+    height: calc(48px + var(--dash-grow) * 20 / 960);
+  }
+  .page.page .metricIcon svg {
+    width: calc(26px + var(--dash-grow) * 10 / 960);
+    height: calc(26px + var(--dash-grow) * 10 / 960);
+  }
+  .page.page .metricLabel {
+    font-size: calc(14px + var(--dash-grow) * 3 / 960);
+  }
+  .page.page .metricValue {
+    font-size: calc(36px + var(--dash-grow) * 20 / 960);
+    line-height: 1.15;
+  }
+  .page.page .metricDetail {
+    font-size: calc(13px + var(--dash-grow) * 3 / 960);
+  }
+  .page.page .chartLegend {
+    font-size: calc(12px + var(--dash-grow) * 3 / 960);
+  }
+  .page.page .month {
+    font-size: calc(11px + var(--dash-grow) * 3 / 960);
+  }
+  .page.page .invoiceTable th {
+    font-size: calc(12px + var(--dash-grow) * 2 / 960);
+  }
+  .page.page .invoiceTable .status {
+    padding: calc(3px + var(--dash-grow) * 2 / 960) calc(7px + var(--dash-grow) * 3 / 960);
+    font-size: calc(12px + var(--dash-grow) * 2 / 960);
+  }
+  .page.page .textLink {
+    font-size: calc(12px + var(--dash-grow) * 2 / 960);
+  }
 }

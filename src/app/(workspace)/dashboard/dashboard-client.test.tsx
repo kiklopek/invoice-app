@@ -468,6 +468,12 @@ describe("dashboard UI with one server snapshot", () => {
       .querySelector("#dashboard-reminders-heading")!
       .closest("aside")!;
     expect(recent.querySelectorAll("tbody tr")).toHaveLength(5);
+    // The compact table hides the Odběratel column, so each row also names
+    // the customer under its invoice number.
+    for (const row of recent.querySelectorAll("tbody tr"))
+      expect(row.querySelector("td:first-child")!.lastElementChild?.textContent).toBe(
+        row.querySelector("td:nth-child(2) strong")!.textContent,
+      );
     expect(
       recent.querySelector('a[href="/invoices?to=2026-10-17"]'),
     ).not.toBeNull();
