@@ -105,10 +105,18 @@ export function MatchingPopover({ label, trigger, children, wide = false, classN
       const button = node?.querySelector("button");
       if (!node || !popup || !button) return;
       const rect = button.getBoundingClientRect();
-      const width = Math.min(wide ? 560 : 380, innerWidth - 24);
-      node.style.setProperty("--matching-popup-left", `${Math.max(12, Math.min(rect.left, innerWidth - width - 12))}px`);
-      const height = Math.min(popup.scrollHeight, innerHeight - 24);
-      node.style.setProperty("--matching-popup-top", `${Math.max(12, Math.min(rect.bottom + 8, innerHeight - height - 12))}px`);
+      // Large screens zoom dialogs (--ui-zoom): its left/top are then in zoomed
+      // units, so the position measured in window pixels is divided by the
+      // dialog's real scale. Without it the popover slid off to the right.
+      const box = popup.getBoundingClientRect();
+      const cssWidth = parseFloat(getComputedStyle(popup).width) || box.width;
+      const scale = box.width > 0 && cssWidth > 0 ? box.width / cssWidth : 1;
+      const width = box.width || Math.min(wide ? 560 : 380, innerWidth - 24);
+      const height = Math.min(box.height || popup.scrollHeight, innerHeight - 24);
+      const left = Math.max(12, Math.min(rect.left, innerWidth - width - 12));
+      const top = Math.max(12, Math.min(rect.bottom + 8, innerHeight - height - 12));
+      node.style.setProperty("--matching-popup-left", `${left / scale}px`);
+      node.style.setProperty("--matching-popup-top", `${top / scale}px`);
     };
     let frame = 0;
     const schedulePosition = () => {
@@ -120,6 +128,8 @@ export function MatchingPopover({ label, trigger, children, wide = false, classN
       if (event.target instanceof Node && anchor.current?.querySelector("dialog")?.contains(event.target)) return;
       schedulePosition();
     };
+    // Place it before the first paint as well, so it does not jump from the corner.
+    position();
     schedulePosition();
     window.addEventListener("resize", schedulePosition);
     window.addEventListener("scroll", onScroll, { capture: true, passive: true });

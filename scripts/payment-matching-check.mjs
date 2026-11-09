@@ -252,4 +252,27 @@ if(!process.argv.includes('--upload-only')&&!process.argv.includes('--esko-only'
   }finally{await c.page.close()}
  });
 }
+// Popovers open inside the window at large sizes too, where dialogs are zoomed
+// (--ui-zoom): the computed position must account for the zoom.
+if(!process.argv.includes('--upload-only')&&!process.argv.includes('--esko-only'))for(const [width,height] of [[1600,900],[1920,1080],[2560,1440]])for(const touch of [false,true]){
+ await check(`popovers stay inside the window at ${width}${touch?' (touch)':''}`,async()=>{
+  const c=await pageFor(width,height,'normal',touch);
+  try{
+   for(const name of ['Akce platby','Možnosti výpisu','Filtry plateb']){
+    const trigger=c.page.locator(`button[aria-label^="${name}"]`).first();
+    await trigger.click();
+    const dialog=c.page.locator('dialog[open]').last();
+    await expect(dialog).toBeVisible();
+    await c.page.waitForTimeout(120);
+    const box=await dialog.evaluate(d=>{const r=d.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom,vw:innerWidth,vh:innerHeight};});
+    expect(box.left,name).toBeGreaterThanOrEqual(0);
+    expect(box.top,name).toBeGreaterThanOrEqual(0);
+    expect(box.right,name).toBeLessThanOrEqual(box.vw);
+    expect(box.bottom,name).toBeLessThanOrEqual(box.vh);
+    await c.page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+   }
+  }finally{await c.page.close()}
+ });
+}
 }finally{await browser.close();await server.close();await writeFile(resolve(output,process.argv.includes('--esko-only') ? 'esko-validation.json' : process.argv.includes('--upload-only') ? (process.argv.includes('--before-upload') ? 'before-upload-validation.json' : 'upload-validation.json') : 'validation.json'),JSON.stringify({scope:'Real AppShell/PaymentsClient and native dialogs; synthetic scoped API fixtures, no live auth or payment writes.',results},null,2));}
