@@ -29,4 +29,9 @@ union all
 select 'allocation and invoice belong to the same organization',
        count(*) from public.bank_payment_allocations x
        join public.invoices i on i.id = x.invoice_id
-where i.organization_id <> x.organization_id;
+where i.organization_id <> x.organization_id
+union all
+-- Od fáze F2: hlídač zápisů. Brána F2 = 0 po dobu 14 dní, teprve pak contract.
+select 'money guard violations in the last 14 days',
+       count(*) from public.money_guard_violations
+where recorded_at > now() - interval '14 days';

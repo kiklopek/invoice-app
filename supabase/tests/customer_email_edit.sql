@@ -63,6 +63,8 @@ begin
   exception when invalid_parameter_value then null; end;
 
   -- Force the invoice write to fail after the customer update and prove rollback.
+  -- Odložené kontroly peněz (F2) musí doběhnout před ALTER ve stejné transakci.
+  set constraints all immediate;
   alter table public.invoices add constraint contact_test_failure check(counterparty_email <> 'rollback@example.cz');
   begin
     perform public.update_customer_contact(org, actor, customer, true, 'rollback@example.cz');
