@@ -403,3 +403,18 @@
     align-items: center;
   }
 }
+
+/* Live preview: while a new PDF is built for changed settings, the previous
+   one stays visible but dimmed, with a short status above it. */
+.updating {
+  margin: 0 0 8px;
+  color: #52665a;
+  font-size: 12px;
+  font-weight: 600;
+}
+.previewFrame { transition: opacity 160ms ease; }
+.previewFrame[data-stale],
+.meta[data-stale] { opacity: 0.55; }
+@media (prefers-reduced-motion: reduce) {
+  .previewFrame { transition: none; }
+}
