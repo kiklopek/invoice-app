@@ -412,7 +412,19 @@
   font-size: 12px;
   font-weight: 600;
 }
-.previewFrame { transition: opacity 160ms ease; }
+/* The frame takes the panel's remaining height like the preview did before it
+   was wrapped, so the PDF scrolls inside it instead of overflowing the dialog. */
+.previewFrame {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  transition: opacity 160ms ease;
+}
+.previewFrame > :global(.document-preview) {
+  flex: 1;
+  min-height: 0;
+}
 .previewFrame[data-stale],
 .meta[data-stale] { opacity: 0.55; }
 @media (prefers-reduced-motion: reduce) {
