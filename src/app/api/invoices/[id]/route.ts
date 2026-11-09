@@ -302,6 +302,9 @@ export async function DELETE(request: Request, { params }: Context) {
   if (deleteError) {
     if (deleteError.message.includes("invoice_not_found")) return NextResponse.json({ error: "Faktura již neexistuje." }, { status: 404 });
     if (deleteError.message.includes("insufficient_permission")) return NextResponse.json({ error: "Nemáte oprávnění fakturu smazat." }, { status: 403 });
+    if (deleteError.message.includes("invoice_has_payments")) return NextResponse.json({ error: "K faktuře je přiřazená platba, proto ji nelze smazat. Použijte storno faktury." }, { status: 409 });
+    if (deleteError.message.includes("invoice_reminder_sent")) return NextResponse.json({ error: "K faktuře už odešla upomínka, proto ji nelze smazat. Použijte storno faktury." }, { status: 409 });
+    if (deleteError.message.includes("invoice_email_sent")) return NextResponse.json({ error: "Faktura už byla odeslána e-mailem, proto ji nelze smazat. Použijte storno faktury." }, { status: 409 });
     logError("Bezpečné smazání faktury selhalo", deleteError, { invoice_id: id });
     return apiError(request, "Fakturu se nepodařilo bezpečně smazat. Zkuste to prosím znovu za chvíli.", 500, "invoice_delete_failed");
   }

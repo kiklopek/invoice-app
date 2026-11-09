@@ -35,3 +35,6 @@ graphify-out/
 # Mockup handoff kit: images are regenerable, keep only the docs in git
 /Splatno_Responsive_Mockup_Kit.zip
 /docs/responsive/handoff/reference/
+
+# Ruční zálohy produkce (scripts/backup-production.mjs) obsahují osobní a finanční data
+backups/

@@ -32,6 +32,9 @@ for (const locale of ["cs", "en"] as const) {
 
   for (const width of WIDTHS) {
     test(`${locale}: FAQ fits ${width}px closed, with one and with all answers open`, async ({ page }, testInfo) => {
+      // WebKit na Linuxu (CI) kreslí 2560px okno softwarově; každý klik a měření
+      // čeká na snímky a sada 11 kliků tam přesáhne 30 s, i když lokálně trvá 4 s.
+      test.slow(testInfo.project.name === "desktop-safari" && width >= 2560, "large WebKit viewport renders in software on CI");
       await page.setViewportSize({ width, height: 1000 });
       await page.goto(route);
       await page.evaluate(() => document.fonts.ready);
