@@ -11,6 +11,11 @@ export const en: Dictionary = {
       `Manage invoices, track due dates, match payments and send automatic reminders in one place. Built for businesses and accountants. Try Splatno free for ${TRIAL_DAYS} days.`,
     authTitle: "Splatno | Invoices and reminders under control",
     invitationTitle: "Company invitation | Splatno",
+    loginTitle: "Sign in | Splatno",
+    registerTitle: "Create a company account | Splatno",
+    forgotPasswordTitle: "Forgotten password | Splatno",
+    resetPasswordTitle: "New password | Splatno",
+    mfaTitle: "Sign-in verification | Splatno",
   },
 
   switcher: {

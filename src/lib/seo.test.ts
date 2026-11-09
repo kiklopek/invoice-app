@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { getDictionary } from "@/i18n/dictionaries";
+import { PLANS } from "./plans";
 import { landingMetadata, landingStructuredData, publicIndexingEnabled, serializeJsonLd, siteOrigin } from "./seo";
 
 const require = createRequire(import.meta.url);
@@ -109,6 +110,38 @@ describe("public page SEO", () => {
     vi.stubEnv("APP_BASE_URL", origin);
     expect(siteOrigin()).toBe("https://www.splatno.com");
     expect(sitemap().map((entry) => entry.url)).toEqual(["https://www.splatno.com/", "https://www.splatno.com/en"]);
+  });
+
+  it.each(["cs", "en"] as const)("describes the company, plans and FAQ in structured data for %s", (locale) => {
+    const graph = landingStructuredData(locale)["@graph"] as Array<Record<string, unknown>>;
+    type Offer = { name: string; price: number; priceSpecification: { valueAddedTaxIncluded: boolean; billingDuration: string } };
+    type Node = Record<string, unknown> & { publisher?: unknown; offers: Record<string, unknown> & { offers: Offer[] }; mainEntity?: unknown };
+    const byType = (type: string) => graph.find((node) => node["@type"] === type) as Node;
+    // Organization with a logo of at least 112 px (Google's minimum).
+    expect(byType("Organization")).toMatchObject({ "@id": "https://www.splatno.com/#organization", name: "Splatno", url: "https://www.splatno.com/", logo: { url: "https://www.splatno.com/apple-icon.png", width: 180, height: 180 } });
+    // Prices come from the plan list, in CZK without VAT, billed monthly.
+    const software = byType("SoftwareApplication");
+    expect(software.publisher).toEqual({ "@id": "https://www.splatno.com/#organization" });
+    expect(software.offers).toMatchObject({ "@type": "AggregateOffer", priceCurrency: "CZK", lowPrice: 790, highPrice: 2990, offerCount: PLANS.length });
+    expect(software.offers.offers.map((offer) => [offer.name, offer.price, offer.priceSpecification.valueAddedTaxIncluded, offer.priceSpecification.billingDuration])).toEqual(PLANS.map((plan) => [`Splatno ${plan.name}`, plan.monthlyCzk, false, "P1M"]));
+    // FAQ answers are the same text the page shows.
+    const faq = getDictionary(locale).landing.faq.items;
+    expect(byType("FAQPage").mainEntity).toEqual(faq.map((item) => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })));
+  });
+
+  it("adds the Google Search Console and Bing verification tokens only when configured", () => {
+    expect(landingMetadata("cs").verification).toBeUndefined();
+    vi.stubEnv("GOOGLE_SITE_VERIFICATION", "google-token");
+    vi.stubEnv("BING_SITE_VERIFICATION", "bing-token");
+    expect(landingMetadata("cs").verification).toEqual({ google: "google-token", other: { "msvalidate.01": "bing-token" } });
+    expect(landingMetadata("en").verification).toEqual({ google: "google-token", other: { "msvalidate.01": "bing-token" } });
+  });
+
+  it.each(["cs", "en"] as const)("gives every sign-in page its own %s title", (locale) => {
+    const { meta } = getDictionary(locale);
+    const titles = [meta.loginTitle, meta.registerTitle, meta.forgotPasswordTitle, meta.resetPasswordTitle, meta.mfaTitle, meta.invitationTitle];
+    expect(new Set(titles).size).toBe(titles.length);
+    for (const title of titles) expect(title).toMatch(/ \| Splatno$/);
   });
 
   it("escapes script terminators without changing structured data", () => {

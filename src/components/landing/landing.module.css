@@ -2539,12 +2539,13 @@
   overflow-wrap: anywhere;
 }
 .faqNumber {
-  color: var(--ledger);
+  /* Muted green with 5.5:1 on white and 4.7:1 on the open (mint) card;
+     the former 70 % opacity gave 3.4:1. */
+  color: #3a7458;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: .04em;
   font-variant-numeric: tabular-nums;
-  opacity: .7;
 }
 .faqIcon {
   display: grid;

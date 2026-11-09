@@ -41,7 +41,8 @@ export function LanguageSwitcher({ className, hrefs }: { className?: string; hre
           key={option}
           type="button"
           lang={option}
-          aria-label={t.switcher[option]}
+          // The accessible name starts with the visible text (WCAG 2.5.3).
+          aria-label={`${SHORT[option]} – ${t.switcher[option]}`}
           aria-pressed={option === locale}
           onClick={() => choose(option)}
         >
