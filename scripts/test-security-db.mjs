@@ -8,7 +8,7 @@ import { pg_trgm } from "../.cache/reconciliation-tools/node_modules/@electric-s
 const db = new PGlite({ extensions: { pg_trgm } });
 try {
   await replayMigrations((sql) => db.exec(sql), true);
-  for (const name of ["phase0_hardening.sql", "f1_indexes_retention.sql", "f1b_audit_events.sql", "f2_payment_ledger.sql"]) {
+  for (const name of ["phase0_hardening.sql", "f1_indexes_retention.sql", "f1b_audit_events.sql", "f2_payment_ledger.sql", "f3_invoice_customer.sql"]) {
     await db.exec((await readFile(`supabase/tests/${name}`, "utf8")).replace(/^\\.*$/gm, ""));
     console.log(`Passed ${name}`);
   }

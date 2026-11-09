@@ -34,4 +34,19 @@ union all
 -- Od fáze F2: hlídač zápisů. Brána F2 = 0 po dobu 14 dní, teprve pak contract.
 select 'money guard violations in the last 14 days',
        count(*) from public.money_guard_violations
-where recorded_at > now() - interval '14 days';
+where recorded_at > now() - interval '14 days'
+union all
+-- Od fáze F3: stav upomínek ve vlastní tabulce se shoduje s fakturou.
+select 'invoice reminder state matches the invoice',
+       count(*) from public.invoices i left join public.invoice_reminder_state s on s.invoice_id = i.id
+where s.invoice_id is null or s.reminders_sent <> i.reminders_sent or s.paused <> i.reminders_paused
+   or s.next_reminder_at is distinct from i.next_reminder_at or s.last_reminder_at is distinct from i.last_reminder_at
+union all
+select 'invoice document matches the invoice',
+       count(*) from public.invoices i left join public.invoice_documents d on d.invoice_id = i.id and d.is_current
+where (i.file_url is not null or i.money_evidence is not null)
+  and (d.id is null or d.storage_path is distinct from i.file_url or d.money_evidence is distinct from i.money_evidence);
+-- Informativní (nemusí být 0, ukazuje práci před contract krokem F3):
+--   select count(*) from public.invoices where customer_id is null;
+--   select count(*) from public.counterparty_payment_accounts where customer_id is null;
+--   select count(*) from public.counterparty_reminder_preferences where customer_id is null;
