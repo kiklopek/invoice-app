@@ -1,5 +1,8 @@
 import { pathToFileURL } from "node:url";
 
+// Shodné s TRUSTED_EMAIL_MFA_ACCOUNT v src/lib/email-mfa-core.ts (hlídá test).
+export const MFA_BYPASS_ACCOUNT = "test-admin@hlavica.cz";
+
 const required = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
@@ -27,6 +30,16 @@ export function validateProductionEnv(env = process.env) {
   }
   if (env.VERCEL_ENV === "production" && env.REMINDER_TEST_RECIPIENTS?.trim()) {
     errors.push("REMINDER_TEST_RECIPIENTS musí být v produkci prázdné.");
+  }
+  // Provozovatel = support vstup do libovolné firmy, vždy s ověřením kódem.
+  // Účet bez ověření (TRUSTED_EMAIL_MFA_ACCOUNT v src/lib/email-mfa-core.ts)
+  // provozovatelem být nesmí. Vyžaduje se jen na produkčním nasazení.
+  if (env.VERCEL_ENV === "production") {
+    const operators = (env.SPLATNO_OPERATOR_EMAILS ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
+    if (!operators.length) errors.push("Chybí produkční proměnná SPLATNO_OPERATOR_EMAILS.");
+    if (operators.includes(MFA_BYPASS_ACCOUNT)) {
+      errors.push(`SPLATNO_OPERATOR_EMAILS nesmí obsahovat účet bez ověření kódem (${MFA_BYPASS_ACCOUNT}).`);
+    }
   }
   if ((env.EMAIL_MFA_SECRET?.trim().length ?? 0) < 32) {
     errors.push("EMAIL_MFA_SECRET musí mít alespoň 32 znaků.");

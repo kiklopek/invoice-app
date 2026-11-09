@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { validateProductionEnv } from "../../scripts/validate-production-env.mjs";
+import { MFA_BYPASS_ACCOUNT, validateProductionEnv } from "../../scripts/validate-production-env.mjs";
+import { TRUSTED_EMAIL_MFA_ACCOUNT } from "./email-mfa-core";
 import { prepareNextEnv, prepareNextChildEnv } from "../../scripts/prepare-next-env.mjs";
 
 const validProductionEnv = {
@@ -36,6 +37,7 @@ describe("production environment validation", () => {
   });
   it("accepts a complete production configuration", () => {
     expect(validateProductionEnv(validProductionEnv)).toEqual([]);
+    expect(MFA_BYPASS_ACCOUNT).toBe(TRUSTED_EMAIL_MFA_ACCOUNT);
   });
 
   it("blocks an MFA bypass in production", () => {
@@ -56,6 +58,18 @@ describe("production environment validation", () => {
       VERCEL_ENV: "preview",
       REMINDER_TEST_RECIPIENTS: "adam@hlavica.cz",
     })).toEqual([]);
+  });
+
+  // Provozovatel (support do libovolné firmy) musí na produkci existovat a
+  // nesmí to být účet, který obchází ověření kódem z e-mailu.
+  it("requires a separate operator account on the production deployment", () => {
+    const production = { ...validProductionEnv, VERCEL_ENV: "production" };
+    expect(validateProductionEnv(production)).toContain("Chybí produkční proměnná SPLATNO_OPERATOR_EMAILS.");
+    expect(validateProductionEnv({ ...production, SPLATNO_OPERATOR_EMAILS: "provoz@example.com" })).toEqual([]);
+    expect(validateProductionEnv({ ...production, SPLATNO_OPERATOR_EMAILS: "provoz@example.com, Test-Admin@hlavica.cz" }))
+      .toContain("SPLATNO_OPERATOR_EMAILS nesmí obsahovat účet bez ověření kódem (test-admin@hlavica.cz).");
+    expect(validateProductionEnv({ ...validProductionEnv, VERCEL_ENV: "preview" })).toEqual([]);
+    expect(validateProductionEnv(validProductionEnv)).toEqual([]);
   });
 
   it("blocks production when authentication e-mail delivery is disabled", () => {
