@@ -173,7 +173,10 @@
 .page.page :global(.payments-switch-icon) { background: #235c42; color: #fff; }
 
 /* The review uses document scrolling and the shared shell/topbar. */
-.page.page.reviewPage { height: auto; min-height: calc(100 * 1dvh); overflow: visible; padding-top: 12px; padding-bottom: 24px; }
+.page.page.reviewPage { height: auto; min-height: calc(100 * 1dvh); overflow: visible; padding-bottom: 24px; }
+/* The tight top only on desktop: below 1024 px the fixed mobile bar covers the
+   first 60 px, and with 12 px the heading Párování plateb sat under it. */
+@media (min-width: 1024px) { .page.page.reviewPage { padding-top: 12px; } }
 .page.page.reviewPage > .stage { display: block; max-width: none; height: auto; min-height: 0; margin-block: 0; flex: none; }
 
 /* The upload page reflows independently of the shared application header. */
