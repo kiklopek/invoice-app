@@ -180,6 +180,18 @@ Na 1024–1279 × ≤ 768 se task stránky posouvají až o ~120 px (přijato: k
 schovala povinné kroky). Na 4K narážejí stránky na horní stropy růstu a pod obsahem zůstane volno;
 to je záměr (pravidlo 6: text roste jen do maxima role).
 
+## Veřejné stránky a Onboarding
+
+| Stránka | Tablet a nízká okna | Velká okna |
+| ------- | ------------------- | ---------- |
+| Přihlášení, Obnova a Nové heslo, MFA, Registrace | beze změny (vejdou se) | od 2200 × 1240 roste celá karta i s textem (1,1×, od 2560 1,16×) |
+| Pozvánka do firmy | na desktopu s výškou ≤ 900 px kompaktní (pole 44 px, tlačítko 48 px, menší nadpis a logo), ≤ 800 px i užší okraje; tlačítko „Vstoupit do firmy“ je vždy v okně | jako přihlášení |
+| Onboarding | kroky vlevo od 1180 px aspoň 304 px, popisy na jeden řádek | od 2200 × 1240 roste karta (1,1× / 1,16×) |
+| Podmínky, Ochrana osobních údajů | beze změny | od 1920 px roste celý článek (1,1×, od 2560 1,2×); délka řádku zůstává ~75 znaků |
+
+Na 4K zůstávají veřejné stránky ve velikosti 2560 jako zbytek aplikace. Pilíře hlídá
+`pillar-guard.mjs` i pro tyto stránky (25 stránek × 3 velikosti).
+
 ## Otevřené vrstvy a sbalitelné sekce
 
 Pro interaktivní prvky platí doplněk `05_INTERACTIVE_STATES.md` (I-R01 až I-R12). Implementováno:

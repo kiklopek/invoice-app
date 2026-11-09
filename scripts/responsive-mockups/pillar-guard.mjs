@@ -24,6 +24,10 @@ const ROUTES = (arg("only")?.split(",") ?? [
   "/dashboard", "/invoices", "/invoices/detail", "/invoices/new", "/invoices/create",
   "/invoices/import", "/invoices/payments", "/invoices/archive", "/invoices/payments/archive",
   "/customers", "/reminders", "/reports", "/settings", "/notifications", "/predplatne",
+  "/settings/email-template", "/onboarding",
+  // Public pages (no workspace shell).
+  "/login", "/register", "/forgot-password", "/reset-password", "/mfa",
+  "/pozvanka/audit", "/podminky", "/ochrana-osobnich-udaju",
 ]);
 const SIZES = (arg("sizes")?.split(",") ?? ["342x740", "390x844", "1470x830"]).map((s) => {
   const [width, height] = s.split("x").map(Number);

@@ -231,6 +231,8 @@ export async function fixtures(sourceRoot, scenario = "normal") {
     next_cursor: null,
   };
   return {
+    // Synthetic invitation for /pozvanka (fictional company, reserved domain).
+    invitation: { status: "valid", email: "pozvany@example.invalid", role: "accounting", companyName: "Ukázková firma s.r.o.", companyLogo: null, expiresAt: "2026-10-26T12:00:00Z" },
     summary,
     reports,
     list,

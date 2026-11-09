@@ -35,7 +35,7 @@ for (const [width, height] of sizes) {
         const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.opacity !== "0"; };
         const name = (el) => (el.getAttribute("aria-label") || el.closest("label")?.textContent || el.className?.baseVal || el.className || el.tagName).toString().trim().slice(0, 40);
         const box = (el) => el.getBoundingClientRect();
-        for (const el of document.querySelectorAll("main [role=switch]")) {
+        for (const el of document.querySelectorAll("main [role=switch], body > div [role=switch]")) {
           if (!visible(el)) continue;
           const r = box(el);
           out.push({ kind: "switch", name: name(el), w: r.width, h: r.height, bad: r.width < r.height * 1.4 && el.textContent.trim() === "" });
@@ -46,7 +46,12 @@ for (const [width, height] of sizes) {
           // A checkbox drawn as a switch (appearance: none, wider than tall) is a track.
           if (getComputedStyle(el).appearance === "none" && r.width > r.height * 1.2)
             out.push({ kind: "switch", name: name(el), w: r.width, h: r.height, bad: r.width < r.height * 1.4 });
-          else out.push({ kind: el.type, name: name(el), w: r.width, h: r.height, bad: Math.abs(r.width - r.height) > 1.5 });
+          // A native checkbox (appearance: auto) is always drawn square in the
+          // middle of its box (checked in Chromium and WebKit), so a taller box is
+          // only a touch area. A custom-drawn one must itself be square.
+          else if (getComputedStyle(el).appearance === "none")
+            out.push({ kind: el.type, name: name(el), w: r.width, h: r.height, bad: Math.abs(r.width - r.height) > 1.5 });
+          else out.push({ kind: el.type, name: name(el), w: r.width, h: r.height, bad: r.width < 8 });
         }
         for (const el of document.querySelectorAll("main svg")) {
           // Screen-reader-only controls (1 px boxes) are not drawn.
