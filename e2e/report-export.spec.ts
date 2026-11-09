@@ -5,6 +5,8 @@ import { expect, test } from "@playwright/test";
 for (const [width, height] of [[1470, 830], [1920, 1080]]) {
   test(`report export preview stays inside the dialog and scrolls at ${width}px`, async ({ page }) => {
     const pdfRequests: string[] = [];
+    const cspErrors: string[] = [];
+    page.on("console", (m) => { if (m.type() === "error" && /Content Security Policy/i.test(m.text())) cspErrors.push(m.text()); });
     page.on("request", (r) => { if (r.url().endsWith("/api/reports/pdf")) pdfRequests.push(r.postData() ?? ""); });
     await page.setViewportSize({ width, height });
     await page.goto("/reports");
@@ -49,5 +51,9 @@ for (const [width, height] of [[1470, 830], [1920, 1080]]) {
     expect(JSON.parse(pdfRequests.at(-1)!).options).toMatchObject({ mode: "summary" });
     box = await layout();
     expect(box.previewBottom).toBeLessThanOrEqual(box.footerTop + 1);
+
+    // The hidden print frame loads the same PDF (CSP frame-src allows blob:).
+    await expect(page.locator('iframe[title="PDF připravené pro tisk"]')).toHaveAttribute("src", /^blob:/);
+    await expect.poll(() => cspErrors).toEqual([]);
   });
 }
