@@ -419,6 +419,9 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
       </AppFrame>
     );
   if (!invoice) return null;
+  // Smazat jde jen koncept: vystavený doklad, faktura s úhradou nebo s odeslanou
+  // upomínkou se stornuje (databáze to hlídá i sama).
+  const deletable = !issuedDocument(invoice) && Number(invoice.paid_amount) === 0 && !invoice.reminders_sent;
   const initial: InvoiceInput = {
     money_evidence: invoice.money_evidence ?? undefined,
     reminder_policy_id: invoice.reminder_policy_id ?? undefined,
@@ -523,12 +526,12 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
                   ) : null}
                 </>
               ) : null}
-              {mobile && canManage && !issuedDocument(invoice) && <button type="button" className={styles.mobileMenuDelete} disabled={updating || deleting} onClick={() => { closeActionsMenu();setDeleteConfirmOpen(true); }}>Smazat fakturu</button>}
+              {mobile && canManage && deletable && <button type="button" className={styles.mobileMenuDelete} disabled={updating || deleting} onClick={() => { closeActionsMenu();setDeleteConfirmOpen(true); }}>Smazat fakturu</button>}
             </div>
           </details>
           {canManage && (
             <>
-              {!issuedDocument(invoice) && <button
+              {deletable && <button
                 type="button"
                 className="btn danger invoice-delete-button"
                 disabled={updating || deleting}
@@ -767,8 +770,8 @@ export function InvoiceDetailClient({ id, initialData }: { id: string; initialDa
         </header>
         <div className="delete-invoice-content">
           <p>
-            Faktura, její historie, upomínky a přiložený dokument budou trvale odstraněny.
-            Případné bankovní platby zůstanou zachované, ale od faktury se odpojí.
+            Faktura a přiložený dokument budou trvale odstraněny. Záznam o smazání
+            zůstane v historii firmy.
           </p>
         </div>
         <footer className="delete-invoice-actions">
