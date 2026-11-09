@@ -125,6 +125,7 @@ export function DashboardClient({
 
   return (
     <AppFrame
+      layout="overview"
       invoiceCount={summary.active_count}
       className={`content ${styles.page}`}
     >
@@ -349,6 +350,10 @@ function RecentInvoices({
                         {invoice.invoice_number}
                       </Link>
                       <small>VS {invoice.variable_symbol || "—"}</small>
+                      {/* Shown instead of the Odběratel column when the table is narrow. */}
+                      <small className={styles.compactCustomer}>
+                        {invoice.counterparty_name}
+                      </small>
                     </td>
                     <td title={invoice.counterparty_email || undefined}>
                       <strong>{invoice.counterparty_name}</strong>

@@ -507,3 +507,13 @@
     width: 100%;
   }
 }
+
+/* Large screens (TRANSITION_RULES pravidla 6 a 11): the sections grow with the
+   page header from 1600 to 2560 px (--header-zoom); they are in normal flow, so
+   the zoom also widens the page's max width proportionally. Below 1600 px
+   (pillars) nothing changes. */
+@media screen and (min-width: 1600px) {
+  .page > :not(header) {
+    zoom: var(--header-zoom, 1);
+  }
+}

@@ -21,8 +21,8 @@ export function PaymentsClient({ initialData }: { initialData: PaymentsPageData 
   }, [reviewActive]);
 
   return (
-    <AppFrame className={`content section-page payments-page payments-upload-page ${styles.page}${reviewActive ? ` ${styles.reviewPage}` : ""}`}>
-      <div className={styles.stage}>
+    <AppFrame layout={reviewActive ? "document" : "task"} className={`content section-page payments-page payments-upload-page ${styles.page}${reviewActive ? ` ${styles.reviewPage}` : ""}`}>
+      <div className={styles.stage} data-workspace-stage>
       {!reviewActive && <Link href="/invoices/payments/archive" className={styles.mobileBack}><Icon name="arrow-left"/>Zpět na platby</Link>}
       {!reviewActive && <header className="section-header payments-hero">
         <div className="payments-hero-copy">

@@ -3,6 +3,7 @@ import {
   DEFAULT_INVOICE_PAGE_SIZE,
   INVOICE_PAGE_SIZE_COOKIE,
   parseInvoicePageSize,
+  parseInvoicePageSizeChoice,
 } from "@/lib/invoice-page-size";
 import { getCachedRequestIdentity } from "@/lib/auth";
 import { loadInvoiceListTotals } from "@/lib/invoice-list-totals";
@@ -25,9 +26,16 @@ export default async function InvoicesPage({
       for (const item of value) params.append(key, item);
   }
   params.set("paged", "1");
-  const savedSize = parseInvoicePageSize(
+  const savedChoice = parseInvoicePageSizeChoice(
     (await cookies()).get(INVOICE_PAGE_SIZE_COOKIE)?.value,
   );
+  // Automaticky is fitted in the browser; the server renders the default size.
+  const savedSize = savedChoice === "auto" ? null : savedChoice;
+  // A size in the link (shared or bookmarked) wins over the saved choice.
+  const linkedSize = params.has("page_size")
+    ? parseInvoicePageSize(params.get("page_size"))
+    : null;
+  const pageSizeChoice = linkedSize ?? savedChoice ?? DEFAULT_INVOICE_PAGE_SIZE;
   if (!params.has("page_size") && savedSize)
     params.set("page_size", String(savedSize));
   const query = parseInvoiceListQuery(params) ?? {
@@ -76,6 +84,7 @@ export default async function InvoicesPage({
       initialTotals={initialTotals}
       initialQuery={query}
       initialKey={`/api/invoices?${normalized.toString()}`}
+      initialPageSizeChoice={pageSizeChoice}
     />
   );
 }

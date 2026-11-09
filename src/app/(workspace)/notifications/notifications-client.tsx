@@ -10,9 +10,9 @@ export function NotificationsClient() {
   const [pages, setPages] = useState<(string | null)[]>([null]);
   const { data, error, isLoading, mutate } = useNotifications({ unread, cursor: pages.at(-1) ?? null, limit: 30 });
   const { busy, actionError, activate, markAll } = useNotificationActions();
-  return <AppFrame className="content section-page"><div className={styles.history}>
+  return <AppFrame className="content section-page" layout="collection"><div className={styles.history}>
     <header className={styles.heading}><div><h1>Oznámení</h1><p>Důležité události vaší firmy.</p></div><button className={styles.textButton} type="button" disabled={busy || !data?.unread_count || Boolean(error)} onClick={() => data && void markAll(data.through)}>Vše jako přečtené</button></header>
-    <section className={styles.panel} aria-label="Historie oznámení">
+    <section className={styles.panel} aria-label="Historie oznámení" data-workspace-surface="records">
       <div className={styles.filters} aria-label="Filtr oznámení">{[false, true].map(value => <button key={String(value)} type="button" aria-pressed={unread === value} onClick={() => { setUnread(value); setPages([null]); }}>{value ? "Nepřečtená" : "Všechna"}</button>)}</div>
       {data?.preview && <p className={styles.previewNote}>Lokální náhled · ukázková oznámení</p>}
       {actionError && <p className={styles.actionError} role="alert">{actionError}</p>}

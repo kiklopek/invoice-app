@@ -337,7 +337,7 @@ export default function ImportInvoicesPage() {
 
   const processingDocuments = mode === "document" && working;
 
-  if (splitMode && active && uploaded) return <AppFrame className={`content ${reviewStyles.page}`}>
+  if (splitMode && active && uploaded) return <AppFrame layout="document" className={`content ${reviewStyles.page}`}>
     <OcrReviewWorkspace
       header={<OcrReviewHeader onBack={() => setReviewHidden(true)} savedCount={savedInvoiceCount} totalCount={queue.length} picker={<OcrDocumentPicker documents={queue.map(item => ({ name: item.file.name, label: item.invoice?.invoice_number ? `${item.invoice.invoice_number} · ${item.invoice.counterparty_name}` : undefined, status: item.status }))} activeIndex={activeIndex} onStop={processingCanStop && working ? cancelProcessing : undefined} onSelect={index => { setActiveIndex(index); setActiveField(null); setMobileView("data"); }}/>}/>}
       view={mobileView}
@@ -372,8 +372,8 @@ export default function ImportInvoicesPage() {
 
   const isStart = mode === "document" ? queue.length === 0 : !csvFile;
 
-  return <AppFrame className={`content section-page ${styles.page} ${isStart ? styles.start : ""} ${isStart && mode === "document" ? styles.documentStart : ""}`}>
-    <div className={styles.stage}>
+  return <AppFrame layout={isStart ? "task" : "document"} className={`content section-page ${styles.page} ${isStart ? styles.start : ""} ${isStart && mode === "document" ? styles.documentStart : ""}`}>
+    <div className={styles.stage} data-workspace-stage>
     <div className={styles.header}>
     <header className="section-header"><div><Link href="/invoices" className="back-link"><Icon name="arrow-left"/>Zpět na faktury</Link><p>IMPORT</p><h1>Přidat faktury ze souboru</h1><span>Jednu fakturu načtěte z dokumentu, více faktur najednou z CSV.</span></div></header>
     <div className="page-tabs invoice-import-tabs" aria-label="Způsob importu"><button type="button" aria-pressed={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}><Icon name="document"/><span><strong>Dokumenty faktur</strong><small>PDF, fotografie nebo sken</small></span></button><button type="button" aria-pressed={mode === "csv"} className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}><Icon name="statement"/><span><strong>Hromadný import</strong><small>Více faktur ze souboru CSV</small></span></button></div>

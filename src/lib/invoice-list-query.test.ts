@@ -13,6 +13,9 @@ describe("invoice list query", () => {
     expect(parseInvoiceListQuery(new URLSearchParams())?.pageSize).toBe(25);
     for (const size of [10,25,50,100]) expect(parseInvoiceListQuery(new URLSearchParams(`page_size=${size}`))?.pageSize).toBe(size);
     for (const size of ["", "0", "500", "1000000", "25.5", "-10", "bad"]) expect(parseInvoiceListQuery(new URLSearchParams(`page_size=${size}`))).toBeNull();
+    // "Automaticky" asks for exactly the rows that fit: any whole number 5–100.
+    for (const size of [5, 7, 13, 100]) expect(parseInvoiceListQuery(new URLSearchParams(`page_size=${size}`))?.pageSize).toBe(size);
+    for (const size of ["4", "101", "7.0", "07", " 7", "auto"]) expect(parseInvoiceListQuery(new URLSearchParams(`page_size=${size}`))).toBeNull();
   });
 
   it("rejects invalid periods, enums and unbounded input", () => {

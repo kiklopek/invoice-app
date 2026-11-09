@@ -972,10 +972,28 @@ select.pageSize {
   }
 }
 @media (min-width: 768px) {
+  .page.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding-bottom: 0;
+  }
+  .page > * {
+    flex-shrink: 0;
+  }
+  .panel {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
   .pagination {
+    margin-top: auto;
     padding-block: 22px;
   }
 }
+
+
+
 @media (max-width: 1399px) and (min-width: 1024px) {
   .filterGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1133,4 +1151,376 @@ select.pageSize {
 
 @media screen and (max-width: 420px) {
   .filters .dateRange { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+
+/* ---- Compact list (TRANSITION_RULES pravidla 7, 10, 13) ----------------------
+   A component rule: when the records panel is narrower than the full table
+   (1090 px: tablets, 1366 px laptops), the table drops its horizontal scroll and
+   the Uhrazeno column; partial payments show a mini bar under the status.
+   Columns are fixed tracks so every row lines up; only Odběratel flexes.
+   The date ranges move behind "Datum a další"; active ones stay visible as
+   chips. Scoped to the desktop shell: mobile keeps its own card layout. */
+.moreFiltersCompact,
+.statusProgress {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .panel {
+    container: invoice-records / inline-size;
+  }
+  @container invoice-records (max-width: 1089px) {
+    .table {
+      min-width: 0;
+    }
+    .checkCol { width: 40px; }
+    .numberCol { width: 132px; }
+    .customerCol { width: auto; }
+    .amountCol { width: 132px; }
+    .dueCol { width: 148px; }
+    .statusCol { width: 152px; }
+    .paidCol { width: 0; }
+    .actionsCol { width: 44px; }
+    /* Kept off here even if the wide rule below would match a later size. */
+    .issuedCol, .remindersCol { width: 0; }
+    /* The cell stays (so Akce keeps its column) with no width or content. */
+    .table .paidCell {
+      padding: 0;
+      overflow: hidden;
+    }
+    .table .paidCell > * {
+      display: none;
+    }
+    .dueCell small {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .statusCell .badge {
+      max-width: 100%;
+      white-space: nowrap;
+    }
+    .statusProgress {
+      display: block;
+      width: min(100%, 120px);
+      height: 4px;
+      margin-top: 6px;
+      border-radius: 99px;
+      background: #edf1ef;
+      overflow: hidden;
+    }
+    .statusProgress i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: #2775bc;
+    }
+    .filterGrid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+    }
+    .filterGrid > .filterActions {
+      grid-column: 3;
+      grid-row: 1;
+    }
+    .filterGrid > .range,
+    .filterGrid > .range + .range {
+      grid-column: auto;
+      grid-row: 2;
+      max-width: none;
+    }
+    .filters:has(:global(#invoice-advanced-filters)[hidden]) .filterGrid > .range {
+      display: none;
+    }
+    .moreFiltersWide {
+      display: none;
+    }
+    .moreFiltersCompact {
+      display: inline;
+    }
+    .advanced {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+/* Tablet and short-window header: shorter title and no subtitle, so the records
+   start higher (1366 × 768 fits its rows; the 830 px tall pillar is unchanged). */
+@media (min-width: 1024px) and (max-width: 1279px), (min-width: 1024px) and (max-height: 800px) {
+  .pageHeader {
+    margin: 24px 0 20px;
+  }
+  .pageHeader h1 {
+    margin-bottom: 0;
+    font-size: 32px;
+    line-height: 38px;
+  }
+  .subtitle {
+    display: none;
+  }
+}
+
+/* ---- Wide list (TRANSITION_RULES pravidla 11, 13) ---------------------------
+   Vystaveno and Upomínky exist in every row but take no width until the panel
+   is wide (from 1400 px: 1920 px windows and up), so narrower layouts and the
+   pillars are untouched and the columns stay aligned. In the wide panel every
+   column is a share of the width, so the table grows evenly instead of leaving
+   one huge Odběratel column. */
+.issuedCol,
+.remindersCol {
+  width: 0;
+}
+.table .issuedCell,
+.table .remindersCell {
+  padding: 0;
+  overflow: hidden;
+}
+.table .issuedCell > *,
+.table .remindersCell > * {
+  display: none;
+}
+@media (min-width: 1024px) {
+  @container invoice-records (min-width: 1400px) {
+    .checkCol { width: 3%; }
+    .numberCol { width: 10%; }
+    .customerCol { width: 18%; }
+    .issuedCol { width: 8%; }
+    .amountCol { width: 10%; }
+    .dueCol { width: 11%; }
+    .statusCol { width: 11%; }
+    .paidCol { width: 15%; }
+    .remindersCol { width: 10%; }
+    .actionsCol { width: 4%; }
+    .table .issuedCell,
+    .table .remindersCell {
+      padding: 10px;
+    }
+    .table .issuedCell > *,
+    .table .remindersCell > * {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+/* Large screens: secondary text, pills and headers grow with the cells
+   (record text 14 → 16 px from the shell), up to the caps of rule 6. */
+@media (min-width: 1600px) {
+  .table {
+    --list-grow: var(--workspace-grow, 0px);
+  }
+  /* Amounts and names follow the cell's record text instead of a fixed 13 px
+     (.page outranks the global td strong rule in minimal.css). */
+  .page .table td strong {
+    font-size: inherit;
+  }
+  .table th {
+    font-size: calc(11px + var(--list-grow) / 960);
+  }
+  .table small {
+    font-size: calc(12px + var(--list-grow) * 2 / 960);
+  }
+  .badge {
+    font-size: calc(12px + var(--list-grow) / 960);
+    padding: calc(4px + var(--list-grow) * 2 / 960) calc(8px + var(--list-grow) * 2 / 960);
+  }
+  .badge svg {
+    width: calc(14px + var(--list-grow) * 2 / 960);
+    height: calc(14px + var(--list-grow) * 2 / 960);
+  }
+}
+
+/* ---- Detail pane (TRANSITION_RULES pravidlo 11; same width as
+   INVOICE_DETAIL_PANE_QUERY) ---------------------------------------------------
+   Below 2200 px the wrapper has no box, so the page is exactly as before. Above
+   it the selected invoice's detail sits beside the list at 400 px, as tall as
+   the records, with its actions pinned at the bottom. */
+.records {
+  display: contents;
+}
+.detailPane {
+  display: none;
+}
+@media (min-width: 2200px) {
+  .records {
+    display: flex;
+    flex: 1 0 auto;
+    align-items: stretch;
+    gap: 20px;
+    min-width: 0;
+  }
+  .records > .panel {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .detailPane {
+    position: sticky;
+    top: 20px;
+    display: flex;
+    flex: 0 0 400px;
+    flex-direction: column;
+    align-self: stretch;
+    max-height: calc(100dvh - 40px);
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e7ece8;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+  .table tbody tr[data-selected] {
+    background: #eef6f0;
+    box-shadow: inset 3px 0 0 #23764d;
+  }
+}
+.detailEmpty {
+  margin: auto;
+  padding: 24px;
+  color: #748078;
+  text-align: center;
+}
+.detailBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 24px 8px;
+}
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.detailHead small {
+  color: #788593;
+  font-size: 13px;
+}
+.detailHead h2 {
+  margin: 2px 0 0;
+  color: #0c171d;
+  font-size: 24px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.detailHead .badge {
+  flex: none;
+  white-space: nowrap;
+}
+.detailAmount {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0;
+  padding: 18px;
+  border-radius: 12px;
+  background: #f6f9f6;
+}
+.detailAmount strong {
+  color: #0c171d;
+  font-size: 30px;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.detailAmount small {
+  color: #5e6c66;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.detailFacts {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.detailFacts > div {
+  display: grid;
+  grid-template-columns: 9.5em minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0ed;
+}
+.detailFacts dt {
+  color: #788593;
+  font-size: 14px;
+}
+.detailFacts dd {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  margin: 0;
+  color: #17251e;
+  font-variant-numeric: tabular-nums;
+}
+.detailFacts dd span {
+  color: #788593;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.detailFacts dd span[data-overdue="true"] {
+  color: #d73b3c;
+}
+.detailActions {
+  display: grid;
+  gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #edf0ed;
+  background: #fff;
+}
+.detailPrimary,
+.detailSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.detailPrimary {
+  border: 1px solid #23764d;
+  background: #23764d;
+  color: #fff;
+}
+.detailPrimary svg {
+  width: 18px;
+  height: 18px;
+}
+.detailSecondary {
+  border: 1px solid #dde5df;
+  background: #fff;
+  color: #17251e;
+}
+.detailLink {
+  justify-self: center;
+  padding: 6px;
+  color: #17613f;
+  font-size: 14px;
+}
+
+/* Large screens: the row menu grows with the interface (minimal.css --ui-zoom). */
+@media screen and (min-width: 1600px) {
+  .rowMenu {
+    width: calc(236px * var(--ui-zoom, 1));
+  }
+  .rowMenu > * {
+    zoom: var(--ui-zoom, 1);
+  }
+}
+
+/* Date ranges never clip their text (user report): each date field is at least
+   ten characters plus the calendar icon wide, in whatever font it renders, and
+   the range columns take that width instead of a fixed 220 px (which left
+   "dd.mm.rrrr" cut under the icon from 1400 px on). */
+.dateInput {
+  min-width: calc(10.5ch + 22px);
+}
+.range {
+  max-width: 280px;
+}
+@media (min-width: 1400px) {
+  .filterGrid {
+    grid-template-columns: minmax(135px,156px) minmax(150px,168px) minmax(0,1fr) max-content max-content max-content;
+  }
 }

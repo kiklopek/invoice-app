@@ -510,7 +510,7 @@ export function ReportsClient({
   );
 
   return (
-    <AppFrame className={`content section-page ${styles.frame}`}>
+    <AppFrame layout="overview" className={`content section-page ${styles.frame}`}>
       <div className={`${styles.page} report-screen-document`}>
         <header className={`${styles.heading} report-screen-header`}>
           <div>

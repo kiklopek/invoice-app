@@ -28,7 +28,7 @@
 }
 .shell.shell :global(.sidebar) {
   width: var(--app-sidebar-width);
-  padding: 30px 22px 38px;
+  padding: 30px 22px 16px;
   border-right: 1px solid var(--dash-line);
   background: #f9fbf866;
   color: var(--dash-ink);
@@ -207,7 +207,125 @@
     padding-inline: 16px;
   }
 }
+/* Rail (TRANSITION_RULES pravidlo 5): on landscape tablets a 220 px sidebar left
+   too little room for records, so navigation becomes an 84 px column of icon +
+   label. Labels stay whole (the longest, "Nastavení", fits at 10 px); the open
+   section keeps its sublinks, centred and allowed to wrap, so no page becomes
+   unreachable. The account keeps avatar and logout; name and company remain
+   in the accessible tree and in the avatar tooltip. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .shell {
+    --app-sidebar-width: 84px;
+  }
+  .shell.shell :global(.sidebar) {
+    align-items: stretch;
+    padding: 18px 6px 12px;
+  }
+  .shell.shell :global(.sidebar > .brand) {
+    justify-content: center;
+    margin: 0 0 18px;
+  }
+  .shell.shell :global(.sidebar > .brand > strong),
+  .shell.shell :global(.user-card-details) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .shell.shell :global(.sidebar > .desktop-navigation) {
+    gap: 2px;
+    margin: 0;
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group > a) {
+    position: relative;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    height: auto;
+    min-height: 50px;
+    padding: 7px 2px 6px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group > a em) {
+    position: absolute;
+    top: 3px;
+    right: 6px;
+    min-width: 16px;
+    margin: 0;
+    padding: 1px 4px;
+    font-size: 9px;
+    line-height: 14px;
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems) {
+    gap: 1px;
+    margin: 2px 0 4px;
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a) {
+    justify-content: center;
+    min-height: 28px;
+    padding: 4px 3px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a)::before {
+    display: none;
+  }
+  .shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .shell.shell :global(.sidebar-bottom) {
+    min-width: 0;
+  }
+  .shell.shell .desktopEskoFooter {
+    margin-bottom: 8px;
+  }
+  .shell.shell .desktopEskoFooter button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 0;
+    padding: 4px 0;
+    font-size: 10px;
+    text-align: center;
+  }
+  .shell.shell .desktopEskoFooter button img {
+    width: 40px;
+    height: 36px;
+  }
+  .shell.shell :global(.user-card) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 0;
+    padding: 0;
+  }
+  .shell.shell :global(.user-card .avatar) {
+    width: 40px;
+    height: 40px;
+    flex-basis: auto;
+  }
+  .shell.shell .logoutButton {
+    flex-basis: auto;
+    margin: 0;
+  }
+}
 /* Short desktop windows may scroll navigation instead of losing account actions. */
+@media (min-width: 1100px) and (max-height: 800px) {
+  .shell.shell :global(.desktop-navigation .nav-item-group > a) {
+    height: 42px;
+    min-height: 42px;
+  }
+}
 @media (min-width: 1024px) and (max-height: 740px) {
   .shell.shell :global(.sidebar) {
     overflow-y: auto;
@@ -296,3 +414,206 @@
 }
 
 .desktopEskoFooter { margin-bottom: 24px; }
+
+/* Large screens grow in real sizes, not with a zoom (TRANSITION_RULES pravidla 6
+   a 11): the canvas gets the extra width, and text tokens rise linearly from
+   1600 to 2560 px up to fixed caps. Pages read these tokens; their own
+   components decide what else grows with them. Lengths only, so no browser
+   needs typed division. */
+@media screen and (min-width: 1600px) {
+  .shell.shell > :global(main.content) {
+    --workspace-grow: clamp(0px, calc(100vw - 1600px), 960px);
+    --workspace-detail-text: calc(13px + var(--workspace-grow) * 2 / 960);
+    --workspace-record-text: calc(14px + var(--workspace-grow) * 2 / 960);
+    --workspace-task-title: calc(20px + var(--workspace-grow) * 8 / 960);
+    --workspace-task-body: calc(13px + var(--workspace-grow) * 4 / 960);
+    --workspace-task-meta: calc(12px + var(--workspace-grow) * 3 / 960);
+  }
+
+  .shell :global(main[data-workspace-layout="form"]) {
+    --workspace-canvas-max: 1280px;
+  }
+  .shell :global(main[data-workspace-layout="task"]) {
+    --workspace-canvas-max: none;
+    --workspace-upload-min: clamp(520px, 58dvh, 900px);
+    display: flex;
+    flex-direction: column;
+  }
+  /* Task family: the stage takes the rest of the window height. */
+  .shell :global(main[data-workspace-layout="task"] > [data-workspace-stage]) {
+    flex: 1 0 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-width: var(--workspace-canvas-max);
+    /* No extra top margin: the toolbar's --page-head-gap sets the heading's
+       distance on every page. */
+    margin-block: 0;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td) {
+    height: clamp(63px, 4.5dvh, 88px);
+    font-size: var(--workspace-record-text);
+  }
+}
+
+/* Large-screen navigation (TRANSITION_RULES pravidlo 5). Real sizes instead of a
+   zoom: width, text, icons, logo, Esko and avatar step up together so the
+   sidebar is neither small nor empty, and rows take up spare height (max +28 px)
+   so the profile sits at the bottom without a hole above it. */
+@media screen and (min-width: 1600px) {
+  .shell {
+    --app-sidebar-width: 280px;
+    --nav-text: 18px;
+    --nav-icon: 22px;
+    --nav-row-base: 52px;
+    --nav-sub-text: 15px;
+    --nav-sub-row: 38px;
+    --nav-mark: 30px;
+    --nav-word: 32px;
+    --nav-esko: 60px;
+    --nav-avatar: 46px;
+    --nav-user: 16px;
+    --nav-meta: 14px;
+  }
+  /* Rows grow with the window height (max +28 px) and stay together at the
+     top with Nastavení right after its separator; any height left over stays
+     below the menu, above Esko and the profile (as the user asked). */
+  .shell.shell :global(.sidebar > .desktop-navigation) {
+    flex: 1 1 auto;
+    gap: 2px;
+  }
+  .shell.shell :global(.nav-item-group:has(> a[href="/settings"])) {
+    margin-top: 22px;
+    padding-top: 22px;
+  }
+  .shell.shell :global(.sidebar) {
+    padding: 34px 26px 20px;
+  }
+  .shell.shell :global(.sidebar > .brand) {
+    gap: 11px;
+    margin-bottom: 48px;
+  }
+  .shell.shell :global(.brand > svg) {
+    width: calc(var(--nav-mark) * 24 / 28);
+    height: var(--nav-mark);
+  }
+  .shell.shell :global(.brand > strong) {
+    font-size: var(--nav-word);
+  }
+  .shell.shell :global(.desktop-navigation .nav-item-group > a) {
+    flex: none;
+    height: calc(var(--nav-row-base) + clamp(0px, (100dvh - var(--nav-grow-from, 900px)) * .1, 28px));
+    min-height: 0;
+    gap: 16px;
+    padding: 0 16px;
+    border-radius: 11px;
+    font-size: var(--nav-text);
+  }
+  .shell.shell :global(.nav-symbol),
+  .shell.shell :global(.nav-symbol svg) {
+    width: var(--nav-icon);
+    height: var(--nav-icon);
+  }
+  .shell.shell :global(.desktop-navigation a em) {
+    font-size: calc(var(--nav-text) - 5px);
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a) {
+    min-height: var(--nav-sub-row);
+    padding-left: 26px;
+    font-size: var(--nav-sub-text);
+  }
+  .shell.shell :global(.desktop-navigation .nav-subitems a)::before {
+    font-size: calc(var(--nav-sub-text) + 4px);
+  }
+  .shell.shell .desktopEskoFooter button {
+    gap: 14px;
+    min-height: calc(var(--nav-esko) + 8px);
+    font-size: var(--nav-text);
+  }
+  .shell.shell .desktopEskoFooter button img {
+    width: var(--nav-esko);
+    height: calc(var(--nav-esko) * 554 / 640);
+  }
+  .shell.shell :global(.user-card) {
+    gap: 12px;
+  }
+  .shell.shell :global(.user-card .avatar) {
+    width: var(--nav-avatar);
+    height: var(--nav-avatar);
+    flex-basis: var(--nav-avatar);
+    font-size: calc(var(--nav-user) - 2px);
+  }
+  .shell.shell :global(.user-card strong) {
+    font-size: var(--nav-user);
+  }
+  .shell.shell :global(.user-card small) {
+    font-size: var(--nav-meta);
+  }
+  .shell.shell .logoutButton {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+  .shell.shell .logoutButton svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+@media screen and (min-width: 2200px) {
+  .shell {
+    --app-sidebar-width: 320px;
+    --nav-text: 21px;
+    --nav-icon: 26px;
+    --nav-row-base: 60px;
+    --nav-grow-from: 1100px;
+    --nav-sub-text: 17px;
+    --nav-sub-row: 44px;
+    --nav-mark: 36px;
+    --nav-word: 38px;
+    --nav-esko: 84px;
+    --nav-avatar: 54px;
+    --nav-user: 18px;
+    --nav-meta: 15px;
+  }
+  .shell.shell :global(.sidebar) {
+    padding: 40px 30px 24px;
+  }
+}
+/* Collection family (TRANSITION_RULES pravidla 2–4): the records panel takes the
+   rest of the window, so a short list leaves no empty band under the panel.
+   From 1600 px: below that lists scroll and a flex column would change the
+   pillars' margins. */
+@media (min-width: 1600px) {
+  .shell :global(main[data-workspace-layout="collection"]) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"]) {
+    flex: 1 0 auto;
+  }
+  /* Values and their secondary lines grow with the record text (rule 6),
+     over the global 12/13 px table type. */
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td strong) {
+    font-size: inherit;
+  }
+  .shell :global(main[data-workspace-layout="collection"] [data-workspace-surface="records"] td small) {
+    font-size: calc(12px + var(--workspace-grow, 0px) * 2 / 960);
+  }
+}
+
+/* The desktop toolbar is drawn 20 px lower (workspace-topbar.module.css); the logo
+   follows it so both stay on one axis (TRANSITION_RULES pravidlo 14), and the
+   space under the logo shrinks by the same amount so the menu stays in place. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .shell.shell :global(.sidebar > .brand) { margin: 29px 0 0; }
+}
+@media (min-width: 1100px) and (max-width: 1599px) {
+  .shell.shell :global(.sidebar > .brand) { margin-top: 17px; margin-bottom: 27px; }
+}
+@media (min-width: 1600px) and (max-width: 2199px) {
+  .shell.shell :global(.sidebar > .brand) { margin-top: 14px; margin-bottom: 34px; }
+}
+@media (min-width: 2200px) {
+  .shell.shell :global(.sidebar > .brand) { margin-top: 9px; margin-bottom: 39px; }
+}

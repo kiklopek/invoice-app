@@ -26,3 +26,12 @@ graphify-out/
 /artifacts/
 /docs/redesign/visual-validation/
 /docs/design-audit/**/*.png
+
+# Responsive review exports (regenerable, duplicate sources)
+/responsive-review-export/
+/responsive-review-export.zip
+/Splatno_Frontend_Responsive_Review.zip
+
+# Mockup handoff kit: images are regenerable, keep only the docs in git
+/Splatno_Responsive_Mockup_Kit.zip
+/docs/responsive/handoff/reference/

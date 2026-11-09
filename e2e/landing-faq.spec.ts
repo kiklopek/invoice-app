@@ -52,6 +52,14 @@ for (const locale of ["cs", "en"] as const) {
       });
       if (width > 980) expect(layout.listLeft).toBeGreaterThan(layout.headingRight);
       else expect(layout.listTop).toBeGreaterThan(layout.headingBottom);
+      // A closed question sits in the vertical middle of its card in every
+      // language, also when the list stretches to a taller intro card.
+      const offsets = await cards.evaluateAll((items) => items.map((item) => {
+        const card = item.getBoundingClientRect();
+        const question = item.querySelector("[data-faq-question]")!.getBoundingClientRect();
+        return Math.abs(question.top + question.height / 2 - (card.top + card.height / 2));
+      }));
+      for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
 
       if ([390, 768, 1440].includes(width)) {
         await testInfo.attach("FAQ closed", { body: await faq.screenshot({ animations: "disabled", style: "header { visibility: hidden !important; }" }), contentType: "image/png" });

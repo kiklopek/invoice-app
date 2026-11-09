@@ -1,0 +1,32 @@
+{
+  "total": 168,
+  "files": {
+    "src/app/(onboarding)/onboarding/onboarding.module.css": 5,
+    "src/app/(workspace)/dashboard/dashboard-summary.module.css": 18,
+    "src/app/(workspace)/invoices/[id]/invoice-detail.module.css": 6,
+    "src/app/(workspace)/invoices/import/invoice-import.module.css": 3,
+    "src/app/(workspace)/invoices/import/ocr-review.module.css": 3,
+    "src/app/(workspace)/invoices/invoices.module.css": 3,
+    "src/app/(workspace)/invoices/payments/archive/payment-assistance.module.css": 1,
+    "src/app/(workspace)/invoices/payments/payment-matching.module.css": 8,
+    "src/app/(workspace)/invoices/payments/payments-upload.module.css": 8,
+    "src/app/(workspace)/predplatne/predplatne.module.css": 3,
+    "src/app/(workspace)/reminders/email-templates-section.module.css": 1,
+    "src/app/(workspace)/reports/reports.module.css": 3,
+    "src/app/(workspace)/settings/settings-page.module.css": 2,
+    "src/app/globals.css": 14,
+    "src/app/minimal.css": 34,
+    "src/app/styles/responsive.css": 11,
+    "src/components/auth/auth-shell.module.css": 5,
+    "src/components/auth/login-progress.module.css": 2,
+    "src/components/esko/esko-assistant.module.css": 2,
+    "src/components/financial-report/financial-report-export.module.css": 1,
+    "src/components/import-processing.module.css": 1,
+    "src/components/invoice-creation/invoice-creation.module.css": 1,
+    "src/components/invoice-review-form.module.css": 1,
+    "src/components/landing/landing.module.css": 28,
+    "src/components/layout/dashboard-shell.module.css": 2,
+    "src/components/layout/mobile-navigation.css": 1,
+    "src/components/search/workspace-search.module.css": 1
+  }
+}

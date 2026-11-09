@@ -18,8 +18,7 @@
 .fitting .measurements, .fitting .measurements > span { font-size: inherit; }
 .measurements > span { display: inline-block; width: max-content; }
 .measurements > [data-alternative] { position: absolute; left: 0; top: 0; }
-.visible { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-.visible::-webkit-scrollbar { display: none; }
+.visible { max-width: 100%; }
 .fitting[tabindex] { cursor: help; }
 .tooltip {
   position: fixed;

@@ -337,3 +337,66 @@
 @media screen and (max-width:767px) {
   .page .mobileTabs { margin-bottom:12px; }
 }
+
+/* Large screens (TRANSITION_RULES pravidla 6 a 11; spec Detail faktury): the
+   left column is as tall as the document column and its last card takes the
+   rest, so nothing is left empty under the history; the cards' contents grow
+   with the page headers (minimal.css --header-zoom) inside their own width. */
+@media screen and (min-width: 1600px) {
+  .grid > .mainColumn {
+    align-self: stretch;
+  }
+  .mainColumn > .card:last-child {
+    flex: 1 0 auto;
+  }
+  .mainColumn > .card > :not(.historyDisclosure),
+  .mainColumn > .card > .historyDisclosure > summary,
+  .historyContent > :global(.activity-history) > *,
+  .sideColumn > .card > * {
+    zoom: var(--header-zoom, 1);
+  }
+}
+/* In the stretched cards an empty state sits in the middle, not in the top-left
+   corner (same as the dashboard's empty reminders). */
+@media screen and (min-width: 1600px) {
+  .sideColumn > .card:has(> .empty) {
+    display: flex;
+    flex-direction: column;
+  }
+  .sideColumn > .card > .empty {
+    display: grid;
+    flex: 1 0 auto;
+    place-content: center;
+    text-align: center;
+  }
+  .mainColumn > .card:last-child:has(.historyDisclosure[open] :global(.empty-box)) {
+    display: flex;
+    flex-direction: column;
+  }
+  .mainColumn > .card:last-child .historyDisclosure[open] {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+  .mainColumn > .card:last-child .historyDisclosure[open]::details-content {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+  /* The list fills the stretched card (instead of its 400 px cap) and still
+     scrolls inside when the history is longer than the card. */
+  .mainColumn > .card:last-child .historyDisclosure[open] > .historyContent {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    max-height: none;
+  }
+  .historyContent > :global(.activity-history):has(> :global(.empty-box)) {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+  .historyContent :global(.empty-box) {
+    text-align: center;
+  }
+}

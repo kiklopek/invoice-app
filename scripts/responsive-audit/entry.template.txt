@@ -1,0 +1,39 @@
+import React,{Suspense,useEffect} from 'react';
+import{createRoot}from'react-dom/client';
+import '__SOURCE__/src/app/globals.css';import '__SOURCE__/src/app/minimal.css';import '__SOURCE__/src/app/styles/responsive.css';import '__SOURCE__/src/app/styles/invoice-cards.css';
+import{AppShell,AppFrame}from'__SOURCE__/src/components/layout/app-shell';import{WorkspaceDataProvider}from'__SOURCE__/src/components/workspace-data-provider';import{ToastProvider}from'__SOURCE__/src/components/toast';import{I18nProvider}from'__SOURCE__/src/i18n/client';
+const data=window.__AUDIT_DATA__,route=location.pathname;
+const loaders={
+ '/':()=>import('__SOURCE__/src/components/landing/landing-page').then(m=>({default:()=> <m.LandingPage locale="cs"/>})),
+ '/en':()=>import('__SOURCE__/src/components/landing/landing-page').then(m=>({default:()=> <m.LandingPage locale="en"/>})),
+ '/mfa':()=>import('__SOURCE__/src/app/(auth)/mfa/page'),
+ '/dashboard':()=>import('__SOURCE__/src/app/(workspace)/dashboard/dashboard-client').then(m=>({default:()=> <m.DashboardClient initialData={data.summary} initialNow="2026-10-19T08:00:00Z"/>})),
+ '/invoices':()=>import('__SOURCE__/src/app/(workspace)/invoices/invoices-client').then(m=>({default:()=> <m.InvoicesClient initialData={data.list} initialTotals={data.totals} initialQuery={data.initialQuery} initialKey="/api/invoices?paged=1&page=1" initialNow="2026-10-19T08:00:00Z"/>})),
+ '/invoices/detail':()=>import('__SOURCE__/src/app/(workspace)/invoices/[id]/invoice-detail-client').then(m=>({default:()=> <m.InvoiceDetailClient id={data.detail.invoice.id} initialData={data.detail}/>})),
+ '/invoices/new':()=>import('__SOURCE__/src/app/(workspace)/invoices/new/page'),
+ '/invoices/create':async()=>{const [m,s]=await Promise.all([import('__SOURCE__/src/components/invoice-creation/invoice-creation'),import('__SOURCE__/src/components/invoice-creation/invoice-creation.module.css')]);return{default:()=> <AppFrame className={'content section-page '+s.default.page}><m.InvoiceCreation/></AppFrame>}},
+ '/invoices/import':()=>import('__SOURCE__/src/app/(workspace)/invoices/import/page'),
+ '/invoices/payments':()=>import('__SOURCE__/src/app/(workspace)/invoices/payments/payments-client').then(m=>({default:()=> <m.PaymentsClient initialData={data.payments}/>})),
+ '/invoices/archive':()=>import('__SOURCE__/src/app/(workspace)/invoices/archive/page'),
+ '/invoices/payments/archive':()=>import('__SOURCE__/src/app/(workspace)/invoices/payments/archive/payments-archive-client').then(m=>({default:()=> <m.PaymentsArchiveClient initialData={data.payments}/>})),
+ '/customers':()=>import('__SOURCE__/src/app/(workspace)/customers/customers-client').then(m=>({default:()=> <m.CustomersClient initialData={data.customers}/>})),
+ '/reminders':()=>import('__SOURCE__/src/app/(workspace)/reminders/reminders-client').then(m=>({default:()=> <m.RemindersClient initialData={data.reminder}/>})),
+ '/settings/email-template':()=>import('__SOURCE__/src/app/(workspace)/reminders/reminders-client').then(m=>({default:()=> <m.RemindersClient key="templates" initialData={data.reminder} view="templates"/>})),
+ '/reports':()=>import('__SOURCE__/src/app/(workspace)/reports/reports-client').then(m=>({default:()=> <m.ReportsClient initialData={data.reports} initialFrom="2026-01-01" initialTo="2026-10-19" initialGeneratedAt="2026-10-19T08:00:00Z"/>})),
+ '/settings':()=>import('__SOURCE__/src/app/(workspace)/settings/settings-client').then(m=>({default:()=> <m.SettingsClient initialData={data.settings}/>})),
+ '/notifications':()=>import('__SOURCE__/src/app/(workspace)/notifications/notifications-client').then(m=>({default:m.NotificationsClient})),
+ '/predplatne':()=>import('__SOURCE__/src/app/(workspace)/predplatne/subscription-client').then(m=>({default:m.SubscriptionClient})),
+ '/login':()=>import('__SOURCE__/src/components/auth/login-form').then(m=>({default:()=> <m.LoginForm brand={data.authBrand||"splatno"}/>})),
+ '/register':()=>import('__SOURCE__/src/components/auth/register-form').then(m=>({default:()=> <m.RegisterForm brand={data.authBrand||"splatno"}/>})),
+ '/forgot-password':()=>import('__SOURCE__/src/app/(auth)/forgot-password/page'),
+ '/reset-password':()=>import('__SOURCE__/src/app/(auth)/reset-password/page'),
+ '/onboarding':()=>import('__SOURCE__/src/app/(onboarding)/onboarding/onboarding-client').then(m=>({default:()=> <m.OnboardingClient accountId="audit-user" accountEmail="demo@example.invalid" accountName="Ukázkový uživatel" payment={data.onboardingPayment||null} initialDraft={data.onboardingDraft||null}/>})),
+ '/pozvanka/audit':()=>import('__SOURCE__/src/app/(auth)/pozvanka/[token]/invitation-client').then(m=>({default:()=> <m.InvitationClient token="audit-synthetic-token" invitation={data.invitation} signedInAs={data.signedInAs||null}/>})),
+ '/provoz':()=>import('__SOURCE__/src/app/(operator)/provoz/operator-console').then(m=>({default:()=> <m.OperatorConsole operatorEmail="demo@example.invalid" companies={[{id:'audit-org',name:'Ukázková firma s.r.o.',ico:'12345678',email:'demo@example.invalid',created_at:'2026-10-19',state:'active',plan:'Profi',trial:null,trialDenied:null,stripeCustomer:null}]} stripeDashboard="https://example.invalid"/>})),
+ '/podminky':()=>import('__SOURCE__/src/app/(legal)/podminky/page'),
+ '/ochrana-osobnich-udaju':()=>import('__SOURCE__/src/app/(legal)/ochrana-osobnich-udaju/page'),
+};
+const Page=React.lazy(loaders[route]||loaders['/dashboard']);
+class Boundary extends React.Component{state={error:null};static getDerivedStateFromError(error){return{error:String(error)}}render(){return this.state.error?<pre data-audit-error>{this.state.error}</pre>:this.props.children}}
+const workspace=!['/','/en','/mfa','/login','/register','/forgot-password','/reset-password','/onboarding','/pozvanka/audit','/provoz','/podminky','/ochrana-osobnich-udaju'].includes(route);
+createRoot(document.getElementById('root')).render(<Boundary><I18nProvider locale="cs"><WorkspaceDataProvider><ToastProvider><Suspense fallback={<p data-audit-loading>Načítání testované komponenty</p>}>{workspace?<AppShell initialProfile={data.profile}><Page/></AppShell>:<Page/>}</Suspense></ToastProvider></WorkspaceDataProvider></I18nProvider></Boundary>);

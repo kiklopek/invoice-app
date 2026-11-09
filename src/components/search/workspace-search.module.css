@@ -1,6 +1,8 @@
 .form { position: relative; }
 .shortcut { display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 3px 5px; border: 1px solid #dce4df; border-radius: 5px; color: #87928b; font: inherit; font-size: 12px; white-space: nowrap; }
 .submit, .srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; border: 0; clip-path: inset(50%); white-space: nowrap; }
+/* The touch-screen 44 px minimum for buttons must not give the hidden submit a box. */
+.form .submit:not(:focus-visible) { min-width: 0; min-height: 0; }
 .submit:focus-visible { position: static; width: 32px; height: 32px; margin: 0; clip-path: none; background: #edf5ef; color: #2b7753; }
 .dropdown { position: absolute; z-index: 80; top: calc(100% + 8px); inset-inline: 0; min-width: 0; padding: 6px; border: 1px solid #dfe8e2; border-radius: 12px; background: #fff; box-shadow: 0 12px 36px #163d2720 !important; color: #17251e; }
 .caption { padding: 7px 8px 9px; color: #7a8780; font-size: 11px; font-weight: 600; }

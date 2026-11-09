@@ -163,6 +163,14 @@
 }
 @media (max-width: 960px) {
   .row { grid-template-columns: 18px 12px minmax(125px, .8fr) 18px minmax(145px, 1fr); }
+  /* Every part has its own column: the amount had only a row, so auto-placement
+     put it into the 18 px checkbox column and date and amount broke word by word. */
+  .row > input[type="checkbox"] { grid-column: 1; grid-row: 1; }
+  .row > .statusWrap { grid-column: 2; grid-row: 1; }
+  .row > .payment { grid-column: 3; grid-row: 1 / span 2; }
+  .row > .infoWrap { grid-column: 4; grid-row: 1; }
+  .row > .invoiceBlock { grid-column: 5; grid-row: 1; }
+  .row > .rowActions { grid-column: 5; grid-row: 2; }
   .rowActions { grid-column: 5; border: 0; padding: 4px 0 0 16px; justify-content: flex-start; }
   .invoiceBlock { grid-column: 5; grid-row: 1; }
   .payment { grid-row: 1; }
@@ -182,7 +190,21 @@
   .chips b { min-width: 20px; height: 20px; }
   .search { flex: 1; min-width: 0; }
   .filterButton > button { padding-inline: 10px; }
-  .row { grid-template-columns: 18px 12px minmax(0, 1fr) 22px; gap: 12px; padding: 15px; }
+  /* Checkbox and status dot share one narrow column, so the payment and invoice
+     text start close to the left edge. */
+  .row { grid-template-columns: 18px minmax(0, 1fr) 22px; gap: 6px 10px; padding: 14px 12px; }
+  .row > input[type="checkbox"] { grid-column: 1; grid-row: 1; align-self: start; margin-top: 6px; }
+  .row > .statusWrap { grid-column: 1; grid-row: 2; align-self: start; margin-top: 4px; }
+  .row > .payment { grid-column: 2; grid-row: 1; }
+  .row > .infoWrap { grid-column: 3; grid-row: 1; align-self: start; margin-top: 4px; justify-self: end; }
+  .row > .invoiceBlock { grid-column: 2 / -1; grid-row: 2; }
+  .row > .rowActions { grid-column: 2 / -1; grid-row: 3; padding-right: 0; }
+  /* A finished row (no Potvrdit): the menu sits beside its status line in a
+     right column as wide as the button, and the status is not repeated. */
+  .row:not(:has(> .rowActions > .primary)) { grid-template-columns: 18px minmax(0, 1fr) 44px; }
+  .row:not(:has(> .rowActions > .primary)) > .invoiceBlock { grid-column: 2; }
+  .row:not(:has(> .rowActions > .primary)) > .rowActions { grid-column: 3; grid-row: 2; align-self: start; justify-content: flex-end; padding: 0; gap: 0; }
+  .rowActions > .finished { display: none; }
   .payment { grid-column: 3; grid-row: 1; }
   .payment strong { font-size: 21px; order: -1; }
   .payment time { font-size: 11px; }
@@ -241,3 +263,27 @@
 }
 
 .accountWarning summary > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Touch screens (tablets, DevTools device mode): the global 44 px minimum for
+   buttons stretched the 12 px status dot and the 22 px info button into large
+   circles over the amount. They keep their drawn size; an invisible layer
+   gives the 44 px touch area (TRANSITION_RULES pravidlo 9). */
+@media (pointer: coarse) {
+  .statusWrap .statusDot,
+  .infoWrap .infoButton > button {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+  }
+  .statusWrap .statusDot::before { inset: -16px; }
+  .infoWrap .infoButton > button::after {
+    content: "";
+    position: absolute;
+    inset: -12px; /* from the padding box inside the 1 px border */
+  }
+}
+
+/* A statement line without an amount (fees, notices) says so quietly instead
+   of a large dash in the amount's place. */
+.payment strong[data-empty] { font-size: 14px; font-weight: 550; color: #7a8696; letter-spacing: 0; }
+

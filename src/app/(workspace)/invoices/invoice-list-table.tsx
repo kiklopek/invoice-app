@@ -10,6 +10,7 @@ import {
   invoiceDate,
   invoiceMoney,
   invoiceDueContext,
+  invoiceReminderSummary,
   invoicePaidPercentage,
   invoiceStatusLabels,
   sortInvoicePage,
@@ -52,7 +53,13 @@ export function InvoiceListTable({
   onSortChange,
   onExportSelected,
   exporting,
+  rowHeight = null,
+  selectedId = null,
 }: {
+  /** Invoice shown in the detail pane (very wide windows only). */
+  selectedId?: string | null;
+  /** Automaticky: every row gets this height so the list fills the window. */
+  rowHeight?: number | null;
   onExportSelected: (ids: string[]) => void;
   exporting: boolean;
   invoices: Invoice[];
@@ -148,10 +155,12 @@ export function InvoiceListTable({
             <col className={styles.checkCol} />
             <col className={styles.numberCol} />
             <col className={styles.customerCol} />
+            <col className={styles.issuedCol} />
             <col className={styles.amountCol} />
             <col className={styles.dueCol} />
             <col className={styles.statusCol} />
             <col className={styles.paidCol} />
+            <col className={styles.remindersCol} />
             <col className={styles.actionsCol} />
           </colgroup>
           <thead>
@@ -199,6 +208,10 @@ export function InvoiceListTable({
               >
                 {heading("counterparty_name", "Odběratel")}
               </th>
+              {/* Vystaveno and Upomínky appear only in a wide records panel. */}
+              <th scope="col" className={styles.issuedCell}>
+                <span>Vystaveno</span>
+              </th>
               <th
                 scope="col"
                 aria-sort={
@@ -226,6 +239,7 @@ export function InvoiceListTable({
               <th scope="col">Stav</th>
               <th
                 scope="col"
+                className={styles.paidCell}
                 aria-sort={
                   sort === "paid_amount"
                     ? direction === "asc"
@@ -235,6 +249,9 @@ export function InvoiceListTable({
                 }
               >
                 {heading("paid_amount", "Uhrazeno")}
+              </th>
+              <th scope="col" className={styles.remindersCell}>
+                <span>Upomínky</span>
               </th>
               <th scope="col">
                 <span className={styles.srOnly}>Akce</span>
@@ -247,6 +264,7 @@ export function InvoiceListTable({
               const isOpen =
                   invoice.status === "pending" || invoice.status === "overdue",
                 partial = isOpen && Number(invoice.paid_amount) > 0;
+              const reminders = invoiceReminderSummary(invoice);
               const percentage = invoicePaidPercentage(
                 Number(invoice.amount),
                 Number(invoice.paid_amount),
@@ -256,6 +274,8 @@ export function InvoiceListTable({
                   key={invoice.id}
                   data-invoice-id={invoice.id}
                   data-partial={partial || undefined}
+                  style={rowHeight ? { height: rowHeight } : undefined}
+                  data-selected={invoice.id === selectedId || undefined}
                   onMouseEnter={() => onPrefetch(invoice.id)}
                   onTouchStart={() => onPrefetch(invoice.id)}
                   onClick={(event) => {
@@ -306,6 +326,11 @@ export function InvoiceListTable({
                       {invoice.counterparty_email || "—"}
                     </small>
                   </td>
+                  <td className={styles.issuedCell}>
+                    <time dateTime={invoice.issue_date}>
+                      {invoiceDate(invoice.issue_date)}
+                    </time>
+                  </td>
                   <td className={styles.amountCell}>
                     <span className={styles.mobileLabel}>Částka</span>
                     <strong>
@@ -336,6 +361,16 @@ export function InvoiceListTable({
                         ? "Částečně uhrazeno"
                         : invoiceStatusLabels[invoice.status]}
                     </span>
+                    {partial ? (
+                      /* Shown only in the compact list, which hides the Uhrazeno column. */
+                      <span
+                        className={styles.statusProgress}
+                        role="img"
+                        aria-label={`Uhrazeno ${invoiceMoney(Number(invoice.paid_amount), invoice.currency)} z ${invoiceMoney(Number(invoice.amount), invoice.currency)}`}
+                      >
+                        <i style={{ width: `${percentage}%` }} />
+                      </span>
+                    ) : null}
                   </td>
                   <td className={styles.paidCell}>
                     <span className={styles.mobileLabel}>Uhrazeno</span>
@@ -364,6 +399,10 @@ export function InvoiceListTable({
                         %
                       </small>
                     </div>
+                  </td>
+                  <td className={styles.remindersCell}>
+                    <span>{reminders.main}</span>
+                    {reminders.detail ? <small>{reminders.detail}</small> : null}
                   </td>
                   <td className={styles.actionsCell}>
                     <InvoiceRowActions

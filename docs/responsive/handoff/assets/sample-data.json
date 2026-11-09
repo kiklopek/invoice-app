@@ -1,0 +1,695 @@
+{
+ "_poznamka": "Vzorová data pro mockupy. Žádná skutečná firma ani osoba. Úmyslně obsahují dlouhé jméno, dlouhý e-mail a 8místnou částku pro test zkracování (pravidla 7–8).",
+ "uzivatel": {
+  "jmeno": "Ukázkový uživatel",
+  "firma": "Ukázková firma s.r.o.",
+  "inicialy": "UU",
+  "ico": "12345678",
+  "dic": "CZ12345678",
+  "adresa": "Ukázková 1, Praha",
+  "email": "demo@example.invalid",
+  "ucet": "123456789/0100"
+ },
+ "dnes": "Sobota 7. listopadu 2026",
+ "nastenka": {
+  "pozdrav": "Dobrý den, Ukázkový uživateli!",
+  "souhrn": "25 faktur čeká na úplnou úhradu, z toho 7 po splatnosti.",
+  "kpi": [
+   {
+    "popisek": "Celkem faktur",
+    "hodnota": "124",
+    "pod": "Za celé období"
+   },
+   {
+    "popisek": "Čeká na splatnost",
+    "hodnota": "18",
+    "pod": "1 020 000,00 Kč"
+   },
+   {
+    "popisek": "Po splatnosti",
+    "hodnota": "7",
+    "pod": "320 000,00 Kč"
+   },
+   {
+    "popisek": "Zaplaceno",
+    "hodnota": "99",
+    "pod": "1 980 000,00 Kč"
+   }
+  ],
+  "graf_mesice": [
+   "lis",
+   "pro",
+   "led",
+   "úno",
+   "bře",
+   "dub",
+   "kvě",
+   "čvn",
+   "čvc",
+   "srp",
+   "zář",
+   "říj"
+  ],
+  "stav_faktur": {
+   "zaplaceno": [
+    99,
+    "80 %"
+   ],
+   "ceka": [
+    18,
+    "15 %"
+   ],
+   "po_splatnosti": [
+    7,
+    "6 %"
+   ]
+  }
+ },
+ "faktury_soucet": "707 456,00 Kč",
+ "faktury_celkem": 47,
+ "faktury": [
+  {
+   "cislo": "FV-2026-0001",
+   "vs": "2026000001",
+   "odberatel": "Ukázkový odběratel 1 s.r.o.",
+   "email": "kontakt1@example.invalid",
+   "castka": "266 189,00 Kč",
+   "vystaveno": "1. 10. 2026",
+   "splatnost": "14. 10. 2026",
+   "stav": "overdue",
+   "relativne": "Po splatnosti 34 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "2×"
+  },
+  {
+   "cislo": "FV-2026-0002",
+   "vs": "2026000002",
+   "odberatel": "Ukázkový odběratel 2 s.r.o.",
+   "email": "kontakt2@example.invalid",
+   "castka": "15 730,00 Kč",
+   "vystaveno": "2. 10. 2026",
+   "splatnost": "15. 10. 2026",
+   "stav": "overdue",
+   "relativne": "Po splatnosti 33 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "2×"
+  },
+  {
+   "cislo": "FV-2026-0003",
+   "vs": "2026000003",
+   "odberatel": "Ukázkový odběratel s velmi dlouhým názvem společnosti a.s.",
+   "email": "fakturace.oddeleni.dlouhy.nazev@example.invalid",
+   "castka": "243 687,00 Kč",
+   "vystaveno": "3. 10. 2026",
+   "splatnost": "16. 10. 2026",
+   "stav": "waiting",
+   "relativne": "Za 5 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0004",
+   "vs": "2026000004",
+   "odberatel": "Ukázkový odběratel 4 s.r.o.",
+   "email": "kontakt4@example.invalid",
+   "castka": "24 142,00 Kč",
+   "vystaveno": "4. 10. 2026",
+   "splatnost": "17. 10. 2026",
+   "stav": "partial",
+   "relativne": "Za 8 dní",
+   "uhrazeno_procent": 21,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0005",
+   "vs": "2026000005",
+   "odberatel": "Ukázkový odběratel 5 s.r.o.",
+   "email": "kontakt5@example.invalid",
+   "castka": "106 192,00 Kč",
+   "vystaveno": "5. 10. 2026",
+   "splatnost": "18. 10. 2026",
+   "stav": "waiting",
+   "relativne": "Za 7 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0006",
+   "vs": "2026000006",
+   "odberatel": "Ukázkový odběratel 6 s.r.o.",
+   "email": "kontakt6@example.invalid",
+   "castka": "29 900,00 Kč",
+   "vystaveno": "6. 10. 2026",
+   "splatnost": "19. 10. 2026",
+   "stav": "paid",
+   "relativne": "Zaplaceno",
+   "uhrazeno_procent": 100,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0007",
+   "vs": "2026000007",
+   "odberatel": "Ukázkový odběratel 7 s.r.o.",
+   "email": "kontakt7@example.invalid",
+   "castka": "12 500,00 Kč",
+   "vystaveno": "7. 10. 2026",
+   "splatnost": "20. 10. 2026",
+   "stav": "overdue",
+   "relativne": "Po splatnosti 28 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "2×"
+  },
+  {
+   "cislo": "FV-2026-0008",
+   "vs": "2026000008",
+   "odberatel": "Ukázkový odběratel 8 s.r.o.",
+   "email": "kontakt8@example.invalid",
+   "castka": "9 116,00 Kč",
+   "vystaveno": "8. 10. 2026",
+   "splatnost": "21. 10. 2026",
+   "stav": "waiting",
+   "relativne": "Za 10 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0009",
+   "vs": "2026000009",
+   "odberatel": "Ukázkový odběratel 9 s.r.o.",
+   "email": "kontakt9@example.invalid",
+   "castka": "4 750,00 Kč",
+   "vystaveno": "9. 10. 2026",
+   "splatnost": "22. 10. 2026",
+   "stav": "overdue",
+   "relativne": "Po splatnosti 26 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "2×"
+  },
+  {
+   "cislo": "FV-2026-0010",
+   "vs": "2026000010",
+   "odberatel": "Ukázkový odběratel 10 s.r.o.",
+   "email": "kontakt10@example.invalid",
+   "castka": "88 410,50 Kč",
+   "vystaveno": "10. 10. 2026",
+   "splatnost": "23. 10. 2026",
+   "stav": "overdue",
+   "relativne": "Po splatnosti 25 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "2×"
+  },
+  {
+   "cislo": "FV-2026-0011",
+   "vs": "2026000011",
+   "odberatel": "Ukázkový odběratel 11 s.r.o.",
+   "email": "kontakt11@example.invalid",
+   "castka": "1 972,49 Kč",
+   "vystaveno": "11. 10. 2026",
+   "splatnost": "24. 10. 2026",
+   "stav": "waiting",
+   "relativne": "Za 13 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0012",
+   "vs": "2026000012",
+   "odberatel": "Ukázkový odběratel 12 s.r.o.",
+   "email": "kontakt12@example.invalid",
+   "castka": "66 790,11 Kč",
+   "vystaveno": "12. 10. 2026",
+   "splatnost": "25. 10. 2026",
+   "stav": "partial",
+   "relativne": "Za 16 dní",
+   "uhrazeno_procent": 21,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0013",
+   "vs": "2026000013",
+   "odberatel": "Ukázkový odběratel 13 s.r.o.",
+   "email": "kontakt13@example.invalid",
+   "castka": "577,47 Kč",
+   "vystaveno": "13. 10. 2026",
+   "splatnost": "26. 10. 2026",
+   "stav": "waiting",
+   "relativne": "Za 15 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0014",
+   "vs": "2026000014",
+   "odberatel": "Ukázkový odběratel 14 s.r.o.",
+   "email": "kontakt14@example.invalid",
+   "castka": "181 312,73 Kč",
+   "vystaveno": "14. 10. 2026",
+   "splatnost": "27. 10. 2026",
+   "stav": "paid",
+   "relativne": "Zaplaceno",
+   "uhrazeno_procent": 100,
+   "upominky": "—"
+  },
+  {
+   "cislo": "FV-2026-0015",
+   "vs": "2026000015",
+   "odberatel": "Ukázkový odběratel 15 s.r.o.",
+   "email": "kontakt15@example.invalid",
+   "castka": "3 400,00 Kč",
+   "vystaveno": "15. 10. 2026",
+   "splatnost": "14. 10. 2026",
+   "stav": "overdue",
+   "relativne": "Po splatnosti 20 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "2×"
+  },
+  {
+   "cislo": "FV-2026-0016",
+   "vs": "2026000016",
+   "odberatel": "Ukázkový odběratel 16 s.r.o.",
+   "email": "kontakt16@example.invalid",
+   "castka": "8 954,00 Kč",
+   "vystaveno": "16. 10. 2026",
+   "splatnost": "15. 10. 2026",
+   "stav": "waiting",
+   "relativne": "Za 18 dní",
+   "uhrazeno_procent": 0,
+   "upominky": "—"
+  }
+ ],
+ "zakaznici_celkem": 26,
+ "zakaznici": [
+  {
+   "nazev": "Ukázkový odběratel 1 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt1@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "266 189,00 Kč",
+   "pocet_faktur": 1,
+   "neuhrazeno": "24 142,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel s velmi dlouhým názvem společnosti a.s.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "fakturace.oddeleni.dlouhy.nazev@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "15 730,00 Kč",
+   "pocet_faktur": 2,
+   "neuhrazeno": "106 192,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 3 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt3@example.invalid",
+   "telefon": null,
+   "fakturace": "243 687,00 Kč",
+   "pocet_faktur": 3,
+   "neuhrazeno": "29 900,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 4 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt4@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "24 142,00 Kč",
+   "pocet_faktur": 4,
+   "neuhrazeno": "12 500,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 5 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt5@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "106 192,00 Kč",
+   "pocet_faktur": 5,
+   "neuhrazeno": null,
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 6 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt6@example.invalid",
+   "telefon": null,
+   "fakturace": "29 900,00 Kč",
+   "pocet_faktur": 6,
+   "neuhrazeno": "266 189,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 7 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt7@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "12 500,00 Kč",
+   "pocet_faktur": 7,
+   "neuhrazeno": "15 730,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 8 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt8@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "9 116,00 Kč",
+   "pocet_faktur": 1,
+   "neuhrazeno": "243 687,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 9 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt9@example.invalid",
+   "telefon": null,
+   "fakturace": "266 189,00 Kč",
+   "pocet_faktur": 2,
+   "neuhrazeno": "24 142,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 10 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt10@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "15 730,00 Kč",
+   "pocet_faktur": 3,
+   "neuhrazeno": null,
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 11 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt11@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "243 687,00 Kč",
+   "pocet_faktur": 4,
+   "neuhrazeno": "29 900,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 12 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt12@example.invalid",
+   "telefon": null,
+   "fakturace": "24 142,00 Kč",
+   "pocet_faktur": 5,
+   "neuhrazeno": "12 500,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 13 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt13@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "106 192,00 Kč",
+   "pocet_faktur": 6,
+   "neuhrazeno": "9 116,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 14 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt14@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "29 900,00 Kč",
+   "pocet_faktur": 7,
+   "neuhrazeno": "266 189,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 15 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt15@example.invalid",
+   "telefon": null,
+   "fakturace": "12 500,00 Kč",
+   "pocet_faktur": 1,
+   "neuhrazeno": null,
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 16 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt16@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "9 116,00 Kč",
+   "pocet_faktur": 2,
+   "neuhrazeno": "243 687,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 17 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt17@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "266 189,00 Kč",
+   "pocet_faktur": 3,
+   "neuhrazeno": "24 142,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 18 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt18@example.invalid",
+   "telefon": null,
+   "fakturace": "15 730,00 Kč",
+   "pocet_faktur": 4,
+   "neuhrazeno": "106 192,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 19 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt19@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "243 687,00 Kč",
+   "pocet_faktur": 5,
+   "neuhrazeno": "29 900,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 20 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt20@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "24 142,00 Kč",
+   "pocet_faktur": 6,
+   "neuhrazeno": null,
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 21 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt21@example.invalid",
+   "telefon": null,
+   "fakturace": "106 192,00 Kč",
+   "pocet_faktur": 7,
+   "neuhrazeno": "9 116,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 22 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt22@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "29 900,00 Kč",
+   "pocet_faktur": 1,
+   "neuhrazeno": "266 189,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 23 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt23@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "12 500,00 Kč",
+   "pocet_faktur": 2,
+   "neuhrazeno": "15 730,00 Kč",
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 24 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt24@example.invalid",
+   "telefon": null,
+   "fakturace": "9 116,00 Kč",
+   "pocet_faktur": 3,
+   "neuhrazeno": "243 687,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 25 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt25@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "266 189,00 Kč",
+   "pocet_faktur": 4,
+   "neuhrazeno": null,
+   "kategorie_upominek": "Nepřiřazeno",
+   "posledni_faktura": "1. 9. 2026"
+  },
+  {
+   "nazev": "Ukázkový odběratel 26 s.r.o.",
+   "ico": "12345678",
+   "dic": "CZ12345678",
+   "adresa": "Ukázková ulice 123, Praha 110 00",
+   "email": "kontakt26@example.invalid",
+   "telefon": "+420 777 123 456",
+   "fakturace": "15 730,00 Kč",
+   "pocet_faktur": 5,
+   "neuhrazeno": "106 192,00 Kč",
+   "kategorie_upominek": "Standardní",
+   "posledni_faktura": "1. 9. 2026"
+  }
+ ],
+ "upominky": {
+  "kategorie": "Standardní · Výchozí",
+  "kroky": [
+   {
+    "dni": 3,
+    "kdy": "dní před splatností"
+   },
+   {
+    "dni": 0,
+    "kdy": "v den splatnosti"
+   },
+   {
+    "dni": 7,
+    "kdy": "dní po splatnosti"
+   },
+   {
+    "dni": 14,
+    "kdy": "dní po splatnosti"
+   }
+  ],
+  "naplanovano": 4,
+  "vyzaduje_kontrolu": 0
+ },
+ "reporty": {
+  "kpi": [
+   {
+    "popisek": "Fakturováno",
+    "hodnota": "2 237 755,25 Kč",
+    "pod": "47 faktur · s DPH · včetně storna"
+   },
+   {
+    "popisek": "Evidované úhrady",
+    "hodnota": "398 185,25 Kč",
+    "pod": "K vybraným fakturám, bez storna"
+   },
+   {
+    "popisek": "Otevřené pohledávky",
+    "hodnota": "1 839 570,00 Kč",
+    "pod": "Současný zůstatek · 29 faktur"
+   },
+   {
+    "popisek": "Průměrná faktura",
+    "hodnota": "47 611,81 Kč",
+    "pod": "Celkem / 47 vybraných faktur"
+   }
+  ],
+  "top_odberatele": [
+   [
+    "Ukázkový odběratel 1",
+    "1 300 000,00 Kč",
+    "58,1 %"
+   ],
+   [
+    "Ukázkový odběratel 2",
+    "90 000,00 Kč",
+    "4 %"
+   ],
+   [
+    "Ukázkový odběratel 3",
+    "90 000,00 Kč",
+    "4 %"
+   ],
+   [
+    "Ukázkový odběratel 4",
+    "90 000,00 Kč",
+    "4 %"
+   ],
+   [
+    "Ukázkový odběratel 5",
+    "90 000,00 Kč",
+    "4 %"
+   ]
+  ]
+ }
+}

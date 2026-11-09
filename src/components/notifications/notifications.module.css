@@ -57,3 +57,26 @@ li[data-unread] .row { background: #fcfefd; }
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* Notifications page on large screens (collection family): the page column and
+   its panel take the window's height, the pagination sits at the panel's
+   bottom and the list or its empty state fills the space between; contents
+   grow with the page header. Below 1600 px (pillars) nothing changes. */
+@media screen and (min-width: 1600px) {
+  .history {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+  .history > .panel {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+  .history > .panel > .pagination {
+    margin-top: auto;
+  }
+  .history > .panel > * {
+    zoom: var(--header-zoom, 1);
+  }
+}

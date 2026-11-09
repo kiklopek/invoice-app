@@ -15,8 +15,8 @@ const require=createRequire(import.meta.url),vr=createRequire(require.resolve('v
 const {createServer}=await import(pathToFileURL(vr.resolve('vite')).href);
 const server=await createServer({configFile:false,root:fixture,publicDir:resolve('public'),logLevel:'error',server:{host:'127.0.0.1',port:4347,strictPort:true,fs:{allow:[project]}},esbuild:{jsx:'automatic'},css:{postcss:{plugins:[]}},resolve:{alias:[{find:'next/link',replacement:resolve(fixture,'link.tsx')},{find:'next/image',replacement:resolve(fixture,'image.tsx')},{find:'next/navigation',replacement:resolve(fixture,'navigation.tsx')},{find:'@',replacement:resolve('src')}],dedupe:['react','react-dom']}});
 await server.listen();const browser=await chromium.launch();const results=[];
-async function pageFor(width=1536,height=1024,scenario='normal'){
- const page=await browser.newPage({viewport:{width,height}}),data=matchingFixture(scenario),requests=[],errors=[];let failSave=false;
+async function pageFor(width=1536,height=1024,scenario='normal',touch=false){
+ const page=await browser.newPage({viewport:{width,height},hasTouch:touch,isMobile:touch&&width<1000}),data=matchingFixture(scenario),requests=[],errors=[];let failSave=false;
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/api/**',async route=>{
   const r=route.request(),url=new URL(r.url()),path=url.pathname;requests.push({path,method:r.method(),body:r.method()==='PATCH'?r.postDataJSON():null});
@@ -233,6 +233,79 @@ try{
    await c.page.keyboard.press('Escape');await expect(trigger).toBeFocused();
    expect(c.requests.filter(r=>r.method==='PATCH'||r.method==='POST'&&r.path.endsWith('/commit'))).toHaveLength(0);
    expect(c.errors).toEqual([]);
+  }finally{await c.page.close()}
+ });
+}
+// Touch screens (tablets, DevTools device mode) enlarge controls to 44 px; the
+// status dot and the info button must keep their drawn size and only get an
+// invisible 44 px touch area (TRANSITION_RULES pravidlo 9).
+if(!process.argv.includes('--upload-only')&&!process.argv.includes('--esko-only'))for(const width of [1280,1920]){
+ await check(`status dot and info button keep their shape on touch at ${width}`,async()=>{
+  const c=await pageFor(width,900,'normal',true);
+  try{
+   const row=c.page.locator('[data-payment-row="payment-1"]');
+   const sizes=await row.evaluate(el=>{const box=(n)=>{const r=n.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height)];};const area=(n)=>{let w=0,h=0;for(const p of [null,'::before','::after']){const cs=getComputedStyle(n,p);if(p&&cs.content==='none')continue;const W=p?parseFloat(cs.width)||0:n.getBoundingClientRect().width,H=p?parseFloat(cs.height)||0:n.getBoundingClientRect().height;w=Math.max(w,W);h=Math.max(h,H);}return [Math.round(w),Math.round(h)];};const dot=el.querySelector('[class*="statusDot"]'),info=el.querySelector('[class*="infoButton"] > button');return {dot:box(dot),info:box(info),dotArea:area(dot),infoArea:area(info)};});
+   expect(sizes.dot).toEqual([12,12]);
+   expect(sizes.info).toEqual([22,22]);
+   expect(Math.min(...sizes.dotArea)).toBeGreaterThanOrEqual(44);
+   expect(Math.min(...sizes.infoArea)).toBeGreaterThanOrEqual(44);
+  }finally{await c.page.close()}
+ });
+}
+// Phones and portrait tablets: the heading is not under the mobile bar, the
+// row keeps a readable amount column, content starts close to the left edge,
+// no row part overlaps another and a finished row does not repeat its status.
+if(!process.argv.includes('--upload-only')&&!process.argv.includes('--esko-only'))for(const [width,height,scenario] of [[342,740,'normal'],[390,844,'normal'],[390,844,'special'],[768,1024,'normal']]){
+ await check(`matching rows lay out on a ${width} px screen (${scenario})`,async()=>{
+  const c=await pageFor(width,height,scenario,true);
+  try{
+   const r=await c.page.evaluate(()=>{
+    const h1=document.querySelector('main h1'),hr=h1.getBoundingClientRect();
+    const hit=document.elementFromPoint(Math.max(8,hr.left+8),(hr.top+hr.bottom)/2);
+    const rows=[...document.querySelectorAll('[data-payment-row]')].map(row=>{
+     const rr=row.getBoundingClientRect();
+     const parts=[...row.children].filter(k=>k.getBoundingClientRect().width>0).map(k=>k.getBoundingClientRect());
+     let overlap=false;for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){const a=parts[i],b=parts[j];if(a.left<b.right-1&&b.left<a.right-1&&a.top<b.bottom-1&&b.top<a.bottom-1)overlap=true;}
+     const pay=row.querySelector('[class*="_payment_"]'),amount=pay.querySelector('strong');
+     const lh=parseFloat(getComputedStyle(amount).lineHeight)||amount.getBoundingClientRect().height;
+     const finished=row.querySelector('[class*="_finished_"]');
+     const actions=row.querySelector('[class*="_rowActions_"]'),inv=row.querySelector('[class*="_invoiceBlock_"]'),hasPrimary=!!actions.querySelector('[class*="_primary_"]');
+     const menuBeside=hasPrimary?null:Math.abs(actions.getBoundingClientRect().top-inv.getBoundingClientRect().top);
+     const spaceBelow=Math.round(rr.bottom-Math.max(...[...row.children].map(k=>k.getBoundingClientRect().bottom)));
+     return {menuBeside,spaceBelow,payLeft:Math.round(pay.getBoundingClientRect().left-rr.left),payWidth:Math.round(pay.getBoundingClientRect().width),amountLines:Math.round(amount.getBoundingClientRect().height/lh),overlap,finishedShown:!!finished&&finished.getBoundingClientRect().width>0};
+    });
+    return {headingVisible:h1.contains(hit),hitDesc:(hit?hit.tagName+'.'+String(hit.className).slice(0,50)+' @'+Math.round(hr.top):'none'),rows};
+   });
+   expect(r.headingVisible,'heading under the mobile bar: '+r.hitDesc).toBe(true);
+   for(const row of r.rows){
+    expect(row.overlap,'row parts overlap').toBe(false);
+    expect(row.payWidth,'amount column too narrow').toBeGreaterThanOrEqual(150);
+    expect(row.amountLines,'amount wraps').toBe(1);
+    if(width<=700){expect(row.payLeft,'content starts too far right').toBeLessThanOrEqual(56);expect(row.finishedShown,'status repeated in the actions').toBe(false);if(row.menuBeside!==null)expect(row.menuBeside,'menu not level with the status').toBeLessThanOrEqual(8);expect(row.spaceBelow,'empty space under the row content').toBeLessThanOrEqual(16);}
+   }
+  }finally{await c.page.close()}
+ });
+}
+// Popovers open inside the window at large sizes too, where dialogs are zoomed
+// (--ui-zoom): the computed position must account for the zoom.
+if(!process.argv.includes('--upload-only')&&!process.argv.includes('--esko-only'))for(const [width,height] of [[1600,900],[1920,1080],[2560,1440]])for(const touch of [false,true]){
+ await check(`popovers stay inside the window at ${width}${touch?' (touch)':''}`,async()=>{
+  const c=await pageFor(width,height,'normal',touch);
+  try{
+   for(const name of ['Akce platby','Možnosti výpisu','Filtry plateb']){
+    const trigger=c.page.locator(`button[aria-label^="${name}"]`).first();
+    await trigger.click();
+    const dialog=c.page.locator('dialog[open]').last();
+    await expect(dialog).toBeVisible();
+    await c.page.waitForTimeout(120);
+    const box=await dialog.evaluate(d=>{const r=d.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom,vw:innerWidth,vh:innerHeight};});
+    expect(box.left,name).toBeGreaterThanOrEqual(0);
+    expect(box.top,name).toBeGreaterThanOrEqual(0);
+    expect(box.right,name).toBeLessThanOrEqual(box.vw);
+    expect(box.bottom,name).toBeLessThanOrEqual(box.vh);
+    await c.page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+   }
   }finally{await c.page.close()}
  });
 }

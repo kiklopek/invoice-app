@@ -5,6 +5,7 @@ import { Modal } from "@/components/modal";
 import { Icon } from "@/components/icons";
 import { CloseIcon } from "@/components/close-icon";
 import {
+  applyReportMode,
   DEFAULT_REPORT_OPTIONS,
   REPORT_BASES,
   REPORT_MODES,
@@ -20,6 +21,8 @@ const DocumentPreview = dynamic(
   () => import("@/components/document-preview").then((m) => m.DocumentPreview),
   { ssr: false, loading: () => <p role="status">Načítám náhled PDF…</p> },
 );
+/** Wait this long after the last change before rebuilding the preview. */
+const PREVIEW_DELAY_MS = 600;
 type Artifact = {
   file: File;
   url: string;
@@ -48,10 +51,13 @@ export function FinancialReportExport({
     [artifact, setArtifact] = useState<Artifact | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    // The settings whose preview failed; not retried automatically.
+    [failedKey, setFailedKey] = useState<string | null>(null),
+    // Settings of the PDF being built right now.
+    [pendingKey, setPendingKey] = useState<string | null>(null);
   const formId = useId();
-  const lock = useRef(false),
-    controller = useRef<AbortController | null>(null),
+  const controller = useRef<AbortController | null>(null),
     objectUrl = useRef<string | null>(null),
     frame = useRef<HTMLIFrameElement>(null);
   useEffect(
@@ -62,24 +68,31 @@ export function FinancialReportExport({
     [],
   );
   const currentKey = JSON.stringify({ query: filters, options }),
-    fresh = artifact?.key === currentKey;
+    fresh = artifact?.key === currentKey,
+    valid =
+      options.sections.length > 0 &&
+      Boolean(filters.from && filters.to) &&
+      filters.from <= filters.to;
   function close() {
     controller.current?.abort();
+    controller.current = null;
     setOpen(false);
     setBusy(false);
-    lock.current = false;
+    setPendingKey(null);
   }
   const generate = useCallback(
     async (requestFilters = filters, requestOptions = options) => {
-      if (lock.current) return;
       const requestKey = JSON.stringify({
         query: requestFilters,
         options: requestOptions,
       });
-      lock.current = true;
+      // The newest settings win: a PDF still being built for older ones is dropped.
+      controller.current?.abort();
       setBusy(true);
       setError("");
       setNotice("");
+      setFailedKey(null);
+      setPendingKey(requestKey);
       const abort = new AbortController();
       controller.current = abort;
       try {
@@ -113,16 +126,19 @@ export function FinancialReportExport({
           key: requestKey,
         });
       } catch (cause) {
-        if (!abort.signal.aborted)
+        if (!abort.signal.aborted) {
+          setFailedKey(requestKey);
           setError(
             cause instanceof Error
               ? cause.message
               : "Report se nepodařilo vytvořit.",
           );
+        }
       } finally {
         if (controller.current === abort) {
-          lock.current = false;
+          controller.current = null;
           setBusy(false);
+          setPendingKey(null);
         }
       }
     },
@@ -137,6 +153,14 @@ export function FinancialReportExport({
     if (artifact?.key !== JSON.stringify({ query: nextFilters, options }))
       void generate(nextFilters, options);
   }, [query, options, artifact?.key, generate]);
+  // Live preview: every change of type, content or filters rebuilds the PDF
+  // shortly after the last edit. Download and print stay on the PDF that
+  // matches the settings shown, never a stale one.
+  useEffect(() => {
+    if (!open || !valid || fresh || currentKey === failedKey || currentKey === pendingKey) return;
+    const timer = window.setTimeout(() => void generate(), PREVIEW_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [open, valid, fresh, currentKey, failedKey, pendingKey, generate]);
   useEffect(() => {
     const handlePrint = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
@@ -216,7 +240,7 @@ export function FinancialReportExport({
               void generate();
             }}
           >
-            <fieldset disabled={busy}>
+            <fieldset>
               <legend>Typ reportu</legend>
               <div className={styles.modes}>
                 {Object.entries(REPORT_MODES).map(([key, label]) => (
@@ -227,10 +251,12 @@ export function FinancialReportExport({
                       value={key}
                       checked={options.mode === key}
                       onChange={() =>
-                        setOptions({
-                          ...options,
-                          mode: key as ReportOptions["mode"],
-                        })
+                        setOptions(
+                          applyReportMode(
+                            key as ReportOptions["mode"],
+                            options,
+                          ),
+                        )
                       }
                     />
                     <span>
@@ -249,7 +275,7 @@ export function FinancialReportExport({
                 ))}
               </div>
             </fieldset>
-            <fieldset disabled={busy}>
+            <fieldset>
               <legend>Obsah</legend>
               <div className={styles.checks}>
                 {Object.entries(REPORT_SECTIONS).map(([key, label]) => (
@@ -271,7 +297,7 @@ export function FinancialReportExport({
                 ))}
               </div>
             </fieldset>
-            <fieldset disabled={busy}>
+            <fieldset>
               <legend>Období a filtry</legend>
               <div className={styles.pair}>
                 <label>
@@ -382,7 +408,7 @@ export function FinancialReportExport({
                 </select>
               </label>
             </fieldset>
-            <fieldset disabled={busy}>
+            <fieldset>
               <legend>Možnosti PDF</legend>
               <div className={styles.checks}>
                 <label>
@@ -446,13 +472,9 @@ export function FinancialReportExport({
             <button
               type="submit"
               className="btn primary"
-              disabled={busy || !options.sections.length}
+              disabled={busy || !valid}
             >
-              {busy
-                ? "Připravuji PDF…"
-                : fresh
-                  ? "Obnovit PDF"
-                  : "Vytvořit náhled PDF"}
+              {busy ? "Připravuji PDF…" : "Obnovit náhled"}
             </button>
             <button
               type="button"
@@ -477,13 +499,14 @@ export function FinancialReportExport({
                 {error}
               </p>
             )}
-            {artifact && !fresh && (
+            {!valid && (
               <p role="status" className={styles.notice}>
-                Nastavení se změnilo. Vytvořte nový náhled; původní PDF se podle
-                nových filtrů nestahuje ani netiskne.
+                {options.sections.length
+                  ? "Zkontrolujte období: datum Od musí být nejpozději datum Do."
+                  : "Vyberte aspoň jednu oblast obsahu."}
               </p>
             )}
-            {busy ? (
+            {busy && !artifact ? (
               <div className={styles.empty} role="status">
                 <Icon name="document" />
                 <strong>Sestavuji finanční report</strong>
@@ -491,7 +514,12 @@ export function FinancialReportExport({
               </div>
             ) : artifact ? (
               <>
-                <div className={styles.meta}>
+                {valid && !fresh && (
+                  <p role="status" className={styles.updating}>
+                    Aktualizuji náhled podle nového nastavení…
+                  </p>
+                )}
+                <div className={styles.meta} data-stale={!fresh || undefined}>
                   {artifact.pages > 0 ? `${artifact.pages} stran · ` : ""}
                   {artifact.file.name}
                   {artifact.generated && (
@@ -507,7 +535,9 @@ export function FinancialReportExport({
                     </>
                   )}
                 </div>
-                <DocumentPreview file={artifact.file} kind="report" />
+                <div className={styles.previewFrame} data-stale={!fresh || undefined}>
+                  <DocumentPreview file={artifact.file} kind="report" />
+                </div>
               </>
             ) : (
               <div className={styles.empty}>
@@ -531,9 +561,9 @@ export function FinancialReportExport({
               type="submit"
               form={formId}
               className="btn secondary"
-              disabled={busy || !options.sections.length}
+              disabled={busy || !valid}
             >
-              Náhled PDF
+              Obnovit náhled
             </button>
             <button
               type="button"

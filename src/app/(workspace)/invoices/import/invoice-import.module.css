@@ -5,7 +5,7 @@
 .page.page .header :global(.section-header) { margin: 0; }
 .page.page .header :global(.invoice-import-tabs) { width: 100%; max-width: none; margin: 0; }
 .page.page :global(.section-header) { margin: 0 0 22px; }
-.page.page :global(.section-header h1) { color: #173c2d; font-size: clamp(28px, 2.7vw, 42px); letter-spacing: -1.2px; margin: 8px 0 12px; }
+.page.page :global(.section-header h1) { color: #173c2d; font-size: clamp(28px, calc(2.7 * 1vw), 42px); letter-spacing: -1.2px; margin: 8px 0 12px; }
 .page.page :global(.section-header > div > span) { font-size: 14px; line-height: 1.6; color: #52665a; }
 .page.page :global(.back-link) { margin-bottom: 14px; font-size: 12px; }
 .page.page :global(.invoice-import-tabs) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border: none; background: none; padding: 0; margin: 0 0 20px; max-width: 680px; }
@@ -38,8 +38,10 @@
 .page.page :global(.csv-dropzone) { min-height: 220px; background: #f0f5ee; border: 2px dashed #83a08b; }
 .page.page :global(.csv-file-button) { background: #17462f; color: white; }
 @media (min-width: 1024px) and (min-height: 761px) {
-  .start.start { height: 100dvh; display: flex; flex-direction: column; padding-block: 28px; }
-  .start.start > .stage { height: min(86dvh, 1040px); margin-block: auto; display: flex; flex-direction: column; min-height: 0; }
+  .start.start { height: calc(100 * 1dvh); display: flex; flex-direction: column; padding-block: 28px; }
+  /* Anchored under the toolbar like every page heading (shared gap) and filling
+     the rest of the window instead of centring vertically. */
+  .start.start > .stage { flex: 1 1 auto; height: auto; margin-block: 0; display: flex; flex-direction: column; min-height: 0; }
   .start.start .header { flex-shrink: 0; }
   .start.start :global(.invoice-import-workspace) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .start.start :global(.invoice-document-import), .start.start :global(.csv-import-panel) { flex: 1; display: flex; flex-direction: column; }
@@ -156,8 +158,43 @@
 .documentGuidance .guidanceTitle svg { width: 22px; height: 22px; color: #17462f; }
 .documentGuidance strong { font-size: 13px; line-height: 1.5; }
 .documentGuidance small { font-size: 12px; }
-.documentStart.start { height: auto; min-height: 100dvh; }
+.documentStart.start { height: auto; min-height: calc(100 * 1dvh); }
 .documentStart.start > .stage { height: auto; min-height: 0; margin-block: 0; }
+
+@media (min-width: 1024px) {
+  .documentStart.start {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+  .documentStart.start > .stage {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+  .documentStart.start .header { margin-bottom: 0; }
+  .documentStart.start :global(.invoice-import-workspace) {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: 24px;
+  }
+  .documentStart.start :global(.invoice-document-import) { flex: 0 0 auto; }
+}
+
+@media screen and (min-width: 1600px) {
+  /* Task family: the work panel fills the rest of the window with the same
+     24 px above and below, instead of a fixed share with empty space under it. */
+  .documentStart.start :global(.invoice-import-workspace) { flex: 1 0 auto; justify-content: flex-start; }
+  .documentStart.start :global(.invoice-document-import) { flex: 1 0 auto; min-height: var(--workspace-upload-min, 520px); }
+  .page.page :global(.invoice-document-dropzone h2) { font-size: var(--workspace-task-title, 20px); }
+  .page.page :global(.invoice-document-dropzone p) { max-width: 600px; font-size: var(--workspace-task-body, 13px); }
+  .page.page :global(.large-import-icon) { width: 72px; height: 72px; }
+  .page.page :global(.import-drop-action) { min-height: 56px; font-size: 16px; }
+  .documentGuidance strong { font-size: var(--workspace-task-body, 13px); }
+  .documentGuidance small { font-size: var(--workspace-task-meta, 12px); }
+}
 
 @media (min-width: 768px) and (max-width: 1023px) {
   .page.page :global(.invoice-document-import) { grid-template-columns: minmax(0, 1fr); }
@@ -194,4 +231,176 @@
   .documentInfo summary > svg { flex: none; width: 16px; height: 16px; color: #607168; }
   .page .documentInfo .documentGuidance { padding: 16px; gap: 14px; background: transparent; }
   .documentInfo .guidanceTitle { display: none; }
+}
+
+/* Guidance panel: centre the content block in the panel and let its text grow with
+   the panel (rules 11 + 12). At the MacBook panel width (430px) the clamps resolve to
+   the previous 22/13/12px, so the pillar keeps its type sizes. */
+@media (min-width: 1024px) {
+  .guidance.documentGuidance {
+    container-type: inline-size;
+    grid-template-columns: fit-content(100%);
+    justify-content: center;
+    font-size: clamp(13px, 9.29px + 0.862cqi, 16px);
+  }
+  .documentGuidance .guidanceTitle { font-size: clamp(22px, 14.6px + 1.724cqi, 28px); text-wrap: balance; }
+  .page .documentGuidance small, .page .documentGuidance strong { text-wrap: pretty; }
+  .documentGuidance .guidanceTitle > span { width: clamp(44px, 34px + 2.3cqi, 52px); height: clamp(44px, 34px + 2.3cqi, 52px); }
+  .page .documentGuidance strong { font-size: clamp(13px, 9.29px + 0.862cqi, 16px); }
+  .page .documentGuidance small { font-size: clamp(12px, 9.53px + 0.575cqi, 14px); }
+}
+/* When the title has to wrap anyway, don't let its one-line width stretch the column;
+   the column then shrink-wraps the list and stays centred (1024–1300 px viewports). */
+@container (max-width: 320px) {
+  .documentGuidance .guidanceTitle { contain: inline-size; }
+}
+
+/* Both halves of the import panel scale with their own area (TRANSITION_RULES
+   pravidla 11, 12, 15). From 1600 px the panel's height comes from filling the
+   window, not from its content, so each half can be a size container and every
+   size follows its shorter side (cqmin): the content block grows in proportion,
+   stays centred both ways and never outgrows its half. The coefficients make the
+   content fill about as much of each half as on the MacBook pillar (~70 %),
+   with no smaller sizes than before at 1600 × 900; below 1600 px (MacBook pillar) nothing changes. */
+@media screen and (min-width: 1600px) {
+  /* The container's own padding and gap would resolve against an outer
+     container, so the padding follows the window and the spacing between the
+     items is their own margin (which does follow this panel). */
+  .guidance.documentGuidance {
+    container-type: size;
+    align-content: center;
+    gap: 0;
+    padding: clamp(30px, 3.3vmin, 64px);
+  }
+  .documentGuidance > * + * {
+    margin-top: clamp(24px, 6.18cqmin, 64px);
+  }
+  .documentGuidance .guidanceTitle {
+    gap: clamp(14px, 3.6cqmin, 32px);
+    font-size: clamp(22px, 5.66cqmin, 72px);
+  }
+  .documentGuidance .guidanceTitle > span {
+    width: clamp(44px, 11.3cqmin, 110px);
+    height: clamp(44px, 11.3cqmin, 110px);
+    border-radius: clamp(13px, 3.36cqmin, 30px);
+  }
+  .documentGuidance .guidanceTitle svg {
+    width: clamp(22px, 5.66cqmin, 56px);
+    height: clamp(22px, 5.66cqmin, 56px);
+  }
+  .documentGuidance > div {
+    gap: clamp(12px, 3.12cqmin, 30px);
+  }
+  .documentGuidance > div > svg {
+    flex-basis: clamp(23px, 5.93cqmin, 60px);
+    width: clamp(23px, 5.93cqmin, 60px);
+    height: clamp(23px, 5.93cqmin, 60px);
+  }
+  .page .documentGuidance strong { font-size: clamp(13px, 3.35cqmin, 34px); }
+  .page .documentGuidance small {
+    margin-top: clamp(6px, 1.56cqmin, 14px);
+    font-size: clamp(12px, 3.09cqmin, 30px);
+  }
+
+  .page.page :global(.invoice-document-dropzone) {
+    container-type: size;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .page.page :global(.large-import-icon) {
+    width: clamp(72px, 17.5cqmin, 170px);
+    height: clamp(72px, 17.5cqmin, 170px);
+    margin-bottom: clamp(18px, 4.4cqmin, 42px);
+    border-radius: clamp(18px, 4.4cqmin, 42px);
+  }
+  .page.page :global(.large-import-icon svg) {
+    width: clamp(28px, 7.2cqmin, 74px);
+    height: clamp(28px, 7.2cqmin, 74px);
+  }
+  .page.page :global(.invoice-document-dropzone h2) {
+    margin-bottom: clamp(8px, 1.95cqmin, 18px);
+    font-size: clamp(20px, 4.84cqmin, 60px);
+  }
+  .page.page :global(.invoice-document-dropzone p) {
+    max-width: 90%;
+    font-size: clamp(13px, 3.15cqmin, 32px);
+  }
+  .page.page :global(.import-drop-action) {
+    min-height: clamp(56px, 13.6cqmin, 104px);
+    margin-top: clamp(20px, 4.8cqmin, 46px);
+    padding-inline: clamp(20px, 4.8cqmin, 50px);
+    border-radius: clamp(10px, 2.4cqmin, 20px);
+    font-size: clamp(16px, 3.88cqmin, 34px);
+  }
+  .page.page :global(.import-drop-action svg) {
+    width: clamp(20px, 4.8cqmin, 40px);
+    height: clamp(20px, 4.8cqmin, 40px);
+  }
+  .page.page :global(.invoice-document-dropzone) > .dragHint {
+    margin-top: clamp(12px, 2.9cqmin, 28px);
+    font-size: clamp(11px, 2.67cqmin, 22px);
+  }
+  .page .formats {
+    gap: clamp(8px, 1.95cqmin, 16px);
+    margin-top: clamp(14px, 3.3cqmin, 32px);
+  }
+  .page .formats > span {
+    padding: clamp(4px, .98cqmin, 9px) clamp(8px, 1.95cqmin, 18px);
+    font-size: clamp(11px, 2.67cqmin, 22px);
+  }
+  .page.page :global(.invoice-document-dropzone) > .limits {
+    margin-top: clamp(10px, 2.4cqmin, 22px);
+    font-size: clamp(12px, 2.9cqmin, 24px);
+  }
+}
+
+/* One shared column for the title and the items (user report: the text looked
+   misaligned). Item icons sit centred under the title's badge and every item's
+   text starts exactly where the title's text starts; each icon is centred on
+   its bold line. --g-badge / --g-gap are the badge size and the gap after it,
+   the same values the title uses at each size. */
+@media (min-width: 1024px) {
+  .guidance.documentGuidance {
+    --g-badge: 44px;
+    --g-gap: 14px;
+  }
+  .documentGuidance .guidanceTitle {
+    gap: var(--g-gap);
+  }
+  .documentGuidance > div {
+    display: grid;
+    grid-template-columns: var(--g-badge) minmax(0, 1fr);
+    column-gap: var(--g-gap);
+    row-gap: 0;
+    align-items: center;
+  }
+  .documentGuidance > div > svg {
+    grid-row: 1;
+    justify-self: center;
+  }
+  .documentGuidance > div > span {
+    display: contents;
+  }
+  .documentGuidance > div strong {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .documentGuidance > div small {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+@media screen and (min-width: 1600px) {
+  .guidance.documentGuidance {
+    --g-badge: clamp(44px, 11.3cqmin, 110px);
+    --g-gap: clamp(14px, 3.6cqmin, 32px);
+  }
+}
+
+/* Short laptop windows (≤ 740 px tall, e.g. 1280 × 720): the header sub-line
+   repeats the panel's own lead, so it steps back and the start screen fits. */
+@media (min-width: 1024px) and (max-height: 740px) {
+  .page.page :global(.section-header > div > span) { display: none; }
 }

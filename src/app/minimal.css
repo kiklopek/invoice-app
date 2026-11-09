@@ -668,8 +668,8 @@ tr:hover td { background: #fafbf9; }
 .invoice-pagination > span { color: var(--muted); font-size: 11px; }
 
 /* Formuláře a import */
-.manual-invoice-page { width: min(100%, 960px); margin-inline: auto; }
-.manual-invoice-page .standalone-form { width: 100%; }
+.manual-invoice-page { width: min(100%, var(--workspace-canvas-max, 960px)); margin-inline: auto; }
+.manual-invoice-page .standalone-form { width: 100%; max-width: none; }
 .standalone-form { width: min(100%, 960px); }
 .invoice-import-tabs { margin: 0 0 18px; vertical-align: top; }
 .invoice-import-workspace { width: min(100%, 1120px); margin-inline: auto; }
@@ -3199,7 +3199,9 @@ th,
 .customer-phone-edit button { display: grid; place-items: center; width: 26px; height: 26px; border: none; border-radius: 6px; background: var(--green-soft); color: var(--green); cursor: pointer; }
 .customer-phone-edit button svg { width: 14px; height: 14px; }
 .customer-email-display { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; border: none; background: none; padding: 0; font: inherit; color: var(--muted); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
-.customer-contact-value { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+/* One line with an ellipsis; the full value is in the title (rule 7). Breaking an
+   e-mail mid-word made "kontakt1@example.inval / id" on the MacBook pillar. */
+.customer-contact-value { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .customer-contact-line { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
 .customer-contact-edit { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; padding: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
 .customer-contact-edit svg { width: 14px; height: 14px; }
@@ -3589,13 +3591,89 @@ th,
 [data-popup][data-placement="below"] { bottom: auto !important; top: calc(100% + 8px) !important; }
 details[open] > [data-popup]:not([data-fitted]) { visibility: hidden; }
 
-/* Exact financial values scroll within their own cell when unusually long. */
-.customer-amount { display: inline-block; white-space: nowrap; overflow-x: auto; }
+/* Customer amounts use the shared fitting component to adapt to the cell width. */
 .customer-billing-cell, .customer-outstanding-cell { min-width: 0; }
 .customer-invoices-link, .outstanding-badge { max-width: 100%; min-width: 0; }
 .payment-history-summary, .payment-history-allocations { min-width: 0; }
 .payment-history-summary > strong { min-width: 0; max-width: 100%; }
 .quick-payment-summary > strong { display: block; max-width: 100%; white-space: nowrap; overflow-x: auto; font-variant-numeric: tabular-nums; }
+/* Touch targets inside overlays (WCAG 2.5.5, handoff I-R10): on touch screens
+   every control in a menu, popover, dialog or option list is at least 44 px
+   tall. Inline text links are unaffected (min-height does not apply to inline
+   boxes); a mouse or trackpad keeps the denser sizes. */
+@media (pointer: coarse) {
+  :is([data-popup], dialog, [role="dialog"], [role="listbox"], [role="menu"])
+    :is(a[href], button, select, summary, [role="option"], input:not([type="checkbox"], [type="radio"], [type="hidden"])) {
+    min-height: 44px;
+  }
+  :is(dialog, [role="dialog"]) label:has(input:is([type="checkbox"], [type="radio"])) {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  details:has(> [data-popup]) > summary {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  :is([data-popup], [role="dialog"]:not(dialog), [role="menu"]) :is(a[href], button) {
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Overlays on large screens (TRANSITION_RULES pravidla 6 a 11, handoff 05):
+   menus, popovers, dialogs and the notification panel grow with the rest of the
+   interface instead of staying at 11–13 px next to 16 px tables. Their content
+   is zoomed in four steps; the overlay boxes themselves are not, because their
+   position is computed in pixels from the trigger. Fixed-width boxes widen by
+   the same factor in their own modules. Below 1600 px nothing changes. */
+:root { --ui-zoom: 1; }
+@media screen and (min-width: 1600px) { :root { --ui-zoom: 1.06; } }
+@media screen and (min-width: 1920px) { :root { --ui-zoom: 1.1; } }
+@media screen and (min-width: 2200px) { :root { --ui-zoom: 1.13; } }
+@media screen and (min-width: 2560px) { :root { --ui-zoom: 1.16; } }
+@media screen and (min-width: 1600px) {
+  [data-popup] > * {
+    zoom: var(--ui-zoom);
+  }
+  /* Modal dialogs are centred by the browser, so the whole box can scale. Their
+     limits are in the dialog's own (zoomed) units, so the window size is divided
+     by the same factor; otherwise a tall dialog could leave the window. */
+  dialog.modal:modal {
+    zoom: var(--ui-zoom);
+    max-width: calc((100dvw - 24px) / var(--ui-zoom)) !important;
+    max-height: calc((100dvh - 24px) / var(--ui-zoom)) !important;
+  }
+}
+
+
+/* Page headers on large screens (TRANSITION_RULES pravidlo 6): eyebrow, title,
+   subtitle and header actions grow together from the MacBook pillar to 2560 px
+   (×1.04 / 1.08 / 1.11 / 1.14, title 42 → 48 px), keeping each page's own
+   proportions. Headers that already grow keep their own rule: the task pages
+   (Import, Platby) and the dashboard greeting (capped at 36 px by the design
+   system). A header is in normal flow, so zoom also gives it the room it needs. */
+:root { --header-zoom: 1; }
+@media screen and (min-width: 1600px) { :root { --header-zoom: 1.04; } }
+@media screen and (min-width: 1920px) { :root { --header-zoom: 1.08; } }
+@media screen and (min-width: 2200px) { :root { --header-zoom: 1.11; } }
+@media screen and (min-width: 2560px) { :root { --header-zoom: 1.14; } }
+@media screen and (min-width: 1600px) {
+  main.content:not([data-workspace-layout="task"]):not(:has(#dashboard-status-heading)) header:has(h1) {
+    zoom: var(--header-zoom);
+  }
+  /* A dialog opened from a zoomed header would compound both factors. */
+  main.content:not([data-workspace-layout="task"]):not(:has(#dashboard-status-heading)) header:has(h1) dialog.modal:modal {
+    zoom: calc(var(--ui-zoom) / var(--header-zoom));
+  }
+}
+
+/* Page headings sit one shared gap under the toolbar (workspace-topbar.module.css
+ * --page-head-gap); their own top margins would make it differ per page. */
+@media screen and (min-width: 1024px) {
+  /* Nástěnka keeps its own fitted spacing (dense grid, dashboard-summary.module.css). */
+  main#obsah:not(:has(#dashboard-status-heading)) header:has(h1) { margin-top: 0; }
+}
 
 @media print {
   html,

@@ -158,6 +158,9 @@ export function DocumentPreview({ file, highlight, kind = "original" }: { file: 
     let loadingTask: PdfLoadingTask | null = null;
     textCache.current = new Map();
     setStatus("loading"); setPdf(null); setPageSizes([]); setTotalPages(0); setCurrentPage(1); setLocated(null); setZoom(1);
+    // A newly selected document starts at its first page; otherwise the previous
+    // document's scroll position stayed and the page counter jumped back to it.
+    scrollerRef.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
     if (!pdfFile) return;
     void (async () => {
       try {

@@ -97,3 +97,23 @@ export function invoicePageNumbers(page: number, total: number) {
     ]),
   ].sort((a, b) => a - b);
 }
+
+const reminderCount = (count: number) =>
+  `${count} ${count === 1 ? "upomínka" : count >= 2 && count <= 4 ? "upomínky" : "upomínek"}`;
+const reminderDay = (timestamp: string) =>
+  new Intl.DateTimeFormat("cs-CZ", { timeZone: "Europe/Prague", day: "numeric", month: "numeric" })
+    .format(new Date(timestamp))
+    .replace(/\s/g, " ");
+
+/** Upomínky column of the wide list: what was sent and what comes next. */
+export function invoiceReminderSummary(
+  invoice: Pick<Invoice, "status" | "reminders_sent" | "next_reminder_at" | "reminders_paused">,
+): { main: string; detail: string } {
+  const sent = Number(invoice.reminders_sent) || 0;
+  const open = invoice.status === "pending" || invoice.status === "overdue";
+  const main = sent ? reminderCount(sent) : open ? "Zatím žádná" : "—";
+  if (!open) return { main, detail: "" };
+  if (invoice.reminders_paused) return { main, detail: "Pozastaveno" };
+  if (!invoice.next_reminder_at) return { main, detail: "" };
+  return { main, detail: `${sent ? "Další" : "První"} ${reminderDay(invoice.next_reminder_at)}` };
+}

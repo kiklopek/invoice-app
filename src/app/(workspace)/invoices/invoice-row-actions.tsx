@@ -41,7 +41,9 @@ export function InvoiceRowActions({
           : anchor.top - menu.height - 6,
       ),
     });
-    panel.current.querySelector<HTMLElement>("a,button")?.focus();
+    // Without preventScroll the focus could scroll the table or page, and the
+    // scroll listener below would close the menu the moment it opened.
+    panel.current.querySelector<HTMLElement>("a,button")?.focus({ preventScroll: true });
   }, [open]);
   useEffect(() => {
     if (!open) return;
@@ -61,15 +63,24 @@ export function InvoiceRowActions({
       }
     };
     const close = () => setOpen(false);
+    // Close when the row really moves away, not when focusing the trigger
+    // nudges the table container by a pixel (that closed the menu on tablets
+    // the moment it opened).
+    const start = trigger.current?.getBoundingClientRect();
+    const moved = () => {
+      const now = trigger.current?.getBoundingClientRect();
+      if (!start || !now || Math.abs(now.top - start.top) > 2 || Math.abs(now.left - start.left) > 2)
+        setOpen(false);
+    };
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", moved, true);
     return () => {
       document.removeEventListener("pointerdown", outside);
       document.removeEventListener("keydown", escape);
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", moved, true);
     };
   }, [open]);
   async function copy(value: string) {
@@ -123,6 +134,9 @@ export function InvoiceRowActions({
                   type="button"
                   onClick={() => {
                     setOpen(false);
+                    // The menu item disappears with the menu; the dialog returns
+                    // focus to whatever was focused when it opened (WCAG 2.4.3).
+                    trigger.current?.focus();
                     onConfirm(invoice);
                   }}
                 >

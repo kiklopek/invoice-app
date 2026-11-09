@@ -9,7 +9,7 @@ import { PageDataError } from "@/lib/dashboard-page-data";
 import { invoiceListRpcParams } from "./invoice-list-rpc-params";
 import {
   DEFAULT_INVOICE_PAGE_SIZE,
-  parseInvoicePageSize,
+  parseInvoiceRequestPageSize,
 } from "./invoice-page-size";
 
 export const INVOICE_LIST_PAGE_SIZE = DEFAULT_INVOICE_PAGE_SIZE;
@@ -33,7 +33,7 @@ export async function loadInvoiceListPageData(
   if (!identity) throw new PageDataError("Nejste přihlášený uživatel.", 401);
 
   const pageSize =
-    parseInvoicePageSize(query.pageSize) ?? INVOICE_LIST_PAGE_SIZE;
+    parseInvoiceRequestPageSize(query.pageSize) ?? INVOICE_LIST_PAGE_SIZE;
   const { data, error } = await identity.service.rpc(
     "list_invoices_page_filtered",
     invoiceListRpcParams(

@@ -87,7 +87,7 @@ export default function InvoiceArchivePage() {
   }
 
   return (
-    <AppFrame invoiceCount={loading ? undefined : activeCount}>
+    <AppFrame layout="collection" invoiceCount={loading ? undefined : activeCount}>
       <header className="section-header">
         <div>
           <p>ARCHIV</p>
@@ -137,7 +137,7 @@ export default function InvoiceArchivePage() {
       </section>
       </MobileDisclosure>
 
-      <section className="page-panel data-panel">
+      <section className="page-panel data-panel" data-workspace-surface="records">
         {error ? <p className="page-state error-state">{error}</p>
           : loading ? <p className="page-state">Načítám archiv…</p>
           : !invoices.length ? <p className="page-state">V archivu tomuto filtru neodpovídá žádná faktura.</p>

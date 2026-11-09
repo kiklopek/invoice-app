@@ -1459,6 +1459,24 @@
     min-width: 44px;
     min-height: 44px;
   }
+
+  /* A switch without text keeps its drawn track (TRANSITION_RULES pravidlo 9);
+     the 44 px touch area is an invisible layer around it. Stretching the button
+     itself turned the track into a square. */
+  .app-shell button[role="switch"][aria-label] {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+  }
+  .app-shell button[role="switch"][aria-label]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
 }
 
 @media screen and (max-height: 500px) and (orientation: landscape) and (max-width: 1023px) {
@@ -2107,5 +2125,154 @@
 @media screen and (min-width: 768px) {
   @container invoice-table (max-width: 1180px) {
     .archive-invoice-table .invoice-row.is-paid .archive-invoice-status { display: none !important; }
+  }
+}
+
+/* Invoice archive on tablets and narrow laptops: Hledat keeps its own row and
+ * Stav, Měna and both dates share the second one (four fields fit from ~760 px),
+ * instead of three rows that pushed the first card below the fold. */
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  .filter-row.archive-filter-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Customers, compact list (TRANSITION_RULES pravidla 7, 10, 13): when the table
+ * is narrower than the full layout (1090 px: tablets and 1366 laptops), each row
+ * is one line of name + IČO/DIČ, the contact (e-mail and phone, shortened with
+ * the full value in the tooltip), billing and the outstanding amount. The address
+ * and the reminder category step back; the last invoice date stays where there is
+ * room. Desktop shell only: phones keep their cards; the MacBook pillar (1142 px
+ * table) keeps the full layout. */
+@media screen and (min-width: 1024px) {
+  .customers-page .customers-list-table {
+    container: customers-table / inline-size;
+  }
+  @container customers-table (max-width: 1089px) {
+    .customers-page .customers-list-table table { min-width: 0; table-layout: fixed; }
+    .customers-page .customers-list-table th:nth-child(1) { width: auto; }
+    .customers-page .customers-list-table th:nth-child(2) { width: 30%; }
+    .customers-page .customers-list-table th:nth-child(3) { width: 132px; }
+    .customers-page .customers-list-table th:nth-child(4) { width: 146px; }
+    .customers-page .customers-list-table th:nth-child(6) { width: 104px; }
+    .customers-page .customers-list-table th:nth-child(2),
+    .customers-page .customers-list-table td:nth-child(2) { display: table-cell; }
+    .customers-page .customers-list-table th:nth-child(5),
+    .customers-page .customers-list-table td:nth-child(5) { display: none; }
+    .customers-page .customers-list-table .customer-address { display: none; }
+    .customers-page .customers-list-table .customer-identity strong {
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-wrap: normal;
+    }
+    .customers-page .customers-list-table .customer-identity > span { min-width: 0; }
+    .customers-page .customers-list-table .customer-identity .customer-tax-ids {
+      flex-wrap: nowrap;
+      margin-top: 4px;
+      white-space: nowrap;
+    }
+    .customers-page .customers-list-table .outstanding-badge,
+    .customers-page .customers-list-table .customer-billing-cell strong {
+      white-space: nowrap;
+      overflow-wrap: normal;
+    }
+  }
+  @container customers-table (max-width: 979px) {
+    .customers-page .customers-list-table th:nth-child(6),
+    .customers-page .customers-list-table td:nth-child(6) { display: none; }
+  }
+}
+
+/* Customers on large screens (TRANSITION_RULES pravidla 6 a 11): the contact,
+ * headers, category badge, initial and search grow with the record text from
+ * 1600 to 2560 px (the shell's --workspace-grow), like names and amounts do. */
+@media screen and (min-width: 1600px) {
+  .customers-page {
+    --cg: var(--workspace-grow, 0px);
+  }
+  .customers-page .customers-list-table .customer-contact-details,
+  .customers-page .customers-list-table .customer-contact-value {
+    font-size: calc(13px + var(--cg) * 3 / 960);
+  }
+  .customers-page .customers-list-table th {
+    font-size: calc(12px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customers-list-table .reminder-policy-badge,
+  .customers-page .customers-list-table .customer-reminders-cell {
+    font-size: calc(13px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customer-avatar {
+    flex-basis: calc(34px + var(--cg) * 10 / 960);
+    width: calc(34px + var(--cg) * 10 / 960);
+    height: calc(34px + var(--cg) * 10 / 960);
+    font-size: calc(18px + var(--cg) * 4 / 960);
+  }
+  .customers-page .customers-toolbar > label > span:first-child {
+    font-size: calc(13px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customers-search-field {
+    max-width: calc(650px + var(--cg) * 150 / 960);
+  }
+  .customers-page .customers-search-field input {
+    min-height: calc(44px + var(--cg) * 8 / 960);
+    font-size: calc(14px + var(--cg) * 2 / 960);
+  }
+  .customers-page .customers-toolbar-meta strong {
+    font-size: calc(20px + var(--cg) * 6 / 960);
+  }
+  .customers-page .customers-toolbar-meta span {
+    font-size: calc(14px + var(--cg) * 2 / 960);
+  }
+}
+
+/* Reminders on large screens (TRANSITION_RULES pravidla 6 a 13; spec Upomínky):
+ * each step stays one row with the day count in a narrow field and the timing
+ * select taking the rest (the count field was as wide as the select, 800 px at
+ * 2560), and the page's sections grow with the page header (--header-zoom).
+ * Sections are in normal flow with auto width, so the zoom keeps them inside
+ * the page width. Below 1600 px (MacBook pillar) nothing changes. */
+@media screen and (min-width: 1600px) {
+  .human-rules .rule-controls input {
+    flex: 0 0 clamp(96px, 12%, 160px);
+    min-width: 0;
+  }
+  .human-rules .rule-controls select {
+    flex: 1 1 auto;
+  }
+  main.content:has(> .reminders-hero) > :is(section, .reminders-layout, details) {
+    zoom: var(--header-zoom, 1);
+  }
+}
+
+/* Payments pages: the 1280 px content width (minimal.css .payments-page > *) also
+ * caught the workspace toolbar, which then sat centred with its search 438 px
+ * right of where it is on every other page at 2560. The toolbar spans the page
+ * like everywhere else; below 1280 px of content nothing changes. */
+.payments-page > [data-workspace-topbar] {
+  width: 100%;
+  margin-inline: 0;
+}
+
+/* Payments archive on large screens: the sections grow with the page header and
+ * the last panel (statement archive) takes the rest of the window, so its empty
+ * state sits in free space instead of a 285 px band under the page. */
+@media screen and (min-width: 1600px) {
+  main.payments-archive-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  /* Zoom the sections' contents: a zoomed flex item would not take its full
+   * share of the free height. */
+  main.payments-archive-page > section > * {
+    zoom: var(--header-zoom, 1);
+  }
+  /* The page's bottom padding already ends the window; the panel's own margin
+   * would add a second gap under it. */
+  main.payments-archive-page > section:last-of-type {
+    flex: 1 0 auto;
+    margin-bottom: 0;
   }
 }

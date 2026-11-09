@@ -388,3 +388,45 @@
     overflow: visible;
   }
 }
+
+/* Touch screens: the dialog's actions and every option row (the label is the
+   hit area of its checkbox or radio) are at least 44 px tall (WCAG 2.5.5). */
+@media (pointer: coarse) {
+  .dialog button,
+  .dialog .footer :global(.btn) {
+    min-height: 44px;
+  }
+  .dialog label:has(input:is([type="checkbox"], [type="radio"])),
+  .dialog .settings .checks label,
+  .dialog .settings .modes label {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+/* Live preview: while a new PDF is built for changed settings, the previous
+   one stays visible but dimmed, with a short status above it. */
+.updating {
+  margin: 0 0 8px;
+  color: #52665a;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* The frame takes the panel's remaining height like the preview did before it
+   was wrapped, so the PDF scrolls inside it instead of overflowing the dialog. */
+.previewFrame {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  transition: opacity 160ms ease;
+}
+.previewFrame > :global(.document-preview) {
+  flex: 1;
+  min-height: 0;
+}
+.previewFrame[data-stale],
+.meta[data-stale] { opacity: 0.55; }
+@media (prefers-reduced-motion: reduce) {
+  .previewFrame { transition: none; }
+}
