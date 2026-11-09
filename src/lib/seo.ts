@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/locales";
+import { PLANS } from "@/lib/plans";
 
 const DEFAULT_ORIGIN = "https://www.splatno.com";
 
@@ -62,11 +63,30 @@ export function landingMetadata(locale: Locale): Metadata {
       card: "summary_large_image", title: meta.landingTitle,
       description: meta.landingDescription, images: [image],
     },
+    ...searchEngineVerification(),
+  };
+}
+
+/**
+ * Ownership tokens for Google Search Console and Bing Webmaster Tools, set in the
+ * deployment environment (GOOGLE_SITE_VERIFICATION, BING_SITE_VERIFICATION).
+ * A Domain property verified by DNS needs neither; the meta tags are the
+ * alternative for a URL-prefix property.
+ */
+function searchEngineVerification(): Pick<Metadata, "verification"> {
+  const google = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+  const bing = process.env.BING_SITE_VERIFICATION?.trim();
+  if (!google && !bing) return {};
+  return {
+    verification: {
+      ...(google ? { google } : {}),
+      ...(bing ? { other: { "msvalidate.01": bing } } : {}),
+    },
   };
 }
 
 export function landingStructuredData(locale: Locale) {
-  const { meta } = getDictionary(locale);
+  const { meta, landing: { faq } } = getDictionary(locale);
   const url = siteUrl(locale === "cs" ? "/" : "/en");
   return {
     "@context": "https://schema.org",
@@ -82,10 +102,41 @@ export function landingStructuredData(locale: Locale) {
         about: { "@id": siteUrl("/#software") },
       },
       {
+        "@type": "Organization", "@id": siteUrl("/#organization"),
+        name: "Splatno", url: siteUrl("/"),
+        // Google needs a square logo of at least 112 px.
+        logo: { "@type": "ImageObject", url: siteUrl("/apple-icon.png"), width: 180, height: 180 },
+      },
+      {
         "@type": "SoftwareApplication", "@id": siteUrl("/#software"),
         name: "Splatno", url: siteUrl("/"), applicationCategory: "BusinessApplication",
         operatingSystem: "Web", description: meta.landingDescription,
         image: siteUrl(`/og/${locale}`), inLanguage: ["cs", "en"],
+        publisher: { "@id": siteUrl("/#organization") },
+        // The published price list (CZK per month, VAT excluded), from lib/plans.
+        offers: {
+          "@type": "AggregateOffer", priceCurrency: "CZK",
+          lowPrice: Math.min(...PLANS.map((plan) => plan.monthlyCzk)),
+          highPrice: Math.max(...PLANS.map((plan) => plan.monthlyCzk)),
+          offerCount: PLANS.length,
+          offers: PLANS.map((plan) => ({
+            "@type": "Offer", name: `Splatno ${plan.name}`, url: `${url}#cenik`,
+            price: plan.monthlyCzk, priceCurrency: "CZK",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification", price: plan.monthlyCzk, priceCurrency: "CZK",
+              valueAddedTaxIncluded: false, billingDuration: "P1M", unitCode: "MON",
+            },
+          })),
+        },
+      },
+      {
+        // The same questions and answers the page shows in its FAQ section.
+        "@type": "FAQPage", "@id": `${url}#faq`, inLanguage: locale,
+        isPartOf: { "@id": `${url}#webpage` },
+        mainEntity: faq.items.map((item) => ({
+          "@type": "Question", name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
       },
     ],
   };

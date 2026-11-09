@@ -11,6 +11,11 @@ export const cs = {
       `Správa faktur pro firmy a účetní: hlídání splatnosti, párování plateb a automatické upomínky na jednom místě. Vyzkoušejte Splatno zdarma na ${TRIAL_DAYS} dní.`,
     authTitle: "Splatno | Faktury a upomínky pod kontrolou",
     invitationTitle: "Pozvánka do firmy | Splatno",
+    loginTitle: "Přihlášení | Splatno",
+    registerTitle: "Založení firemního účtu | Splatno",
+    forgotPasswordTitle: "Zapomenuté heslo | Splatno",
+    resetPasswordTitle: "Nové heslo | Splatno",
+    mfaTitle: "Ověření přihlášení | Splatno",
   },
 
   switcher: {

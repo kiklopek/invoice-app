@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
+import { preload } from "react-dom";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -264,7 +265,21 @@ function DashboardPreview({ t, locale }: { t: Dictionary; locale: Locale }) {
   );
 }
 
+// The waving mascot beside the trust list is the largest element (LCP) on
+// phones, but hidden from 641 px. It stays lazy so desktops never download it;
+// phones get it through a preload limited to their widths instead of waiting
+// for the lazy image to be discovered after the CSS.
+const TRUST_MASCOT = { src: "/landing/mascot-wave.webp", alt: "", width: 640, height: 554, sizes: "140px" } as const;
+const trustMascotImage = getImageProps(TRUST_MASCOT).props;
+
 export function LandingPage({ locale }: { locale: Locale }) {
+  preload(trustMascotImage.src, {
+    as: "image",
+    fetchPriority: "high",
+    imageSrcSet: trustMascotImage.srcSet,
+    imageSizes: TRUST_MASCOT.sizes,
+    media: "(max-width: 640px)",
+  });
   const t = getDictionary(locale);
   const { header, hero, problem, how, attention: attentionCopy, audience, final, footer } = t.landing;
 
