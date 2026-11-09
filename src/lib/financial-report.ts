@@ -30,6 +30,26 @@ export const DEFAULT_REPORT_OPTIONS: ReportOptions = {
   customers: true,
   orientation: "portrait",
 };
+/**
+ * Choosing a report type presets the content to match it; "custom" keeps the
+ * user's own selection. Orientation is never changed by the type.
+ */
+export function applyReportMode(
+  mode: ReportOptions["mode"],
+  current: ReportOptions,
+): ReportOptions {
+  if (mode === "custom") return { ...current, mode };
+  const all = Object.keys(REPORT_SECTIONS) as ReportSection[];
+  return {
+    ...current,
+    mode,
+    sections: all,
+    charts: true,
+    details: mode !== "summary",
+    customers: mode === "complete",
+  };
+}
+
 export const REPORT_STATUS: Record<InvoiceStatus, string> = {
   pending: "Čeká na úhradu",
   overdue: "Po splatnosti",
