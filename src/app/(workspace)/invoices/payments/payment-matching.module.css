@@ -241,3 +241,22 @@
 }
 
 .accountWarning summary > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Touch screens (tablets, DevTools device mode): the global 44 px minimum for
+   buttons stretched the 12 px status dot and the 22 px info button into large
+   circles over the amount. They keep their drawn size; an invisible layer
+   gives the 44 px touch area (TRANSITION_RULES pravidlo 9). */
+@media (pointer: coarse) {
+  .statusWrap .statusDot,
+  .infoWrap .infoButton > button {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+  }
+  .statusWrap .statusDot::before { inset: -16px; }
+  .infoWrap .infoButton > button::after {
+    content: "";
+    position: absolute;
+    inset: -12px; /* from the padding box inside the 1 px border */
+  }
+}

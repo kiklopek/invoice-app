@@ -15,8 +15,8 @@ const require=createRequire(import.meta.url),vr=createRequire(require.resolve('v
 const {createServer}=await import(pathToFileURL(vr.resolve('vite')).href);
 const server=await createServer({configFile:false,root:fixture,publicDir:resolve('public'),logLevel:'error',server:{host:'127.0.0.1',port:4347,strictPort:true,fs:{allow:[project]}},esbuild:{jsx:'automatic'},css:{postcss:{plugins:[]}},resolve:{alias:[{find:'next/link',replacement:resolve(fixture,'link.tsx')},{find:'next/image',replacement:resolve(fixture,'image.tsx')},{find:'next/navigation',replacement:resolve(fixture,'navigation.tsx')},{find:'@',replacement:resolve('src')}],dedupe:['react','react-dom']}});
 await server.listen();const browser=await chromium.launch();const results=[];
-async function pageFor(width=1536,height=1024,scenario='normal'){
- const page=await browser.newPage({viewport:{width,height}}),data=matchingFixture(scenario),requests=[],errors=[];let failSave=false;
+async function pageFor(width=1536,height=1024,scenario='normal',touch=false){
+ const page=await browser.newPage({viewport:{width,height},hasTouch:touch}),data=matchingFixture(scenario),requests=[],errors=[];let failSave=false;
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/api/**',async route=>{
   const r=route.request(),url=new URL(r.url()),path=url.pathname;requests.push({path,method:r.method(),body:r.method()==='PATCH'?r.postDataJSON():null});
@@ -233,6 +233,22 @@ try{
    await c.page.keyboard.press('Escape');await expect(trigger).toBeFocused();
    expect(c.requests.filter(r=>r.method==='PATCH'||r.method==='POST'&&r.path.endsWith('/commit'))).toHaveLength(0);
    expect(c.errors).toEqual([]);
+  }finally{await c.page.close()}
+ });
+}
+// Touch screens (tablets, DevTools device mode) enlarge controls to 44 px; the
+// status dot and the info button must keep their drawn size and only get an
+// invisible 44 px touch area (TRANSITION_RULES pravidlo 9).
+if(!process.argv.includes('--upload-only')&&!process.argv.includes('--esko-only'))for(const width of [1280,1920]){
+ await check(`status dot and info button keep their shape on touch at ${width}`,async()=>{
+  const c=await pageFor(width,900,'normal',true);
+  try{
+   const row=c.page.locator('[data-payment-row="payment-1"]');
+   const sizes=await row.evaluate(el=>{const box=(n)=>{const r=n.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height)];};const area=(n)=>{let w=0,h=0;for(const p of [null,'::before','::after']){const cs=getComputedStyle(n,p);if(p&&cs.content==='none')continue;const W=p?parseFloat(cs.width)||0:n.getBoundingClientRect().width,H=p?parseFloat(cs.height)||0:n.getBoundingClientRect().height;w=Math.max(w,W);h=Math.max(h,H);}return [Math.round(w),Math.round(h)];};const dot=el.querySelector('[class*="statusDot"]'),info=el.querySelector('[class*="infoButton"] > button');return {dot:box(dot),info:box(info),dotArea:area(dot),infoArea:area(info)};});
+   expect(sizes.dot).toEqual([12,12]);
+   expect(sizes.info).toEqual([22,22]);
+   expect(Math.min(...sizes.dotArea)).toBeGreaterThanOrEqual(44);
+   expect(Math.min(...sizes.infoArea)).toBeGreaterThanOrEqual(44);
   }finally{await c.page.close()}
  });
 }
