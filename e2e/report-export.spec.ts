@@ -1,15 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { requireWorkspaceSession } from "./session";
 
 // Export finančního reportu: typ reportu přenastaví obsah, náhled se po změně
 // sestaví sám a PDF se posouvá uvnitř dialogu (nepřetéká přes patičku).
 for (const [width, height] of [[1470, 830], [1920, 1080]]) {
-  test(`report export preview stays inside the dialog and scrolls at ${width}px`, async ({ page }) => {
+  test(`report export preview stays inside the dialog and scrolls at ${width}px`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "Sets its own desktop sizes and scrolls with the mouse wheel");
     const pdfRequests: string[] = [];
     const cspErrors: string[] = [];
     page.on("console", (m) => { if (m.type() === "error" && /Content Security Policy/i.test(m.text())) cspErrors.push(m.text()); });
     page.on("request", (r) => { if (r.url().endsWith("/api/reports/pdf")) pdfRequests.push(r.postData() ?? ""); });
     await page.setViewportSize({ width, height });
     await page.goto("/reports");
+    if (await requireWorkspaceSession(page, "export finančního reportu")) return;
     await page.getByRole("button", { name: "Exportovat report" }).click();
     const dialog = page.getByRole("dialog");
     const download = dialog.getByRole("button", { name: "Stáhnout PDF" });
