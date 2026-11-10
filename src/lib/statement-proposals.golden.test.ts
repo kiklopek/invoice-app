@@ -23,9 +23,11 @@ const vsAndName: Record<string, Expected> = {
   // Částečná úhrada i přeplatek jen ke kontrole.
   partial: ["ambiguous", "review", ["partial"]],
   over: ["ambiguous", "review", ["over"]],
-  // ZNÁMÝ NEDOSTATEK (opraví krok P1): platba od Thety za dvě její faktury
-  // (600 + 400) dostane návrh faktury jiné firmy jen podle částky.
-  combo: ["exact", "review", ["over"]],
+  // Platba od Thety za dvě její faktury (600 + 400): jméno plátce vybere
+  // odběratele a právě jedna kombinace jeho faktur dá součet (jistá shoda jen
+  // při politice vs_and_name). Faktura jiné firmy se stejnou částkou se
+  // nenavrhne, když plátce uvedl jiné jméno.
+  combo: ["combination", "safe", ["combo-a", "combo-b"]],
   // Haléřový rozdíl je dnes jen částečná úhrada (změní krok P4: ±1 Kč).
   rounding: ["ambiguous", "review", ["rounding"]],
   // Jiná měna se nikdy nepřiřadí.
@@ -39,9 +41,8 @@ const vsAndName: Record<string, Expected> = {
   "name-only": ["exact", "safe", ["name-only"]],
   // Odkaz na už uhrazenou fakturu: možná duplicitní platba.
   "already-paid": ["ambiguous", "review", ["already-paid"]],
-  // ZNÁMÝ NEDOSTATEK (opraví krok P1): převod z vlastního účtu dostane návrh
-  // faktury se shodným VS; má zůstat bez návrhu (je to „Nesouvisí“).
-  "own-transfer": ["manual", "review", ["vs-exact"]],
+  // Převod z vlastního účtu: žádná faktura, i když VS náhodou sedí.
+  "own-transfer": ["manual", "review", []],
   unknown: ["manual", "review", []],
   ignored: [null, null, []],
 };
@@ -59,7 +60,7 @@ describe("kontrolní sada výpisů", () => {
   });
 
   it("politika jen podle VS posílá jméno a účet ke kontrole, VS nechává jisté", () => {
-    const expected = { ...vsAndName, account: ["exact", "review", ["account"]], "name-only": ["exact", "review", ["name-only"]] };
+    const expected = { ...vsAndName, account: ["exact", "review", ["account"]], "name-only": ["exact", "review", ["name-only"]], combo: ["combination", "review", ["combo-a", "combo-b"]] };
     expect(table(run("vs"))).toEqual(expected);
   });
 

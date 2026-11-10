@@ -1,3 +1,4 @@
+import { numericInvoiceNumber } from "./invoice-number";
 import { createHash } from "node:crypto";
 import { minorUnits } from "./money";
 import { normalizeVariableSymbol } from "./payment-import";
@@ -98,10 +99,10 @@ export function buildAssistanceProposals(
     const open = invoices.filter(i => i.organization_id === p.organization_id && i.currency === p.currency && i.issue_date <= p.booked_on);
     const vs = normalizeVariableSymbol(p.variable_symbol);
     const closedReference = rawInvoices.some(i => i.organization_id === p.organization_id && i.currency === p.currency && !["pending","overdue"].includes(i.status) && (
-      (vs && normalizeVariableSymbol(i.variable_symbol || (/^\d+$/.test(i.invoice_number) ? i.invoice_number : "")) === vs) || referencesInvoiceNumber(p.note,i.invoice_number)
+      (vs && normalizeVariableSymbol(i.variable_symbol || numericInvoiceNumber(i.invoice_number)) === vs) || referencesInvoiceNumber(p.note,i.invoice_number)
     ));
     if (closedReference) { output.push(make([p],[],[],"ambiguous","Platba odkazuje na již uzavřenou fakturu. Ověřte duplicitní úhradu nebo jiný záměr plátce.")); continue; }
-    const byVs = vs ? open.filter(i => normalizeVariableSymbol(i.variable_symbol || (/^\d+$/.test(i.invoice_number) ? i.invoice_number : "")) === vs) : [];
+    const byVs = vs ? open.filter(i => normalizeVariableSymbol(i.variable_symbol || numericInvoiceNumber(i.invoice_number)) === vs) : [];
     const byNote = open.filter(i => referencesInvoiceNumber(p.note, i.invoice_number));
     const memories = rawMemory.filter(m => m.active && m.organization_id === p.organization_id && (
       (p.account_verified && m.account && normalizePayerAccount(m.account) === normalizePayerAccount(p.counterparty_account)) ||

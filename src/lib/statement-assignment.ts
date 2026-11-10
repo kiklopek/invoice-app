@@ -60,6 +60,12 @@ type Evidence = {
   account: boolean;
   /** Payer's name matches the counterparty (banks truncate, so prefix-wise). */
   name: boolean;
+  /**
+   * The payer's name belongs to ANOTHER customer with open invoices, so this
+   * invoice is someone else's. (A payer nobody knows -- a relative, a parent
+   * company -- does not count: their name says nothing against this invoice.)
+   */
+  otherPayer: boolean;
   /** Payment is not dated before the invoice was issued. */
   time: boolean;
 };
@@ -113,7 +119,10 @@ const TIERS: Tier[] = [
     confidence: "review",
     reason:
       "Jediná otevřená faktura s přesně touto částkou; potvrďte přiřazení.",
-    holds: (evidence) => evidence.amount && evidence.time,
+    // Amount alone never proposes another firm's invoice when the payer said
+    // who they are: the payer's own invoices (incl. several at once below)
+    // get the chance instead, and the picker still lists equal amounts.
+    holds: (evidence) => evidence.amount && evidence.time && !evidence.otherPayer,
   },
 ];
 
@@ -204,6 +213,7 @@ function gatherEvidence(
   payment: AssignablePayment,
   invoice: MatchableInvoice,
   confirmedIcos: string[],
+  payerIsKnownCustomer = false,
 ): Evidence {
   return {
     identifier: matchesIdentifier(
@@ -216,6 +226,7 @@ function gatherEvidence(
       invoice.counterparty_ico && confirmedIcos.includes(invoice.counterparty_ico),
     ),
     name: namesMatch(payment.counterparty_name, invoice.counterparty_name),
+    otherPayer: payerIsKnownCustomer && !namesMatch(payment.counterparty_name, invoice.counterparty_name),
     // Missing dates are a gap in the data, not evidence of a problem -- this
     // guard only exists to reject a payment that provably predates the invoice.
     time:
@@ -248,6 +259,10 @@ export function assignStatementPayments(
   settledInvoices: MatchableInvoice[] = [],
 ): Map<string, StatementAssignment> {
   const open = invoices.filter((invoice) => remaining(invoice) > 0);
+  // Distinct customers with open invoices, to tell "the payer is another
+  // customer of ours" from "a payer we do not know" (see Evidence.otherPayer).
+  const customerNames = [...new Set(open.map((invoice) => normalizeName(invoice.counterparty_name)))]
+    .filter((name) => name.length >= MINIMUM_NAME_LENGTH);
   // Every tier requires the exact remaining amount, so the candidate set for a
   // payment is just the invoices that cost exactly what was paid. Without this
   // index the pass would be payments x invoices, which on a large ledger is
@@ -364,8 +379,11 @@ export function assignStatementPayments(
     }
     const bounded = candidates.length > 250
       ? byIdentifier.get(`${payment.currency}:${normalizeVariableSymbol(payment.variable_symbol)}`) ?? [] : candidates;
+    const payerName = normalizeName(payment.counterparty_name);
+    const payerIsKnownCustomer = payerName.length >= MINIMUM_NAME_LENGTH &&
+      customerNames.some((name) => prefixAgrees(payerName, name));
     for (const invoice of bounded) {
-      const evidence = gatherEvidence(payment, invoice, confirmedIcos);
+      const evidence = gatherEvidence(payment, invoice, confirmedIcos, payerIsKnownCustomer);
       const conflict = confirmed.length > 0 && !confirmed.includes(invoice.counterparty_ico ?? "");
       const tier = conflict ? TIERS.length - 1 : TIERS.findIndex((candidate) => candidate.holds(evidence));
       if (tier >= 0) pairs.push({ payment, invoice, tier });

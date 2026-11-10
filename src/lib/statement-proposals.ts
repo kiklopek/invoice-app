@@ -80,6 +80,16 @@ export function proposeStatement(input: {
     settledInvoices,
   ), bookingPolicy);
   const decided = resolveBatchConflicts(rows.map((row) => {
+    // Převod z vlastního účtu není platba zákazníka: žádná faktura, i když VS
+    // náhodou sedí. V kontrole se nabídne jako „Nesouvisí s fakturami“.
+    if (row.payment && row.disposition === "accepted" && isOwnAccountTransfer(row.payment))
+      return {
+        fingerprint: row.fingerprint,
+        proposal_kind: "manual" as const,
+        proposal_confidence: "review" as const,
+        proposal_reason: "Převod z vlastního účtu firmy – nesouvisí s fakturami.",
+        proposed_invoice_ids: [] as string[],
+      };
     const historyIcos = row.payment ? (icoByAccount.get(row.payment.counterparty_account ?? "") ?? []) : [];
     const assigned = assignments.get(row.fingerprint)?.proposal ?? null;
     const vsMatches = row.payment

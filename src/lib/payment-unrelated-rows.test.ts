@@ -415,9 +415,11 @@ describe("automatické přiřazení plateb vynechá převody mezi vlastními ú�
   it("import výpisu filtruje řádky z vlastních účtů před automatickým přiřazením", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const route = readFileSync(join(process.cwd(), "src/app/api/payments/imports/route.ts"), "utf8").replace(/\s+/g, " ");
-    expect(route).toContain("isOwnAccountTransfer(entry.payment)");
-    expect(route).toMatch(/entry\.payment && entry\.disposition === "accepted" && !isOwnAccountTransfer\(entry\.payment\)/);
+    // Návrh celého výpisu se skládá v src/lib/statement-proposals.ts (volá ho import).
+    const source = readFileSync(join(process.cwd(), "src/lib/statement-proposals.ts"), "utf8").replace(/\s+/g, " ");
+    const route = readFileSync(join(process.cwd(), "src/app/api/payments/imports/route.ts"), "utf8");
+    expect(route).toContain("proposeStatement(");
+    expect(source).toMatch(/row\.payment && row\.disposition === "accepted" && !isOwnAccountTransfer\(row\.payment\)/);
   });
 
   it("vlastní účet pozná podle protiúčtu, ne podle jména", () => {

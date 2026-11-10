@@ -154,6 +154,11 @@ function parseAmount(value: string) {
   return sign * Number(normalized);
 }
 
+/**
+ * VS bez mezer a úvodních nul. Samé nuly zůstanou jako „0“ (tak se uloží
+ * a zobrazí); SQL zaúčtování je bere jako žádný VS. Shodu se SQL hlídá
+ * matching-parity.test.ts.
+ */
 export function normalizeVariableSymbol(value: string | null | undefined) {
   const digits = (value ?? "").replace(/\s/g, "");
   if (!digits) return "";

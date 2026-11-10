@@ -45,4 +45,10 @@ describe("isolated payment assistance", () => {
     expect(buildAssistanceProposals([payment("p", 100)], Array.from({ length: 33 }, (_, i) => invoice(String(i), 100)), memory)[0].kind).toBe("complex");
     expect(buildAssistanceProposals([payment("p", 100)], [invoice("1001", 100)], memory, 1)[0].kind).toBe("complex");
   });
+  it("treats an invoice number with separators as its VS, like the statement matcher", () => {
+    // Faktura „2026/045“ bez vlastního VS; plátce napíše VS 2026045.
+    const slashed = { ...invoice("2026/045", 100), variable_symbol: null };
+    const result = buildAssistanceProposals([payment("p1", 40, "2026045"), payment("p2", 60, "2026045")], [slashed], []);
+    expect(result.some(p => p.kind === "unique" && p.invoice_ids.includes("2026/045") && p.allocations.length === 2)).toBe(true);
+  });
 });
