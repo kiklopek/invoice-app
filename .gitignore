@@ -38,3 +38,6 @@ graphify-out/
 
 # Ruční zálohy produkce (scripts/backup-production.mjs) obsahují osobní a finanční data
 backups/
+
+# Výstupy měření plynulosti scrollování (scripts/landing-scroll-*.mjs)
+artifacts/landing-scroll/
