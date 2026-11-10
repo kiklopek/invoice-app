@@ -4,18 +4,13 @@ import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { detectStatementFormat, resolveGpcStatement } from "@/lib/bank-formats/detect";
 import { organizationAccounts } from "@/lib/bank-accounts";
-import { detectOwnTransfer } from "@/lib/payment-unrelated-rows";
 import { bankName } from "@/lib/bank-formats/registry";
 import { parseCsvStatement } from "@/lib/csv-statement-parser";
 import { parseCamtStatement } from "@/lib/camt-statement-parser";
 import { assistanceFlags } from "@/lib/payment-assistance-flags";
-import {
-  proposePaymentMatch,
-  resolveBatchConflicts,
-  type MatchableInvoice,
-} from "@/lib/payment-matching";
-import { numericInvoiceNumber } from "@/lib/invoice-number";
-import { applyAutoBookingPolicy, assignStatementPayments, type AutoBookingPolicy } from "@/lib/statement-assignment";
+import { type MatchableInvoice } from "@/lib/payment-matching";
+import { type AutoBookingPolicy } from "@/lib/statement-assignment";
+import { proposeStatement } from "@/lib/statement-proposals";
 import { detectStatementAccountMismatch, normalizeVariableSymbol, resolveConfiguredAccountForCurrencies, statementCurrencyFor } from "@/lib/payment-import";
 import { isSameOriginMutation } from "@/lib/request-security";
 import type { Json } from "@/types/database";
@@ -172,37 +167,6 @@ export async function POST(request: Request) {
       );
       if ((data?.length ?? 0) < 1000) break;
     }
-    const icoByAccount = new Map<string, string[]>();
-    for (const known of knownAccounts ?? [])
-      icoByAccount.set(known.account_number, [
-        ...(icoByAccount.get(known.account_number) ?? []),
-        known.counterparty_ico,
-      ]);
-    const invoicesByVs = new Map<string, MatchableInvoice[]>();
-    const invoicesByCounterparty = new Map<string, MatchableInvoice[]>();
-    for (const invoice of invoices) {
-      const vsKey = `${invoice.currency}:${normalizeVariableSymbol(invoice.variable_symbol)}`;
-      if (normalizeVariableSymbol(invoice.variable_symbol))
-        invoicesByVs.set(vsKey, [...(invoicesByVs.get(vsKey) ?? []), invoice]);
-      // A payer often writes the invoice NUMBER into the payment's VS when
-      // the invoice itself has no separate variable_symbol -- e.g. a
-      // template that never surfaces a "Variabilní symbol" field at all, so
-      // it's never captured and stays empty. Registering the invoice under
-      // this second key too is what lets proposePaymentMatch (which already
-      // checks both fields) actually see it as a candidate in the first
-      // place; see matchesVariableSymbol in payment-matching.ts.
-      // Separators allowed ("2026/001" → VS 2026001), see invoice-number.ts.
-      const numericNumber = numericInvoiceNumber(invoice.invoice_number);
-      const numberKey = `${invoice.currency}:${normalizeVariableSymbol(numericNumber)}`;
-      if (!normalizeVariableSymbol(invoice.variable_symbol) && numericNumber)
-        invoicesByVs.set(numberKey, [...(invoicesByVs.get(numberKey) ?? []), invoice]);
-      const counterpartyKey =
-        invoice.counterparty_ico || invoice.counterparty_name;
-      invoicesByCounterparty.set(counterpartyKey, [
-        ...(invoicesByCounterparty.get(counterpartyKey) ?? []),
-        invoice,
-      ]);
-    }
     // Decide the statement as a whole first: one payment pays one invoice, and
     // no invoice is claimed twice. Only what this pass declines to judge falls
     // through to the row-by-row matcher below (partial payments, and one
@@ -237,75 +201,24 @@ export async function POST(request: Request) {
           paid_amount: Number(invoice.paid_amount),
         });
     }
-    // Převod mezi vlastními účty (protiúčet je účet firmy nebo účet tohoto
-    // výpisu) automatika nepřiřazuje: se shodným VS by ho jinak zaúčtovala
-    // jako platbu zákazníka. Rozhoduje jen protiúčet, ne jméno. Řádek zůstane
-    // ke kontrole a v náhledu se nabídne jako „Nesouvisí s fakturami“.
+    // Účty firmy a účet tohoto výpisu: převod z nich není platba zákazníka.
     const ownAccounts = [
       ...organizationAccounts(company, extraAccounts).map((item) => item.account),
       ...(parsed.accountNumber ? [parsed.accountNumber] : []),
     ];
-    const isOwnAccountTransfer = (payment: { amount: number; counterparty_account?: string | null }) =>
-      detectOwnTransfer({
-        disposition: "accepted",
-        amount: payment.amount,
-        counterparty_name: null,
-        counterparty_account: payment.counterparty_account ?? null,
-        // Vyřazení jen posílá řádek k ruční kontrole, takže tady stačí i
-        // neověřené číslo, které vypadá jako vlastní účet (opatrnější směr).
-        counterparty_account_verified: true,
-      }, { ownAccounts })?.kind === "account";
     // Co smí firma zaúčtovat bez člověka (nová firma jen podle VS); databáze
     // to při zaúčtování vynucuje znovu.
     const bookingPolicy = (company.auto_booking ?? "vs") as AutoBookingPolicy;
-    const assignments = applyAutoBookingPolicy(assignStatementPayments(
-      parsed.entries.flatMap((entry) =>
-        entry.payment && entry.disposition === "accepted" && !isOwnAccountTransfer(entry.payment)
-          ? [{ key: entry.fingerprint, ...entry.payment }]
-          : [],
-      ),
+    const proposals = proposeStatement({
+      rows: parsed.entries.map((entry) => ({ fingerprint: entry.fingerprint, disposition: entry.disposition, payment: entry.payment ?? null })),
       invoices,
-      icoByAccount,
       settledInvoices,
-    ), bookingPolicy);
-    const entries = resolveBatchConflicts(parsed.entries.map((entry) => {
-      const historyIcos = entry.payment
-        ? (icoByAccount.get(entry.payment.counterparty_account ?? "") ?? [])
-        : [];
-      const assigned = assignments.get(entry.fingerprint)?.proposal ?? null;
-      const vsMatches = entry.payment
-        ? (invoicesByVs.get(
-            `${entry.payment.currency}:${normalizeVariableSymbol(entry.payment.variable_symbol)}`,
-          ) ?? [])
-        : [];
-      const directProposal = entry.payment
-        ? proposePaymentMatch(entry.payment, vsMatches, historyIcos)
-        : null;
-      const relevant = new Map<string, MatchableInvoice>();
-      for (const invoice of vsMatches) {
-        relevant.set(invoice.id, invoice);
-        for (const grouped of invoicesByCounterparty.get(
-          invoice.counterparty_ico || invoice.counterparty_name,
-        ) ?? [])
-          relevant.set(grouped.id, grouped);
-      }
-      for (const ico of historyIcos)
-        for (const grouped of invoicesByCounterparty.get(ico) ?? [])
-          relevant.set(grouped.id, grouped);
-      const candidate =
-        assigned ??
-        (directProposal?.kind === "exact" || directProposal?.kind === "ambiguous"
-          ? directProposal
-          : entry.payment
-            ? proposePaymentMatch(
-                entry.payment,
-                [...relevant.values()],
-                historyIcos,
-              )
-            : null);
-      const proposal = bookingPolicy === "off" && candidate?.confidence === "safe"
-        ? { ...candidate, confidence: "review" as const, reason: `Ke kontrole: ${candidate.reason}` }
-        : candidate;
+      knownAccounts: knownAccounts ?? [],
+      ownAccounts,
+      bookingPolicy,
+    });
+    const entries = parsed.entries.map((entry) => {
+      const proposal = proposals.get(entry.fingerprint);
       return {
         line_number: entry.line,
         record_type: entry.recordType,
@@ -322,12 +235,12 @@ export async function POST(request: Request) {
         counterparty_account: entry.payment?.counterparty_account ?? null,
         counterparty_account_verified: entry.payment?.counterparty_account_verified ?? true,
         note: entry.payment?.note ?? null,
-        proposal_kind: proposal?.kind ?? null,
-        proposal_confidence: proposal?.confidence ?? null,
-        proposal_reason: proposal?.reason ?? null,
-        proposed_invoice_ids: proposal?.invoiceIds ?? [],
+        proposal_kind: proposal?.proposal_kind ?? null,
+        proposal_confidence: proposal?.proposal_confidence ?? null,
+        proposal_reason: proposal?.proposal_reason ?? null,
+        proposed_invoice_ids: proposal?.proposed_invoice_ids ?? [],
       };
-    }));
+    });
     const paymentCurrencies = parsed.payments.map((payment) => payment.currency);
     const accountMismatch = detectStatementAccountMismatch({
       statementAccountNumber: parsed.accountNumber,
