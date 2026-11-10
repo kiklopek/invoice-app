@@ -62,7 +62,8 @@ export function MatchingDropdown({ label, trigger, children, className = "", ope
   }, [open]);
   useEffect(() => {
     if (!open) return;
-    anchor.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+    // Fokus do vyhledávání, ne na zaškrtávací políčko nad ním.
+    anchor.current?.querySelector<HTMLInputElement>("input:not([type=checkbox]):not([type=radio])")?.focus({ preventScroll: true });
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && !anchor.current?.contains(event.target)) onOpenChange(false);
     };

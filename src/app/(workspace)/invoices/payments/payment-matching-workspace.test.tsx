@@ -127,7 +127,7 @@ describe("payment matching review and existing transports", () => {
   it("removes an assignment without booking and lets the user select the invoice again", async () => {
     await upload();
     await action("Vybrat fakturu · řádek 1");
-    await click("Odstranit přiřazení", host.querySelector("[data-invoice-dropdown]")!);
+    await click("Odpojit přiřazení", host.querySelector("[data-invoice-dropdown]")!);
     expect(scoped(1).textContent).not.toContain("Firma invoice-1");
     expect(scoped(1).querySelector('button[aria-label="Nespárováno"]')).not.toBeNull();
     expect(JSON.parse(mutations()[0][1].body)).toMatchObject({ reviewed_entry_ids: ["entry-1"], unrelated_entry_ids: [], allocations: [] });
@@ -144,7 +144,7 @@ describe("payment matching review and existing transports", () => {
     const original = mocks.fetch.getMockImplementation()!;
     mocks.fetch.mockImplementation((url: string, options?: { method?: string }) => options?.method === "PATCH" ? Promise.reject(new Error("Odstranění se nepodařilo.")) : original(url, options));
     await action("Akce platby · řádek 1");
-    await click("Odstranit přiřazení");
+    await click("Odpojit přiřazení");
     expect(scoped(1).textContent).toContain("Firma invoice-1");
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("Odstranění se nepodařilo.");
   });
@@ -219,6 +219,40 @@ describe("payment matching review and existing transports", () => {
     expect(scoped(3).textContent).toContain("Rozděleno na 2 faktury");
     await click("Potvrdit", scoped(3));
     expect(JSON.parse(mutations().at(-1)![1].body).allocations.map((a: { amount: number }) => a.amount)).toEqual([40, 60]);
+  });
+  it("lays the picker out as: split box, search, the invoices, then only Odpojit and Hotovo", async () => {
+    await upload(); await action("Vybrat fakturu · řádek 1");
+    const picker = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    const at = (element: Element | null) => [...picker.querySelectorAll("*")].indexOf(element!);
+    const splitBox = picker.querySelector('input[aria-label="Platba hradí víc faktur"]');
+    const search = picker.querySelector('input[aria-label="Hledat fakturu"]');
+    const list = picker.querySelector('[aria-label="Dostupné faktury"]');
+    const footer = picker.querySelector("[data-picker-actions]")!;
+    expect(at(splitBox)).toBeLessThan(at(search));
+    expect(at(search)).toBeLessThan(at(list));
+    expect(at(list)).toBeLessThan(at(footer));
+    expect([...footer.querySelectorAll("button")].map(button => button.textContent?.trim())).toEqual(["Odpojit přiřazení", "Hotovo"]);
+    // Žádné stránkování tlačítky ani druhé tlačítko pro odpojení nahoře.
+    expect(picker.querySelector('[aria-label="Stránky kandidátních faktur"]')).toBeNull();
+    expect(buttons("Odpojit přiřazení", picker)).toHaveLength(1);
+  });
+  it("loads more invoices when the list is scrolled to the end", async () => {
+    candidates = Array.from({ length: 25 }, (_, index) => invoice(`page-${index}`));
+    const original = mocks.fetch.getMockImplementation()!;
+    mocks.fetch.mockImplementation((url: string, options?: { method?: string }) => {
+      if (url.startsWith("/api/payments/invoice-candidates"))
+        return Promise.resolve(url.includes("page=2") ? { invoices: [invoice("page-2-first")], total: 26 } : { invoices: candidates, total: 26 });
+      return original(url, options);
+    });
+    await upload(); await action("Vybrat fakturu · řádek 3");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
+    const list = host.querySelector<HTMLElement>('[data-invoice-dropdown] [aria-label="Dostupné faktury"]')!;
+    Object.defineProperties(list, { scrollHeight: { value: 1000, configurable: true }, clientHeight: { value: 300, configurable: true }, scrollTop: { value: 690, configurable: true } });
+    await act(async () => list.dispatchEvent(new Event("scroll")));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
+    const text = host.querySelector("[data-invoice-dropdown]")!.textContent!;
+    expect(text).toContain("VS page-2-first");
+    expect(text).toContain("VS page-0");
   });
   it("shows no empty amount section or hint before any invoice is chosen", async () => {
     await upload(); await click("Rozdělit platbu", scoped(3));

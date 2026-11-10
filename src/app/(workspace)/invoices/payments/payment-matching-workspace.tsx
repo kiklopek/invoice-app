@@ -148,22 +148,26 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
         className={`${styles.invoicePicker} ${info.values.length ? styles.changeInvoice : ""}`}
         trigger={<>{info.values.length ? null : "Vyberte fakturu…"}<ChevronDown /></>}>
         {close => <>
-          <label className={styles.pickerSearch}><Icon name="search"/><input aria-label="Hledat fakturu" maxLength={100} value={data.invoiceQuery} onChange={event => data.onInvoiceQuery(event.target.value)} placeholder="Číslo, VS, odběratel nebo IČO"/></label>
-          {data.candidateLoading && <p className={styles.hint} role="status">Načítáme faktury…</p>}
-          {data.candidateError && <p className={styles.error} role="alert">{data.candidateError} <button type="button" onClick={data.onCandidateRetry}>Zkusit znovu</button></p>}
-          {!editable && <p className={styles.hint}>Přiřazení nyní nelze upravovat.</p>}
-          {ids.length > 0 && <button type="button" className={styles.clearAssignment} disabled={!editable || Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odstranit přiřazení</button>}
           <label className={styles.splitToggle}>
             <input type="checkbox" aria-label="Platba hradí víc faktur" checked={splitMode} disabled={!editable} onChange={event => setSplitMode(event.target.checked)}/>
             <span><strong>Platba hradí víc faktur</strong><small>Rozdělit platbu a vybrat všechny faktury, které platí</small></span>
           </label>
+          <label className={styles.pickerSearch}><Icon name="search"/><input aria-label="Hledat fakturu" maxLength={100} value={data.invoiceQuery} onChange={event => data.onInvoiceQuery(event.target.value)} placeholder="Číslo, VS, odběratel nebo IČO"/></label>
+          {data.candidateLoading && <p className={styles.hint} role="status">Načítáme faktury…</p>}
+          {data.candidateError && <p className={styles.error} role="alert">{data.candidateError} <button type="button" onClick={data.onCandidateRetry}>Zkusit znovu</button></p>}
+          {!editable && <p className={styles.hint}>Přiřazení nyní nelze upravovat.</p>}
           {splitMode && <p className={`${styles.splitStatus} ${info.difference === 0 && info.values.length ? styles.splitDone : info.difference < 0 ? styles.splitOver : ""}`} role="status">
             {info.difference > 0 ? `Zbývá rozdělit ${paymentMoney(info.difference, currency)}`
               : info.difference < 0 ? `Přes platbu o ${paymentMoney(-info.difference, currency)}`
               : `Rozděleno celé · ${paymentMoney(Number(entry.amount), currency)}`}
             {info.values.length > 0 && ` · ${info.values.length} ${info.values.length === 1 ? "faktura" : info.values.length < 5 ? "faktury" : "faktur"}`}
           </p>}
-          <div className={styles.invoiceOptions} role="group" aria-label="Dostupné faktury">
+          <div className={styles.invoiceOptions} role="group" aria-label="Dostupné faktury" onScroll={event => {
+            // Další faktury se načtou samy při posunutí na konec seznamu.
+            const list = event.currentTarget;
+            if (list.scrollTop + list.clientHeight >= list.scrollHeight - 40 && !data.candidateLoading && data.candidates.length < data.candidateTotal)
+              data.onInvoicePage(data.invoicePage + 1);
+          }}>
             {candidates.map(invoice => {
               const chosen = ids.includes(invoice.id);
               const label = invoice.variable_symbol ? `VS ${invoice.variable_symbol}` : invoice.invoice_number;
@@ -187,14 +191,16 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
             })}
             {!candidates.length && !data.candidateLoading && !data.candidateError && <p className={styles.hint}>Pro toto hledání a měnu nejsou dostupné faktury.</p>}
           </div>
-          <nav className={styles.pagination} aria-label="Stránky kandidátních faktur"><button type="button" disabled={data.invoicePage <= 1} onClick={() => data.onInvoicePage(data.invoicePage - 1)}>Předchozí</button><span>{data.invoicePage} / {Math.max(1, Math.ceil(data.candidateTotal / 25))}</span><button type="button" disabled={data.invoicePage * 25 >= data.candidateTotal} onClick={() => data.onInvoicePage(data.invoicePage + 1)}>Další</button></nav>
           {info.values.length > 0 && (splitMode || info.values.length > 1) && <fieldset className={styles.advanced}><legend>Částky k fakturám</legend>
 
             {info.values.map(invoice => <label key={invoice.id}><span>Faktura {invoice.invoice_number}</span><input aria-label={`Částka k faktuře ${invoice.invoice_number}`} type="number" min="0.01" step="0.01" max={Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} value={data.allocationAmounts[key]?.[invoice.id] ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} disabled={!editable} onChange={event => data.onAllocation(key, invoice.id, Number(event.target.value))}/></label>)}
           </fieldset>}
           {info.values.length === 1 && (info.difference !== 0 || data.partial[key]) && <label className={styles.partial}><input type="checkbox" checked={Boolean(data.partial[key])} disabled={!editable} onChange={event => data.onPartial(key, event.target.checked)}/>Povolit výslovnou částečnou úhradu této faktury</label>}
           {info.values.length > 0 && <p className={`${styles.balance} ${info.difference !== 0 ? styles.unbalanced : ""}`}>{`Platba ${paymentMoney(Number(entry.amount), currency)} · vybráno ${paymentMoney(info.allocated, currency)} · rozdíl ${paymentMoney(info.difference, currency)}`}</p>}
-          <button type="button" className={styles.primary} onClick={close}>Hotovo</button>
+          <div className={styles.pickerActions} data-picker-actions>
+            {ids.length > 0 && <button type="button" className={styles.unlink} disabled={!editable || Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odpojit přiřazení</button>}
+            <button type="button" className={styles.primary} onClick={close}>Hotovo</button>
+          </div>
         </>}
       </MatchingDropdown>}
       {editable && !unrelated && !info.values.length && <button type="button" className={styles.splitButton} onClick={() => edit(true)}>Rozdělit platbu</button>}
@@ -209,7 +215,7 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
             {/* Výběr se otevře až po zavření nabídky: dialog nabídky vrací fokus
                 na své tlačítko a výběr by to jinak vzal jako klik mimo a hned se zavřel. */}
             <button type="button" onClick={() => { close(); window.setTimeout(() => edit(false), 0); }}>Změnit přiřazení</button>
-            {ids.length > 0 && <button type="button" disabled={Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odstranit přiřazení</button>}
+            {ids.length > 0 && <button type="button" disabled={Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odpojit přiřazení</button>}
             {entry.proposal_confidence !== "safe" && entry.proposed_invoice_ids.length > 0 && <button type="button" onClick={() => { data.onSelected(key, entry.proposed_invoice_ids); close(); }}>Použít navrženou kombinaci</button>}
           </>}
           {info.values.map(invoice => <Link key={invoice.id} href={`/invoices/${invoice.id}`}>Zobrazit fakturu {invoice.invoice_number}</Link>)}

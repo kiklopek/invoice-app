@@ -130,7 +130,10 @@ export function GpcImportPanel({
         .then((data) => {
           if (!active) return;
           setCandidateLoading(false); setCandidateError("");
-          setCandidateInvoices(data.invoices);
+          // Další stránka se při posunutí přidá na konec, první stránka seznam nahradí.
+          setCandidateInvoices(current => invoicePage > 1
+            ? [...new Map([...current, ...data.invoices].map(invoice => [invoice.id, invoice])).values()]
+            : data.invoices);
           setCandidateTotal(data.total);
           setInvoiceById(
             (current) =>
