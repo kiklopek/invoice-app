@@ -15,7 +15,7 @@
 /* Vlastní vykreslení: nativní zaškrtávátko s accent-color posouvá fajfku při
    CSS zoomu (--ui-zoom) a v různých prohlížečích. Fajfka je SVG vycentrované
    ve čtverečku, takže sedí vždy přesně. */
-.workspace input[type=checkbox] { appearance: none; -webkit-appearance: none; display: inline-grid; place-content: center; box-sizing: border-box; width: 19px; height: 19px; flex-shrink: 0; margin: 0; border: 1.5px solid #9fb3a8; border-radius: 5px; background: #fff center / 12px 12px no-repeat; cursor: pointer; transition: background-color .12s, border-color .12s; }
+.workspace input[type=checkbox] { appearance: none; -webkit-appearance: none; display: inline-grid; place-content: center; box-sizing: border-box; width: 19px; height: 19px; min-width: 19px; min-height: 19px; max-width: 19px; max-height: 19px; aspect-ratio: 1; padding: 0; align-self: center; justify-self: center; flex: none; margin: 0; border: 1.5px solid #9fb3a8; border-radius: 5px; background: #fff center / 12px 12px no-repeat; cursor: pointer; transition: background-color .12s, border-color .12s; }
 .workspace input[type=checkbox]:hover:not(:disabled) { border-color: #14734e; }
 .workspace input[type=checkbox]:checked { border-color: #14734e; background-color: #14734e; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 4.9 8.6 9.5 3.6' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 .workspace input[type=checkbox]:indeterminate { border-color: #14734e; background-color: #14734e; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6h6' stroke='%23fff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); }
@@ -150,10 +150,16 @@
 .filters select { padding: 10px; width: 100%; border: 1px solid #dce4df; border-radius: 6px; color: #213f31; background: #fff; }
 .filters p, .hint { font-size: 11px; line-height: 1.6; color: #7b8795; }
 .advanced { margin: 12px 0; border: 0; padding: 0; color: #354e40; }
-/* Přepínač „Jedna faktura | Rozdělit platbu“ ve výběru faktury. */
-.modeSwitch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 0 4px; padding: 3px; border-radius: 10px; background: #f0f3f2; }
-.modeSwitch button { min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: #4b5a6b; font-size: 13px; font-weight: 600; }
-.modeSwitch button[aria-pressed=true] { background: #fff; color: #16754d; box-shadow: 0 1px 4px #142e2218; }
+/* „Platba hradí víc faktur“ ve výběru faktury a „Rozdělit platbu“ na řádku. */
+.splitToggle { display: flex; align-items: center; gap: 12px; min-height: 48px; margin: 10px 0 6px; padding: 8px 12px; border: 1px solid #dbe3df; border-radius: 10px; background: #f7faf8; cursor: pointer; }
+.splitToggle:has(input:checked) { border-color: #9ccbb2; background: #eff7f2; }
+.splitToggle span { display: grid; gap: 2px; }
+.splitToggle strong { font-size: 13px; color: #16243b; }
+.splitToggle small { font-size: 11px; color: #6a7787; }
+.labelLine { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.splitButton { display: inline-flex; align-items: center; justify-self: start; align-self: flex-start; width: max-content; min-height: 20px; padding: 0 9px; line-height: 1; border: 1px dashed #9ccbb2; border-radius: 7px; background: #fff; color: #16754d; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.splitButton:hover { background: #f0f8f3; }
+@media (pointer: coarse) { .splitButton { min-height: 44px; padding: 0 14px; font-size: 12px; } }
 .splitStatus { margin: 6px 0 10px; padding: 8px 10px; border-radius: 8px; background: #fff8e9; color: #7a4f12; font-size: 12px; font-weight: 600; }
 .splitStatus.splitDone { background: #eff7f2; color: #1f6544; }
 .splitStatus.splitOver { background: #fdecee; color: #a3283a; }

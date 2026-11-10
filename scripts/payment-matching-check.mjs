@@ -161,11 +161,10 @@ try{
  await check('split payment mode on desktop/mobile',async()=>{
   for(const width of[1536,390]){const height=width===390?844:1024;const c=await pageFor(width,height);try{
    const row=c.page.locator('[data-payment-row]').first();
-   await row.getByRole('button',{name:/^Akce platby/}).click();
-   await c.page.getByRole('dialog').last().getByRole('button',{name:'Rozdělit platbu',exact:true}).click();
+   await row.getByRole('button',{name:'Rozdělit platbu',exact:true}).click();
    const picker=c.page.getByRole('region',{name:/^Vybrat fakturu/});
    await expect(picker).toBeVisible();
-   await expect(picker.getByRole('group',{name:'Způsob přiřazení',exact:true}).getByRole('button',{name:'Rozdělit platbu',exact:true})).toHaveAttribute('aria-pressed','true');
+   await expect(picker.getByRole('checkbox',{name:'Platba hradí víc faktur',exact:true})).toBeChecked();
    await expect(picker.getByRole('status').filter({hasText:/Zbývá rozdělit|Rozděleno celé|Přes platbu/})).toBeVisible();
    const options=picker.locator('[data-invoice-option] button');
    await options.nth(0).click();await options.nth(1).click();
