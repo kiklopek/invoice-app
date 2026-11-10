@@ -344,6 +344,36 @@ describe("payment matching review and existing transports", () => {
     expect(JSON.parse(saved![1].body).allocations).toEqual(expect.arrayContaining([expect.objectContaining({ invoice_id: "invoice-1", amount: 100 })]));
     expect(mutations().filter(([url]) => url.endsWith("/commit"))).toHaveLength(0);
   });
+  it("books a large statement in batches without asking the person to click again", async () => {
+    const original = mocks.fetch.getMockImplementation()!;
+    const rounds = [{ remaining: 150, revision: 3 }, { remaining: 50, revision: 4 }, { remaining: 0, revision: 5 }];
+    let round = 0;
+    mocks.fetch.mockImplementation((url: string, options?: { method?: string; body?: string }) => {
+      if (url.endsWith("/commit")) {
+        const next = rounds[round++];
+        return Promise.resolve({ status: next.remaining ? "review" : "committed", revision: next.revision, remaining: next.remaining, imported: 100, matched: 100, errors: [] });
+      }
+      return original(url, options);
+    });
+    await upload();
+    await click("Zaúčtovat výpis");
+    const commits = mutations().filter(([url]) => url.endsWith("/commit"));
+    expect(commits).toHaveLength(3);
+    // Každá dávka nese aktuální revizi výpisu (databáze tak odmítne dvojí zaúčtování).
+    expect(commits.slice(1).map(([, options]) => JSON.parse(options.body).revision)).toEqual([3, 4]);
+    expect(new Set(commits.map(([, options]) => options.headers["x-idempotency-key"])).size).toBe(3);
+  });
+  it("stops batching when nothing more gets booked or a row fails", async () => {
+    const original = mocks.fetch.getMockImplementation()!;
+    mocks.fetch.mockImplementation((url: string, options?: { method?: string; body?: string }) =>
+      url.endsWith("/commit")
+        ? Promise.resolve({ status: "review", revision: 3, remaining: 7, imported: 0, matched: 0, errors: [{ line_number: 2, code: "invalid_allocation_target" }] })
+        : original(url, options));
+    await upload();
+    await click("Zaúčtovat výpis");
+    expect(mutations().filter(([url]) => url.endsWith("/commit"))).toHaveLength(1);
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Řádek 2");
+  });
   it("filters and searches without modifying payment decisions", async () => {
     await upload();
     await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[aria-label="Souhrn výpisu"] button')].find(button => button.textContent?.includes("nespárováno"))!.click());

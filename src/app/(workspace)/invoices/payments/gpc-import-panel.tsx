@@ -486,21 +486,39 @@ export function GpcImportPanel({
         },
       );
       setBookingStage(1);
-      const result = await apiFetch<{ imported: number; matched: number; status: string; revision: number; remaining: number; unrelated?: number; errors: { line_number: number; code: string }[] }>(
+      type CommitResult = { imported: number; matched: number; status: string; revision: number; remaining: number; unrelated?: number; errors: { line_number: number; code: string }[] };
+      const commitBatch = (revision: number, key: string) => apiFetch<CommitResult>(
         `/api/payments/imports/${preview.import.id}/commit`,
         {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "x-idempotency-key": `commit-${preview.import.id}`,
+            "x-idempotency-key": key,
           },
           body: JSON.stringify({
-            revision: saved.revision,
+            revision,
             acknowledge_account_mismatch: accountAck,
           }),
         },
         45_000,
       );
+      let result = await commitBatch(saved.revision, `commit-${preview.import.id}`);
+      // Databáze zaúčtuje najednou nejvýš 100 položek. Další dávky pošleme
+      // sami (dřív musel člověk klikat znovu): stejné volání s aktuální revizí,
+      // takže dvojí zaúčtování odmítne. Stop při chybě řádku nebo když se
+      // zbývající počet přestane zmenšovat.
+      for (let batch = 1; batch < 100 && result.status !== "committed" && result.remaining > 0 && !result.errors?.length; batch++) {
+        setDone(`Zaúčtováno ${result.imported} plateb, zbývá ${result.remaining} položek…`);
+        const previous = result;
+        const next = await commitBatch(previous.revision, `commit-${preview.import.id}-${previous.revision}`);
+        result = {
+          ...next,
+          imported: previous.imported + next.imported,
+          matched: previous.matched + next.matched,
+          unrelated: (previous.unrelated ?? 0) + (next.unrelated ?? 0) || undefined,
+        };
+        if (next.remaining >= previous.remaining) break;
+      }
       setBookingStage(2);
       const completed = result.status === "committed" && result.remaining === 0 && !result.errors?.length;
       setDone(
