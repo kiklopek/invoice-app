@@ -12,7 +12,16 @@
 .workspace button, .popup button, .popup input, .popup select { font: inherit; }
 .workspace button, .popup button { cursor: pointer; }
 .workspace button:disabled, .popup button:disabled { cursor: not-allowed; opacity: .45; }
-.workspace input[type=checkbox] { width: 19px; height: 19px; flex-shrink: 0; margin: 0; accent-color: #14734e; cursor: pointer; }
+/* Vlastní vykreslení: nativní zaškrtávátko s accent-color posouvá fajfku při
+   CSS zoomu (--ui-zoom) a v různých prohlížečích. Fajfka je SVG vycentrované
+   ve čtverečku, takže sedí vždy přesně. */
+.workspace input[type=checkbox] { appearance: none; -webkit-appearance: none; display: inline-grid; place-content: center; box-sizing: border-box; width: 19px; height: 19px; flex-shrink: 0; margin: 0; border: 1.5px solid #9fb3a8; border-radius: 5px; background: #fff center / 12px 12px no-repeat; cursor: pointer; transition: background-color .12s, border-color .12s; }
+.workspace input[type=checkbox]:hover:not(:disabled) { border-color: #14734e; }
+.workspace input[type=checkbox]:checked { border-color: #14734e; background-color: #14734e; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 4.9 8.6 9.5 3.6' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.workspace input[type=checkbox]:indeterminate { border-color: #14734e; background-color: #14734e; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6h6' stroke='%23fff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.workspace input[type=checkbox]:disabled { border-color: #d3dcd7; background-color: #f2f5f4; cursor: not-allowed; }
+.workspace input[type=checkbox]:checked:disabled { background-color: #9fbfae; border-color: #9fbfae; }
+.workspace input[type=checkbox]:focus-visible { outline: 2px solid #14734e; outline-offset: 2px; }
 .workspace :focus-visible, .popup :focus-visible { outline: 2px solid #158154; outline-offset: 3px; }
 /* Souhrn výpisu: čísla podle stavu (zároveň filtr) a hromadné potvrzení jistých shod. */
 .summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; background: #fff; border: 1px solid #e3e9e6; border-radius: 12px; }
@@ -114,7 +123,7 @@
 .invoiceOption:hover, .invoiceOption:has(> button[aria-pressed=true]) { background: #eff7f2; }
 /* Zaškrtávátko zůstává 16 px, klikací plocha je celá výška řádku (min. 44 px). */
 .optionCheck { display: grid; flex: none; place-items: center; align-self: stretch; min-width: 32px; min-height: 44px; padding-left: 4px; cursor: pointer; }
-.optionCheck > input { width: 16px; height: 16px; margin: 0; accent-color: #16754d; cursor: pointer; }
+.optionCheck > input { cursor: pointer; }
 @media (pointer: coarse) { .optionCheck { min-width: 44px; } }
 .invoiceOption > button { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; padding: 11px 5px; border: 0; background: transparent; text-align: left; color: #16243b; }
 .invoiceOption > button > span { flex: 1; min-width: 0; }
