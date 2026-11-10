@@ -51,3 +51,25 @@ export function safeMatchesLabel(count: number) {
   if (count >= 2 && count <= 4) return `${count} jisté shody`;
   return `${count} jistých shod`;
 }
+
+/**
+ * Krátký důvod návrhu pro řádek platby („Shoda VS a částky“). Plné vysvětlení
+ * zůstává v detailu platby; neznámý důvod se na řádku neukáže.
+ */
+const SHORT_REASONS: Array<[RegExp, string]> = [
+  [/vlastního účtu/, "Vlastní převod"],
+  [/už uhrazená/, "Faktura už je uhrazená"],
+  [/jiným zůstatkem/, "Jiná částka než faktura"],
+  [/Stejný variabilní symbol nese více|Stejnému VS a částce odpovídá více/, "Víc faktur se stejným VS"],
+  [/uchází více plateb|nárokuje stejnou fakturu/, "Víc plateb na jednu fakturu"],
+  [/VS nebo čísla faktury.*zbývající částky/, "Shoda VS a částky"],
+  [/zprávě pro příjemce/, "Číslo faktury ve zprávě"],
+  [/Účet plátce je potvrzeně/, "Známý účet plátce"],
+  [/podle jména plátce/, "Stejné jméno a částka"],
+  [/kombinace celých faktur/, "Součet faktur odběratele"],
+  [/Jediná otevřená faktura s přesně touto částkou/, "Jen stejná částka"],
+];
+export function shortReason(reason: string | null | undefined) {
+  if (!reason) return null;
+  return SHORT_REASONS.find(([pattern]) => pattern.test(reason))?.[1] ?? null;
+}

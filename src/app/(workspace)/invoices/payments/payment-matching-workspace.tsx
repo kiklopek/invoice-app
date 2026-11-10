@@ -13,7 +13,7 @@ import { MatchingDropdown, MatchingPopover, MatchingStatus } from "./payment-mat
 import { confirmAction } from "@/lib/confirm-action";
 import { minorUnits } from "@/lib/money";
 import { MatchingNotice } from "./payment-matching-notice";
-import { isOpenPayment, matchingState, NEED_ORDER, needGroup, paymentDate, paymentMatchesQuery, paymentMoney, safeMatchesLabel, type NeedGroup } from "./payment-matching-presentation";
+import { isOpenPayment, matchingState, NEED_ORDER, needGroup, paymentDate, paymentMatchesQuery, paymentMoney, safeMatchesLabel, shortReason, type NeedGroup } from "./payment-matching-presentation";
 import type { Invoice, Preview, PreviewEntry, PersistedPreviewEntry } from "./payment-matching-types";
 import styles from "./payment-matching.module.css";
 
@@ -92,6 +92,8 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
   const persisted = data.loadedEntries[key];
   const own = persisted ? data.ownTransfers[persisted.id] : null;
   const state = matchingState(entry, ids, unrelated, Boolean(data.partial[key]) || info.difference !== 0);
+  // Krátký důvod patří jen k návrhu automatiky, ne k vlastnímu výběru člověka.
+  const sameAsProposal = ids.length > 0 && ids.length === entry.proposed_invoice_ids.length && ids.every(id => entry.proposed_invoice_ids.includes(id));
   const saved = data.confirmedRows.has(key);
   const eligible = Boolean(data.canManage && persisted && !data.working && !data.blockedReason && !saved && data.canConfirm(entry));
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -130,7 +132,7 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
           <strong>{invoice.counterparty_name}</strong>
           <small>{invoice.due_date ? `Splatnost ${paymentDate(invoice.due_date)}` : `Číslo ${invoice.invoice_number}`}</small>
         </div>)}
-        <small className={styles.matchLabel}>{entry.bank_payment_id ? "Zaúčtováno" : saved ? "Přiřazení uloženo · čeká na zaúčtování" : state.label}</small>
+        <small className={styles.matchLabel}>{entry.bank_payment_id ? "Zaúčtováno" : saved ? "Přiřazení uloženo · čeká na zaúčtování" : [state.label, sameAsProposal ? shortReason(entry.proposal_reason) : null].filter(Boolean).join(" · ")}</small>
       </> : !open ? <><strong>{entry.bank_payment_id ? "Zaúčtováno" : dispositionLabels[entry.disposition]}</strong><small>Podrobnosti jsou v detailu platby</small></> : null}
       {open && !unrelated && <MatchingDropdown label={`Vybrat fakturu · řádek ${entry.line_number}`} open={pickerOpen} onOpenChange={openPicker}
         className={`${styles.invoicePicker} ${info.values.length ? styles.changeInvoice : ""}`}
@@ -185,7 +187,6 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
           {editable && <>
             <button type="button" onClick={() => { close(); edit(); }}>Změnit přiřazení</button>
             {ids.length > 0 && <button type="button" disabled={Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odstranit přiřazení</button>}
-            <button type="button" onClick={() => { close(); edit(); }}>Přiřadit víc faktur</button>
             {entry.proposal_confidence !== "safe" && entry.proposed_invoice_ids.length > 0 && <button type="button" onClick={() => { data.onSelected(key, entry.proposed_invoice_ids); close(); }}>Použít navrženou kombinaci</button>}
           </>}
           {info.values.map(invoice => <Link key={invoice.id} href={`/invoices/${invoice.id}`}>Zobrazit fakturu {invoice.invoice_number}</Link>)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allocationIsValid, matchingState, paymentMatchesQuery } from "./payment-matching-presentation";
+import { allocationIsValid, matchingState, paymentMatchesQuery, shortReason } from "./payment-matching-presentation";
 import type { Invoice, PreviewEntry } from "./payment-matching-types";
 
 const entry: PreviewEntry = { line_number: 1, fingerprint: "one", disposition: "accepted", reason: null, amount: 100, currency: "CZK", booked_on: "2026-10-03", variable_symbol: "2600201", counterparty_name: "Český zákazník", counterparty_account: null, counterparty_account_verified: false, proposal_kind: "exact", proposal_confidence: "safe", proposal_reason: "VS i částka odpovídají.", proposed_invoice_ids: ["invoice"] };
@@ -35,5 +35,26 @@ describe("payment matching presentation preserves actual state meanings", () => 
   });
   it.each(["cesky zakaznik", "2600201", "100,00", "100"])("searches real payment fields: %s", query => {
     expect(paymentMatchesQuery(entry, query)).toBe(true);
+  });
+});
+
+describe("short reason on the payment row", () => {
+  it.each([
+    ["Jedinečná shoda VS nebo čísla faktury a přesné zbývající částky.", "Shoda VS a částky"],
+    ["Ke kontrole: Jedinečná shoda VS nebo čísla faktury a přesné zbývající částky.", "Shoda VS a částky"],
+    ["Číslo faktury je uvedené ve zprávě pro příjemce a částka přesně odpovídá.", "Číslo faktury ve zprávě"],
+    ["Účet plátce je potvrzeně spojený s tímto odběratelem a částka přesně odpovídá.", "Známý účet plátce"],
+    ["Automaticky podle jména plátce a přesné částky — platba neuvedla použitelný variabilní symbol.", "Stejné jméno a částka"],
+    ["Jedna přesná kombinace celých faktur stejného odběratele.", "Součet faktur odběratele"],
+    ["Jediná otevřená faktura s přesně touto částkou; potvrďte přiřazení.", "Jen stejná částka"],
+    ["Platba odkazuje na fakturu s jiným zůstatkem. Potvrďte částečnou úhradu nebo přeplatek.", "Jiná částka než faktura"],
+    ["Platba odkazuje na fakturu, která je už uhrazená. Ověřte, zda nejde o duplicitní platbu nebo zálohu.", "Faktura už je uhrazená"],
+    ["Stejný variabilní symbol nese více otevřených faktur — opravte číslování a přiřaďte ručně.", "Víc faktur se stejným VS"],
+    ["O tuto fakturu se uchází více plateb z výpisu — zkontrolujte přiřazení.", "Víc plateb na jednu fakturu"],
+    ["Převod z vlastního účtu firmy – nesouvisí s fakturami.", "Vlastní převod"],
+  ])("%s", (reason, expected) => expect(shortReason(reason)).toBe(expected));
+  it("returns nothing for an unknown or empty reason, so the row stays quiet", () => {
+    expect(shortReason("Něco úplně jiného")).toBeNull();
+    expect(shortReason(null)).toBeNull();
   });
 });

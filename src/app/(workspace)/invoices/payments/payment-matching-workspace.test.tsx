@@ -170,7 +170,7 @@ describe("payment matching review and existing transports", () => {
     expect(host.querySelector("[data-invoice-dropdown]")).toBeNull();
   });
   it("keeps split allocations and validates their total", async () => {
-    await upload(); await action("Akce platby · řádek 3"); await click("Přiřadit víc faktur");
+    await upload(); await action("Akce platby · řádek 3"); await click("Změnit přiřazení");
     for (const id of ["split-a", "split-b"])
       await act(async () => host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
     const dialog = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
