@@ -8,6 +8,8 @@ export type Invoice = {
   variable_symbol: string | null;
   due_date?: string | null;
   counterparty_ico?: string | null;
+  /** Proč je faktura u otevřené platby nahoře (previous, vs, amount, name). */
+  match_reasons?: string[];
 };
 export type PreviewEntry = {
   overlap_warning?: boolean;

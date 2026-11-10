@@ -2252,6 +2252,21 @@ export type Database = {
         }
         Returns: Json
       }
+      rank_open_invoice_candidates: {
+        Args: {
+          actor_user: string
+          page_number?: number
+          page_size?: number
+          payment_amount?: number
+          payment_currency?: string
+          payment_name?: string
+          payment_vs?: string
+          prefer_invoice_ids?: string[]
+          search_query?: string
+          target_org: string
+        }
+        Returns: Json
+      }
       payment_reconciliation_summary: {
         Args: {
           actor_user: string
