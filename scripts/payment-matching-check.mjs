@@ -216,20 +216,20 @@ try{
   const c=await pageFor(width,844);try{
    const trigger=c.page.getByRole('button',{name:'Filtry plateb',exact:true});
    await expect(c.page.getByRole('group',{name:'Stav párování'})).toHaveCount(0);
-   await trigger.click();const dialog=c.page.getByRole('dialog',{name:'Filtry plateb',exact:true});
-   await dialog.getByRole('button',{name:/Nespárováno/}).click();
-   await dialog.getByRole('button',{name:'Zobrazit výsledky',exact:true}).click();
-   await expect(dialog).toHaveCount(0);
+   const dialog=c.page.getByRole('dialog',{name:'Filtry plateb',exact:true});
+   const summary=c.page.getByRole('region',{name:'Souhrn výpisu',exact:true});
+   await summary.getByRole('button',{name:/nespárováno/}).click();
    await expect(c.page.getByRole('button',{name:'Zrušit filtr stavu párování',exact:true})).toBeVisible();
    await c.page.getByRole('button',{name:'Zrušit filtr stavu párování',exact:true}).click();
    await expect(c.page.getByRole('button',{name:'Zrušit filtr stavu párování',exact:true})).toHaveCount(0);
-   await trigger.click();await dialog.getByRole('button',{name:/K ověření/}).click();
+   await summary.getByRole('button',{name:/k ověření/}).click();
+   await trigger.click();
    await dialog.getByRole('combobox',{name:'Typ položek',exact:true}).selectOption('ignored');
    expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
    await c.page.screenshot({path:resolve(output,`filters-${width}.png`)});
    await dialog.getByRole('button',{name:'Resetovat',exact:true}).click();
    await expect(dialog.getByRole('combobox',{name:'Typ položek',exact:true})).toHaveValue('all');
-   await expect(dialog.getByRole('button',{name:/Všechny/})).toHaveAttribute('aria-pressed','true');
+   await expect(c.page.getByRole('button',{name:'Zrušit filtr stavu párování',exact:true})).toHaveCount(0);
    await c.page.keyboard.press('Escape');await expect(trigger).toBeFocused();
    expect(c.requests.filter(r=>r.method==='PATCH'||r.method==='POST'&&r.path.endsWith('/commit'))).toHaveLength(0);
    expect(c.errors).toEqual([]);

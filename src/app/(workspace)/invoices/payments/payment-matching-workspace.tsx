@@ -10,8 +10,10 @@ import { Icon } from "@/components/icons";
 import { OWN_TRANSFER_LABEL, UNRELATED_LABEL } from "@/lib/payment-unrelated-rows";
 import { reconciliationError } from "@/lib/reconciliation-errors";
 import { MatchingDropdown, MatchingPopover, MatchingStatus } from "./payment-matching-popover";
+import { confirmAction } from "@/lib/confirm-action";
+import { minorUnits } from "@/lib/money";
 import { MatchingNotice } from "./payment-matching-notice";
-import { isOpenPayment, matchingState, paymentDate, paymentMatchesQuery, paymentMoney } from "./payment-matching-presentation";
+import { isOpenPayment, matchingState, NEED_ORDER, needGroup, paymentDate, paymentMatchesQuery, paymentMoney, safeMatchesLabel, type NeedGroup } from "./payment-matching-presentation";
 import type { Invoice, Preview, PreviewEntry, PersistedPreviewEntry } from "./payment-matching-types";
 import styles from "./payment-matching.module.css";
 
@@ -22,6 +24,8 @@ const MATCH_REASON_LABELS: Record<string, string> = {
   amount: "Stejná částka",
   name: "Stejné jméno",
 };
+
+const NEED_LABELS: Record<NeedGroup, string> = { review: "K ověření", unmatched: "Nespárováno", safe: "Vysoká shoda", other: "Ostatní" };
 
 type Props = {
   preview: Preview; filename: string; queueIndex: number; queueTotal: number;
@@ -196,16 +200,46 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
 }
 
 export function PaymentMatchingWorkspace(data: Props) {
-  const [mainFilter, setMainFilter] = useState<"review" | "unmatched" | "all">("all");
   const [query, setQuery] = useState("");
+  const [needFilter, setNeedFilter] = useState<NeedGroup | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(() => new Set());
-  const matchesMain = (entry: PreviewEntry, filter: typeof mainFilter) => filter === "all" || (isOpenPayment(entry) && !data.unrelated[entry.fingerprint] && (filter === "review" ? (data.selected[entry.fingerprint]?.length ?? 0) > 0 || entry.proposed_invoice_ids.length > 0 : (data.selected[entry.fingerprint]?.length ?? 0) === 0 && entry.proposed_invoice_ids.length === 0));
-  const visible = data.preview.entries.filter(entry => matchesMain(entry, mainFilter) && paymentMatchesQuery(entry, query));
+  const groupOf = (entry: PreviewEntry) => {
+    const key = entry.fingerprint;
+    const ids = data.selected[key] ?? [];
+    const adjusted = Boolean(data.partial[key]) || data.allocationInfo(entry).difference !== 0;
+    return needGroup(entry, matchingState(entry, ids, Boolean(data.unrelated[key]), adjusted));
+  };
+  const groups = new Map(data.preview.entries.map(entry => [entry.fingerprint, groupOf(entry)]));
+  const count = (group: NeedGroup) => data.preview.entries.filter(entry => groups.get(entry.fingerprint) === group).length;
+  // Nejdřív to, co potřebuje člověka; v rámci skupiny pořadí výpisu.
+  const visible = data.preview.entries
+    .filter(entry => paymentMatchesQuery(entry, query) && (!needFilter || groups.get(entry.fingerprint) === needFilter))
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => NEED_ORDER[groups.get(a.entry.fingerprint) ?? "other"] - NEED_ORDER[groups.get(b.entry.fingerprint) ?? "other"] || a.index - b.index)
+    .map(({ entry }) => entry);
   const eligible = visible.filter(entry => data.canManage && !data.working && !data.blockedReason && data.loadedEntries[entry.fingerprint] && !data.confirmedRows.has(entry.fingerprint) && data.canConfirm(entry)).map(entry => entry.fingerprint);
   const selected = eligible.filter(key => selectedRows.has(key));
   const selectAll = (value: boolean) => setSelectedRows(new Set(value ? eligible : []));
-  const activeFilterCount = Number(mainFilter !== "all") + Number(data.entryFilter !== "all");
-  const resetFilters = () => { setMainFilter("all"); data.onEntryFilter("all"); setQuery(""); selectAll(false); };
+  // Jisté shody na celém načteném výpisu, které jdou potvrdit (stejná pravidla
+  // jako „Potvrdit vybrané“; jen uloží kontrolu, nic nezaúčtuje).
+  const safeReady = data.preview.entries.filter(entry => groups.get(entry.fingerprint) === "safe" && data.canManage && !data.working && !data.blockedReason
+    && data.loadedEntries[entry.fingerprint] && !data.confirmedRows.has(entry.fingerprint) && data.canConfirm(entry));
+  const safeTotal = safeReady.reduce((sum, entry) => sum + minorUnits(Number(entry.amount ?? 0)), 0) / 100;
+  const safeCurrency = safeReady.every(entry => entry.currency === safeReady[0]?.currency) ? safeReady[0]?.currency ?? "CZK" : null;
+  const confirmSafe = async () => {
+    const keys = safeReady.map(entry => entry.fingerprint);
+    if (!keys.length) return;
+    const ok = await confirmAction({
+      title: `Potvrdit ${safeMatchesLabel(keys.length)}?`,
+      description: `Uloží se kontrola ${keys.length} ${keys.length === 1 ? "platby" : "plateb"}${safeCurrency ? ` v celkové výši ${paymentMoney(safeTotal, safeCurrency)}` : ""}. Peníze se zapíšou až tlačítkem Zaúčtovat výpis.`,
+      confirmLabel: "Potvrdit",
+      confirmVariant: "primary",
+    });
+    if (ok) data.onSaveRows(keys);
+  };
+  const pageScoped = data.total > data.preview.entries.length;
+  const activeFilterCount = Number(needFilter !== null) + Number(data.entryFilter !== "all");
+  const resetFilters = () => { setNeedFilter(null); data.onEntryFilter("all"); setQuery(""); selectAll(false); };
   return <section className={styles.workspace} data-payment-matching>
     <header className={styles.heading}>
       <div><h1>Párování plateb</h1><p>Zkontrolujte a potvrďte přiřazení plateb k fakturám.</p></div>
@@ -217,23 +251,34 @@ export function PaymentMatchingWorkspace(data: Props) {
     {data.done && <MatchingNotice message={data.done} className={styles.success} />}
     {data.preview.import.duplicate && <MatchingNotice key={data.preview.import.id} className={styles.duplicate} message="Tento výpis už byl dříve nahraný. Zobrazujeme jeho existující výsledky." />}
     {data.preview.account_mismatch && <details className={styles.accountWarning}><summary><Icon name="alert"/>{data.accountAck ? "Kontrola bankovního účtu potvrzena" : "Bankovní účet vyžaduje kontrolu"}<span>Podrobnosti <ChevronDown /></span></summary><div><p>Účet ve výpisu není mezi účty firmy (Nastavení → Firma).</p><p>Ve výpisu: <strong>{data.preview.statement_account || "neznámý"}</strong> · Nastaveno: <strong>{data.preview.expected_account || "neznámý"}</strong></p><label><input type="checkbox" checked={data.accountAck} disabled={!data.canManage || data.working} onChange={event => data.onAccountAck(event.target.checked)}/>Potvrdit kontrolu bankovního účtu</label></div></details>}
+    <section className={styles.summary} aria-label="Souhrn výpisu">
+      {pageScoped && <span className={styles.summaryScope}>Tato stránka:</span>}
+      {(["review", "unmatched", "safe"] as const).map(group =>
+        <button type="button" key={group} className={styles[`need_${group}`]} aria-pressed={needFilter === group} disabled={!count(group) && needFilter !== group}
+          onClick={() => { setNeedFilter(current => current === group ? null : group); selectAll(false); }}>
+          <i aria-hidden="true"/>{count(group)} {NEED_LABELS[group].toLowerCase()}
+        </button>)}
+      {safeReady.length > 0 && <button type="button" className={styles.confirmSafe} onClick={() => void confirmSafe()}>
+        Potvrdit {safeMatchesLabel(safeReady.length)}{safeCurrency ? <small> · {paymentMoney(safeTotal, safeCurrency)}</small> : null}
+      </button>}
+    </section>
     <div className={styles.toolbar}>
 
       <label className={styles.search}><Icon name="search"/><input aria-label="Hledat platby na aktuální stránce" placeholder="Hledat částku, VS nebo název…" value={query} onChange={event => { setQuery(event.target.value); selectAll(false); }}/></label>
-      <MatchingPopover label="Filtry plateb" trigger={<><Icon name="filter"/>{activeFilterCount > 0 && <span className={styles.filterCount} aria-hidden="true">{activeFilterCount}</span>}</>} className={`${styles.filterButton} ${activeFilterCount ? styles.filterActive : ""}`}>{close => <div className={styles.filters}><span className={styles.filterLabel}>Stav párování</span><div className={styles.chips} role="group" aria-label="Stav párování">{([ ["review", "K ověření"], ["unmatched", "Nespárováno"], ["all", "Všechny"] ] as const).map(([filter, label]) => <button type="button" key={filter} aria-pressed={mainFilter === filter} onClick={() => { setMainFilter(filter); selectAll(false); }}><i className={styles[filter]} aria-hidden="true"/>{label}<b>{data.preview.entries.filter(entry => matchesMain(entry, filter)).length}</b></button>)}</div><label>Typ položek<select aria-label="Typ položek" value={data.entryFilter} onChange={event => { data.onEntryFilter(event.target.value as Props["entryFilter"]); selectAll(false); }}>{Object.entries(dispositionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><dl><dt>Přijaté</dt><dd>{data.preview.totals.accepted}</dd><dt>Ignorované</dt><dd>{data.preview.totals.ignored}</dd><dt>Chyby</dt><dd>{data.preview.totals.errors}</dd><dt>Celkem</dt><dd>{data.preview.total_entries}</dd></dl>
+      <MatchingPopover label="Filtry plateb" trigger={<><Icon name="filter"/>{activeFilterCount > 0 && <span className={styles.filterCount} aria-hidden="true">{activeFilterCount}</span>}</>} className={`${styles.filterButton} ${activeFilterCount ? styles.filterActive : ""}`}>{close => <div className={styles.filters}><label>Typ položek<select aria-label="Typ položek" value={data.entryFilter} onChange={event => { data.onEntryFilter(event.target.value as Props["entryFilter"]); selectAll(false); }}>{Object.entries(dispositionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><dl><dt>Přijaté</dt><dd>{data.preview.totals.accepted}</dd><dt>Ignorované</dt><dd>{data.preview.totals.ignored}</dd><dt>Chyby</dt><dd>{data.preview.totals.errors}</dd><dt>Celkem</dt><dd>{data.preview.total_entries}</dd></dl>
         {data.preview.statement_bank && <p>{data.preview.statement_bank.name || "Banka neurčena"}{!data.preview.statement_bank.verified && " · Banka zatím není ověřená na vzorku. Párování používá VS a částku, nikoli číslo účtu plátce."}</p>}
         <details className={styles.technical}><summary>Údaje importu<ChevronDown /></summary><pre>{JSON.stringify(data.preview.import, null, 2)}</pre></details>
         <div className={styles.filterActions}><button type="button" onClick={resetFilters}>Resetovat</button><button type="button" onClick={close}>Zobrazit výsledky</button></div>
       </div>}</MatchingPopover>
     </div>
     {activeFilterCount > 0 && <div className={styles.activeFilters} aria-label="Aktivní filtry plateb">
-      {mainFilter !== "all" && <button type="button" aria-label="Zrušit filtr stavu párování" onClick={() => { setMainFilter("all"); selectAll(false); }}>{mainFilter === "review" ? "K ověření" : "Nespárováno"}<CloseIcon/></button>}
+      {needFilter && <button type="button" aria-label="Zrušit filtr stavu párování" onClick={() => { setNeedFilter(null); selectAll(false); }}>{NEED_LABELS[needFilter]}<CloseIcon/></button>}
       {data.entryFilter !== "all" && <button type="button" aria-label="Zrušit filtr typu položek" onClick={() => { data.onEntryFilter("all"); selectAll(false); }}>{dispositionLabels[data.entryFilter]}<CloseIcon/></button>}
     </div>}
-    <p className={styles.scope}>Aktuální stránka: {data.preview.entries.length} z {data.total} položek. Stavové filtry a hledání pracují s touto stránkou.</p>
+    {pageScoped && <p className={styles.scope}>Aktuální stránka: {data.preview.entries.length} z {data.total} položek. Souhrn, filtry a hledání pracují s touto stránkou.</p>}
     <div className="gpc-preview"><div className={styles.rows}>
       {visible.map(entry => <PaymentRow key={entry.fingerprint} entry={entry} data={data} checked={selected.includes(entry.fingerprint)} onToggle={() => setSelectedRows(current => { const next = new Set(current); if (next.has(entry.fingerprint)) next.delete(entry.fingerprint); else next.add(entry.fingerprint); return next; })}/>)}
-      {!visible.length && <div className={styles.empty}><strong>Žádné položky v tomto zobrazení</strong><p>Změňte stavový filtr, hledání nebo stránku výpisu.</p><button type="button" onClick={() => { setMainFilter("all"); setQuery(""); }}>Zrušit hledání a stavový filtr</button></div>}
+      {!visible.length && <div className={styles.empty}><strong>Žádné položky v tomto zobrazení</strong><p>Změňte stavový filtr, hledání nebo stránku výpisu.</p><button type="button" onClick={() => { setNeedFilter(null); setQuery(""); }}>Zrušit hledání a stavový filtr</button></div>}
     </div></div>
     {data.total > 50 && <nav className={styles.pagination} aria-label="Stránky náhledu výpisu"><button type="button" disabled={data.page <= 1 || data.working} onClick={() => { selectAll(false); data.onPage(data.page - 1); }}>Předchozí položky</button><span>Stránka {data.page} / {Math.ceil(data.total / 50)}</span><button type="button" disabled={data.page * 50 >= data.total || data.working} onClick={() => { selectAll(false); data.onPage(data.page + 1); }}>Další položky</button></nav>}
     {data.preview.import.status !== "committed" && <footer className={styles.footer}>

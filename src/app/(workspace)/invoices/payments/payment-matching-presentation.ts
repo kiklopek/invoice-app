@@ -35,3 +35,19 @@ export function paymentMatchesQuery(entry: PreviewEntry, query: string) {
   return [entry.counterparty_name, entry.variable_symbol, entry.counterparty_account, entry.amount == null ? null : String(entry.amount), entry.amount == null ? null : paymentMoney(Number(entry.amount), entry.currency || "CZK")]
     .some(value => value != null && normalize(value).includes(needle));
 }
+
+/** Skupina řádku pro souhrn a řazení: co potřebuje člověka, je nahoře. */
+export type NeedGroup = "review" | "unmatched" | "safe" | "other";
+export function needGroup(entry: PreviewEntry, state: { tone: string; label: string }): NeedGroup {
+  if (state.tone === "safe") return "safe";
+  if (state.label === "Nespárováno") return "unmatched";
+  if (state.tone === "review" || (state.tone === "danger" && isOpenPayment(entry))) return "review";
+  return "other";
+}
+export const NEED_ORDER: Record<NeedGroup, number> = { review: 0, unmatched: 1, safe: 2, other: 3 };
+/** „1 jistou shodu“, „2 jisté shody“, „5 jistých shod“. */
+export function safeMatchesLabel(count: number) {
+  if (count === 1) return "1 jistou shodu";
+  if (count >= 2 && count <= 4) return `${count} jisté shody`;
+  return `${count} jistých shod`;
+}

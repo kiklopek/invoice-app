@@ -78,6 +78,42 @@ describe("payment matching review and existing transports", () => {
     expect(JSON.parse(mutations()[0][1].body).reviewed_entry_ids).toEqual(["entry-1"]);
     expect(mutations().some(([url]) => url.endsWith("/commit"))).toBe(false);
   });
+  it("shows a summary of the statement and lists rows that need a person first", async () => {
+    await upload();
+    const summary = host.querySelector<HTMLElement>('[aria-label="Souhrn výpisu"]')!;
+    expect(summary).not.toBeNull();
+    expect(summary.textContent).toContain("1 k ověření");
+    expect(summary.textContent).toContain("1 nespárováno");
+    expect(summary.textContent).toContain("2 vysoká shoda");
+    // Nejdřív to, co potřebuje člověka: k ověření, nespárované, pak jisté shody.
+    const order = [...host.querySelectorAll<HTMLElement>("[data-payment-row]")].map(row => row.dataset.paymentRow);
+    expect(order).toEqual(["row-4", "row-3", "row-1", "row-2"]);
+    // Kliknutí na číslo v souhrnu zobrazí jen ty řádky, druhé kliknutí filtr zruší.
+    const chip = () => [...summary.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("k ověření"))!;
+    await act(async () => chip().click());
+    expect([...host.querySelectorAll<HTMLElement>("[data-payment-row]")].map(row => row.dataset.paymentRow)).toEqual(["row-4"]);
+    expect(chip().getAttribute("aria-pressed")).toBe("true");
+    await act(async () => chip().click());
+    expect(host.querySelectorAll("[data-payment-row]")).toHaveLength(4);
+  });
+  it("confirms all safe matches at once after showing what will be saved, and nothing when cancelled", async () => {
+    await upload();
+    const before = mutations().length;
+    const bulk = () => [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => /^Potvrdit \d+ (jistou|jisté|jistých) shod/.test(button.textContent?.trim() ?? ""));
+    expect(bulk()).toBeDefined();
+    mocks.confirm.mockResolvedValueOnce(false);
+    await act(async () => bulk()!.click());
+    expect(mocks.confirm).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringMatching(/jist/) }));
+    expect(mutations().length).toBe(before);
+    mocks.confirm.mockResolvedValueOnce(true);
+    await act(async () => bulk()!.click());
+    const saved = JSON.parse(mutations().at(-1)![1].body);
+    expect(saved.reviewed_entry_ids).toContain("entry-2");
+    expect(saved.reviewed_entry_ids).not.toContain("entry-3");
+    expect(saved.reviewed_entry_ids).not.toContain("entry-4");
+    // Uloží jen kontrolu; zaúčtování zůstává na tlačítku Zaúčtovat výpis.
+    expect(mutations().some(([url]) => url.endsWith("/commit"))).toBe(false);
+  });
   it("manual selection closes the picker and enables row confirmation", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");
     const dialog = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
@@ -277,9 +313,7 @@ describe("payment matching review and existing transports", () => {
   });
   it("filters and searches without modifying payment decisions", async () => {
     await upload();
-    await action("Filtry plateb");
-    await click("Nespárováno1");
-    await click("Zobrazit výsledky");
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[aria-label="Souhrn výpisu"] button')].find(button => button.textContent?.includes("nespárováno"))!.click());
     expect(host.querySelectorAll("[data-payment-row]")).toHaveLength(1);
     await inputText(host.querySelector<HTMLInputElement>('input[aria-label="Hledat platby na aktuální stránce"]')!, "neexistuje");
     expect(host.querySelectorAll("[data-payment-row]")).toHaveLength(0);
