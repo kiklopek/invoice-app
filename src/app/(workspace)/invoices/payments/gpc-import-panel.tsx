@@ -346,9 +346,23 @@ export function GpcImportPanel({
         method: "POST",
         body: JSON.stringify({ entry_id: entry.id }),
       });
-      touchedEntries.current.delete(entry.fingerprint);
       const previous = (selected[entry.fingerprint] ?? []).filter(Boolean);
-      if (previous.length) setReleasedInvoices(current => ({ ...current, [entry.fingerprint]: previous }));
+      if (previous.length) {
+        // Původní faktura (i s částkami a částečnou úhradou) zůstane na řádku
+        // předvybraná: jedním „Potvrdit“ ji jde připojit znovu, nebo vybrat
+        // jinou. Jen výběr na obrazovce, nic se tím neuloží ani nezaúčtuje.
+        const previousAmounts = allocationAmounts[entry.fingerprint] ?? {};
+        const previousPartial = Boolean(partial[entry.fingerprint]);
+        touchedEntries.current.add(entry.fingerprint);
+        setSelected(current => ({ ...current, [entry.fingerprint]: previous }));
+        setAllocationAmounts(current => ({ ...current, [entry.fingerprint]: previousAmounts }));
+        setPartial(current => ({ ...current, [entry.fingerprint]: previousPartial }));
+        setReleasedInvoices(current => ({ ...current, [entry.fingerprint]: previous }));
+        // Načte faktury seřazené pro tuto platbu, tedy i aktuální zůstatek původní faktury.
+        setPickerEntry({ ...entry, bank_payment_id: null });
+      } else {
+        touchedEntries.current.delete(entry.fingerprint);
+      }
       // Releasing a booked payment restores the invoice balance on the server.
       // Refresh candidates too: the parent props and the last search can still
       // omit that invoice or contain its previously paid balance.
@@ -360,7 +374,9 @@ export function GpcImportPanel({
         next.delete(entry.fingerprint);
         return next;
       });
-      setDone(`Řádek ${entry.line_number} byl uvolněn. Faktura je zpět mezi neuhrazenými a přiřazení můžete změnit.`);
+      setDone(previous.length
+        ? `Řádek ${entry.line_number} byl uvolněn. Původní faktura je znovu předvybraná – potvrďte ji, nebo vyberte jinou.`
+        : `Řádek ${entry.line_number} byl uvolněn. Faktura je zpět mezi neuhrazenými a přiřazení můžete změnit.`);
       setRefreshVersion((value) => value + 1);
       onCommitted();
     } catch (cause) {

@@ -154,6 +154,8 @@ export function PaymentsArchiveClient({ initialData, highlightPaymentId }: { ini
       })
     )
       return;
+    // Faktura, ke které platba patřila: po uvolnění ji nabídneme hned zpátky.
+    const previousInvoice = payment.invoice_id ?? (payment.allocations?.length === 1 ? payment.allocations[0].invoice_id : null);
     setWorking(true);
     setMessage("");
     setNotice("");
@@ -167,7 +169,13 @@ export function PaymentsArchiveClient({ initialData, highlightPaymentId }: { ini
         body: JSON.stringify({ payment_id: payment.id }),
       });
       await refreshPayments();
-      setNotice(typeof data.remaining === "number" ? `Platba byla uvolněna. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.` : "Všechna přiřazení platby byla bezpečně uvolněna.");
+      if (previousInvoice) {
+        // Jen předvýběr v nabídce; přiřadí se až tlačítkem Přiřadit.
+        setTouchedAssignments((current) => new Set(current).add(payment.id));
+        setAssignments((current) => ({ ...current, [payment.id]: previousInvoice }));
+      }
+      const released = typeof data.remaining === "number" ? `Platba byla uvolněna. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.` : "Všechna přiřazení platby byla bezpečně uvolněna.";
+      setNotice(previousInvoice ? `${released} Původní faktura je znovu předvybraná – klikněte na Přiřadit, nebo vyberte jinou.` : released);
     } catch (cause) {
       setMessage(
         cause instanceof Error

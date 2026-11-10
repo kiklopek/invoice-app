@@ -273,6 +273,39 @@ describe("payment matching review and existing transports", () => {
     expect(options[0].textContent).toContain("Stejná částka");
     expect(options[1].textContent).toContain("Shoda VS");
   });
+  it("offers the original invoice on the row right after release, so one click reconnects it", async () => {
+    const paidInvoice = { ...invoice("invoice-1"), paid_amount: 100 };
+    candidates = candidates.filter(candidate => candidate.id !== paidInvoice.id);
+    detail.proposal_invoices = [paidInvoice, ...candidates];
+    preview.proposal_invoices = detail.proposal_invoices;
+    detail.entries[0].bank_payment_id = "booked-payment";
+    detail.allocations = detail.allocations.map(allocation => allocation.statement_entry_id === "entry-1" ? { ...allocation, is_committed: true } : allocation);
+    const original = mocks.fetch.getMockImplementation()!;
+    mocks.fetch.mockImplementation((url: string, options?: { method?: string }) => {
+      if (url.endsWith("/release")) {
+        detail.entries[0] = { ...detail.entries[0], bank_payment_id: null, proposal_kind: "manual", proposal_confidence: "review", proposed_invoice_ids: [] };
+        detail.allocations = detail.allocations.filter(allocation => allocation.statement_entry_id !== "entry-1");
+        detail.proposal_invoices = candidates;
+        candidates = [invoice("invoice-1"), ...candidates];
+      }
+      return original(url, options);
+    });
+    await upload();
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
+    await action("Akce platby · řádek 1");
+    await click("Uvolnit platbu a změnit přiřazení");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
+    // Bez otevírání výběru: řádek ukazuje původní fakturu a jde rovnou potvrdit.
+    expect(scoped(1).textContent).toContain("Firma invoice-1");
+    expect(host.textContent).toContain("Původní faktura je znovu předvybraná");
+    const saves = () => mutations().filter(([, options]) => options?.method === "PATCH");
+    const before = saves().length;
+    expect(buttons("Potvrdit", scoped(1))[0].disabled).toBe(false);
+    await click("Potvrdit", scoped(1));
+    expect(saves().length).toBe(before + 1);
+    expect(JSON.parse(saves().at(-1)![1].body).allocations).toEqual(expect.arrayContaining([expect.objectContaining({ invoice_id: "invoice-1", amount: 100 })]));
+    expect(mutations().filter(([url]) => url.endsWith("/commit"))).toHaveLength(0);
+  });
   it("reloads unpaid candidates after release and permits assigning the same invoice again", async () => {
     const paidInvoice = { ...invoice("invoice-1"), paid_amount: 100 };
     candidates = candidates.filter(candidate => candidate.id !== paidInvoice.id);
