@@ -134,24 +134,53 @@ describe("payment matching review and existing transports", () => {
     expect(host.querySelector("[data-invoice-dropdown]")).toBeNull();
   });
   it("keeps split allocations and validates their total", async () => {
-    await upload(); await action("Akce platby · řádek 3"); await click("Rozdělit platbu");
-    let dialog = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
-    for (const id of ["split-a", "split-b"]) {
-      const option = [...dialog.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes(`VS ${id}`))!;
-      await act(async () => option.click());
-    }
-    dialog = host.querySelector("[data-invoice-dropdown]")!;
+    await upload(); await action("Akce platby · řádek 3"); await click("Přiřadit víc faktur");
+    for (const id of ["split-a", "split-b"])
+      await act(async () => host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
+    const dialog = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
     await click("Hotovo", dialog);
     expect(buttons("Potvrdit", scoped(3))[0].disabled).toBe(false);
     await click("Potvrdit", scoped(3));
     const allocations = JSON.parse(mutations()[0][1].body).allocations;
     expect(allocations.map((a: { amount: number }) => a.amount)).toEqual([40, 60]);
   });
+  it("lets one payment pay several invoices straight from the invoice picker", async () => {
+    await upload(); await action("Vybrat fakturu · řádek 3");
+    for (const id of ["split-a", "split-b"]) {
+      const check = host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!;
+      expect(check).not.toBeNull();
+      await act(async () => check.click());
+      // Zaškrtnutí nechá výběr otevřený, aby šlo přidat další fakturu.
+      expect(host.querySelector("[data-invoice-dropdown]")).not.toBeNull();
+    }
+    const dropdown = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    expect(dropdown.querySelector('input[aria-label="Částka k faktuře split-a"]')).not.toBeNull();
+    expect(dropdown.textContent).toContain("rozdíl 0,00");
+    await click("Hotovo", dropdown);
+    expect(scoped(3).textContent).toContain("Firma split-a");
+    expect(scoped(3).textContent).toContain("Firma split-b");
+    await click("Potvrdit", scoped(3));
+    expect(JSON.parse(mutations()[0][1].body).allocations.map((a: { invoice_id: string; amount: number }) => [a.invoice_id, a.amount]))
+      .toEqual([["split-a", 40], ["split-b", 60]]);
+  });
+  it("does not confirm several invoices whose amounts exceed the payment until the amounts are fixed", async () => {
+    await upload(); await action("Vybrat fakturu · řádek 3");
+    for (const id of ["invoice-3", "invoice-4"]) await act(async () => host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
+    await click("Hotovo", host.querySelector("[data-invoice-dropdown]")!);
+    expect(buttons("Potvrdit", scoped(3))[0].disabled).toBe(true);
+    await action("Vybrat fakturu · řádek 3");
+    await inputText(host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[aria-label="Částka k faktuře invoice-4"]')!, "0");
+    await inputText(host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[aria-label="Částka k faktuře invoice-3"]')!, "60");
+    await inputText(host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[aria-label="Částka k faktuře invoice-4"]')!, "40");
+    await click("Hotovo", host.querySelector("[data-invoice-dropdown]")!);
+    expect(buttons("Potvrdit", scoped(3))[0].disabled).toBe(false);
+  });
   it("requires the explicit partial-payment choice", async () => {
     candidates[0].amount = 120; detail.allocations[0].amount = 120;
     await upload(); expect(buttons("Potvrdit", scoped(1))[0].disabled).toBe(true);
     await action("Vybrat fakturu · řádek 1");
-    await act(async () => host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[type="checkbox"]')!.click());
+    const partialChoice = [...host.querySelectorAll<HTMLLabelElement>("[data-invoice-dropdown] label")].find(label => label.textContent?.includes("částečnou úhradu"))!.querySelector("input")!;
+    await act(async () => partialChoice.click());
     await click("Hotovo", host.querySelector("[data-invoice-dropdown]")!); await click("Potvrdit", scoped(1));
     expect(JSON.parse(mutations()[0][1].body).allocations[0]).toMatchObject({ amount: 100, is_manual_partial: true });
   });

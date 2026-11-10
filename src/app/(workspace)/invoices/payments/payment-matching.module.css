@@ -95,15 +95,19 @@
 .pickerSearch input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 12px; padding: 6px 0; }
 .pickerSearch:focus-within { border-color: #188055; outline: 1px solid #188055; }
 .invoiceOptions { display: grid; margin: 8px 0; max-height: 300px; overflow: auto; }
-.invoiceOptions > button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 5px; border: 0; border-bottom: 1px solid #edf0f2; background: transparent; text-align: left; color: #16243b; }
-.invoiceOptions > button:hover, .invoiceOptions > button[aria-pressed=true] { background: #eff7f2; }
-.invoiceOptions > button > span:not(.optionCheck) { flex: 1; min-width: 0; }
+.invoiceOption { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #edf0f2; }
+.invoiceOption:hover, .invoiceOption:has(> button[aria-pressed=true]) { background: #eff7f2; }
+/* Zaškrtávátko zůstává 16 px, klikací plocha je celá výška řádku (min. 44 px). */
+.optionCheck { display: grid; flex: none; place-items: center; align-self: stretch; min-width: 32px; min-height: 44px; padding-left: 4px; cursor: pointer; }
+.optionCheck > input { width: 16px; height: 16px; margin: 0; accent-color: #16754d; cursor: pointer; }
+@media (pointer: coarse) { .optionCheck { min-width: 44px; } }
+.invoiceOption > button { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; padding: 11px 5px; border: 0; background: transparent; text-align: left; color: #16243b; }
+.invoiceOption > button > span { flex: 1; min-width: 0; }
 .invoiceOptions strong, .invoiceOptions small { display: block; }
 .invoiceOptions strong { font-size: 12px; font-weight: 600; }
 .invoiceOptions small { margin-top: 4px; font-size: 11px; color: #7c899a; }
 .invoiceOptions time { flex: none; color: #8893a2; font-size: 10px; }
 .invoiceOptions b { flex: 0 1 auto; min-width: 0; max-width: 50%; font-size: 11px; font-weight: 600; }
-.optionCheck { width: 16px; height: 16px; border: 1px solid #b7cbbf; border-radius: 4px; color: #16754d; text-align: center; }
 .menu { display: grid; gap: 4px; }
 .menu > button, .menu > a, .menu > .anchor > button { display: block; width: 100%; height: auto; text-align: left; padding: 10px; background: transparent; border: 0; border-radius: 5px; color: #29443b; text-decoration: none; line-height: 1.5; font-size: 12px; }
 .menu > button:hover, .menu > a:hover, .menu > .anchor > button:hover { background: #eef6f1; }
@@ -119,8 +123,8 @@
 .filters label { display: grid; gap: 8px; }
 .filters select { padding: 10px; width: 100%; border: 1px solid #dce4df; border-radius: 6px; color: #213f31; background: #fff; }
 .filters p, .hint { font-size: 11px; line-height: 1.6; color: #7b8795; }
-.advanced { margin: 12px 0; color: #354e40; }
-.advanced summary { cursor: pointer; font-size: 12px; }
+.advanced { margin: 12px 0; border: 0; padding: 0; color: #354e40; }
+.advanced legend { padding: 0; font-size: 12px; font-weight: 600; }
 .advanced label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; }
 .advanced input { width: 130px; max-width: 50%; border: 1px solid #ceddd4; border-radius: 6px; padding: 8px; }
 .partial { display: flex; align-items: center; gap: 8px; font-size: 11px; margin: 12px 0; line-height: 1.5; }
@@ -218,10 +222,10 @@
   .footerActions > .bookButton { grid-column: 1 / -1; width: 100%; }
   .popup.popup { width: calc(100vw - 24px); left: 12px; top: auto; bottom: 12px; max-height: calc(90dvh - 24px); border-radius: 14px; padding: 16px; }
   .popup::backdrop { background: #153c2d66; }
-  .invoiceOptions > button { flex-wrap: wrap; }
+  .invoiceOption > button { flex-wrap: wrap; }
   .invoiceOptions time { margin-left: auto; }
   .invoiceOptions b { white-space: nowrap; }
-  .invoiceOptions > button > span:not(.optionCheck) { min-width: 110px; }
+  .invoiceOption > button > span { min-width: 110px; }
 }
 @media (prefers-reduced-motion: reduce) { .workspace *, .popup * { scroll-behavior: auto; transition: none; } }
 /* Remove only legacy review-wrapper spacing; shared navigation is unchanged. */
@@ -239,7 +243,7 @@
 .dropdownPanel { position: absolute; top: calc(100% + 8px); right: auto; left: 0; z-index: 1; width: min(440px, calc(100vw - 24px)); max-height: 400px; overflow: auto; overscroll-behavior: contain; padding: 10px; border: 1px solid #dce4e5; border-radius: 8px; background: #fff; color: #142339; box-shadow: 0 8px 24px #193b2d1a; font-size: 12px; }
 .dropdownPanel .pickerSearch input { border: 0; padding: 6px 0; outline: none; box-shadow: none; min-height: 0; }
 .dropdownPanel .invoiceOptions { max-height: 180px; overscroll-behavior: contain; }
-.dropdownPanel .invoiceOptions > button { padding: 8px 5px; }
+.dropdownPanel .invoiceOption > button { padding: 8px 5px; }
 .dropdownPanel .popupHead { margin-bottom: 8px; }
 .dropdownPanel .pickerSearch { position: sticky; top: 0; z-index: 1; height: 35px; background: #fff; }
 .clearAssignment { margin-top: 8px; padding: 7px 10px; border: 1px solid #dce4e5; border-radius: 6px; background: #fff; color: #815d35; font-size: 12px; }

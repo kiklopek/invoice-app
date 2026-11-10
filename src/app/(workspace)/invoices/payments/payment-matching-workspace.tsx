@@ -83,7 +83,6 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
   const saved = data.confirmedRows.has(key);
   const eligible = Boolean(data.canManage && persisted && !data.working && !data.blockedReason && !saved && data.canConfirm(entry));
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [advanced, setAdvanced] = useState(false);
   const hoverId = useId();
   const editable = Boolean(open && !unrelated && data.canManage && persisted && !data.working && data.preview.import.status !== "committed");
   const candidates = [...new Map([
@@ -92,7 +91,7 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
   ].map(invoice => [invoice.id, invoice])).values()]
     .filter(invoice => !entry.currency || invoice.currency === entry.currency)
     .filter(invoice => !data.invoiceQuery.trim() || data.candidates.some(candidate => candidate.id === invoice.id));
-  const edit = (split: boolean) => { setAdvanced(split); setPickerOpen(true); };
+  const edit = () => setPickerOpen(true);
   return <article className={`${styles.row} ${styles[state.tone]} ${unrelated ? styles.unrelated : ""}`} data-payment-row={key}>
     <input type="checkbox" aria-label={`Vybrat platbu, řádek ${entry.line_number}`} checked={checked} disabled={!eligible} onChange={onToggle}/>
     <MatchingStatus {...state}/>
@@ -125,22 +124,32 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
           {data.candidateError && <p className={styles.error} role="alert">{data.candidateError} <button type="button" onClick={data.onCandidateRetry}>Zkusit znovu</button></p>}
           {!editable && <p className={styles.hint}>Přiřazení nyní nelze upravovat.</p>}
           {ids.length > 0 && <button type="button" className={styles.clearAssignment} disabled={!editable || Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odstranit přiřazení</button>}
+          {editable && <p className={styles.hint}>Jedna platba může uhradit víc faktur: zaškrtněte všechny, které platí.</p>}
           <div className={styles.invoiceOptions} role="group" aria-label="Dostupné faktury">
-            {candidates.map(invoice => <button type="button" key={invoice.id} disabled={!editable || data.candidateLoading} aria-pressed={ids.includes(invoice.id)} onClick={() => {
-              data.onSelected(key, advanced ? ids.includes(invoice.id) ? ids.filter(id => id !== invoice.id) : [...ids, invoice.id] : [invoice.id]);
-              if (!advanced) close();
-            }}>
-              {advanced && <span className={styles.optionCheck} aria-hidden="true">{ids.includes(invoice.id) ? "✓" : ""}</span>}
-              <span><strong>{invoice.variable_symbol ? `VS ${invoice.variable_symbol}` : invoice.invoice_number}</strong><small>{invoice.counterparty_name}</small></span>
-              <time>{paymentDate(invoice.due_date)}</time><b><ExactMoney value={Number(invoice.amount) - Number(invoice.paid_amount)} currency={invoice.currency} /></b>
-            </button>)}
+            {candidates.map(invoice => {
+              const chosen = ids.includes(invoice.id);
+              const label = invoice.variable_symbol ? `VS ${invoice.variable_symbol}` : invoice.invoice_number;
+              const toggle = () => data.onSelected(key, chosen ? ids.filter(id => id !== invoice.id) : [...ids, invoice.id]);
+              return <div key={invoice.id} className={styles.invoiceOption}>
+                <label className={styles.optionCheck}><input type="checkbox" aria-label={`Přidat fakturu ${label} k platbě`} checked={chosen} disabled={!editable || data.candidateLoading} onChange={toggle}/></label>
+                <button type="button" disabled={!editable || data.candidateLoading} aria-pressed={chosen} onClick={() => {
+                  // Jedna faktura: vybrat a zavřít. Když už je zaškrtnutých víc, klik jen přidá/odebere.
+                  if (ids.length > 1) { toggle(); return; }
+                  data.onSelected(key, [invoice.id]);
+                  close();
+                }}>
+                  <span><strong>{label}</strong><small>{invoice.counterparty_name}</small></span>
+                  <time>{paymentDate(invoice.due_date)}</time><b><ExactMoney value={Number(invoice.amount) - Number(invoice.paid_amount)} currency={invoice.currency} /></b>
+                </button>
+              </div>;
+            })}
             {!candidates.length && !data.candidateLoading && !data.candidateError && <p className={styles.hint}>Pro toto hledání a měnu nejsou dostupné faktury.</p>}
           </div>
           <nav className={styles.pagination} aria-label="Stránky kandidátních faktur"><button type="button" disabled={data.invoicePage <= 1} onClick={() => data.onInvoicePage(data.invoicePage - 1)}>Předchozí</button><span>{data.invoicePage} / {Math.max(1, Math.ceil(data.candidateTotal / 25))}</span><button type="button" disabled={data.invoicePage * 25 >= data.candidateTotal} onClick={() => data.onInvoicePage(data.invoicePage + 1)}>Další</button></nav>
-          <details open={advanced} onToggle={event => setAdvanced(event.currentTarget.open)} className={styles.advanced}><summary>Rozdělit platbu a upravit částky<ChevronDown /></summary>
-            <p className={styles.hint}>Vyberte více faktur v seznamu výše. Částky musí odpovídat platbě.</p>
+          {info.values.length > 1 && <fieldset className={styles.advanced}><legend>Částky k fakturám</legend>
+            <p className={styles.hint}>Součet částek musí odpovídat platbě.</p>
             {info.values.map(invoice => <label key={invoice.id}><span>Faktura {invoice.invoice_number}</span><input aria-label={`Částka k faktuře ${invoice.invoice_number}`} type="number" min="0.01" step="0.01" max={Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} value={data.allocationAmounts[key]?.[invoice.id] ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} disabled={!editable} onChange={event => data.onAllocation(key, invoice.id, Number(event.target.value))}/></label>)}
-          </details>
+          </fieldset>}
           {info.values.length === 1 && (info.difference !== 0 || data.partial[key]) && <label className={styles.partial}><input type="checkbox" checked={Boolean(data.partial[key])} disabled={!editable} onChange={event => data.onPartial(key, event.target.checked)}/>Povolit výslovnou částečnou úhradu této faktury</label>}
           <p className={`${styles.balance} ${info.difference !== 0 ? styles.unbalanced : ""}`}>{info.values.length ? `Platba ${paymentMoney(Number(entry.amount), entry.currency || "CZK")} · vybráno ${paymentMoney(info.allocated, entry.currency || "CZK")} · rozdíl ${paymentMoney(info.difference, entry.currency || "CZK")}` : "Vyberte fakturu, nebo při konečném zaúčtování ponechte platbu nespárovanou."}</p>
           <button type="button" className={styles.primary} onClick={close}>Hotovo</button>
@@ -154,9 +163,9 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
         {close => <div className={styles.menu}>
           <MatchingPopover label={`Detail platby · řádek ${entry.line_number}`} trigger="Zobrazit detail platby">{() => <PaymentDetails entry={entry} data={data}/>}</MatchingPopover>
           {editable && <>
-            <button type="button" onClick={() => { close(); edit(false); }}>Změnit přiřazení</button>
+            <button type="button" onClick={() => { close(); edit(); }}>Změnit přiřazení</button>
             {ids.length > 0 && <button type="button" disabled={Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odstranit přiřazení</button>}
-            <button type="button" onClick={() => { close(); edit(true); }}>Rozdělit platbu</button>
+            <button type="button" onClick={() => { close(); edit(); }}>Přiřadit víc faktur</button>
             {entry.proposal_confidence !== "safe" && entry.proposed_invoice_ids.length > 0 && <button type="button" onClick={() => { data.onSelected(key, entry.proposed_invoice_ids); close(); }}>Použít navrženou kombinaci</button>}
           </>}
           {info.values.map(invoice => <Link key={invoice.id} href={`/invoices/${invoice.id}`}>Zobrazit fakturu {invoice.invoice_number}</Link>)}
