@@ -58,7 +58,10 @@ const SCENARIOS = [
   { id: "m-reports-filters", route: "/reports", when: (w) => w < 768, open: click("Otevřít filtry") },
   { id: "m-esko", route: "/dashboard", when: (w) => w < 1024, open: async (p) => { await click("Otevřít navigaci")(p); await p.waitForTimeout(300); await p.getByRole("button", { name: "Esko" }).last().click(); } },
   // Confirmations on the invoice detail (all sizes).
-  { id: "detail-delete-confirm", route: "/invoices/detail", when: () => true, open: async (p) => { const b = p.getByRole("button", { name: "Smazat fakturu" }).first(); if (!(await b.isVisible())) await summary("Další akce s fakturou")(p); await b.click(); } },
+  // Smazat jde jen koncept bez úhrady a odeslané upomínky (fáze F1b), proto
+  // tenhle scénář dostane takovou fakturu.
+  { id: "detail-delete-confirm", route: "/invoices/detail", when: () => true,
+    data: (d) => ({ ...d, detail: { ...d.detail, invoice: { ...d.detail.invoice, paid_amount: 0, reminders_sent: 0, status: "pending", money_evidence: null } } }), open: async (p) => { const b = p.getByRole("button", { name: "Smazat fakturu" }).first(); if (!(await b.isVisible())) await summary("Další akce s fakturou")(p); await b.click(); } },
   { id: "reports-more-filters", route: "/reports", when: desktop, inline: true, open: summary("Další filtry") },
 ].filter((s) => !only || only.includes(s.id));
 
@@ -77,8 +80,9 @@ for (const s of SCENARIOS)
     const context = await browser.newContext({ viewport: { width, height }, locale: "cs-CZ", timezoneId: "Europe/Prague", reducedMotion: "reduce", hasTouch: touch, isMobile: width < 1000 });
     const page = await context.newPage();
     await page.clock.setFixedTime(new Date(NOW));
-    await page.addInitScript((d) => { window.__AUDIT_DATA__ = d; }, data);
-    await installNetwork(page, data, "normal", []);
+    const scenarioData = s.data ? s.data(data) : data;
+    await page.addInitScript((d) => { window.__AUDIT_DATA__ = d; }, scenarioData);
+    await installNetwork(page, scenarioData, "normal", []);
     let line = `${s.id.padEnd(28)} ${`${width}x${height}`.padEnd(11)} `;
     try {
       await page.goto(harness.url + s.route, { waitUntil: "networkidle" });

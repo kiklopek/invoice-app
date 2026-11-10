@@ -88,17 +88,44 @@ function isModal(dialog: HTMLDialogElement) {
  * modal dialog is open, only menus inside it count: Escape belongs to the dialog.
  */
 export function closeInnermostPopupMenu(doc: Document) {
-  const modal = [...doc.querySelectorAll<HTMLDialogElement>("dialog[open]")].find(isModal)
-    ?? doc.querySelector<HTMLDialogElement>('dialog[open][aria-modal="true"]');
-  const menus = [...doc.querySelectorAll<HTMLDetailsElement>("details[open]")].filter(
-    (menu) => menu.querySelector(":scope > [data-popup]") && (!modal || modal.contains(menu)),
-  );
+  const modal = openModal(doc);
+  const menus = openPopupMenus(doc).filter((menu) => !modal || modal.contains(menu));
   const focused = doc.activeElement;
   const target = menus.filter((menu) => focused && menu.contains(focused)).at(-1) ?? menus.at(-1);
   if (!target) return false;
   target.open = false;
   target.querySelector<HTMLElement>(":scope > summary")?.focus();
   return true;
+}
+
+function openPopupMenus(doc: Document) {
+  return [...doc.querySelectorAll<HTMLDetailsElement>("details[open]")].filter((menu) => menu.querySelector(":scope > [data-popup]"));
+}
+
+function openModal(doc: Document) {
+  return [...doc.querySelectorAll<HTMLDialogElement>("dialog[open]")].find(isModal)
+    ?? doc.querySelector<HTMLDialogElement>('dialog[open][aria-modal="true"]');
+}
+
+/**
+ * Klik kamkoli mimo otevřenou nabídku pod třemi tečkami ji zavře. Nabídka,
+ * ve které (nebo ve vnořené nabídce které) uživatel kliká, zůstává otevřená.
+ * Klik do modálního okna nezavírá nabídky za ním. Accordiony nejsou nabídky.
+ */
+export function closePopupMenusOutside(doc: Document, target: EventTarget | null) {
+  if (!(target instanceof Node)) return;
+  const modal = openModal(doc);
+  if (modal?.contains(target)) return;
+  for (const menu of openPopupMenus(doc)) {
+    if (!menu.contains(target)) menu.open = false;
+  }
+}
+
+/** Otevření jedné nabídky zavře ostatní, kromě nabídek, ve kterých je vnořená. */
+export function closeOtherPopupMenus(doc: Document, opened: HTMLDetailsElement) {
+  for (const menu of openPopupMenus(doc)) {
+    if (menu !== opened && !menu.contains(opened)) menu.open = false;
+  }
 }
 
 function popupsIn(root: Element | null) {
@@ -129,11 +156,14 @@ export function PopupFitter() {
     const onToggle = (event: Event) => {
       const details = event.target as HTMLDetailsElement;
       if (!(details instanceof HTMLDetailsElement)) return;
-      for (const popup of details.querySelectorAll<HTMLElement>(":scope > [data-popup]")) {
+      const popups = details.querySelectorAll<HTMLElement>(":scope > [data-popup]");
+      for (const popup of popups) {
         if (details.open) track(popup);
         else hide(popup);
       }
+      if (details.open && popups.length) closeOtherPopupMenus(document, details);
     };
+    const onPointerDown = (event: PointerEvent) => closePopupMenusOutside(document, event.target);
     const onEnter = (event: Event) => {
       const anchor = (event.target as Element | null)?.closest?.("[data-popup-anchor]");
       if (anchor) for (const popup of anchor.querySelectorAll<HTMLElement>("[data-popup]")) track(popup);
@@ -155,6 +185,7 @@ export function PopupFitter() {
     // toggle nebublá, proto zachytávání.
     document.addEventListener("toggle", onToggle, true);
     document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("pointerover", onEnter);
     document.addEventListener("focusin", onEnter);
     window.addEventListener("resize", schedule);
@@ -166,6 +197,7 @@ export function PopupFitter() {
     return () => {
       document.removeEventListener("toggle", onToggle, true);
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("pointerover", onEnter);
       document.removeEventListener("focusin", onEnter);
       window.removeEventListener("resize", schedule);
