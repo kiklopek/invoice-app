@@ -188,12 +188,12 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
             {!candidates.length && !data.candidateLoading && !data.candidateError && <p className={styles.hint}>Pro toto hledání a měnu nejsou dostupné faktury.</p>}
           </div>
           <nav className={styles.pagination} aria-label="Stránky kandidátních faktur"><button type="button" disabled={data.invoicePage <= 1} onClick={() => data.onInvoicePage(data.invoicePage - 1)}>Předchozí</button><span>{data.invoicePage} / {Math.max(1, Math.ceil(data.candidateTotal / 25))}</span><button type="button" disabled={data.invoicePage * 25 >= data.candidateTotal} onClick={() => data.onInvoicePage(data.invoicePage + 1)}>Další</button></nav>
-          {(splitMode || info.values.length > 1) && <fieldset className={styles.advanced}><legend>Částky k fakturám</legend>
+          {info.values.length > 0 && (splitMode || info.values.length > 1) && <fieldset className={styles.advanced}><legend>Částky k fakturám</legend>
 
             {info.values.map(invoice => <label key={invoice.id}><span>Faktura {invoice.invoice_number}</span><input aria-label={`Částka k faktuře ${invoice.invoice_number}`} type="number" min="0.01" step="0.01" max={Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} value={data.allocationAmounts[key]?.[invoice.id] ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} disabled={!editable} onChange={event => data.onAllocation(key, invoice.id, Number(event.target.value))}/></label>)}
           </fieldset>}
           {info.values.length === 1 && (info.difference !== 0 || data.partial[key]) && <label className={styles.partial}><input type="checkbox" checked={Boolean(data.partial[key])} disabled={!editable} onChange={event => data.onPartial(key, event.target.checked)}/>Povolit výslovnou částečnou úhradu této faktury</label>}
-          <p className={`${styles.balance} ${info.difference !== 0 ? styles.unbalanced : ""}`}>{info.values.length ? `Platba ${paymentMoney(Number(entry.amount), entry.currency || "CZK")} · vybráno ${paymentMoney(info.allocated, entry.currency || "CZK")} · rozdíl ${paymentMoney(info.difference, entry.currency || "CZK")}` : "Vyberte fakturu, nebo při konečném zaúčtování ponechte platbu nespárovanou."}</p>
+          {info.values.length > 0 && <p className={`${styles.balance} ${info.difference !== 0 ? styles.unbalanced : ""}`}>{`Platba ${paymentMoney(Number(entry.amount), currency)} · vybráno ${paymentMoney(info.allocated, currency)} · rozdíl ${paymentMoney(info.difference, currency)}`}</p>}
           <button type="button" className={styles.primary} onClick={close}>Hotovo</button>
         </>}
       </MatchingDropdown>}

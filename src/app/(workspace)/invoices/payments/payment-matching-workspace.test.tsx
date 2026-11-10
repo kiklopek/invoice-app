@@ -220,6 +220,13 @@ describe("payment matching review and existing transports", () => {
     await click("Potvrdit", scoped(3));
     expect(JSON.parse(mutations().at(-1)![1].body).allocations.map((a: { amount: number }) => a.amount)).toEqual([40, 60]);
   });
+  it("shows no empty amount section or hint before any invoice is chosen", async () => {
+    await upload(); await click("Rozdělit platbu", scoped(3));
+    const picker = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    expect(picker.textContent).toContain("Zbývá rozdělit");
+    expect(picker.textContent).not.toContain("Částky k fakturám");
+    expect(picker.textContent).not.toContain("ponechte platbu nespárovanou");
+  });
   it("turns splitting on and off with one box in the picker", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");
     const box = () => host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[type="checkbox"][aria-label="Platba hradí víc faktur"]')!;

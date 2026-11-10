@@ -741,6 +741,8 @@ export function GpcImportPanel({
               <label className={`gpc-dropzone ${working ? "is-working" : ""}`}>
                 <input
                   type="file"
+                  // Bez nativní bubliny „Soubor nevybrán“; stav ukazuje text v poli.
+                  title=""
                   aria-label={camtEnabled ? "Vybrat bankovní výpis ve formátu GPC, CSV nebo CAMT XML" : "Vybrat bankovní výpis ve formátu GPC nebo CSV"}
                   aria-describedby="gpc-upload-formats gpc-upload-limits"
                   aria-errormessage={error ? "gpc-upload-error" : undefined}
