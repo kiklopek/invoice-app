@@ -171,6 +171,7 @@ describe("payment matching review and existing transports", () => {
   });
   it("keeps split allocations and validates their total", async () => {
     await upload(); await action("Akce platby · řádek 3"); await click("Změnit přiřazení");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
     for (const id of ["split-a", "split-b"])
       await act(async () => host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
     const dialog = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
@@ -198,6 +199,35 @@ describe("payment matching review and existing transports", () => {
     await click("Potvrdit", scoped(3));
     expect(JSON.parse(mutations()[0][1].body).allocations.map((a: { invoice_id: string; amount: number }) => [a.invoice_id, a.amount]))
       .toEqual([["split-a", 40], ["split-b", 60]]);
+  });
+  it("makes splitting a payment visible: a mode in the picker, a menu item and the split on the row", async () => {
+    await upload();
+    await action("Akce platby · řádek 3");
+    await click("Rozdělit platbu");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+    const picker = () => host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    const mode = picker().querySelector<HTMLButtonElement>('[role="group"][aria-label="Způsob přiřazení"] button[aria-pressed="true"]')!;
+    expect(mode.textContent).toContain("Rozdělit platbu");
+    expect(picker().textContent).toContain("Zbývá rozdělit 100,00");
+    // V režimu rozdělení klik na fakturu přidává a výběr zůstává otevřený.
+    for (const id of ["split-a", "split-b"]) {
+      const option = [...picker().querySelectorAll<HTMLButtonElement>("[data-invoice-option] button")].find(button => button.textContent?.includes(`VS ${id}`))!;
+      await act(async () => option.click());
+      expect(host.querySelector("[data-invoice-dropdown]")).not.toBeNull();
+    }
+    expect(picker().textContent).toContain("Rozděleno celé");
+    await click("Hotovo", picker());
+    expect(scoped(3).textContent).toContain("Rozděleno na 2 faktury");
+    await click("Potvrdit", scoped(3));
+    expect(JSON.parse(mutations().at(-1)![1].body).allocations.map((a: { amount: number }) => a.amount)).toEqual([40, 60]);
+  });
+  it("switches the picker between one invoice and a split", async () => {
+    await upload(); await action("Vybrat fakturu · řádek 3");
+    const group = () => host.querySelector<HTMLElement>('[data-invoice-dropdown] [role="group"][aria-label="Způsob přiřazení"]')!;
+    expect(group().querySelector('button[aria-pressed="true"]')!.textContent).toContain("Jedna faktura");
+    await act(async () => [...group().querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("Rozdělit"))!.click());
+    expect(group().querySelector('button[aria-pressed="true"]')!.textContent).toContain("Rozdělit platbu");
+    expect(host.querySelector("[data-invoice-dropdown]")!.textContent).toContain("Zbývá rozdělit");
   });
   it("does not confirm several invoices whose amounts exceed the payment until the amounts are fixed", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");

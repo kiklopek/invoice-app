@@ -158,6 +158,26 @@ try{
    await expect(dialog).toBeVisible();
   }finally{await c.page.close()}
  });
+ await check('split payment mode on desktop/mobile',async()=>{
+  for(const width of[1536,390]){const height=width===390?844:1024;const c=await pageFor(width,height);try{
+   const row=c.page.locator('[data-payment-row]').first();
+   await row.getByRole('button',{name:/^Akce platby/}).click();
+   await c.page.getByRole('dialog').last().getByRole('button',{name:'Rozdělit platbu',exact:true}).click();
+   const picker=c.page.getByRole('region',{name:/^Vybrat fakturu/});
+   await expect(picker).toBeVisible();
+   await expect(picker.getByRole('group',{name:'Způsob přiřazení',exact:true}).getByRole('button',{name:'Rozdělit platbu',exact:true})).toHaveAttribute('aria-pressed','true');
+   await expect(picker.getByRole('status').filter({hasText:/Zbývá rozdělit|Rozděleno celé|Přes platbu/})).toBeVisible();
+   const options=picker.locator('[data-invoice-option] button');
+   await options.nth(0).click();await options.nth(1).click();
+   await expect(picker).toBeVisible();
+   await expect(picker.getByRole('group',{name:'Částky k fakturám'}).or(picker.locator('fieldset'))).toBeVisible();
+   const box=await picker.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);
+   expect(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+   await c.page.screenshot({path:resolve(output,`split-${width}.png`),fullPage:false});
+   expect(c.requests.filter(r=>r.method==='PATCH'||r.path.endsWith('/commit'))).toHaveLength(0);
+   expect(c.errors).toEqual([]);
+  }finally{await c.page.close()}}
+ });
  await check('inline searchable dropdown on desktop/mobile',async()=>{
   for(const width of[1536,390,320]){const height=width===320?568:width===390?844:1024;const c=await pageFor(width,height);try{
    await c.page.getByRole('button',{name:'Vybrat fakturu · řádek 4',exact:true}).click();const dialog=c.page.getByRole('region',{name:'Vybrat fakturu · řádek 4',exact:true});
