@@ -58,6 +58,7 @@ const SCENARIOS = [
   { id: "m-reports-filters", route: "/reports", when: (w) => w < 768, open: click("Otevřít filtry") },
   { id: "m-esko", route: "/dashboard", when: (w) => w < 1024, open: async (p) => { await click("Otevřít navigaci")(p); await p.waitForTimeout(300); await p.getByRole("button", { name: "Esko" }).last().click(); } },
   // Confirmations on the invoice detail (all sizes).
+  { id: "archive-invoice-picker", route: "/invoices/payments/archive", when: () => true, target: "[data-invoice-dropdown]", open: async (p) => { const b = p.locator("button[aria-label^='Vybrat fakturu pro platbu']").first(); await b.scrollIntoViewIfNeeded(); await b.click(); await p.waitForTimeout(500); } },
   { id: "detail-delete-confirm", route: "/invoices/detail", when: () => true, open: async (p) => { const b = p.getByRole("button", { name: "Smazat fakturu" }).first(); if (!(await b.isVisible())) await summary("Další akce s fakturou")(p); await b.click(); } },
   { id: "reports-more-filters", route: "/reports", when: desktop, inline: true, open: summary("Další filtry") },
 ].filter((s) => !only || only.includes(s.id));

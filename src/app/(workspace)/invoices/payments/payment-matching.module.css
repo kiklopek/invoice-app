@@ -161,6 +161,10 @@
 .pickerActions > button { min-height: 40px; padding: 0 16px; border-radius: 9px; font-weight: 600; }
 .pickerActions .unlink { margin-right: auto; border: 1px solid #e8c2c8; background: #fff; color: #a3283a; }
 .pickerActions .unlink:hover:not(:disabled) { background: #fdf2f3; }
+/* Výběr faktury v archivu plateb: kotva pro panel a pole přes celou šířku. */
+.archivePickerField { position: relative; flex: 1 1 auto; min-width: 0; }
+.archivePickerField .invoicePicker > button { min-height: 42px; border: 1px solid #ceddd4; border-radius: 8px; background: #fff; color: #16243b; font-size: 12px; }
+.archivePickerField .invoicePicker > button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .labelLine { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .splitButton { display: inline-flex; align-items: center; justify-self: start; align-self: flex-start; width: max-content; min-height: 20px; padding: 0 9px; line-height: 1; border: 1px dashed #9ccbb2; border-radius: 7px; background: #fff; color: #16754d; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .splitButton:hover { background: #f0f8f3; }

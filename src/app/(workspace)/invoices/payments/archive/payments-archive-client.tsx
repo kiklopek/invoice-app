@@ -14,6 +14,7 @@ import type { PaymentsPageData, PaymentsPagePayment, PaymentsPageOpenInvoice } f
 import { proposePaymentMatch } from "@/lib/payment-matching";
 import { StatementArchive } from "./statement-archive";
 import { PaymentAssistancePanel } from "./payment-assistance-panel";
+import { ArchiveInvoicePicker } from "./archive-invoice-picker";
 
 type SavedPayment = PaymentsPagePayment;
 type OpenInvoice = PaymentsPageOpenInvoice;
@@ -88,6 +89,9 @@ export function PaymentsArchiveClient({ initialData, highlightPaymentId }: { ini
         return matchStatusOrder[left.match_status] - matchStatusOrder[right.match_status] || dateFallback;
       });
   }, [history, historyQuery, unmatchedOnly, paymentSort]);
+
+  // Faktura, od které se platba v této relaci uvolnila: ve výběru je první.
+  const [releasedFrom, setReleasedFrom] = useState<Record<string, string>>({});
 
   async function refreshPayments() {
     const data = await apiFetch<PaymentsPageData>(highlightPaymentId ? `/api/payments?highlight=${encodeURIComponent(highlightPaymentId)}` : "/api/payments");
@@ -173,6 +177,7 @@ export function PaymentsArchiveClient({ initialData, highlightPaymentId }: { ini
         // Jen předvýběr v nabídce; přiřadí se až tlačítkem Přiřadit.
         setTouchedAssignments((current) => new Set(current).add(payment.id));
         setAssignments((current) => ({ ...current, [payment.id]: previousInvoice }));
+        setReleasedFrom((current) => ({ ...current, [payment.id]: previousInvoice }));
       }
       const released = typeof data.remaining === "number" ? `Platba byla uvolněna. Na faktuře nyní zbývá ${money(Number(data.remaining), payment.currency)}.` : "Všechna přiřazení platby byla bezpečně uvolněna.";
       setNotice(previousInvoice ? `${released} Původní faktura je znovu předvybraná – klikněte na Přiřadit, nebo vyberte jinou.` : released);
@@ -245,29 +250,17 @@ export function PaymentsArchiveClient({ initialData, highlightPaymentId }: { ini
             Navržená shoda podle VS a částky. Před potvrzením ji zkontrolujte.
           </small>
         )}
-        <select
-          aria-label={`Vybrat fakturu pro platbu ${payment.external_id}`}
-          value={assignments[payment.id] ?? ""}
-          onChange={(event) => {
+        <ArchiveInvoicePicker
+          payment={payment}
+          value={assignments[payment.id] || null}
+          known={openInvoices}
+          preferIds={[releasedFrom[payment.id], suggested || null].filter((id): id is string => Boolean(id))}
+          disabled={working}
+          onChange={(invoiceId) => {
             setTouchedAssignments((current) => new Set(current).add(payment.id));
-            setAssignments((current) => ({
-              ...current,
-              [payment.id]: event.target.value,
-            }));
+            setAssignments((current) => ({ ...current, [payment.id]: invoiceId }));
           }}
-        >
-          <option value="">Vyberte fakturu…</option>
-          {candidates.map((invoice) => (
-            <option key={invoice.id} value={invoice.id}>
-              {invoice.invoice_number} · {invoice.counterparty_name} · zbývá{" "}
-              {money(
-                Number(invoice.amount) - Number(invoice.paid_amount),
-                invoice.currency,
-              )}{" "}
-              · VS {invoice.variable_symbol || "—"}
-            </option>
-          ))}
-        </select>
+        />
         <button
           type="button"
           className="btn primary compact"

@@ -3390,6 +3390,8 @@ th,
 
 /* Historie plateb je seznam pracovnich radku, nikoli siroka tabulka. */
 .payments-archive-page .payments-history { min-width: 0; overflow: hidden; }
+/* Otevřený výběr faktury nesmí karta oříznout (jinak zaoblené rohy drží overflow: hidden). */
+.payments-archive-page .payments-history:has([data-invoice-dropdown]) { overflow: visible; }
 .payments-archive-page .payments-history .panel-head { align-items: center; gap: 14px; padding: 20px 24px; background: #fff; }
 .payments-archive-page .payments-history .payments-section-heading > h2 { font-size: clamp(19px, 1.6vw, 24px); line-height: 1.2; }
 .payments-archive-page .payments-history .payments-section-heading > p { max-width: 68ch; margin-top: 6px; font-size: 12px; line-height: 1.5; }
