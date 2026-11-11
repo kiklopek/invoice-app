@@ -169,9 +169,16 @@ try{
    const options=picker.locator('[data-invoice-option] button');
    await options.nth(0).click();await options.nth(1).click();
    await expect(picker).toBeVisible();
-   await expect(picker.getByRole('group',{name:'Částky k fakturám'}).or(picker.locator('fieldset'))).toBeVisible();
+   await expect(picker.getByRole('region',{name:'Vybrané faktury',exact:true})).toBeVisible();
    const box=await picker.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);
    expect(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+   // Hotovo je vždy na dohled; na desktopu se panel otevře tam, kde je místo,
+   // a vybrané faktury s částkami nejsou oříznuté.
+   const done=await picker.locator('[data-picker-actions]').getByRole('button',{name:'Hotovo',exact:true}).boundingBox();
+   expect(done.y).toBeGreaterThanOrEqual(0);expect(done.y+done.height).toBeLessThanOrEqual(height);
+   // Vybrané faktury mají přednost před nabídkou; nic se nesmrskne pod čitelnou výšku.
+   const space=await picker.evaluate(panel=>{const chosen=panel.querySelector('[aria-label="Vybrané faktury"]'),body=panel.querySelector('[data-picker-body]');return{chosen:chosen.clientHeight,chosenFull:chosen.scrollHeight,body:body.clientHeight};});
+   expect(space.chosen).toBeGreaterThanOrEqual(Math.min(space.chosenFull,64));expect(space.body).toBeGreaterThanOrEqual(56);
    await c.page.screenshot({path:resolve(output,`split-${width}.png`),fullPage:false});
    expect(c.requests.filter(r=>r.method==='PATCH'||r.path.endsWith('/commit'))).toHaveLength(0);
    expect(c.errors).toEqual([]);

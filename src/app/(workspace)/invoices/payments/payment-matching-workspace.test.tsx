@@ -170,8 +170,7 @@ describe("payment matching review and existing transports", () => {
     expect(host.querySelector("[data-invoice-dropdown]")).toBeNull();
   });
   it("keeps split allocations and validates their total", async () => {
-    await upload(); await action("Akce platby · řádek 3"); await click("Změnit přiřazení");
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+    await upload(); await click("Rozdělit platbu", scoped(3));
     for (const id of ["split-a", "split-b"])
       await act(async () => host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
     const dialog = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
@@ -183,6 +182,7 @@ describe("payment matching review and existing transports", () => {
   });
   it("lets one payment pay several invoices straight from the invoice picker", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");
+    await act(async () => host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[aria-label="Platba hradí víc faktur"]')!.click());
     for (const id of ["split-a", "split-b"]) {
       const check = host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!;
       expect(check).not.toBeNull();
@@ -192,7 +192,7 @@ describe("payment matching review and existing transports", () => {
     }
     const dropdown = host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
     expect(dropdown.querySelector('input[aria-label="Částka k faktuře split-a"]')).not.toBeNull();
-    expect(dropdown.textContent).toContain("rozdíl 0,00");
+    expect(dropdown.textContent).toContain("Rozděleno celé");
     await click("Hotovo", dropdown);
     expect(scoped(3).textContent).toContain("Firma split-a");
     expect(scoped(3).textContent).toContain("Firma split-b");
@@ -246,7 +246,10 @@ describe("payment matching review and existing transports", () => {
     });
     await upload(); await action("Vybrat fakturu · řádek 3");
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
-    const list = host.querySelector<HTMLElement>('[data-invoice-dropdown] [aria-label="Dostupné faktury"]')!;
+    // Posouvá se jen střed výběru; hlavička, hledání a patička zůstávají na místě.
+    const list = host.querySelector<HTMLElement>('[data-invoice-dropdown] [data-picker-body]')!;
+    expect(list.contains(host.querySelector('[data-invoice-dropdown] [aria-label="Dostupné faktury"]'))).toBe(true);
+    expect(list.contains(host.querySelector('[data-invoice-dropdown] [aria-label="Hledat fakturu"]'))).toBe(false);
     Object.defineProperties(list, { scrollHeight: { value: 1000, configurable: true }, clientHeight: { value: 300, configurable: true }, scrollTop: { value: 690, configurable: true } });
     await act(async () => list.dispatchEvent(new Event("scroll")));
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
@@ -292,6 +295,27 @@ describe("payment matching review and existing transports", () => {
     expect(allocations.map((a: { invoice_id: string; amount: number }) => [a.invoice_id, a.amount])).toEqual([["small-a", 30], ["small-b", 50]]);
     expect(allocations.some((a: { is_manual_partial: boolean }) => a.is_manual_partial)).toBe(true);
   });
+  it("shows the payment in the picker header and keeps one way to pick per mode", async () => {
+    await upload(); await action("Vybrat fakturu · řádek 3");
+    const picker = () => host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    expect(picker().querySelector("header")!.textContent).toContain("100,00");
+    // Jedna faktura: řádky bez zaškrtávátek, klik vybere a zavře.
+    expect(picker().querySelectorAll('[data-invoice-option] input[type="checkbox"]')).toHaveLength(0);
+    await act(async () => picker().querySelector<HTMLInputElement>('input[aria-label="Platba hradí víc faktur"]')!.click());
+    expect(picker().querySelectorAll('[data-invoice-option] input[type="checkbox"]').length).toBeGreaterThan(0);
+  });
+  it("moves chosen invoices to 'Vybráno' with their amount and lets each be removed", async () => {
+    await upload(); await click("Rozdělit platbu", scoped(3));
+    const picker = () => host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    for (const id of ["split-a", "split-b"]) await act(async () => picker().querySelector<HTMLInputElement>(`input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
+    const chosen = picker().querySelector<HTMLElement>('[aria-label="Vybrané faktury"]')!;
+    expect(chosen.querySelector('input[aria-label="Částka k faktuře split-a"]')).not.toBeNull();
+    // Vybraná faktura už není v nabídce podruhé.
+    expect(picker().querySelector('input[aria-label="Přidat fakturu VS split-a k platbě"]')).toBeNull();
+    await act(async () => chosen.querySelector<HTMLButtonElement>('button[aria-label="Odebrat fakturu split-a"]')!.click());
+    expect(picker().querySelector('input[aria-label="Částka k faktuře split-a"]')).toBeNull();
+    expect(picker().querySelector('input[aria-label="Přidat fakturu VS split-a k platbě"]')).not.toBeNull();
+  });
   it("turns splitting on and off with one box in the picker", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");
     const box = () => host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[type="checkbox"][aria-label="Platba hradí víc faktur"]')!;
@@ -304,6 +328,7 @@ describe("payment matching review and existing transports", () => {
   });
   it("does not confirm several invoices whose amounts exceed the payment until the amounts are fixed", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");
+    await act(async () => host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[aria-label="Platba hradí víc faktur"]')!.click());
     for (const id of ["invoice-3", "invoice-4"]) await act(async () => host.querySelector<HTMLInputElement>(`[data-invoice-dropdown] input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
     await click("Hotovo", host.querySelector("[data-invoice-dropdown]")!);
     expect(buttons("Potvrdit", scoped(3))[0].disabled).toBe(true);

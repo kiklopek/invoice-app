@@ -6,9 +6,11 @@ import { Modal } from "@/components/modal";
 import styles from "./payment-matching.module.css";
 
 /** Inline dropdown: stays attached to the invoice field and leaves the page interactive. */
-export function MatchingDropdown({ label, trigger, children, className = "", open, onOpenChange }: {
+export function MatchingDropdown({ label, trigger, children, className = "", open, onOpenChange, subtitle }: {
   label: string; trigger: ReactNode; children: (close: () => void) => ReactNode; className?: string;
   open: boolean; onOpenChange: (open: boolean) => void;
+  /** Co se přiřazuje (např. částka a plátce), pod nadpisem „Vybrat fakturu“. */
+  subtitle?: ReactNode;
 }) {
   const id = useId();
   const anchor = useRef<HTMLDivElement>(null);
@@ -30,7 +32,10 @@ export function MatchingDropdown({ label, trigger, children, className = "", ope
       const rect = field.getBoundingClientRect();
       const width = Math.min(440, rightEdge - leftEdge);
       panel.style.width = `${width}px`;
-      const desired = Math.min(560, panel.scrollHeight + 2);
+      // Přirozená výška: obsah, který se posouvá uvnitř panelu (seznamy výběru),
+      // se započítá celý, jinak by se panel nikdy neotevřel tam, kde je víc místa.
+      const hidden = [...panel.children].reduce((sum, child) => sum + Math.max(0, child.scrollHeight - child.clientHeight), 0);
+      const desired = Math.min(560, panel.scrollHeight + hidden + 2);
       const below = Math.max(0, bottomEdge - rect.bottom - 8);
       const above = Math.max(0, rect.top - 8 - topEdge);
       const upwards = below < desired && above > below;
@@ -81,7 +86,7 @@ export function MatchingDropdown({ label, trigger, children, className = "", ope
     onBlur={event => { if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) onOpenChange(false); }}>
     <button ref={triggerRef} type="button" aria-label={label} aria-controls={open ? id : undefined} aria-expanded={open} onClick={() => onOpenChange(!open)}>{trigger}</button>
     {open && <div id={id} role="region" aria-label={label} data-invoice-dropdown className={styles.dropdownPanel}>
-      <header className={styles.popupHead}><strong>Vybrat fakturu</strong><button type="button" aria-label="Zavřít" onClick={close}><CloseIcon width="16" height="16" /></button></header>
+      <header className={styles.popupHead}><div className={styles.popupTitle}><strong>Vybrat fakturu</strong>{subtitle && <small>{subtitle}</small>}</div><button type="button" aria-label="Zavřít" onClick={close}><CloseIcon width="16" height="16" /></button></header>
       {children(close)}
     </div>}
   </div>;
