@@ -195,7 +195,7 @@ try{
    const row=c.page.locator('[data-payment-row="payment-1"]');await row.getByRole('button',{name:'Vysoká shoda',exact:true}).hover();await expect(row.getByRole('tooltip').filter({hasText:'Jednoznačně navržená shoda'})).toBeVisible();
    const status=row.getByRole('button',{name:'Vysoká shoda',exact:true});await c.page.mouse.move(0,0);await status.focus();await c.page.keyboard.press('Escape');await expect(status).toBeFocused();await expect(row.getByRole('tooltip').filter({hasText:'Jednoznačně navržená shoda'})).toBeHidden();
    await row.getByRole('button',{name:'Detail platby · řádek 1',exact:true}).click();const dialog=c.page.getByRole('dialog',{name:'Detail platby · řádek 1',exact:true});await expect(dialog).toContainText('Odpovídá variabilní symbol a částka.');await c.page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);
-   await row.getByRole('button',{name:'Akce platby · řádek 1',exact:true}).click();await expect(c.page.getByRole('dialog').getByRole('button',{name:'Rozdělit platbu',exact:true})).toBeVisible();await c.page.keyboard.press('Escape');expect(c.errors).toEqual([]);
+   await row.getByRole('button',{name:'Akce platby · řádek 1',exact:true}).click();await expect(c.page.getByRole('dialog').getByRole('button',{name:'Přiřadit víc faktur',exact:true})).toBeVisible();await c.page.keyboard.press('Escape');expect(c.errors).toEqual([]);
   }finally{await c.page.close()}
  });
  await check('bank account gate and save failure retain decisions',async()=>{
