@@ -16,12 +16,20 @@ import type { Invoice, Preview, PreviewEntry, PersistedPreviewEntry } from "./pa
 import styles from "./payment-matching.module.css";
 
 type AllocationInfo = { values: Invoice[]; allocated: number; difference: number };
+const MATCH_REASON_LABELS: Record<string, string> = {
+  previous: "Dříve přiřazeno",
+  vs: "Shoda VS",
+  amount: "Stejná částka",
+  name: "Stejné jméno",
+};
+
 type Props = {
   preview: Preview; filename: string; queueIndex: number; queueTotal: number;
   canManage: boolean; working: boolean; error: string; done: string;
   selected: Record<string, string[]>; partial: Record<string, boolean>; unrelated: Record<string, boolean>;
   allocationAmounts: Record<string, Record<string, number>>;
   invoiceById: Map<string, Invoice>; candidates: Invoice[]; candidateTotal: number;
+  releasedInvoices: Record<string, string[]>; onPickerOpen: (entry: PreviewEntry) => void;
   candidateLoading: boolean; candidateError: string; onCandidateRetry: () => void;
   invoiceQuery: string; invoicePage: number; onInvoiceQuery: (value: string) => void; onInvoicePage: (page: number) => void;
   loadedEntries: Record<string, PersistedPreviewEntry>; ownTransfers: Record<string, string>; matchReasons: Record<string, string>;
@@ -85,13 +93,18 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
   const [pickerOpen, setPickerOpen] = useState(false);
   const hoverId = useId();
   const editable = Boolean(open && !unrelated && data.canManage && persisted && !data.working && data.preview.import.status !== "committed");
+  // Server řadí faktury podle této platby (dříve přiřazená, VS, částka, jméno);
+  // uvolněné a navržené faktury jsou nahoře i dřív, než seřazený seznam dorazí.
+  const preferred = [...(data.releasedInvoices[key] ?? []), ...entry.proposed_invoice_ids];
   const candidates = [...new Map([
-    ...entry.proposed_invoice_ids.map(id => data.invoiceById.get(id)).filter((value): value is Invoice => Boolean(value)),
+    ...data.candidates.filter(invoice => preferred.includes(invoice.id)),
+    ...preferred.map(id => data.invoiceById.get(id)).filter((value): value is Invoice => Boolean(value)),
     ...data.candidates,
   ].map(invoice => [invoice.id, invoice])).values()]
     .filter(invoice => !entry.currency || invoice.currency === entry.currency)
     .filter(invoice => !data.invoiceQuery.trim() || data.candidates.some(candidate => candidate.id === invoice.id));
-  const edit = () => setPickerOpen(true);
+  const openPicker = (value: boolean) => { setPickerOpen(value); if (value) data.onPickerOpen(entry); };
+  const edit = () => openPicker(true);
   return <article className={`${styles.row} ${styles[state.tone]} ${unrelated ? styles.unrelated : ""}`} data-payment-row={key}>
     <input type="checkbox" aria-label={`Vybrat platbu, řádek ${entry.line_number}`} checked={checked} disabled={!eligible} onChange={onToggle}/>
     <MatchingStatus {...state}/>
@@ -115,7 +128,7 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
         </div>)}
         <small className={styles.matchLabel}>{entry.bank_payment_id ? "Zaúčtováno" : saved ? "Přiřazení uloženo · čeká na zaúčtování" : state.label}</small>
       </> : !open ? <><strong>{entry.bank_payment_id ? "Zaúčtováno" : dispositionLabels[entry.disposition]}</strong><small>Podrobnosti jsou v detailu platby</small></> : null}
-      {open && !unrelated && <MatchingDropdown label={`Vybrat fakturu · řádek ${entry.line_number}`} open={pickerOpen} onOpenChange={setPickerOpen}
+      {open && !unrelated && <MatchingDropdown label={`Vybrat fakturu · řádek ${entry.line_number}`} open={pickerOpen} onOpenChange={openPicker}
         className={`${styles.invoicePicker} ${info.values.length ? styles.changeInvoice : ""}`}
         trigger={<>{info.values.length ? null : "Vyberte fakturu…"}<ChevronDown /></>}>
         {close => <>
@@ -130,7 +143,8 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
               const chosen = ids.includes(invoice.id);
               const label = invoice.variable_symbol ? `VS ${invoice.variable_symbol}` : invoice.invoice_number;
               const toggle = () => data.onSelected(key, chosen ? ids.filter(id => id !== invoice.id) : [...ids, invoice.id]);
-              return <div key={invoice.id} className={styles.invoiceOption}>
+              const reasons = (invoice.match_reasons ?? []).filter(reason => reason in MATCH_REASON_LABELS);
+              return <div key={invoice.id} className={styles.invoiceOption} data-invoice-option>
                 <label className={styles.optionCheck}><input type="checkbox" aria-label={`Přidat fakturu ${label} k platbě`} checked={chosen} disabled={!editable || data.candidateLoading} onChange={toggle}/></label>
                 <button type="button" disabled={!editable || data.candidateLoading} aria-pressed={chosen} onClick={() => {
                   // Jedna faktura: vybrat a zavřít. Když už je zaškrtnutých víc, klik jen přidá/odebere.
@@ -138,7 +152,9 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
                   data.onSelected(key, [invoice.id]);
                   close();
                 }}>
-                  <span><strong>{label}</strong><small>{invoice.counterparty_name}</small></span>
+                  <span><strong>{label}</strong><small>{invoice.counterparty_name}</small>
+                    {reasons.length > 0 && <span className={styles.matchReasons}>{reasons.map(reason => <em key={reason}>{MATCH_REASON_LABELS[reason]}</em>)}</span>}
+                  </span>
                   <time>{paymentDate(invoice.due_date)}</time><b><ExactMoney value={Number(invoice.amount) - Number(invoice.paid_amount)} currency={invoice.currency} /></b>
                 </button>
               </div>;

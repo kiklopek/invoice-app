@@ -4,6 +4,8 @@ import { logError } from "@/lib/structured-log";
 import { canManageInvoices, getRequestIdentity } from "@/lib/auth";
 import { canUseGpcImport } from "@/lib/gpc-feature";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(request: Request) {
   const identity = await getRequestIdentity();
   if (!identity)
@@ -27,14 +29,39 @@ export async function GET(request: Request) {
       { error: "Neplatné hledání nebo stránka." },
       { status: 400 },
     );
+  // Kontext platby, pro kterou se faktura vybírá: podle něj se nahoru řadí
+  // nejpravděpodobnější faktury. Nic se tím nepřiřazuje.
+  const rawAmount = params.get("amount");
+  const amount = rawAmount ? Number(rawAmount) : null;
+  const currency = params.get("currency")?.trim().toUpperCase() || null;
+  const vs = params.get("vs")?.trim() || null;
+  const name = params.get("name")?.trim() || null;
+  const prefer = (params.get("prefer") ?? "").split(",").map((id) => id.trim()).filter(Boolean);
+  if (
+    (amount !== null && (!Number.isFinite(amount) || amount <= 0)) ||
+    (currency && !/^[A-Z]{3}$/.test(currency)) ||
+    (vs && vs.length > 20) ||
+    (name && name.length > 200) ||
+    prefer.length > 20 ||
+    prefer.some((id) => !UUID.test(id))
+  )
+    return NextResponse.json(
+      { error: "Neplatné údaje platby pro řazení faktur." },
+      { status: 400 },
+    );
   const { data, error } = await identity.service.rpc(
-    "list_open_invoice_candidates",
+    "rank_open_invoice_candidates",
     {
       target_org: identity.membership.organization_id,
       actor_user: identity.user.id,
       search_query: query || undefined,
       page_number: page,
       page_size: 25,
+      payment_amount: amount ?? undefined,
+      payment_currency: currency ?? undefined,
+      payment_vs: vs ?? undefined,
+      payment_name: name ?? undefined,
+      prefer_invoice_ids: prefer.length ? prefer : undefined,
     },
   );
   if (error) {

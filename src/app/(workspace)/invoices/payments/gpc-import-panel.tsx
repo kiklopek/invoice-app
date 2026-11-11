@@ -70,6 +70,10 @@ export function GpcImportPanel({
   const [candidateLoading, setCandidateLoading] = useState(false);
   const [candidateError, setCandidateError] = useState("");
   const [candidateRetry, setCandidateRetry] = useState(0);
+  // Platba, pro kterou je otevřený výběr faktury: podle ní se faktury řadí.
+  const [pickerEntry, setPickerEntry] = useState<PreviewEntry | null>(null);
+  // Faktury, od kterých byla platba právě uvolněna: nabídnou se hned nahoře.
+  const [releasedInvoices, setReleasedInvoices] = useState<Record<string, string[]>>({});
   const [invoiceById, setInvoiceById] = useState<Map<string, Invoice>>(
     () => new Map(invoices.map((invoice) => [invoice.id, invoice])),
   );
@@ -111,8 +115,17 @@ export function GpcImportPanel({
     let active = true;
     const timer = window.setTimeout(() => {
       setCandidateLoading(true);
+      const context = new URLSearchParams();
+      if (pickerEntry) {
+        if (pickerEntry.amount != null && Number(pickerEntry.amount) > 0) context.set("amount", String(Number(pickerEntry.amount)));
+        if (pickerEntry.currency) context.set("currency", pickerEntry.currency);
+        if (pickerEntry.variable_symbol) context.set("vs", pickerEntry.variable_symbol.slice(0, 20));
+        if (pickerEntry.counterparty_name) context.set("name", pickerEntry.counterparty_name.slice(0, 200));
+        const prefer = [...new Set([...(releasedInvoices[pickerEntry.fingerprint] ?? []), ...pickerEntry.proposed_invoice_ids])].slice(0, 20);
+        if (prefer.length) context.set("prefer", prefer.join(","));
+      }
       void apiFetch<{ invoices: Invoice[]; total: number }>(
-        `/api/payments/invoice-candidates?q=${encodeURIComponent(invoiceQuery.trim())}&page=${invoicePage}`,
+        `/api/payments/invoice-candidates?q=${encodeURIComponent(invoiceQuery.trim())}&page=${invoicePage}${context.size ? `&${context.toString()}` : ""}`,
       )
         .then((data) => {
           if (!active) return;
@@ -127,7 +140,7 @@ export function GpcImportPanel({
         .catch(cause => { if (active) { setCandidateLoading(false); setCandidateInvoices([]); setCandidateTotal(0); setCandidateError(cause instanceof Error ? cause.message : "Faktury se nepodařilo načíst."); } });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [invoicePage, invoiceQuery, candidateRetry]);
+  }, [invoicePage, invoiceQuery, candidateRetry, pickerEntry, releasedInvoices]);
 
   useEffect(() => {
     if (!previewImportId) return;
@@ -334,6 +347,8 @@ export function GpcImportPanel({
         body: JSON.stringify({ entry_id: entry.id }),
       });
       touchedEntries.current.delete(entry.fingerprint);
+      const previous = (selected[entry.fingerprint] ?? []).filter(Boolean);
+      if (previous.length) setReleasedInvoices(current => ({ ...current, [entry.fingerprint]: previous }));
       // Releasing a booked payment restores the invoice balance on the server.
       // Refresh candidates too: the parent props and the last search can still
       // omit that invoice or contain its previously paid balance.
@@ -656,6 +671,8 @@ export function GpcImportPanel({
     working={working} canManage={canManage} error={error} done={done}
     selected={selected} partial={partial} unrelated={unrelated} allocationAmounts={allocationAmounts}
     invoiceById={invoiceById} candidates={candidateInvoices} candidateTotal={candidateTotal}
+    releasedInvoices={releasedInvoices}
+    onPickerOpen={entry => { setInvoicePage(1); setPickerEntry(entry); }}
     candidateLoading={candidateLoading} candidateError={candidateError} onCandidateRetry={() => setCandidateRetry(value => value + 1)}
     invoiceQuery={invoiceQuery} invoicePage={invoicePage} onInvoiceQuery={value => { setCandidateLoading(true); setInvoiceQuery(value); setInvoicePage(1); }} onInvoicePage={value => { setCandidateLoading(true); setInvoicePage(value); }}
     loadedEntries={loadedEntries} ownTransfers={ownTransfers} matchReasons={matchReasons} confirmedRows={confirmedRows}

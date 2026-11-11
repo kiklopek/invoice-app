@@ -212,6 +212,31 @@ describe("payment matching review and existing transports", () => {
     await action("Akce platby · řádek 8"); await click("Uvolnit platbu a změnit přiřazení");
     expect(mutations().some(([url]) => url.endsWith("/release"))).toBe(true);
   });
+  it("asks for candidates ranked for the open payment, the released invoice first, and shows why", async () => {
+    detail.entries[0].bank_payment_id = "booked-payment";
+    const original = mocks.fetch.getMockImplementation()!;
+    mocks.fetch.mockImplementation((url: string, options?: { method?: string }) => {
+      if (url.endsWith("/release")) detail.entries[0] = { ...detail.entries[0], bank_payment_id: null, proposal_kind: "manual", proposed_invoice_ids: [] };
+      if (url.startsWith("/api/payments/invoice-candidates"))
+        return Promise.resolve({ invoices: [{ ...invoice("invoice-1"), match_reasons: ["previous", "amount"] }, { ...invoice("invoice-3"), match_reasons: ["vs"] }, invoice("invoice-4")], total: 3 });
+      return original(url, options);
+    });
+    await upload();
+    await action("Akce platby · řádek 1");
+    await click("Uvolnit platbu a změnit přiřazení");
+    await action("Vybrat fakturu · řádek 1");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
+    const last = mocks.fetch.mock.calls.filter(([url]) => url.startsWith("/api/payments/invoice-candidates")).at(-1)![0] as string;
+    const params = new URL(last, "https://x").searchParams;
+    expect(params.get("amount")).toBe("100");
+    expect(params.get("currency")).toBe("CZK");
+    expect(params.get("prefer")?.split(",")).toContain("invoice-1");
+    const options = [...host.querySelectorAll<HTMLElement>("[data-invoice-dropdown] [data-invoice-option]")];
+    expect(options[0].textContent).toContain("VS invoice-1");
+    expect(options[0].textContent).toContain("Dříve přiřazeno");
+    expect(options[0].textContent).toContain("Stejná částka");
+    expect(options[1].textContent).toContain("Shoda VS");
+  });
   it("reloads unpaid candidates after release and permits assigning the same invoice again", async () => {
     const paidInvoice = { ...invoice("invoice-1"), paid_amount: 100 };
     candidates = candidates.filter(candidate => candidate.id !== paidInvoice.id);
