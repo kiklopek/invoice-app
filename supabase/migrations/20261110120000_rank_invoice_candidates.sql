@@ -10,12 +10,9 @@
 --                 hlavní slovo jména odběratele ve jméně plátce),
 --   pak splatnost jako dřív. Faktury v jiné měně než platba se nenabízejí.
 
--- Stejně jako zaúčtování (reconcile_bank_statement, guard_automatic_payment)
--- a TS normalizeVariableSymbol: bez mezer a úvodních nul; samé nuly = žádný VS.
--- Shodu hlídá src/lib/matching-parity.test.ts.
 create or replace function private.normalize_vs(raw text) returns text
 language sql immutable set search_path = '' as $$
-  select nullif(ltrim(regexp_replace(coalesce(raw, ''), '\s', '', 'g'), '0'), '');
+  select nullif(ltrim(regexp_replace(coalesce(raw, ''), '[^0-9]', '', 'g'), '0'), '');
 $$;
 
 create or replace function private.name_key(raw text) returns text
