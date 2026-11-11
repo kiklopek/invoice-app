@@ -162,6 +162,13 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
               : `Rozděleno celé · ${paymentMoney(Number(entry.amount), currency)}`}
             {info.values.length > 0 && ` · ${info.values.length} ${info.values.length === 1 ? "faktura" : info.values.length < 5 ? "faktury" : "faktur"}`}
           </p>}
+          {info.values.length > 0 && (splitMode || info.values.length > 1) && <fieldset className={styles.advanced}><legend>Částky k fakturám</legend>
+
+            {info.values.map(invoice => <label key={invoice.id}><span>Faktura {invoice.invoice_number}</span><input aria-label={`Částka k faktuře ${invoice.invoice_number}`} type="number" min="0.01" step="0.01" max={Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} value={data.allocationAmounts[key]?.[invoice.id] ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} disabled={!editable} onChange={event => data.onAllocation(key, invoice.id, Number(event.target.value))}/></label>)}
+          </fieldset>}
+          {/* Přebytek (platba je vyšší než vybrané faktury) zůstane u platby jen výslovně. */}
+          {info.values.length > 0 && info.difference > 0 && <label className={styles.partial}><input type="checkbox" checked={Boolean(data.partial[key])} disabled={!editable} onChange={event => data.onPartial(key, event.target.checked)}/>Ponechat přebytek {paymentMoney(info.difference, currency)} u platby nepřiřazený</label>}
+          {info.values.length === 1 && info.difference <= 0 && (info.difference !== 0 || data.partial[key]) && <label className={styles.partial}><input type="checkbox" checked={Boolean(data.partial[key])} disabled={!editable} onChange={event => data.onPartial(key, event.target.checked)}/>Povolit výslovnou částečnou úhradu této faktury</label>}
           <div className={styles.invoiceOptions} role="group" aria-label="Dostupné faktury" onScroll={event => {
             // Další faktury se načtou samy při posunutí na konec seznamu.
             const list = event.currentTarget;
@@ -171,7 +178,22 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
             {candidates.map(invoice => {
               const chosen = ids.includes(invoice.id);
               const label = invoice.variable_symbol ? `VS ${invoice.variable_symbol}` : invoice.invoice_number;
-              const toggle = () => data.onSelected(key, chosen ? ids.filter(id => id !== invoice.id) : [...ids, invoice.id]);
+              const toggle = () => {
+                const next = chosen ? ids.filter(id => id !== invoice.id) : [...ids, invoice.id];
+                data.onSelected(key, next);
+                // Při rozdělení se platba rozdělí postupně podle pořadí výběru:
+                // každá faktura dostane, kolik se vejde. Částky jde pak upravit.
+                if (splitMode || next.length > 1) {
+                  let left = minorUnits(Number(entry.amount ?? 0));
+                  for (const id of next) {
+                    const target = data.invoiceById.get(id) ?? candidates.find(item => item.id === id);
+                    if (!target) continue;
+                    const share = Math.max(0, Math.min(minorUnits(Number(target.amount)) - minorUnits(Number(target.paid_amount)), left));
+                    left -= share;
+                    data.onAllocation(key, id, share / 100);
+                  }
+                }
+              };
               const reasons = (invoice.match_reasons ?? []).filter(reason => reason in MATCH_REASON_LABELS);
               return <div key={invoice.id} className={styles.invoiceOption} data-invoice-option>
                 <label className={styles.optionCheck}><input type="checkbox" aria-label={`Přidat fakturu ${label} k platbě`} checked={chosen} disabled={!editable || data.candidateLoading} onChange={toggle}/></label>
@@ -191,11 +213,6 @@ function PaymentRow({ entry, data, checked, onToggle }: { entry: PreviewEntry; d
             })}
             {!candidates.length && !data.candidateLoading && !data.candidateError && <p className={styles.hint}>Pro toto hledání a měnu nejsou dostupné faktury.</p>}
           </div>
-          {info.values.length > 0 && (splitMode || info.values.length > 1) && <fieldset className={styles.advanced}><legend>Částky k fakturám</legend>
-
-            {info.values.map(invoice => <label key={invoice.id}><span>Faktura {invoice.invoice_number}</span><input aria-label={`Částka k faktuře ${invoice.invoice_number}`} type="number" min="0.01" step="0.01" max={Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} value={data.allocationAmounts[key]?.[invoice.id] ?? Math.max(0, Number(invoice.amount) - Number(invoice.paid_amount))} disabled={!editable} onChange={event => data.onAllocation(key, invoice.id, Number(event.target.value))}/></label>)}
-          </fieldset>}
-          {info.values.length === 1 && (info.difference !== 0 || data.partial[key]) && <label className={styles.partial}><input type="checkbox" checked={Boolean(data.partial[key])} disabled={!editable} onChange={event => data.onPartial(key, event.target.checked)}/>Povolit výslovnou částečnou úhradu této faktury</label>}
           {info.values.length > 0 && <p className={`${styles.balance} ${info.difference !== 0 ? styles.unbalanced : ""}`}>{`Platba ${paymentMoney(Number(entry.amount), currency)} · vybráno ${paymentMoney(info.allocated, currency)} · rozdíl ${paymentMoney(info.difference, currency)}`}</p>}
           <div className={styles.pickerActions} data-picker-actions>
             {ids.length > 0 && <button type="button" className={styles.unlink} disabled={!editable || Boolean(data.blockedReason)} onClick={() => { close(); data.onClearAssignment(entry); }}>Odpojit přiřazení</button>}
@@ -280,7 +297,11 @@ export function PaymentMatchingWorkspace(data: Props) {
     {data.error && <p className={styles.error} role="alert">{data.error}</p>}
     {data.done && <MatchingNotice message={data.done} className={styles.success} />}
     {data.preview.import.duplicate && <MatchingNotice key={data.preview.import.id} className={styles.duplicate} message="Tento výpis už byl dříve nahraný. Zobrazujeme jeho existující výsledky." />}
-    {data.preview.account_mismatch && <details className={styles.accountWarning}><summary><Icon name="alert"/>{data.accountAck ? "Kontrola bankovního účtu potvrzena" : "Bankovní účet vyžaduje kontrolu"}<span>Podrobnosti <ChevronDown /></span></summary><div><p>Účet ve výpisu není mezi účty firmy (Nastavení → Firma).</p><p>Ve výpisu: <strong>{data.preview.statement_account || "neznámý"}</strong> · Nastaveno: <strong>{data.preview.expected_account || "neznámý"}</strong></p><label><input type="checkbox" checked={data.accountAck} disabled={!data.canManage || data.working} onChange={event => data.onAccountAck(event.target.checked)}/>Potvrdit kontrolu bankovního účtu</label></div></details>}
+    {data.preview.account_mismatch && <section className={`${styles.accountWarning} ${data.accountAck ? styles.accountAcked : ""}`} aria-label="Kontrola bankovního účtu">
+      <p className={styles.accountWarningTitle}><Icon name="alert"/>{data.accountAck ? "Kontrola bankovního účtu potvrzena" : "Bankovní účet vyžaduje kontrolu"}</p>
+      <p>Účet ve výpisu není mezi účty firmy (Nastavení → Firma). Ve výpisu: <strong>{data.preview.statement_account || "neznámý"}</strong> · Nastaveno: <strong>{data.preview.expected_account || "neznámý"}</strong></p>
+      <label><input type="checkbox" checked={data.accountAck} disabled={!data.canManage || data.working} onChange={event => data.onAccountAck(event.target.checked)}/>Potvrdit kontrolu bankovního účtu</label>
+    </section>}
     <section className={styles.summary} aria-label="Souhrn výpisu">
       {pageScoped && <span className={styles.summaryScope}>Tato stránka:</span>}
       {(["review", "unmatched", "safe"] as const).map(group =>

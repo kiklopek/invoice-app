@@ -192,7 +192,11 @@
 .error, .success, .duplicate { margin: 10px 0; padding: 10px 13px; border-radius: 7px; font-size: 12px; line-height: 1.6; }
 .error { color: #af3544; background: #fff1f2; border: 1px solid #f1cdd2; }
 .success, .duplicate { color: #21664a; background: #edf8f1; border: 1px solid #d5eadd; }
-.accountWarning { margin-bottom: 14px; border: 1px solid #efd6a6; border-radius: 8px; background: #fffbf3; color: #94631d; font-size: 12px; }
+.accountWarning { display: grid; gap: 6px; margin-bottom: 14px; padding: 12px 14px; border: 1px solid #efd6a6; border-radius: 8px; background: #fffbf3; color: #94631d; font-size: 12px; line-height: 1.6; }
+.accountWarning > p { margin: 0; }
+.accountWarningTitle { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+.accountWarningTitle svg { width: 16px; height: 16px; flex: none; }
+.accountWarning.accountAcked { border-color: #cfe6d9; background: #f3faf6; color: #1f6544; }
 .accountWarning summary { display: flex; align-items: center; gap: 9px; padding: 10px 13px; cursor: pointer; }
 .accountWarning summary svg { width: 16px; height: 16px; }
 .accountWarning summary > span { margin-left: auto; font-size: 10px; }
@@ -289,7 +293,7 @@
 .dropdownAnchor.dropdownAnchor { position: static; }
 .dropdownAnchor.changeInvoice > button { position: absolute; top: 0; right: 0; }
 .row:has([data-invoice-dropdown]) { z-index: 25; }
-.dropdownPanel { position: absolute; top: calc(100% + 8px); right: auto; left: 0; z-index: 1; width: min(440px, calc(100vw - 24px)); max-height: 400px; overflow: auto; overscroll-behavior: contain; padding: 10px; border: 1px solid #dce4e5; border-radius: 8px; background: #fff; color: #142339; box-shadow: 0 8px 24px #193b2d1a; font-size: 12px; }
+.dropdownPanel { position: absolute; top: calc(100% + 8px); right: auto; left: 0; z-index: 1; width: min(440px, calc(100vw - 24px)); max-height: 560px; overflow: auto; overscroll-behavior: contain; padding: 10px; border: 1px solid #dce4e5; border-radius: 8px; background: #fff; color: #142339; box-shadow: 0 8px 24px #193b2d1a; font-size: 12px; }
 .dropdownPanel .pickerSearch input { border: 0; padding: 6px 0; outline: none; box-shadow: none; min-height: 0; }
 .dropdownPanel .invoiceOptions { max-height: 180px; overscroll-behavior: contain; }
 .dropdownPanel .invoiceOption > button { padding: 8px 5px; }

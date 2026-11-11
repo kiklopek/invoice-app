@@ -186,7 +186,7 @@ try{
     const a=button.getBoundingClientRect(),b=button.querySelector('svg').getBoundingClientRect();
     return Math.abs(a.x+a.width/2-b.x-b.width/2)<1&&Math.abs(a.y+a.height/2-b.y-b.height/2)<1;
    });expect(centered).toBe(true);
-   const box=await dialog.boundingBox();expect(box.x).toBeGreaterThanOrEqual(11);expect(box.x+box.width).toBeLessThanOrEqual(width-11);expect(box.y).toBeGreaterThanOrEqual(11);expect(box.y+box.height).toBeLessThanOrEqual(height-11);expect(box.height).toBeLessThanOrEqual(400);
+   const box=await dialog.boundingBox();expect(box.x).toBeGreaterThanOrEqual(11);expect(box.x+box.width).toBeLessThanOrEqual(width-11);expect(box.y).toBeGreaterThanOrEqual(11);expect(box.y+box.height).toBeLessThanOrEqual(height-11);/* 560: při rozdělení platby se vejdou částky i seznam faktur (dřív 400). */expect(box.height).toBeLessThanOrEqual(560);
    await c.page.screenshot({path:resolve(output,`picker-${width}.png`),fullPage:false});
    await dialog.getByRole('textbox',{name:'Hledat fakturu',exact:true}).fill('2600629');
    await expect(dialog.getByRole('group',{name:'Dostupné faktury'}).getByRole('button')).toHaveCount(1);
@@ -220,7 +220,7 @@ try{
  await check('bank account gate and save failure retain decisions',async()=>{
   const c=await pageFor(1440,900,'bank');try{
    const row=c.page.locator('[data-payment-row="payment-1"]');await expect(row.getByRole('button',{name:'Potvrdit',exact:true})).toBeDisabled();await expect(c.page.getByRole('button',{name:'Zaúčtovat výpis',exact:true})).toBeDisabled();
-   await c.page.getByText('Bankovní účet vyžaduje kontrolu',{exact:false}).first().click();await c.page.getByRole('checkbox',{name:'Potvrdit kontrolu bankovního účtu'}).check();
+   await expect(c.page.getByText('Bankovní účet vyžaduje kontrolu',{exact:false}).first()).toBeVisible();await c.page.getByRole('checkbox',{name:'Potvrdit kontrolu bankovního účtu'}).check();
    c.fail();await row.getByRole('button',{name:'Potvrdit',exact:true}).click();await expect(c.page.getByRole('alert')).toContainText('jiný uživatel');await expect(row).toContainText('ACME s.r.o.');await expect(row.getByRole('button',{name:'Potvrdit',exact:true})).toBeEnabled();
    await c.page.screenshot({path:resolve(output,'account-and-error.png'),fullPage:false});
   }finally{await c.page.close()}

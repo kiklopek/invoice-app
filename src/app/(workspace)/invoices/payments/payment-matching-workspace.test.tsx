@@ -261,6 +261,37 @@ describe("payment matching review and existing transports", () => {
     expect(picker.textContent).not.toContain("Částky k fakturám");
     expect(picker.textContent).not.toContain("ponechte platbu nespárovanou");
   });
+  it("splits a smaller payment across the chosen invoices by itself, so it can be confirmed", async () => {
+    await upload(); await click("Rozdělit platbu", scoped(3));
+    const picker = () => host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    // Platba 100 Kč na faktury 100 + 100: první dostane 100, druhá 0 → druhá vypadne? Ne: plní se postupně.
+    for (const id of ["invoice-3", "split-a"]) await act(async () => picker().querySelector<HTMLInputElement>(`input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
+    const amount = (id: string) => picker().querySelector<HTMLInputElement>(`input[aria-label="Částka k faktuře ${id}"]`)!;
+    expect(amount("invoice-3").value).toBe("100");
+    // Částky jsou nad seznamem faktur, ne schované pod tlačítky.
+    const all = [...picker().querySelectorAll("*")];
+    expect(all.indexOf(amount("invoice-3"))).toBeLessThan(all.indexOf(picker().querySelector('[aria-label="Dostupné faktury"]')!));
+    expect(picker().textContent).toContain("Rozděleno celé");
+  });
+  it("lets a split payment keep its surplus unassigned when explicitly chosen", async () => {
+    candidates.push(invoice("small-a", 30), invoice("small-b", 50));
+    await upload(); await click("Rozdělit platbu", scoped(3));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 300)); });
+    const picker = () => host.querySelector<HTMLDivElement>("[data-invoice-dropdown]")!;
+    for (const id of ["small-a", "small-b"]) await act(async () => picker().querySelector<HTMLInputElement>(`input[aria-label="Přidat fakturu VS ${id} k platbě"]`)!.click());
+    expect(picker().textContent).toContain("Zbývá rozdělit 20,00");
+    await click("Hotovo", picker());
+    expect(buttons("Potvrdit", scoped(3))[0].disabled).toBe(true);
+    await click("Rozdělit platbu", scoped(3));
+    const keep = [...picker().querySelectorAll("label")].find(label => label.textContent?.includes("Ponechat přebytek"))!.querySelector("input")!;
+    await act(async () => keep.click());
+    await click("Hotovo", picker());
+    expect(buttons("Potvrdit", scoped(3))[0].disabled).toBe(false);
+    await click("Potvrdit", scoped(3));
+    const allocations = JSON.parse(mutations().at(-1)![1].body).allocations;
+    expect(allocations.map((a: { invoice_id: string; amount: number }) => [a.invoice_id, a.amount])).toEqual([["small-a", 30], ["small-b", 50]]);
+    expect(allocations.some((a: { is_manual_partial: boolean }) => a.is_manual_partial)).toBe(true);
+  });
   it("turns splitting on and off with one box in the picker", async () => {
     await upload(); await action("Vybrat fakturu · řádek 3");
     const box = () => host.querySelector<HTMLInputElement>('[data-invoice-dropdown] input[type="checkbox"][aria-label="Platba hradí víc faktur"]')!;
@@ -305,7 +336,12 @@ describe("payment matching review and existing transports", () => {
     preview.account_mismatch = true; preview.expected_account = "999/0300";
     await upload(); expect(buttons("Potvrdit", scoped(1))[0].disabled).toBe(true);
     expect(buttons("Zaúčtovat výpis")[0].disabled).toBe(true);
-    await act(async () => host.querySelector<HTMLInputElement>('details input[type="checkbox"]')!.click());
+    // Upozornění je vidět celé hned, nic se nerozbaluje.
+    const warning = host.querySelector<HTMLElement>('[aria-label="Kontrola bankovního účtu"]')!;
+    expect(warning.closest("details")).toBeNull();
+    expect(warning.textContent).toContain("999/0300");
+    const ack = [...warning.querySelectorAll("label")].find(label => label.textContent?.includes("Potvrdit kontrolu bankovního účtu"))!.querySelector("input")!;
+    await act(async () => ack.click());
     expect(buttons("Potvrdit", scoped(1))[0].disabled).toBe(false);
     await click("Zaúčtovat výpis");
     const committedRequest = mutations().find(([url]) => url.endsWith("/commit"));
