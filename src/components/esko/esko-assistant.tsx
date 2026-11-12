@@ -142,6 +142,19 @@ export function EskoAssistant() {
     };
   }, [open]);
 
+  // Klik kamkoli mimo panel Esko zavře (konverzace zůstává). Tlačítko Esko
+  // samo panel ovládá, proto se nepočítá.
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest('#esko-panel, [aria-controls="esko-panel"]')) return;
+      close();
+    };
+    document.addEventListener("pointerdown", closeOnOutside, true);
+    return () => document.removeEventListener("pointerdown", closeOnOutside, true);
+  }, [open, close]);
+
   function ask(id: EskoQuestionId) {
     if (pending) return;
     const question = ESKO_QUESTIONS.find((item) => item.id === id);

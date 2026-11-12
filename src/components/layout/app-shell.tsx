@@ -232,6 +232,12 @@ export function AppSidebar({
     if (main) main.inert = true;
     if (bar) bar.inert = true;
     window.addEventListener("keydown", closeOrTrapFocus);
+    // Klik kamkoli mimo panel (i na neaktivní horní lištu) navigaci zavře.
+    const closeOnOutside = (event: PointerEvent) => {
+      if (panel && event.target instanceof Node && panel.contains(event.target)) return;
+      setMobileNavOpen(false);
+    };
+    window.addEventListener("pointerdown", closeOnOutside, true);
     // Let the browser apply the inert background before moving keyboard focus.
     let focusFrame = 0;
     const frame = window.requestAnimationFrame(() => {
@@ -246,6 +252,7 @@ export function AppSidebar({
       document.body.style.width = bodyStyle.width;
       if (main) main.inert = false;
       if (bar) bar.inert = false;
+      window.removeEventListener("pointerdown", closeOnOutside, true);
       window.cancelAnimationFrame(frame);
       window.cancelAnimationFrame(focusFrame);
       window.removeEventListener("keydown", closeOrTrapFocus);
