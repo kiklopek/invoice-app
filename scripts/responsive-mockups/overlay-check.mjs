@@ -28,7 +28,7 @@ const SEARCH = { unavailable: [], results: [
 ] };
 const typeSearch = (selector) => async (p) => {
   await p.route("**/api/search?*", (r) => r.fulfill({ json: SEARCH }));
-  const i = p.locator(selector).first(); await i.scrollIntoViewIfNeeded(); await i.click(); await i.fill("Ukáz"); await p.waitForTimeout(800);
+  const i = p.locator(selector).first(); await i.scrollIntoViewIfNeeded(); await i.click(); await i.fill(""); await i.fill("Ukáz"); await p.waitForTimeout(800);
 };
 const desktop = (w) => w >= 1024;
 const SCENARIOS = [
@@ -133,6 +133,43 @@ for (const s of SCENARIOS)
         line += `  esc:${after.still ? "OPEN" : "closed"} focus:${after.focus === "body" ? "LOST" : "ok"}`;
         if (after.still) failures.push(`${s.id} ${width}x${height}: Escape does not close it`);
         if (after.focus === "body") failures.push(`${s.id} ${width}x${height}: focus lost after Escape (opener ${opener})`);
+      }
+      if (m && !s.inline && !s.keepOnOutside) {
+        // Klik vedle (light dismiss): okno se znovu otevře a klikne se na
+        // neaktivní místo stránky mimo okno i jeho tlačítko; okno se musí zavřít.
+        await s.open(page);
+        await page.waitForTimeout(250);
+        const point = await page.evaluate((sel) => {
+          const visible = (e) => e.getClientRects().length && getComputedStyle(e).visibility !== "hidden" && getComputedStyle(e).display !== "none" && !e.closest("details:not([open])") && !e.closest("dialog:not([open])");
+          const open = [...document.querySelectorAll(sel)].filter((e) => visible(e) && !window.__before.has(e) && !e.matches("[class*=backdrop i]"));
+          if (!open.length) return null;
+          const boxes = open.map((e) => e.getBoundingClientRect());
+          // Okno přes celou obrazovku nemá žádné „vedle“; zavírá se křížkem.
+          if (boxes.some((r) => r.width * r.height >= 0.85 * innerWidth * innerHeight)) return { full: true };
+          const inside = (x, y) => boxes.some((r) => x >= r.left - 4 && x <= r.right + 4 && y >= r.top - 4 && y <= r.bottom + 4);
+          const active = "a, button, input, select, textarea, summary, label, [role=button], [role=option], [tabindex]:not([tabindex='-1']), [contenteditable]";
+          for (let y = innerHeight - 24; y > 24; y -= 37) for (let x = 24; x < innerWidth - 24; x += 41) {
+            if (inside(x, y)) continue;
+            const hit = document.elementFromPoint(x, y);
+            // Pozadí za oknem (backdrop) je „vedle“, i když je technicky tlačítko.
+            if (!hit || (hit.closest(active) && !hit.closest("[class*=backdrop i]"))) continue;
+            if (open.some((o) => o !== hit && o.contains(hit))) continue;
+            return { x, y };
+          }
+          return null;
+        }, CANDIDATES);
+        if (point?.full) line += "  out:fullscreen";
+        else if (!point) { line += "  out:NOPOINT"; failures.push(`${s.id} ${width}x${height}: no free spot to click outside`); }
+        else {
+          await page.mouse.click(point.x, point.y);
+          await page.waitForTimeout(250);
+          const still = await page.evaluate((sel) => {
+            const visible = (e) => e.getClientRects().length && getComputedStyle(e).visibility !== "hidden" && getComputedStyle(e).display !== "none" && !e.closest("details:not([open])") && !e.closest("dialog:not([open])");
+            return [...document.querySelectorAll(sel)].filter((e) => visible(e) && !window.__before.has(e)).length;
+          }, CANDIDATES);
+          line += `  out:${still ? "OPEN" : "closed"}`;
+          if (still) failures.push(`${s.id} ${width}x${height}: a click outside does not close it`);
+        }
       }
     } catch (error) {
       line += `ERROR ${String(error).split("\n")[0].slice(0, 90)}`;
