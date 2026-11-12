@@ -39,10 +39,13 @@ export function MatchingDropdown({ label, trigger, children, className = "", ope
       panel.style.width = `${width}px`;
       panel.style.left = `${Math.max(leftEdge, Math.min(rect.right - width, rightEdge - width)) - rect.left}px`;
       if (offset !== null) return;
-      // Výběr faktury má stálou velikost (obsah se posouvá uvnitř); ostatní
-      // panely tak velké, jak je jejich obsah při otevření.
+      // Velikost podle obsahu při otevření (seznamy, které se posouvají uvnitř,
+      // se započítají celé). Výběr faktury má aspoň 380 px, aby se vešly
+      // i vybrané faktury při rozdělení; pak už se výška nemění.
+      panel.style.height = "auto";
       const hidden = [...panel.children].reduce((sum, child) => sum + Math.max(0, child.scrollHeight - child.clientHeight), 0);
-      const desired = panel.querySelector("[data-picker-body]") ? 560 : Math.min(560, panel.scrollHeight + hidden + 2);
+      const natural = panel.scrollHeight + hidden + 2;
+      const desired = Math.min(560, panel.querySelector("[data-picker-body]") ? Math.max(380, natural) : natural);
       const below = Math.max(0, bottomEdge - rect.bottom - 8);
       const above = Math.max(0, rect.top - 8 - topEdge);
       const upwards = below < desired && above > below;

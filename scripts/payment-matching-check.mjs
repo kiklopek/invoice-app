@@ -190,7 +190,10 @@ try{
    expect(done.y).toBeGreaterThanOrEqual(0);expect(done.y+done.height).toBeLessThanOrEqual(height);
    // Vybrané faktury mají přednost před nabídkou; nic se nesmrskne pod čitelnou výšku.
    const space=await picker.evaluate(panel=>{const chosen=panel.querySelector('[aria-label="Vybrané faktury"]'),body=panel.querySelector('[data-picker-body]');return{chosen:chosen.clientHeight,chosenFull:chosen.scrollHeight,body:body.clientHeight};});
-   expect(space.chosen).toBeGreaterThanOrEqual(Math.min(space.chosenFull,64));expect(space.body).toBeGreaterThanOrEqual(56);
+   expect(space.chosen).toBeGreaterThanOrEqual(Math.min(space.chosenFull,40));expect(space.body).toBeGreaterThanOrEqual(40);
+   // Hotovo není oříznuté panelem a vybraná faktura zabere jeden kompaktní řádek.
+   const panelBox=await picker.boundingBox();expect(done.y+done.height).toBeLessThanOrEqual(panelBox.y+panelBox.height+1);
+   if(width>=1024)expect((await picker.getByRole('region',{name:'Vybrané faktury',exact:true}).locator('div').first().boundingBox()).height).toBeLessThanOrEqual(48);
    await c.page.screenshot({path:resolve(output,`split-${width}.png`),fullPage:false});
    expect(c.requests.filter(r=>r.method==='PATCH'||r.path.endsWith('/commit'))).toHaveLength(0);
    expect(c.errors).toEqual([]);

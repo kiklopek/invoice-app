@@ -372,3 +372,45 @@
    of a large dash in the amount's place. */
 .payment strong[data-empty] { font-size: 14px; font-weight: 550; color: #7a8696; letter-spacing: 0; }
 
+/* Výběr faktury – hustší rozvržení, aby se vešlo hodně položek přehledně:
+   ovládání nahoře nízké, vybrané i nabízené faktury po jednom řádku,
+   patička úsporná. Když místo nestačí ani tak, posune se celý panel, takže
+   Hotovo je vždy dosažitelné. */
+.dropdownPanel:has(> [data-picker-body]) { overflow-y: auto; }
+.dropdownPanel:has(> [data-picker-body]) > .popupHead { margin-bottom: 6px; }
+.dropdownPanel .splitToggle { min-height: 32px; margin: 0 0 6px; padding: 0 2px; border: 0; background: transparent; font-size: 12px; }
+.dropdownPanel .splitToggle:has(input:checked) { background: transparent; }
+.dropdownPanel:has(> [data-picker-body]) .pickerSearch { height: 34px; }
+.dropdownPanel .chosenList { gap: 4px; min-height: 44px; max-height: min(200px, 32vh); margin-top: 8px; }
+.dropdownPanel .chosenList h3 { position: sticky; top: 0; z-index: 1; margin: 0; padding-bottom: 2px; background: #fff; }
+.dropdownPanel .chosenRow { grid-template-columns: minmax(0, 1fr) 112px 28px; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 8px; }
+.dropdownPanel .chosenRow > span { display: flex; align-items: baseline; gap: 6px; }
+.dropdownPanel .chosenRow strong { flex: none; }
+.dropdownPanel .chosenRow small { flex: 1 1 0; min-width: 0; }
+.dropdownPanel .amountField { height: 30px; padding: 0 6px; }
+.dropdownPanel .amountField input { font-size: 12px; }
+.dropdownPanel .removeChosen { width: 28px; height: 28px; }
+.dropdownPanel .offeredHeading { margin: 8px 0 0; }
+.dropdownPanel .pickerBody { min-height: 44px; margin-top: 4px; }
+.dropdownPanel .pickerBody .invoiceOptions { margin-top: 0; }
+.dropdownPanel .pickerBody .invoiceOption > button { padding: 6px 4px; }
+.dropdownPanel .pickerBody .invoiceOption > button > span:not(.optionMark) { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
+.dropdownPanel .pickerBody .invoiceOption strong { flex: none; }
+.dropdownPanel .pickerBody .invoiceOption small { flex: 1 1 0; min-width: 0; margin-top: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dropdownPanel .pickerBody .matchReasons { flex-basis: 100%; margin-top: 3px; }
+.dropdownPanel .pickerBody .optionCheck { min-height: 36px; }
+.dropdownPanel .pickerFooter { gap: 6px; padding: 8px 10px; }
+.dropdownPanel .pickerStatus { gap: 4px; }
+.dropdownPanel .pickerStatus .splitStatus { padding: 5px 8px; border-radius: 6px; font-size: 12px; }
+.dropdownPanel .pickerStatus .partial { font-size: 11px; line-height: 1.4; }
+.dropdownPanel .pickerActions > button { min-height: 36px; }
+@media (pointer: coarse) {
+  .dropdownPanel .splitToggle, .dropdownPanel .pickerActions > button { min-height: 44px; }
+  .dropdownPanel .chosenRow { grid-template-columns: minmax(0, 1fr) 104px 44px; }
+  .dropdownPanel .removeChosen { width: 44px; height: 44px; }
+  .dropdownPanel .pickerBody .optionCheck { min-height: 44px; }
+}
+@media (max-width: 480px) {
+  /* Úzký displej: u vybrané faktury se plátce zalomí pod VS. */
+  .dropdownPanel .chosenRow > span { display: grid; gap: 1px; }
+}
