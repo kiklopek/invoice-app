@@ -20,6 +20,11 @@ export function MatchingDropdown({ label, trigger, children, className = "", ope
     const panel = anchor.current?.querySelector<HTMLElement>("[data-invoice-dropdown]");
     const field = anchor.current?.parentElement;
     if (!panel || !field) return;
+    // Pevná poloha: směr (pod polem, nebo nad ním), výška i odstup od horního
+    // okraje pole se určí jednou při otevření. Panel je ukotvený k poli, takže
+    // se s řádkem jen posouvá; při posouvání stránky, psaní ani když řádek
+    // naroste (vybrané faktury), se nepřeklápí, neposouvá a nemění výšku.
+    let offset: number | null = null;
     const position = () => {
       const viewport = window.visualViewport;
       const leftEdge = (viewport?.offsetLeft ?? 0) + 12;
@@ -32,38 +37,30 @@ export function MatchingDropdown({ label, trigger, children, className = "", ope
       const rect = field.getBoundingClientRect();
       const width = Math.min(440, rightEdge - leftEdge);
       panel.style.width = `${width}px`;
-      // Přirozená výška: obsah, který se posouvá uvnitř panelu (seznamy výběru),
-      // se započítá celý, jinak by se panel nikdy neotevřel tam, kde je víc místa.
+      panel.style.left = `${Math.max(leftEdge, Math.min(rect.right - width, rightEdge - width)) - rect.left}px`;
+      if (offset !== null) return;
+      // Výběr faktury má stálou velikost (obsah se posouvá uvnitř); ostatní
+      // panely tak velké, jak je jejich obsah při otevření.
       const hidden = [...panel.children].reduce((sum, child) => sum + Math.max(0, child.scrollHeight - child.clientHeight), 0);
-      const desired = Math.min(560, panel.scrollHeight + hidden + 2);
+      const desired = panel.querySelector("[data-picker-body]") ? 560 : Math.min(560, panel.scrollHeight + hidden + 2);
       const below = Math.max(0, bottomEdge - rect.bottom - 8);
       const above = Math.max(0, rect.top - 8 - topEdge);
       const upwards = below < desired && above > below;
-      const height = Math.min(desired, upwards ? above : below, bottomEdge - topEdge);
-      panel.style.maxHeight = `${Math.max(0, height)}px`;
+      const height = Math.max(0, Math.min(desired, upwards ? above : below, bottomEdge - topEdge));
+      // Pole mimo obrazovku (např. po vyjetí klávesnice): panel zůstane uvnitř okna.
       const top = upwards ? rect.top - 8 - height : rect.bottom + 8;
-      panel.style.top = `${Math.max(topEdge, Math.min(top, bottomEdge - height)) - rect.top}px`;
-      panel.style.left = `${Math.max(leftEdge, Math.min(rect.right - width, rightEdge - width)) - rect.left}px`;
+      offset = Math.max(topEdge, Math.min(top, bottomEdge - height)) - rect.top;
+      panel.style.height = panel.style.maxHeight = `${height}px`;
+      panel.style.top = `${offset}px`;
     };
     position();
+    // Jen když se změní velikost okna (např. na mobilu vyjede klávesnice),
+    // panel se znovu umístí, aby nevypadl z obrazovky. Posouvání ne.
     let frame = 0;
-    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(position); };
-    const onScroll = (event: Event) => { if (!(event.target instanceof Node) || !panel.contains(event.target)) schedule(); };
-    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => { offset = null; position(); }); };
     window.addEventListener("resize", schedule);
     window.visualViewport?.addEventListener("resize", schedule);
-    window.visualViewport?.addEventListener("scroll", schedule);
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
-    observer?.observe(panel);
-    const workspace = field.closest("[data-payment-matching]");
-    if (workspace) observer?.observe(workspace);
-    return () => {
-      cancelAnimationFrame(frame); observer?.disconnect();
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", schedule);
-      window.visualViewport?.removeEventListener("resize", schedule);
-      window.visualViewport?.removeEventListener("scroll", schedule);
-    };
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", schedule); window.visualViewport?.removeEventListener("resize", schedule); };
   }, [open]);
   useEffect(() => {
     if (!open) return;

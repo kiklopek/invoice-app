@@ -87,6 +87,8 @@ export function ArchiveInvoicePicker({ payment, value, known, preferIds, disable
     >
       {(close) => <>
         <label className={styles.pickerSearch}><Icon name="search" /><input aria-label="Hledat fakturu" maxLength={100} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Číslo, VS, odběratel nebo IČO" /></label>
+        {/* Stálá velikost panelu: posouvá se jen seznam, stejně jako v kontrole výpisu. */}
+        <div className={styles.pickerBody} data-picker-body>
         {loading && <p className={styles.hint} role="status">Načítáme faktury…</p>}
         {error && <p className={styles.error} role="alert">{error}</p>}
         <div className={styles.invoiceOptions} role="group" aria-label="Dostupné faktury">
@@ -103,6 +105,7 @@ export function ArchiveInvoicePicker({ payment, value, known, preferIds, disable
             </div>;
           })}
           {!items.length && !loading && !error && <p className={styles.hint}>Žádná otevřená faktura ve stejné měně s dostatečným zůstatkem.</p>}
+        </div>
         </div>
       </>}
     </MatchingDropdown>

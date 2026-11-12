@@ -137,24 +137,32 @@ try{
    expect(c.errors).toEqual([]);
   }finally{await c.page.close()}
  });
- await check('picker follows the row while scrolling and notices expire after five seconds',async()=>{
+ await check('picker keeps a fixed place at its field while scrolling and typing; notices expire after five seconds',async()=>{
   const c=await pageFor(1536,900,'duplicate');try{
    const notice=c.page.getByRole('status').filter({hasText:'Tento výpis už byl dříve nahraný.'});
    await expect(notice).toBeVisible();
    const trigger=c.page.getByRole('button',{name:'Vybrat fakturu · řádek 1',exact:true});
    await trigger.click();
    const dialog=c.page.getByRole('region',{name:'Vybrat fakturu · řádek 1',exact:true});
-   const fits=async()=>dialog.evaluate(panel=>{
+   // Panel drží pevnou pozici u pole: pod ním, nebo nad ním. Při posouvání
+   // stránky ani při změně obsahu se nepřeklápí, neposouvá a nemění výšku.
+   const geometry=()=>dialog.evaluate(panel=>{
     const box=panel.getBoundingClientRect(),field=panel.parentElement.parentElement.getBoundingClientRect();
-    return box.top>=11&&box.bottom<=innerHeight-11&&box.left>=11&&box.right<=innerWidth-11
-      &&(Math.abs(box.top-field.bottom-8)<3||Math.abs(box.bottom-field.top+8)<3);
+    return{offset:Math.round(box.top-field.top),height:Math.round(box.height),attached:Math.abs(box.top-field.bottom-8)<3||Math.abs(box.bottom-field.top+8)<3};
    });
+   const opened=await geometry();
+   expect(opened.attached).toBe(true);
    const beforeScroll=await c.page.evaluate(()=>window.scrollY);
    await c.page.evaluate(()=>window.scrollBy(0,100));
    expect(await c.page.evaluate(()=>window.scrollY)).toBeGreaterThan(beforeScroll);
-   await expect.poll(fits).toBe(true);
+   await c.page.waitForTimeout(150);
+   expect(await geometry()).toEqual(opened);
    await expect(notice).toHaveCount(0,{timeout:6500});
-   await expect.poll(fits).toBe(true);
+   await c.page.waitForTimeout(150);
+   expect(await geometry()).toEqual(opened);
+   await dialog.getByRole('textbox',{name:'Hledat fakturu'}).fill('2600');
+   await c.page.waitForTimeout(600);
+   expect(await geometry()).toEqual(opened);
    await expect(dialog).toBeVisible();
   }finally{await c.page.close()}
  });
@@ -166,9 +174,13 @@ try{
    await expect(picker).toBeVisible();
    await expect(picker.getByRole('checkbox',{name:'Platba hradí víc faktur',exact:true})).toBeChecked();
    await expect(picker.getByRole('status').filter({hasText:/Zbývá rozdělit|Rozděleno celé|Přes platbu/})).toBeVisible();
+   const place=()=>picker.evaluate(panel=>{const box=panel.getBoundingClientRect(),field=panel.parentElement.parentElement.getBoundingClientRect();return{offset:Math.round(box.top-field.top),height:Math.round(box.height)};});
+   const opened=await place();
    const options=picker.locator('[data-invoice-option] button');
    await options.nth(0).click();await options.nth(1).click();
    await expect(picker).toBeVisible();
+   // Přidání faktur mění obsah, ne polohu ani výšku panelu.
+   expect(await place()).toEqual(opened);
    await expect(picker.getByRole('region',{name:'Vybrané faktury',exact:true})).toBeVisible();
    const box=await picker.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);
    expect(await c.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
