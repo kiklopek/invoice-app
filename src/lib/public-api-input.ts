@@ -52,7 +52,7 @@ export function invoiceApiBody(value: unknown) {
   });
   const expected_total = apiMoney(row.expected_total, "expected_total"), paid_amount = row.paid_amount === undefined ? 0 : apiMoney(row.paid_amount, "paid_amount");
   if (!expected_total || paid_amount > expected_total || (paid_amount > 0 && row.payment_confirmed !== true) || (row.payment_confirmed !== undefined && typeof row.payment_confirmed !== "boolean")) throw new PublicApiError("Úhrada musí být výslovně potvrzená a nesmí převýšit celkovou částku.");
-  return { request_id, variable_symbol, issue_date, due_date, tax_date, currency, payment_method, paid_amount, payment_confirmed: paid_amount > 0, customer: customerApiBody(row.customer), items, expected_total, public_note: apiText(row.public_note, "public_note", 2000), internal_note: apiText(row.internal_note, "internal_note", 5000) };
+  return { request_id, variable_symbol, issue_date, due_date, tax_date, currency, payment_method: payment_method as "bank" | "cash", paid_amount, payment_confirmed: paid_amount > 0, customer: customerApiBody(row.customer), items, expected_total, public_note: apiText(row.public_note, "public_note", 2000), internal_note: apiText(row.internal_note, "internal_note", 5000) };
 }
 export function apiOperationId(organizationId: string, operation: string, key: string) {
   const bytes = createHash("sha256").update(JSON.stringify(["splatno-api-v1", organizationId, operation, key])).digest().subarray(0, 16);

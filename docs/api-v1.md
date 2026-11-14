@@ -142,7 +142,7 @@ Zápisy po síťové chybě a dočasných chybách opakujte s původním klíče
 
 Nové API potřebuje migrace přidané touto větví. Hlavní balík vytváří klíče, oprávnění, audit požadavků a číselné řady. Další migrace zajišťují zákaznickou idempotenci a atomické ovládání upomínek. Schéma a aplikaci nasazujte jako jeden ověřený release se schématem připraveným před zpřístupněním endpointů.
 
-Při této implementaci byla známá odchylka devíti produkčních migrací oproti výchozímu hlavnímu checkoutu. Před nasazením porovnejte přesnou historii cílové databáze a sjednoťte chybějící podklady do kanonické migrační historie. Nové migrace ověřte na aktuálním staging schématu. Historické změny znovu slepě nespouštějte.
+Výsledná API větev vychází z aktuálního GitHub `main` (`15ca0c1`), včetně sedmi novějších migrací F0–F5, které ve výchozím lokálním checkoutu chyběly. Obsahuje 66 převzatých a tři nové migrace. Před nasazením porovnejte přesnou historii cílové databáze: dříve načtená produkční historie navíc uváděla `20261110120000_rank_invoice_candidates` a `20261111090000_fix_normalize_vs`, jejichž migrační soubory na tomto main nejsou. Nové API migrace ověřte na aktuálním staging schématu. Historické změny znovu slepě nespouštějte.
 
 Doporučený lokální průchod používá izolovanou testovací firmu se správným plátcovstvím DPH, bankovním účtem, výchozí kategorií upomínek a testovacím předplatným.
 

@@ -17,7 +17,7 @@ vi.mock("@/lib/invoice-issue-server", async importOriginal => {
   return {...actual, issueCreation:state.issued};
 });
 vi.mock("@/lib/invoice-send-server", () => ({sendInvoiceEmail:state.sent}));
-vi.mock("@/lib/invoice-pdf", () => ({generateInvoicePdf:async()=>new Uint8Array([37,80,68,70]),invoicePdfFilename:()=>"invoice.pdf",invoicePdfResponse:(bytes:Uint8Array)=>new Response(bytes,{headers:{"content-type":"application/pdf"}})}));
+vi.mock("@/lib/invoice-pdf", () => ({generateInvoicePdf:async()=>new Uint8Array([37,80,68,70]),invoicePdfFilename:()=>"invoice.pdf",invoicePdfResponse:(bytes:Uint8Array)=>new Response(new Uint8Array(bytes).buffer,{headers:{"content-type":"application/pdf"}})}));
 import { GET as listInvoices, POST as createInvoice } from "./invoices/route";
 import { GET as getInvoice } from "./invoices/[id]/route";
 import { GET as pdfInvoice } from "./invoices/[id]/pdf/route";

@@ -773,6 +773,9 @@ export const publicApiOpenApi = {
             type: "array",
             items: object({ invoice_id: uuid, amount: ref("Money") }, ["invoice_id", "amount"]),
           },
+          allocated_amount: ref("Money"),
+          unallocated_amount: ref("Money"),
+          allocation_status: { type: "string", enum: ["unallocated", "partial", "allocated", "overallocated"] },
         },
         [
           "id",
@@ -785,6 +788,9 @@ export const publicApiOpenApi = {
           "matched_at",
           "created_at",
           "allocations",
+          "allocated_amount",
+          "unallocated_amount",
+          "allocation_status",
         ],
       ),
       Reminder: object(

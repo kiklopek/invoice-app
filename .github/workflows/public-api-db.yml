@@ -1,0 +1,26 @@
+name: Public API database contracts
+
+on:
+  pull_request:
+  push:
+    branches: [main, feature/public-api-v1]
+
+permissions:
+  contents: read
+
+jobs:
+  public-api-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install pinned disposable PostgreSQL harness
+        run: npm install --prefix .cache/reconciliation-tools --no-save --package-lock=false @electric-sql/pglite@0.3.14
+      - name: Replay migrations and verify API permissions and transactions
+        run: |
+          node scripts/test-public-api-db.mjs
+          node scripts/test-public-api-customers-db.mjs
+          node scripts/test-api-invoice-reminders-db.mjs
