@@ -8,6 +8,11 @@ import { logError } from "@/lib/structured-log";
 const COLUMNS = "id,name,key_prefix,scopes,created_at,last_used_at,expires_at,revoked_at";
 const JSON_HEADERS = { "cache-control": "private, no-store" };
 
+function databaseSetupRequired(request: Request, error: { code?: string } | null) {
+  if (!error?.code || !["42P01", "42883", "PGRST202", "PGRST205"].includes(error.code)) return null;
+  return apiError(request, "API klíče ještě nejsou v této databázi aktivované. Je potřeba dokončit nasazení: chybí databázová aktualizace pro API a napojení.", 503, "api_setup_required");
+}
+
 function administrator(request: Request, identity: RequestIdentity | null) {
   if (!identity) return apiError(request, "Nejste přihlášený uživatel.", 401, "unauthorized");
   if (identity.membership.role !== "admin" || identity.support) return apiError(request, "API klíče spravuje administrátor firmy.", 403, "forbidden");
@@ -31,6 +36,8 @@ export async function GET(request: Request) {
     .eq("organization_id", identity.membership.organization_id).order("created_at", { ascending: false });
   if (error) {
     logError("API klíče se nepodařilo načíst", error);
+    const setupRequired = databaseSetupRequired(request, error);
+    if (setupRequired) return setupRequired;
     return apiError(request, "API klíče se nepodařilo načíst.", 503, "api_keys_unavailable");
   }
   return Response.json({ keys: data ?? [] }, { headers: JSON_HEADERS });
@@ -59,6 +66,8 @@ export async function POST(request: Request) {
   if (error?.code === "42501") return apiError(request, "API klíče spravuje administrátor firmy.", 403, "forbidden");
   if (error || !data) {
     logError("API klíč se nepodařilo vytvořit", error);
+    const setupRequired = databaseSetupRequired(request, error);
+    if (setupRequired) return setupRequired;
     return apiError(request, "API klíč se nepodařilo vytvořit.", 503, "api_key_creation_failed");
   }
   return Response.json({ key: generated.key, api_key: data }, { status: 201, headers: JSON_HEADERS });
@@ -80,6 +89,8 @@ export async function DELETE(request: Request) {
   if (error?.code === "P0002") return apiError(request, "API klíč nebyl nalezen.", 404, "api_key_not_found");
   if (error || data !== true) {
     logError("API klíč se nepodařilo zrušit", error);
+    const setupRequired = databaseSetupRequired(request, error);
+    if (setupRequired) return setupRequired;
     return apiError(request, "API klíč se nepodařilo zrušit.", 503, "api_key_revocation_failed");
   }
   return Response.json({ revoked: true }, { headers: JSON_HEADERS });
