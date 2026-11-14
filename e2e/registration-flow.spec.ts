@@ -20,6 +20,9 @@ for (const locale of ["cs", "en"] as const) {
 
   for (const mode of ["code", "delivery_failure", "offline"] as const) {
     test(`${locale}: founder registration handles ${mode}`, async ({ page, baseURL, browserName }, testInfo) => {
+      // Install before navigation: replacing timers after React/Next has
+      // scheduled work leaves callbacks split across real and fake clocks.
+      if (mode === "code") await page.clock.install();
       await page.context().addCookies([{ name: "splatno-lang", value: locale, url: baseURL ?? "http://127.0.0.1:3000" }]);
       const calls: string[] = [];
       await page.route("**/api/auth/registration-access", async (route) => {
@@ -43,9 +46,6 @@ for (const locale of ["cs", "en"] as const) {
       await page.waitForLoadState("networkidle");
       await expect(page.getByText(copy.invitationHint)).toBeVisible();
       await fillRegistration(page, locale);
-      // Install fake time only after initial hydration and input handling. Its
-      // purpose is to advance the resend cooldown, not app startup scheduling.
-      if (mode === "code") await page.clock.install();
       await expect(page.getByLabel(getDictionary(locale).auth.common.companyEmail, { exact: true })).toHaveValue(user.email);
       await page.getByRole("button", { name: copy.submit, exact: true }).click();
       if (mode === "code") {

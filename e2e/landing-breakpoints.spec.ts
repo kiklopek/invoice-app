@@ -40,7 +40,7 @@ async function layoutProblems(page: Page) {
 }
 
 for (const route of ["/", "/en"]) {
-  test(`${route}: resizing across mobile, tablet and desktop preserves content`, async ({ page }, testInfo) => {
+  test(`${route}: resizing across mobile, tablet and desktop preserves content`, async ({ page }) => {
     test.setTimeout(90_000);
     await page.bringToFront();
     await page.goto(route);
@@ -60,13 +60,23 @@ for (const route of ["/", "/en"]) {
         await expect(page.locator("#caste-otazky details[open]")).toHaveCount(expanded ? 5 : 0);
         const periodControl = width <= 640 ? page.getByRole("radio").last() : page.getByRole("switch");
         await expect(periodControl).toHaveAttribute("aria-checked", String(expanded));
-        if (!expanded && [390, 768, 1024, 1440, 1920].includes(width)) {
-          await testInfo.attach(`hero-${width}`, { body: await page.locator('[class*="heroGrid"]').screenshot({ animations: "disabled" }), contentType: "image/png" });
-          await testInfo.attach(`process-${width}`, { body: await page.locator("#jak-to-funguje").screenshot({ animations: "disabled", style: "header { visibility: hidden !important; }" }), contentType: "image/png" });
-        }
       }
     }
     expect(problems).toEqual([]);
+  });
+
+  // Capturing tall sections scrolls the page and waits for screenshots to
+  // settle. Keep that work outside the 74-resize state-preservation check.
+  test(`${route}: captures hero and process at representative widths`, async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    await page.goto(route);
+    await expect(page.locator("h1")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    for (const width of [390, 768, 1024, 1440, 1920]) {
+      await resize(page, width);
+      await testInfo.attach(`hero-${width}`, { body: await page.locator('[class*="heroGrid"]').screenshot({ animations: "disabled" }), contentType: "image/png" });
+      await testInfo.attach(`process-${width}`, { body: await page.locator("#jak-to-funguje").screenshot({ animations: "disabled", style: "header { visibility: hidden !important; }" }), contentType: "image/png" });
+    }
   });
 
   test(`${route}: desktop typography and spacing do not jump at adjacent widths`, async ({ page }) => {

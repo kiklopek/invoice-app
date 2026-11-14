@@ -69,14 +69,26 @@ async function signInWithPassword(page: import("@playwright/test").Page, email: 
 //
 // Chyby se schválně polykají: tohle je urychlení, ne kontrola. Kdyby routa
 // byla rozbitá, má to ohlásit test, který ji ověřuje, ne setup.
-// Musí tu být i přihlašovací stránky (chodí na ně testy odhlášeného uživatele)
-// a detail faktury, což je dynamická routa -- ta se dopisuje níž z reálného id.
+// Veřejné stránky se předehřívají zvlášť i bez session. Detail faktury je
+// dynamická routa -- ta se dopisuje níž z reálného id.
 const WARM_ROUTES = [
   "/dashboard", "/invoices", "/invoices/new", "/invoices/import",
   "/invoices/archive", "/invoices/payments", "/invoices/payments/archive",
   "/customers", "/reports", "/reminders", "/settings",
-  "/login", "/register", "/forgot-password", "/reset-password",
 ];
+
+// Public specs still run when CI has no workspace credentials. Compile both
+// landing locales and the auth pages before workers start, so one test does
+// not trigger Fast Refresh while another is filling a form or resizing.
+export async function warmPublicRoutes(page: Page) {
+  for (const route of ["/", "/en", "/login", "/register", "/forgot-password", "/reset-password"]) {
+    try {
+      await page.goto(route, { waitUntil: "networkidle", timeout: 60_000 });
+    } catch {
+      // Warmup is an optimization; the relevant spec reports broken pages.
+    }
+  }
+}
 
 async function warmRoutes(page: Page) {
   const started = Date.now();
@@ -118,6 +130,7 @@ export default async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ baseURL });
   try {
+    await warmPublicRoutes(page);
     const signedIn = password
       ? await signInWithPassword(page, email, password)
       : process.env.E2E_ALLOW_ADMIN_RECOVERY === "false" ? false : await signInWithAdminToken(page, email);

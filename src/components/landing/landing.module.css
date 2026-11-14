@@ -2,6 +2,14 @@
    Vše je scoped do .page — minimal.css globálně vypíná box-shadow
    (`* { box-shadow: none !important }`), proto stíny níž nesou !important. */
 
+/* Global overflow-x: hidden also makes body a vertical scroll container.
+   Decorative overflow can then consume wheel gestures before the document
+   scrolls and anchors the sticky header to body instead of the viewport.
+   Clip horizontal overflow without creating that extra scroll container. */
+:global(body):has(.page) {
+  overflow-x: clip;
+}
+
 .page {
   --pine: #12372a;
   --ledger: #1f6a4a;
