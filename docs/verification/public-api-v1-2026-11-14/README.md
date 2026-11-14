@@ -2,6 +2,8 @@
 
 Datum: 14. 11. 2026. Větev `feature/public-api-v1`, založená na GitHub `main` `15ca0c1`.
 
+Aktualizace: po výslovném souhlasu uživatele byly API migrace nasazeny do připojené databáze. Výsledek, skutečné verze a živé kontroly jsou v [záznamu aktivace](production-activation.md). Následující původní report zachovává rozsah předchozího ověření před aktivací.
+
 ## Uživatelský průchod
 
 Administrátor vytvoří omezený integrační klíč v nastavení. Server e-shopu vystaví fakturu přes `/api/v1`, bezpečně opakuje požadavek, získá PDF a čte úhrady a události své firmy. Odeslání a počáteční úhrada vyžadují samostatná oprávnění a výslovné potvrzení.
