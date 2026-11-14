@@ -610,8 +610,6 @@ export function SettingsClient({
             </footer>
           )}
         </section>
-        {canAdminister && members.some((member) => member.current && !member.support_until)
-          ? <ApiKeysSection canEdit /> : null}
       {canAdminister && (
         <>
           <div className="access-settings-grid">
@@ -746,6 +744,8 @@ export function SettingsClient({
               </aside>
             </MobileDisclosure>
           </div>
+          {members.some((member) => member.current && !member.support_until)
+            ? <ApiKeysSection canEdit /> : null}
           <details className="page-panel access-history-disclosure">
             <summary>
               <span>

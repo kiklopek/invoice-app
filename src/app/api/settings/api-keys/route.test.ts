@@ -17,6 +17,22 @@ beforeEach(() => {
 });
 
 describe("company integration key management", () => {
+  it("explains missing database activation instead of reporting an ordinary load failure", async () => {
+    mocks.select.mockReturnValue(fakeChain({ data: null, error: { code: "PGRST205", message: "organization_api_keys missing from schema cache" } }));
+    const response = await GET(new Request("http://localhost/api/settings/api-keys"));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: "api_setup_required", error: expect.stringContaining("databázová aktualizace") });
+  });
+
+  it.each(["PGRST202", "42883"])("explains missing key RPC %s without returning a generated secret", async code => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, message: "function not found" } });
+    const response = await post({ name: "E-shop", scopes: ["invoices:read"] });
+    const result = await response.json();
+    expect(response.status).toBe(503);
+    expect(result.code).toBe("api_setup_required");
+    expect(result).not.toHaveProperty("key");
+  });
+
   it.each(["accounting", "viewer"] as const)("denies %s access to every management operation", async role => {
     mocks.identity.mockResolvedValue(fakeIdentity({ role }));
     expect((await GET(new Request("http://localhost/api/settings/api-keys"))).status).toBe(403);
