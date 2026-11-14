@@ -2,6 +2,41 @@ import { describe, expect, it } from "vitest";
 import { calculateCreation, creationUnitPrice, creationDocument, creationInput, parseCreationDraft, publicInvoiceDocument, supplierProblems } from "./invoice-creation";
 
 import { fixture, supplier } from "@/test/invoice-creation-fixtures";
+describe("gross price entry", () => {
+  it("extracts VAT once per rate without changing the shop total", () => {
+    const base = fixture().items[0];
+    const totals = calculateCreation([["6", "1700"], ["2", "2100"], ["1", "1600"], ["1", "2400"]].map(([quantity, unit_price], i) => ({ ...base, id: String(i), quantity, unit_price, vat_rate: 12, price_mode: "gross" })), true);
+    expect(totals).toMatchObject({ gross: 18400, net: 16428.57, tax: 1971.43 });
+    expect(totals.lines.reduce((sum, row) => sum + Math.round(row.gross * 100), 0)).toBe(1840000);
+    expect(totals.lines.reduce((sum, row) => sum + Math.round(row.tax * 100), 0)).toBe(197143);
+  });
+  it("preserves a non-taxable line separately from a zero VAT rate", () => {
+    const base = fixture().items[0];
+    const totals = calculateCreation([
+      { ...base, quantity: "1", unit_price: "1500", vat_rate: 12, price_mode: "gross" },
+      { ...base, quantity: "2", unit_price: "800", vat_rate: null, price_mode: "gross" },
+    ], true);
+    expect(totals.gross).toBe(3100);
+    expect(totals.breakdown).toMatchObject([{ rate: 12, gross: 1500, tax: 160.71 }, { rate: null, gross: 1600, tax: 0 }]);
+  });
+  it("keeps every haler across seeded fractional gross orders", () => {
+    const base = fixture().items[0];
+    let seed = 917;
+    const random = () => { seed = (seed * 16807) % 2147483647; return seed; };
+    for (let i = 0; i < 1000; i++) {
+      const items = Array.from({ length: random() % 8 + 1 }, (_, id) => ({ ...base, id: String(id), quantity: String(random() % 10 + 1), unit_price: ((random() % 100000 + 1) / 100).toFixed(2), vat_rate: [0, 12, 21, null][random() % 4], price_mode: "gross" as const }));
+      const totals = calculateCreation(items, true);
+      expect(Math.round(totals.gross * 100)).toBe(items.reduce((sum, item) => sum + Number(item.quantity) * Math.round(Number(item.unit_price) * 100), 0));
+      expect(totals.lines.reduce((sum, row) => sum + Math.round(row.net * 100) + Math.round(row.tax * 100), 0)).toBe(Math.round(totals.gross * 100));
+    }
+  });
+  it("preserves explicit gross mode through validation and rejects unknown modes", () => {
+    const draft = fixture();
+    const gross = { ...draft, items: [{ ...draft.items[0], price_mode: "gross" }] };
+    expect(parseCreationDraft(gross).items[0]).toHaveProperty("price_mode", "gross");
+    expect(() => parseCreationDraft({ ...gross, items: [{ ...gross.items[0], price_mode: "unknown" }] })).toThrow();
+  });
+});
 describe("issued invoices: exact shared calculations and validation", () => {
   it("retains unit price precision in customer-facing documents", () => {
     expect(creationUnitPrice("1,1234", "CZK")).toBe("1,1234 Kč");

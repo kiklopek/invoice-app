@@ -1,0 +1,62 @@
+begin;
+do $$
+declare
+  org_a uuid := 'ab000000-0000-4000-8000-000000000001';
+  org_b uuid := 'ab000000-0000-4000-8000-000000000002';
+  actor uuid := 'ab000000-0000-4000-8000-000000000003';
+  invoice_a uuid := 'ab000000-0000-4000-8000-000000000004';
+  policy_a uuid := 'ab000000-0000-4000-8000-000000000005';
+  job uuid := 'ab000000-0000-4000-8000-000000000006';
+  result jsonb; rejected boolean;
+begin
+  insert into auth.users(id,email) values(actor,'reminder-api@example.com');
+  insert into public.organizations(id,name,ico) values(org_a,'Reminders A','27082440'),(org_b,'Reminders B','25596641');
+  insert into public.organization_members(organization_id,user_id,email,role) values(org_a,actor,'reminder-api@example.com','admin');
+  insert into public.subscriptions(organization_id,status,billing_exempt) values(org_a,'active',true);
+  insert into public.reminder_policies(id,organization_id,name,is_default,days_from_due) values(policy_a,org_a,'Default',true,array[-3,0,7,14]);
+  insert into public.invoices(id,organization_id,invoice_number,counterparty_name,counterparty_email,amount_without_vat,vat_rate,amount,currency,issue_date,due_date,created_by,reminder_policy_id,reminder_days_snapshot)
+    values(invoice_a,org_a,'FV-R-001','Buyer','buyer@example.com',100,21,121,'CZK',current_date,current_date+7,actor,policy_a,array[-3,0,7,14]);
+  insert into public.reminder_log(id,organization_id,invoice_id,stage,scheduled_for,sent_to,status)
+    values(job,org_a,invoice_a,'before_due',current_date+4,'buyer@example.com','queued');
+  set local role service_role;
+  result := public.set_api_invoice_reminders(org_a,actor,invoice_a,true);
+  if result->>'paused' <> 'true' or result->>'next_reminder_at' is not null then raise exception 'pause did not clear schedule'; end if;
+  if (select status from public.reminder_log where id=job) <> 'skipped' then raise exception 'pause kept queued work'; end if;
+  if (select paid_amount from public.invoices where id=invoice_a) <> 0 then raise exception 'pause changed money'; end if;
+  result := public.set_api_invoice_reminders(org_a,actor,invoice_a,false);
+  if result->>'paused' <> 'false' or result->>'next_reminder_at' is null then raise exception 'resume did not restore open schedule'; end if;
+  if (select status from public.invoices where id=invoice_a) <> 'pending' then raise exception 'resume changed status'; end if;
+  reset role;
+  update public.reminder_policies set is_active=false where id=policy_a;
+  set local role service_role;
+  result := public.set_api_invoice_reminders(org_a,actor,invoice_a,false);
+  if result->>'next_reminder_at' is not null then raise exception 'inactive policy regained reminders'; end if;
+  reset role;
+  update public.reminder_policies set is_active=true where id=policy_a;
+  set local role service_role;
+  update public.invoices set counterparty_email='' where id=invoice_a;
+  result := public.set_api_invoice_reminders(org_a,actor,invoice_a,false);
+  if result->>'next_reminder_at' is not null then raise exception 'email-less invoice regained reminders'; end if;
+  update public.invoices set counterparty_email='buyer@example.com' where id=invoice_a;
+  update public.reminder_log set status='queued',lease_token=gen_random_uuid(),lease_expires_at=now()+interval '5 minutes' where id=job;
+  rejected:=false;
+  begin perform public.set_api_invoice_reminders(org_a,actor,invoice_a,true); exception when object_not_in_prerequisite_state then rejected:=true; end;
+  if not rejected then raise exception 'active delivery was silently cancelled'; end if;
+  if (select reminders_paused from public.invoices where id=invoice_a) then raise exception 'failed in-flight pause mutated invoice'; end if;
+  update public.reminder_log set status='skipped',lease_token=null,lease_expires_at=null where id=job;
+  update public.invoices set status='cancelled',next_reminder_at=null where id=invoice_a;
+  result := public.set_api_invoice_reminders(org_a,actor,invoice_a,false);
+  if result->>'next_reminder_at' is not null then raise exception 'closed invoice regained reminders'; end if;
+  rejected:=false;
+  begin perform public.set_api_invoice_reminders(org_b,actor,invoice_a,true); exception when insufficient_privilege then rejected:=true; end;
+  if not rejected then raise exception 'cross-org member accepted'; end if;
+  rejected:=false;
+  begin perform public.set_api_invoice_reminders(org_a,actor,'ab000000-0000-4000-8000-000000000099',true); exception when no_data_found then rejected:=true; end;
+  if not rejected then raise exception 'missing invoice accepted'; end if;
+  update public.organization_members set role='viewer' where organization_id=org_a and user_id=actor;
+  rejected:=false;
+  begin perform public.set_api_invoice_reminders(org_a,actor,invoice_a,true); exception when insufficient_privilege then rejected:=true; end;
+  if not rejected then raise exception 'viewer changed reminders'; end if;
+  if has_function_privilege('anon','public.set_api_invoice_reminders(uuid,uuid,uuid,boolean)','EXECUTE') or has_function_privilege('authenticated','public.set_api_invoice_reminders(uuid,uuid,uuid,boolean)','EXECUTE') then raise exception 'public clients can change reminder state'; end if;
+end $$;
+rollback;

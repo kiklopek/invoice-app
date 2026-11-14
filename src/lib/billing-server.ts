@@ -33,7 +33,7 @@ const SUBSCRIPTION_CODES = new Set(["trial_invoice_limit", "monthly_invoice_limi
  * Smí firma přidat `count` faktur? Při chybě čtení se neblokuje (výpadek
  * nesmí zastavit práci); databázový trigger limit hlídá znovu.
  */
-export async function subscriptionBlock(identity: RequestIdentity, count = 1) {
+export async function subscriptionBlock(identity: { service: RequestIdentity["service"]; membership: { organization_id: string } }, count = 1) {
   const { row, failed } = await loadSubscription(identity.service, identity.membership.organization_id);
   if (failed) return null;
   const allowance = invoiceAllowance(row);

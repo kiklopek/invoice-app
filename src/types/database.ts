@@ -35,6 +35,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      organization_api_keys: {
+        Row: OrganizationApiKeyRow
+        Insert: Omit<OrganizationApiKeyRow, "id" | "created_at" | "last_used_at" | "revoked_at" | "request_limit" | "rate_window_started_at" | "rate_window_count"> & { id?: string; created_at?: string }
+        Update: Partial<OrganizationApiKeyRow>
+        Relationships: []
+      }
+      api_key_requests: {
+        Row: ApiKeyRequestRow
+        Insert: Omit<ApiKeyRequestRow, "id" | "created_at"> & { id?: string; created_at?: string }
+        Update: never
+        Relationships: []
+      }
       onboarding_drafts: {
         Row: { user_id: string; payload: Json; updated_at: string }
         Insert: { user_id: string; payload: Json; updated_at?: string }
@@ -1930,6 +1942,30 @@ export type Database = {
       }
     }
     Functions: {
+      authenticate_organization_api_key: {
+        Args: { target_hash: string; required_scope: string }
+        Returns: Json
+      }
+      set_api_invoice_reminders: {
+        Args: { target_org: string; actor_user: string; target_invoice: string; paused: boolean }
+        Returns: Json
+      }
+      list_api_payments_page: {
+        Args: { target_org: string; actor_user: string; target_invoice?: string; cursor_time?: string; cursor_id?: string; page_size?: number }
+        Returns: Json
+      }
+      create_organization_api_key: {
+        Args: { target_org: string; actor_user: string; key_name: string; display_prefix: string; secret_hash: string; granted_scopes: string[]; expiration_time?: string | null }
+        Returns: Json
+      }
+      revoke_organization_api_key: {
+        Args: { target_org: string; actor_user: string; target_key: string }
+        Returns: boolean
+      }
+      reserve_invoice_number: {
+        Args: { target_org: string; actor_user: string; invoice_year: number }
+        Returns: string
+      }
       claim_invoice_email: {
         Args: { target_org: string; actor_user: string; target_invoice: string; send_purpose: string; action_id: string | null; payload_hash: string }
         Returns: Json
@@ -2527,3 +2563,15 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+// Service-only integration credential and request records.
+type OrganizationApiKeyRow = {
+  id: string; organization_id: string; name: string; key_prefix: string; key_hash: string;
+  scopes: string[]; created_by: string; created_at: string; last_used_at: string | null;
+  expires_at: string | null; revoked_at: string | null; request_limit: number;
+  rate_window_started_at: string; rate_window_count: number;
+}
+type ApiKeyRequestRow = {
+  id: string; organization_id: string; key_id: string; request_id: string; method: string;
+  path: string; status: number; duration_ms: number; created_at: string;
+}

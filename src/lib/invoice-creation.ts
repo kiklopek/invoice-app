@@ -26,6 +26,8 @@ export type CreationItem = {
   unit_price: string;
   discount: string;
   vat_rate: number | null;
+  /** Omitted means the established net-price entry mode. */
+  price_mode?: "net" | "gross";
 };
 export type CreationDraft = {
   version: 1;
@@ -113,8 +115,8 @@ export function isCreationVatRate(value: unknown): value is number {
   );
 }
 
-/** Price entry is net, quantities have six decimals, prices four. Round net once per
- * line; round VAT per rate and allocate haléře by largest remainder, stable by row. */
+/** Quantities have six decimals, prices four. Round the entered amount once per
+ * line, compute VAT per rate/mode and allocate haléře by largest remainder. */
 export function calculateCreation(
   items: CreationItem[],
   vatPayer: boolean,
@@ -129,10 +131,12 @@ export function calculateCreation(
     if (quantity <= 0 || quantity > 1_000_000_000_000n)
       throw new InvoiceCreationError("Množství musí být větší než nula a nejvýše 1 000 000.");
     if (discount > 10000n) throw new InvoiceCreationError("Sleva musí být mezi 0 a 100 %.");
-    if (vatPayer && !isCreationVatRate(item.vat_rate))
+    if (vatPayer && item.vat_rate !== null && !isCreationVatRate(item.vat_rate))
       throw new InvoiceCreationError(
         "Sazba DPH musí být od 0 do 100 % s nejvýše dvěma desetinnými místy.",
       );
+    if (item.price_mode !== undefined && item.price_mode !== "net" && item.price_mode !== "gross")
+      throw new InvoiceCreationError("Neplatný způsob zadání ceny.");
     const original = rounded(quantity * price, 100_000_000n);
     const net = rounded(
       quantity * price * (10000n - discount),
@@ -140,31 +144,35 @@ export function calculateCreation(
     );
     major(net);
     discounts += original - net;
-    return { item, net, rate: vatPayer ? item.vat_rate : null, tax: 0n };
+    return { item, net, entered: net, mode: item.price_mode ?? "net", rate: vatPayer ? item.vat_rate : null, tax: 0n };
   });
-  const breakdown = [...new Set(prepared.map((line) => line.rate))].map(
-    (rate) => {
-      const lines = prepared.filter((line) => line.rate === rate);
-      const net = lines.reduce((sum, line) => sum + line.net, 0n);
-      const rateMinor = BigInt(Math.round((rate ?? 0) * 100));
-      const tax = rounded(net * rateMinor, 10000n);
-      let allocated = 0n;
-      for (const line of lines) {
-        line.tax = (line.net * rateMinor) / 10000n;
-        allocated += line.tax;
-      }
-      const byRemainder = [...lines].sort((a, b) =>
-        Number(((b.net * rateMinor) % 10000n) - ((a.net * rateMinor) % 10000n)),
-      );
-      for (let i = 0; i < Number(tax - allocated); i++) byRemainder[i].tax++;
-      return {
-        rate,
-        net: major(net),
-        tax: major(tax),
-        gross: major(net + tax),
-      };
-    },
-  );
+  // Gross and net entries use their own rounding base. The public API supplies
+  // gross entries throughout; existing web drafts remain net by default.
+  const groups = [...new Set(prepared.map((line) => `${line.rate}:${line.mode}`))];
+  for (const key of groups) {
+    const lines = prepared.filter((line) => `${line.rate}:${line.mode}` === key);
+    const { rate, mode } = lines[0];
+    const amount = lines.reduce((sum, line) => sum + line.entered, 0n);
+    const rateMinor = BigInt(Math.round((rate ?? 0) * 100));
+    const divisor = mode === "gross" ? 10000n + rateMinor : 10000n;
+    const tax = rounded(amount * rateMinor, divisor);
+    let allocated = 0n;
+    for (const line of lines) {
+      line.tax = (line.entered * rateMinor) / divisor;
+      allocated += line.tax;
+    }
+    const byRemainder = [...lines].sort((a, b) =>
+      Number(((b.entered * rateMinor) % divisor) - ((a.entered * rateMinor) % divisor)),
+    );
+    for (let i = 0; i < Number(tax - allocated); i++) byRemainder[i].tax++;
+    if (mode === "gross") for (const line of lines) line.net = line.entered - line.tax;
+  }
+  const breakdown = [...new Set(prepared.map((line) => line.rate))].map((rate) => {
+    const lines = prepared.filter((line) => line.rate === rate);
+    const net = lines.reduce((sum, line) => sum + line.net, 0n);
+    const tax = lines.reduce((sum, line) => sum + line.tax, 0n);
+    return { rate, net: major(net), tax: major(tax), gross: major(net + tax) };
+  });
   const net = prepared.reduce((sum, line) => sum + line.net, 0n),
     tax = prepared.reduce((sum, line) => sum + line.tax, 0n);
   return {
@@ -275,7 +283,8 @@ export function parseCreationDraft(value: unknown): CreationDraft {
         str(i.unit, 20) &&
         str(i.unit_price, 24) &&
         str(i.discount, 10) &&
-        (i.vat_rate === null || isCreationVatRate(i.vat_rate)),
+        (i.vat_rate === null || isCreationVatRate(i.vat_rate)) &&
+        (i.price_mode === undefined || i.price_mode === "net" || i.price_mode === "gross"),
     ) ||
     (d.attachment !== null &&
       (!d.attachment ||
@@ -311,6 +320,7 @@ export function parseCreationDraft(value: unknown): CreationDraft {
       unit_price: i.unit_price,
       discount: i.discount,
       vat_rate: i.vat_rate,
+      ...(i.price_mode ? { price_mode: i.price_mode } : {}),
     })),
     public_note: d.public_note.trim(),
     internal_note: d.internal_note.trim(),
@@ -507,6 +517,14 @@ export function creationPreview(
     internal_note: "",
     attachment: null,
   };
+}
+
+/** A shared heading for persisted net/gross unit prices in HTML and PDF. */
+export function creationPriceHeading(lines: CreationItem[], vatPayer: boolean) {
+  if (!vatPayer) return "Cena/MJ";
+  if (lines.every((line) => line.price_mode === "gross")) return "Cena/MJ s DPH";
+  if (lines.every((line) => line.price_mode !== "gross")) return "Cena/MJ bez DPH";
+  return "Cena/MJ";
 }
 
 /** Unit prices retain all entered decimals; only line totals round to cents. */

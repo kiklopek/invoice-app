@@ -7,6 +7,7 @@ import { CompanyLogo } from "@/components/company-logo";
 import {
   publicInvoiceDocument,
   creationUnitPrice,
+  creationPriceHeading,
   type IssuedInvoiceDocument,
 } from "@/lib/invoice-creation";
 import { exactMoney } from "@/lib/money-display";
@@ -118,7 +119,7 @@ export function InvoiceDocument({
               <th scope="col">Položka</th>
               <th scope="col">Množství</th>
               <th scope="col">
-                {model.supplier.vat_payer ? "Cena/MJ bez DPH" : "Cena/MJ"}
+                {creationPriceHeading(model.totals.lines, model.supplier.vat_payer)}
               </th>
               <th scope="col">
                 {model.supplier.vat_payer ? "Celkem s DPH" : "Celkem"}
@@ -132,8 +133,9 @@ export function InvoiceDocument({
                   <strong>{line.description || "Název položky"}</strong>
                   <div className={styles.lineDetails}>
                     {model.supplier.vat_payer && (
-                      <span>DPH {line.vat_rate} %</span>
+                      <span>{line.vat_rate === null ? "Nepodléhá DPH" : `DPH ${line.vat_rate} %`}</span>
                     )}
+                    {model.supplier.vat_payer && creationPriceHeading(model.totals.lines, true) === "Cena/MJ" && <span>{line.price_mode === "gross" ? "Cena s DPH" : "Cena bez DPH"}</span>}
                     {Number(line.discount.replace(",", ".")) > 0 && (
                       <span>Sleva {line.discount} %</span>
                     )}
@@ -144,7 +146,7 @@ export function InvoiceDocument({
                 </td>
                 <td
                   data-label={
-                    model.supplier.vat_payer ? "Cena/MJ bez DPH" : "Cena/MJ"
+                    creationPriceHeading(model.totals.lines, model.supplier.vat_payer)
                   }
                 >
                   {creationUnitPrice(line.unit_price, model.currency)}
@@ -170,7 +172,7 @@ export function InvoiceDocument({
             </div>
             {model.totals.breakdown.map((row) => (
               <div key={row.rate}>
-                <dt>DPH {row.rate} %</dt>
+                <dt>{row.rate === null ? "Nepodléhá DPH" : `DPH ${row.rate} %`}</dt>
                 <dd>{exactMoney(row.tax, model.currency)}</dd>
               </div>
             ))}

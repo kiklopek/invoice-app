@@ -20,6 +20,7 @@ import type {
 import { apiFetch } from "@/lib/api-client";
 import { validateCompanyFields } from "@/lib/company-validation";
 import { BankAccountsSection } from "./bank-accounts-section";
+import { ApiKeysSection } from "./api-keys-section";
 import { Icon } from "@/components/icons";
 import { companySettingsDraftKey } from "@/lib/company-settings-draft";
 
@@ -609,6 +610,8 @@ export function SettingsClient({
             </footer>
           )}
         </section>
+        {canAdminister && members.some((member) => member.current && !member.support_until)
+          ? <ApiKeysSection canEdit /> : null}
       {canAdminister && (
         <>
           <div className="access-settings-grid">

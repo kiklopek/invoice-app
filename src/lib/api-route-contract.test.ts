@@ -39,6 +39,7 @@ const RAW_MESSAGE_EXEMPT: Record<string, string> = {
 };
 
 const IDENTITY_EXEMPT: Record<string, string> = {
+  "/api/v1/openapi": "Veřejná statická smlouva OpenAPI; žádná firemní data ani mutace.",
   "/api/auth/register": "Veřejná registrace: rate limit IP/e-mail, nativní jednorázový signup OTP a kontrola originu.",
   "/api/auth/logout": "Odhlášení musí projít i s už neplatnou identitou.",
   "/api/auth/registration-access": "Veřejné, chráněné rate limitem na IP i e-mail.",
@@ -62,6 +63,9 @@ describe("smlouva API rout", () => {
     const offenders = files.filter(file => {
       const source = read(file);
       if (!MUTATING.test(source)) return false;
+      // Machine-to-machine routes authenticate a scoped bearer API key in the
+      // shared boundary. They never accept browser cookies as authorization.
+      if (routePath(file).startsWith("/api/v1/") && /publicApi\(request, "[a-z]+:(?:read|write|send)"/.test(source)) return false;
       if (routePath(file) in CSRF_EXEMPT) return false;
       return !source.includes("isSameOriginMutation");
     });
@@ -72,6 +76,7 @@ describe("smlouva API rout", () => {
     const offenders = files.filter(file => {
       const source = read(file);
       if (routePath(file) in IDENTITY_EXEMPT) return false;
+      if (routePath(file).startsWith("/api/v1/") && /publicApi\(request, "[a-z]+:(?:read|write|send)"/.test(source)) return false;
       // getAuthenticatedSession: ověřený účet bez firmy (2FA, onboarding).
       // getOperatorSession: provozovatel Splatna (ověřená 2FA + seznam e-mailů).
       return !source.includes("getRequestIdentity") && !source.includes("getAuthenticatedSession") && !source.includes("getOperatorSession");
