@@ -304,6 +304,21 @@ import {
   supplier as issuedSupplier,
 } from "@/test/invoice-creation-fixtures";
 describe("issued itemized invoice PDFs", () => {
+  it("labels gross shop prices and non-taxable items without presenting them as net prices", async () => {
+    const draft = issuedFixture();
+    draft.items = [
+      { ...draft.items[0], unit_price: "1500", vat_rate: 12, price_mode: "gross" },
+      { ...draft.items[0], id: "deposit", description: "Vratná záloha", unit_price: "800", vat_rate: null, price_mode: "gross" },
+    ];
+    const snapshot = creationDocument(draft, issuedSupplier);
+    const pdf = await getDocumentProxy(await generateInvoicePdf({ ...fixtureInvoice, ...creationInput(snapshot) }, fixtureCompany));
+    const content = await (await pdf.getPage(1)).getTextContent();
+    const text = content.items.filter(item => "str" in item).map(item => "str" in item ? item.str : "").join(" ");
+    expect(text).toContain("Cena/MJ s DPH");
+    expect(text).toContain("Nepodléhá DPH");
+    expect(text).not.toContain("DPH null");
+    expect(text).not.toContain("Cena/MJ bez DPH");
+  });
   it("uses A4 with actual-size print preferences and safe content margins", async () => {
     const snapshot = creationDocument(issuedFixture(), issuedSupplier);
     const bytes = await generateInvoicePdf({ ...fixtureInvoice, ...creationInput(snapshot) }, fixtureCompany);

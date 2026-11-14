@@ -1,0 +1,38 @@
+.panel { min-width: 0; border: 1px solid var(--line); background: var(--paper); }
+.header { padding: clamp(20px, 3vw, 28px); border-bottom: 1px solid var(--line); }
+.header h2 { margin: 0; font-size: 20px; }
+.header p, .description { color: var(--muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.header p { margin: 8px 0 0; max-width: 72ch; }
+.content { display: grid; gap: 22px; padding: clamp(20px, 3vw, 28px); min-width: 0; }
+.content > p { margin: 0; }
+.list { display: grid; gap: 0; list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.list li:first-child { padding-top: 0; }
+.list li > button { flex-shrink: 0; }
+.keyInfo { display: grid; gap: 6px; min-width: 0; }
+.keyInfo strong, .keyInfo small { overflow-wrap: anywhere; }
+.keyInfo small { color: var(--muted); line-height: 1.5; font-size: 12px; }
+.keyInfo code { width: fit-content; color: var(--ink); font-size: 12px; overflow-wrap: anywhere; }
+.keyHeading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.badge { display: inline-flex; padding: 3px 8px; border: 1px solid var(--line); border-radius: 20px; color: var(--muted); font-size: 11px; }
+.form h3 { margin: 0 0 16px; font-size: 15px; }
+.form > fieldset { display: grid; gap: 18px; }
+.form fieldset { min-width: 0; margin: 0; border: 0; padding: 0; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fields label { display: grid; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; }
+.fields input, .secret input { min-width: 0; width: 100%; }
+.scopes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.scopes legend { margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+.scopes label { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 1.5; min-height: 30px; }
+.scopes input { width: 17px; height: 17px; flex: none; accent-color: var(--green); }
+.form .description { margin: 0; }
+.form button { justify-self: start; }
+.secret { padding: 18px; border: 1px solid var(--green); background: var(--green-soft); border-radius: 12px; display: grid; gap: 12px; min-width: 0; }
+.secret p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.secret input { font-family: monospace; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 640px) {
+  .fields, .scopes { grid-template-columns: 1fr; }
+  .list li { align-items: flex-start; flex-direction: column; }
+  .actions > button { flex: 1 1 100%; }
+}

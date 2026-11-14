@@ -72,10 +72,15 @@ const CONVERTED = [
   "src/app/api/invoices/[id]/assignable-payments/route.ts",
 ];
 
+// The browser route keeps auth and CSRF. Delivery and error handling now live
+// in a shared service also used by machine clients; follow that implementation.
+const convertedSource = (path: string) => readFileSync(join(process.cwd(), path), "utf8") +
+  (path === "src/app/api/invoices/[id]/send/route.ts" ? readFileSync(join(process.cwd(), "src/lib/invoice-send-server.ts"), "utf8") : "");
+
 describe("dohledatelnost chyb 5xx", () => {
   it("převedené routy nevracejí holou chybu 5xx bez request_id", () => {
     for (const path of CONVERTED) {
-      const source = readFileSync(join(process.cwd(), path), "utf8");
+      const source = convertedSource(path);
       // Holý NextResponse.json se status 500 znamená odpověď bez request_id.
       expect(source, `${path} vrací 5xx mimo apiError()`).not.toMatch(/status:\s*5\d\d/);
       expect(source, `${path} nepoužívá apiError()`).toContain("apiError(");
@@ -86,7 +91,7 @@ describe("dohledatelnost chyb 5xx", () => {
   it("každé apiError() v nich má vedle sebe zápis do logu", () => {
     for (const path of CONVERTED) {
       // Komentáře se odstraňují, jinak by se počítaly i zmínky v nich.
-      const source = readFileSync(join(process.cwd(), path), "utf8")
+      const source = convertedSource(path)
         .split("\n").filter(line => !line.trim().startsWith("//")).join("\n");
       const errors = (source.match(/apiError\(/g) ?? []).length;
       const logs = (source.match(new RegExp(`${logFunctionName(source)}\\(`, "g")) ?? []).length;

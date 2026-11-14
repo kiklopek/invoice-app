@@ -22,8 +22,9 @@ import { isBlockedReminderRecipient } from "@/lib/reminder-recipient-policy";
 import { lookupAresSubject } from "@/lib/ares";
 import { companyNamesAgree } from "@/lib/invoice-ocr-registry";
 
-import { CREATION_COMPANY_FIELDS, creationSupplier, prepareCreation, sameCreation, creationRequest } from "@/lib/invoice-creation-server";
-import { InvoiceCreationError, issuedDocument, type IssuedInvoiceDocument } from "@/lib/invoice-creation";
+import { CREATION_COMPANY_FIELDS } from "@/lib/invoice-creation-server";
+import { issueCreation, InvoiceIssueError } from "@/lib/invoice-issue-server";
+import { InvoiceCreationError, issuedDocument } from "@/lib/invoice-creation";
 
 const EXPORT_PAGE_SIZE = 500;
 const MAX_EXPORT_ROWS = 20_000;
@@ -224,7 +225,7 @@ export async function POST(request: Request) {
       { status: 403 },
     );
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
-  let input = parseInvoiceInput(body);
+  const input = parseInvoiceInput(body);
   const creating = body?.creation !== undefined;
   if (!input && !creating) {
     return NextResponse.json(
@@ -240,7 +241,8 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-  const subscriptionBlocked = await subscriptionBlock(identity);
+  // Shared issuance checks its own allowance after idempotent replay lookup.
+  const subscriptionBlocked = creating ? null : await subscriptionBlock(identity);
   if (subscriptionBlocked) return subscriptionBlocked;
   if (!canManageInvoices(identity.membership.role)) {
     return NextResponse.json(
@@ -249,6 +251,16 @@ export async function POST(request: Request) {
     );
   }
 
+  if (creating) {
+    try {
+      const result = await issueCreation(identity, body!.creation);
+      return NextResponse.json({ invoice: result.invoice, ...(result.replayed ? { replayed: true } : {}), ...(result.refresh_required ? { refresh_required: true } : {}) }, { status: result.replayed ? 200 : 201 });
+    } catch (cause) {
+      if (cause instanceof InvoiceCreationError && cause.status < 500) return NextResponse.json({ error: cause.message, ...(cause instanceof InvoiceIssueError ? { code: cause.code, ...cause.details } : {}) }, { status: cause.status });
+      logError("Vystavení faktury se nepodařilo dokončit", cause, { request_id: requestId(request) });
+      return apiError(request, "Vystavení faktury se nepodařilo dokončit.", cause instanceof InvoiceIssueError ? cause.status : 503, cause instanceof InvoiceIssueError ? cause.code : "invoice_creation_failed");
+    }
+  }
   const organizationId = identity.membership.organization_id;
   const { data: issuer, error: issuerError } = await identity.service.from("organizations")
     .select(CREATION_COMPANY_FIELDS)
@@ -256,27 +268,6 @@ export async function POST(request: Request) {
   if (issuerError || !issuer) {
     logError("Firemní údaje pro ověření příjemce upomínky se nepodařilo načíst", issuerError, { request_id: requestId(request) });
     return apiError(request, "Firemní údaje se nepodařilo ověřit.", 503, "invoice_issuer_read_failed");
-  }
-  let creation: IssuedInvoiceDocument | null = null;
-  if (creating) {
-    try {
-      const { draft, hash } = creationRequest(body!.creation);
-      const { data: replay, error: replayError } = await identity.service.from("invoices").select("*")
-        .eq("id", draft.request_id).eq("organization_id", organizationId).maybeSingle();
-      if (replayError) {
-        logError("Vystavení faktury se nepodařilo ověřit", replayError, { request_id: requestId(request) });
-        return apiError(request, "Vystavení faktury se nepodařilo ověřit.", 503, "invoice_replay_failed");
-      }
-      if (replay) return sameCreation(issuedDocument(replay), draft.request_id, hash)
-        ? NextResponse.json({ invoice: replay, replayed: true }, { status: 200 })
-        : NextResponse.json({ error: "Tento požadavek už vystavil jiný doklad. Otevřete uloženou fakturu." }, { status: 409 });
-      const prepared = await prepareCreation(draft, creationSupplier(issuer), identity);
-      input = prepared.input; creation = prepared.document;
-    } catch (cause) {
-      if (cause instanceof InvoiceCreationError && cause.status < 500) return NextResponse.json({ error: cause.message }, { status: cause.status });
-      logError("Vystavení faktury se nepodařilo připravit", cause, { request_id: requestId(request) });
-      return apiError(request, "Vystavení faktury se nepodařilo připravit.", 503, "invoice_creation_failed");
-    }
   }
   if (!input) return NextResponse.json({ error: "Neplatná faktura." }, { status: 400 });
   if (isBlockedReminderRecipient(input.counterparty_email, issuer)) {
@@ -331,12 +322,11 @@ export async function POST(request: Request) {
     );
   const reminderDays = selectedPolicy.days_from_due ?? [-3, 0, 7, 14];
 
-  const paymentAccount = ownInvoiceAccount(creation ? creation.payment_account : body?.payment_account, input.currency, issuer, issuer.bank_accounts ?? []);
+  const paymentAccount = ownInvoiceAccount(body?.payment_account, input.currency, issuer, issuer.bank_accounts ?? []);
   const { data, error } = await identity.service
     .from("invoices")
     .insert({
       ...input,
-      ...(creation ? { id: creation.request_id, customer_id: creation.customer_id || null, ...(input.counterparty_email ? {} : { reminders_paused: true, reminders_paused_at: new Date().toISOString(), reminders_paused_by: identity.user.id }) } : {}),
       file_url: input.file_url ?? null,
       // Účet nalezený na PDF faktury (OCR) -- jen když patří firmě a je v měně
       // faktury. PDF, QR a upomínky pak platí na něj (invoicePaymentAccount).
@@ -347,7 +337,7 @@ export async function POST(request: Request) {
       reminder_days_snapshot: reminderDays,
       reminder_plan_effective_from: null,
       next_reminder_at:
-        selectedPolicy.is_active === false || (creation && !input.counterparty_email)
+        selectedPolicy.is_active === false
           ? null
           : initialNextReminderAt(
               input.due_date,
@@ -360,10 +350,6 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    if (creation && error.code === "23505") {
-      const { data: concurrent } = await identity.service.from("invoices").select("*").eq("organization_id", organizationId).eq("id", creation.request_id).maybeSingle();
-      if (concurrent && sameCreation(issuedDocument(concurrent), creation.request_id, creation.request_hash)) return NextResponse.json({ invoice: concurrent, replayed: true }, { status: 200 });
-    }
     const blocked = subscriptionErrorResponse(error);
     if (blocked) return blocked;
     if (error.code === "23505") return NextResponse.json({ error: "Číslo faktury nebo přiložený dokument už je evidován." }, { status: 409 });

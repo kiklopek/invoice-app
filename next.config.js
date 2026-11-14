@@ -57,6 +57,8 @@ const nextConfig = {
     "/og/[locale]": ["./assets/fonts/LiberationSans-Bold.ttf"],
     "/api/invoices/extract": ocrRuntimeFiles,
     "/api/invoices/[id]/pdf": invoicePdfFonts,
+    "/api/v1/invoices/[id]/pdf": invoicePdfFonts,
+    "/api/v1/invoices/[id]/send": invoicePdfFonts,
     "/api/invoices/creation/preview": invoicePdfFonts,
     "/api/reports/pdf": invoicePdfFonts,
     "/api/invoices/[id]/send": invoicePdfFonts,

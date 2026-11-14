@@ -13,6 +13,7 @@ import QRCode from "qrcode";
 import {
   publicInvoiceDocument,
   creationUnitPrice,
+  creationPriceHeading,
   type IssuedInvoiceDocument,
 } from "./invoice-creation";
 import { exactMoney } from "./money-display";
@@ -233,7 +234,7 @@ export async function generateIssuedInvoicePdf(
     [
       "Položka",
       "Množství",
-      model.supplier.vat_payer ? "Cena/MJ bez DPH" : "Cena/MJ",
+      creationPriceHeading(model.totals.lines, model.supplier.vat_payer),
       model.supplier.vat_payer ? "Celkem s DPH" : "Celkem",
     ].forEach((value, i) =>
       block(
@@ -261,7 +262,8 @@ export async function generateIssuedInvoicePdf(
       wrap(exactMoney(item.gross, model.currency), columns[3].width, 10, bold),
     ];
     const meta = [
-      model.supplier.vat_payer ? `DPH ${item.vat_rate} %` : "",
+      model.supplier.vat_payer ? item.vat_rate === null ? "Nepodléhá DPH" : `DPH ${item.vat_rate} %` : "",
+      model.supplier.vat_payer && creationPriceHeading(model.totals.lines, true) === "Cena/MJ" ? item.price_mode === "gross" ? "Cena s DPH" : "Cena bez DPH" : "",
       Number(item.discount.replace(",", ".")) ? `Sleva ${item.discount} %` : "",
     ]
       .filter(Boolean)
@@ -306,7 +308,7 @@ export async function generateIssuedInvoicePdf(
     ? [
         ["Celkem bez DPH", exactMoney(model.totals.net, model.currency)],
         ...model.totals.breakdown.map((row) => [
-          `DPH ${row.rate} % ze základu ${exactMoney(row.net, model.currency)}`,
+          `${row.rate === null ? "Nepodléhá DPH" : `DPH ${row.rate} %`} ze základu ${exactMoney(row.net, model.currency)}`,
           exactMoney(row.tax, model.currency),
         ]),
       ]
