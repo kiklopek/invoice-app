@@ -1,0 +1,126 @@
+{
+  "engine": "PostgreSQL 17, isolated local Docker container",
+  "network": "none",
+  "migrations": [
+    "20260808000000_baseline_schema.sql",
+    "20260915095449_add_bank_statement_imports.sql",
+    "20260915095546_index_bank_statement_foreign_keys.sql",
+    "20260916000000_unify_payment_ledger.sql",
+    "20260916010000_remember_reminder_policy_for_all_sources.sql",
+    "20260917000000_customers_registry.sql",
+    "20260917010000_fix_reminder_settings_expected_event_default.sql",
+    "20260917020000_payment_reconciliation_summary.sql",
+    "20260918111705_robust_reconciliation.sql",
+    "20260918150000_learn_statement_account_identity.sql",
+    "20260918160000_automation_after_acknowledged_mismatch.sql",
+    "20260918170000_phase1_matching_rules.sql",
+    "20260918180000_name_amount_auto_match.sql",
+    "20260918200000_mismatch_stops_blocking_automation.sql",
+    "20260918210000_name_combination_auto_match.sql",
+    "20260918220000_single_engine_version.sql",
+    "20260918230000_release_statement_entry.sql",
+    "20260919094355_expand_dashboard_scroll_lists.sql",
+    "20260919124500_customer_registry_no_duplicates.sql",
+    "20260919133000_reconciliation_integrity_guards.sql",
+    "20260919140000_dashboard_action_items.sql",
+    "20260919150000_organization_ico_format.sql",
+    "20260920090000_tolerate_rounding_adjustment.sql",
+    "20260920121948_report_vat_dso_yoy_breakdown.sql",
+    "20260920140111_gpc_account_checksum_unverified.sql",
+    "20260920140127_reconciliation_mismatch_visibility.sql",
+    "20260922175732_invoice_emailed_event.sql",
+    "20260922175746_discard_bank_statement_import.sql",
+    "20260924102621_contextual_invoice_ocr.sql",
+    "20260930195017_gpc_unrelated_rows.sql",
+    "20261001235711_customer_ares_address_contact_guard.sql",
+    "20261003101756_payment_assistance.sql",
+    "20261003103140_camt_statement_evidence.sql",
+    "20261003152613_release_security_permissions.sql",
+    "20261005103634_customer_email_edit.sql",
+    "20261005113440_accept_invoice_total_without_adjustment_confirmation.sql",
+    "20261007124800_organization_onboarding.sql",
+    "20261007125359_billing_and_verification.sql",
+    "20261007125410_company_logos.sql",
+    "20261007132631_auth_rate_limit_actions.sql",
+    "20261009120000_stripe_subscriptions.sql",
+    "20261010120000_tenant_isolation_guards.sql",
+    "20261010121000_billing_exempt.sql",
+    "20261010122000_auto_booking_per_organization.sql",
+    "20261010123000_organization_bank_accounts.sql",
+    "20261010124000_statement_bank_dialect.sql",
+    "20261010125000_support_sessions.sql",
+    "20261010126000_fair_reminder_queue.sql",
+    "20261010127000_vat_payer.sql",
+    "20261012120000_invoice_payment_account.sql",
+    "20261012233239_comprehensive_search.sql",
+    "20261015142246_registration_otp_rate_limits.sql",
+    "20261015181557_onboarding_drafts.sql",
+    "20261022221912_subscription_monthly_usage.sql",
+    "20261023210625_notification_system.sql",
+    "20261025141958_dashboard_snapshot.sql",
+    "20261025194356_invoice_creation_document.sql",
+    "20261026101041_financial_report_snapshot.sql",
+    "20261026155203_invoice_email_delivery_guard.sql",
+    "20261109212631_phase0_anon_hardening.sql",
+    "20261109233000_f1a_fk_indexes_retention.sql",
+    "20261110000000_f1b_audit_events.sql",
+    "20261110010000_f2_payment_ledger_shadow.sql",
+    "20261110020000_f3_invoice_customer_expand.sql",
+    "20261110030000_f4_jobs_queue.sql",
+    "20261110040000_f5_drop_dead_invoice_policies.sql",
+    "20261114160914_organization_public_api.sql",
+    "20261114161541_public_api_customers.sql",
+    "20261114161707_api_invoice_reminders.sql"
+  ],
+  "sqlTests": [
+    {
+      "name": "public_api.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "public_api_customers.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "api_invoice_reminders.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "api_payments_page.sql",
+      "status": "PASS"
+    }
+  ],
+  "concurrency": {
+    "invoiceNumbers": {
+      "status": "PASS",
+      "connections": 2,
+      "backendPids": [
+        612,
+        611
+      ],
+      "numbers": [
+        "FV-2026-000001",
+        "FV-2026-000002"
+      ],
+      "lastNumber": 2
+    },
+    "customerCreation": {
+      "status": "PASS",
+      "connections": 2,
+      "backendPids": [
+        639,
+        638
+      ],
+      "sameCustomerId": true,
+      "replayCount": 1,
+      "customerCount": 1,
+      "requestCount": 1
+    }
+  },
+  "version": "PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+  "status": "PASS",
+  "source": "/tmp/splatno-api-current",
+  "sourceCommit": "a1d8dd1",
+  "cleanup": "Own --rm container stopped and removal confirmed",
+  "bootstrap": "Stub Auth/Storage schemas, managed Supabase public default privileges, pg_cron loaded for retention migration"
+}

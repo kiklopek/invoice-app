@@ -48,7 +48,9 @@ describe("povolené události faktury", () => {
     // reminder_log má unique (invoice_id, stage, scheduled_for) a plánovač
     // podle něj rozhoduje, zda fázi už vyřídil. Ruční záznam by tam obsadil
     // slot naplánované upomínky a ta by tiše neodešla.
-    const send = readFileSync(join(process.cwd(), "src", "app", "api", "invoices", "[id]", "send", "route.ts"), "utf8");
+    const route = readFileSync(join(process.cwd(), "src", "app", "api", "invoices", "[id]", "send", "route.ts"), "utf8");
+    expect(route).toContain("sendInvoiceEmail(request, identity, id)");
+    const send = readFileSync(join(process.cwd(), "src", "lib", "invoice-send-server.ts"), "utf8");
     expect(send).toContain("invoice_events");
     expect(send).not.toContain("reminder_log");
   });

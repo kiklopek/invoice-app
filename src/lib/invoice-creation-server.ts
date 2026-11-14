@@ -48,7 +48,7 @@ export function creationRequest(value: unknown) {
 export async function prepareCreation(
   value: unknown,
   supplier: InvoiceSupplier,
-  identity: RequestIdentity,
+  identity: { service: RequestIdentity["service"]; membership: { organization_id: string } },
 ) {
   const { draft, hash } = creationRequest(value);
   if (draft.customer_id) {

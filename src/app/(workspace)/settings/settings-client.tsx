@@ -20,6 +20,7 @@ import type {
 import { apiFetch } from "@/lib/api-client";
 import { validateCompanyFields } from "@/lib/company-validation";
 import { BankAccountsSection } from "./bank-accounts-section";
+import { ApiKeysSection } from "./api-keys-section";
 import { Icon } from "@/components/icons";
 import { companySettingsDraftKey } from "@/lib/company-settings-draft";
 
@@ -743,6 +744,8 @@ export function SettingsClient({
               </aside>
             </MobileDisclosure>
           </div>
+          {members.some((member) => member.current && !member.support_until)
+            ? <ApiKeysSection canEdit /> : null}
           <details className="page-panel access-history-disclosure">
             <summary>
               <span>

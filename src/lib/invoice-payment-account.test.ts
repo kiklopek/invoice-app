@@ -131,6 +131,8 @@ describe("zapojení", () => {
 
   it("nová faktura uloží jen účet firmy v měně faktury", () => {
     const route = source("src/app/api/invoices/route.ts");
-    expect(route).toContain("ownInvoiceAccount(creation ? creation.payment_account : body?.payment_account, input.currency");
+    expect(route).toContain("ownInvoiceAccount(body?.payment_account, input.currency");
+    const issuance = source("src/lib/invoice-issue-server.ts");
+    expect(issuance).toContain("ownInvoiceAccount(document.payment_account, input.currency");
   });
 });
